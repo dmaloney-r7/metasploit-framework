@@ -5970,8 +5970,9 @@ class DBManager
 				address, scope = host.split('%', 2)
 				norm_host = address
 			else
-				# If we somehow get a CIDR notation, strip it off and try to do our best
-				host.gsub!(/\/\d{1,2}$/,'')
+				# If we somehow get a CIDR notation that indicates a single host,
+				# strip it off and try to do our best
+				host.gsub!(/\/32$/,'')
 
 				# If it's an IPv4 addr with a port on the end, strip the port
 				if host =~ /((\d{1,3}\.){3}\d{1,3}):\d+/

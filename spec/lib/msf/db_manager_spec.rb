@@ -1840,9 +1840,16 @@ describe Msf::DBManager do
           db_manager.normalize_host("#{ipv4_addr}:80").should == ipv4_addr
         end
 
-        it 'should strip off trailing CIDR ranges' do
-          db_manager.normalize_host("#{ipv4_addr}/24").should == ipv4_addr
+        it 'should strip off trailing CIDR range of /32' do
+          db_manager.normalize_host("#{ipv4_addr}/32").should == ipv4_addr
         end
+
+       it 'should raise with a non-/32 CIDR range' do
+         expect {
+           db_manager.normalize_host("#{ipv4_addr}/24")
+         }.to raise_error(SocketError, "getaddrinfo: Name or service not known")
+        end
+
       end
 
       context 'of an ipv6 address' do

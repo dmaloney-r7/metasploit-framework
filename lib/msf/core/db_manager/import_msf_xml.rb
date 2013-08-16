@@ -221,7 +221,13 @@ module Msf
 						end
 					}
 					host_address = host_data[:host].dup # Preserve after report_host() deletes
-					hobj = report_host(host_data)
+					begin
+						hobj = report_host(host_data)
+					rescue SocketError # Skip hosts that don't resolve to anything sensible
+						elog("Could not import host: #{host_address}")
+						next
+					end
+
 
 					host.elements.each("host_details/host_detail") do |hdet|
 						hdet_data = {}
