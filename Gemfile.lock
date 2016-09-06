@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    metasploit-framework (4.12.23)
+    metasploit-framework (4.12.24)
       actionpack (~> 4.2.6)
       activerecord (~> 4.2.6)
       activesupport (~> 4.2.6)
@@ -18,6 +18,7 @@ PATH
       metasploit_data_models
       metasploit_payloads-mettle (= 0.0.6)
       msgpack
+      nessus_rest
       net-ssh
       network_interface
       nokogiri
@@ -33,8 +34,10 @@ PATH
       recog
       redcarpet
       rex-arch
+      rex-bin_tools
       rex-core
       rex-java
+      rex-mime
       rex-ole
       rex-powershell
       rex-random_identifier
@@ -181,6 +184,7 @@ GEM
     multi_json (1.12.1)
     multi_test (0.1.2)
     multipart-post (2.0.0)
+    nessus_rest (0.1.4)
     net-ssh (3.2.0)
     network_interface (0.0.1)
     nokogiri (1.6.8)
@@ -229,8 +233,16 @@ GEM
     redcarpet (3.3.4)
     rex-arch (0.1.1)
       rex-text
+    rex-bin_tools (0.1.0)
+      metasm
+      rex-arch
+      rex-core
+      rex-struct2
+      rex-text
     rex-core (0.1.2)
     rex-java (0.1.2)
+    rex-mime (0.1.1)
+      rex-text
     rex-ole (0.1.2)
       rex-text
     rex-powershell (0.1.64)
