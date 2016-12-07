@@ -1,15 +1,15 @@
+# frozen_string_literal: true
 require 'nokogiri'
 require 'ostruct'
 require 'webrick/cookie'
 
 module Anemone
-
   # Path extractor container namespace.
   module Extractors
     class Base
       attr_reader :page
 
-      def initialize( page )
+      def initialize(page)
         @page = page
       end
 
@@ -20,7 +20,6 @@ module Anemone
   end
 
   class Page
-
     # The URL of the page
     attr_reader :url
     # The raw HTTP response body of the page
@@ -73,32 +72,40 @@ module Anemone
     def self.extractors
       return @extractors if @extractors
 
-      lib = File.dirname( __FILE__ ) + '/extractors/*.rb'
-      Dir.glob( lib ).each { |e| require e }
+      lib = File.dirname(__FILE__) + '/extractors/*.rb'
+      Dir.glob(lib).each { |e| require e }
 
       @extractors = Extractors.constants.map do |e|
-          next if e == :Base
-          Extractors.const_get( e )
+        next if e == :Base
+        Extractors.const_get(e)
       end.compact
     end
 
     def run_extractors
-      return [] if !doc
+      return [] unless doc
       self.class.extractors.map do |e|
         next if e == Extractors::Dirbuster && !dirbust?
-        e.new( self ).run rescue next
-      end.flatten.
-          compact.map do |p|
-              abs = to_absolute( URI( p ) ) rescue next
-              !in_domain?( abs ) ? nil : abs
-          end.compact.uniq
+        begin
+          e.new(self).run
+        rescue
+          next
+        end
+      end.flatten
+          .compact.map do |p|
+        abs = begin
+                  to_absolute(URI(p))
+                rescue
+                  next
+                end
+        !in_domain?(abs) ? nil : abs
+      end.compact.uniq
     end
 
     #
     # Array of distinct A tag HREFs from the page
     #
-     # MODIFIED: Dig URLs from elements other than "A" refs
-     #
+    # MODIFIED: Dig URLs from elements other than "A" refs
+    #
     def links
       @links ||= run_extractors
     end
@@ -108,7 +115,11 @@ module Anemone
     #
     def doc
       return @doc if @doc
-      @doc = Nokogiri::HTML(@body) if @body && html? rescue nil
+      begin
+        @doc = Nokogiri::HTML(@body) if @body && html?
+      rescue
+        nil
+      end
     end
 
     #
@@ -131,7 +142,9 @@ module Anemone
     # Array of cookies received with this page as WEBrick::Cookie objects.
     #
     def cookies
-      WEBrick::Cookie.parse_set_cookies(@headers['Set-Cookie']) rescue []
+      WEBrick::Cookie.parse_set_cookies(@headers['Set-Cookie'])
+    rescue
+      []
     end
 
     #
@@ -139,7 +152,7 @@ module Anemone
     #
     def content_type
       res = headers['content-type']
-      res = res.first if res.kind_of?(::Array)
+      res = res.first if res.is_a?(::Array)
       res
     end
 
@@ -156,7 +169,7 @@ module Anemone
     # otherwise.
     #
     def redirect?
-      (300..307).include?(@code)
+      (300..307).cover?(@code)
     end
 
     #
@@ -175,14 +188,14 @@ module Anemone
       return nil if link.nil?
 
       # remove anchor
-      link = URI.encode(link.to_s.gsub(/#[a-zA-Z0-9_-]*$/,''))
+      link = URI.encode(link.to_s.gsub(/#[a-zA-Z0-9_-]*$/, ''))
 
       relative = URI(link)
       absolute = @url.merge(relative)
 
       absolute.path = '/' if absolute.path.empty?
 
-      return absolute
+      absolute
     end
 
     def dirbust?
@@ -206,42 +219,40 @@ module Anemone
     end
 
     def to_hash
-      {'url' => @url.to_s,
-       'headers' => Marshal.dump(@headers),
-       'data' => Marshal.dump(@data),
-       'body' => @body,
-       'links' => links.map(&:to_s),
-       'code' => @code,
-       'visited' => @visited,
-       'depth' => @depth,
-       'referer' => @referer.to_s,
-       'redirect_to' => @redirect_to.to_s,
-       'response_time' => @response_time,
-       'fetched' => @fetched}
+      { 'url' => @url.to_s,
+        'headers' => Marshal.dump(@headers),
+        'data' => Marshal.dump(@data),
+        'body' => @body,
+        'links' => links.map(&:to_s),
+        'code' => @code,
+        'visited' => @visited,
+        'depth' => @depth,
+        'referer' => @referer.to_s,
+        'redirect_to' => @redirect_to.to_s,
+        'response_time' => @response_time,
+        'fetched' => @fetched }
     end
 
     def self.from_hash(hash)
-      page = self.new(URI(hash['url']))
-      {'@headers' => Marshal.load(hash['headers']),
-       '@data' => Marshal.load(hash['data']),
-       '@body' => hash['body'],
-       '@links' => hash['links'].map { |link| URI(link) },
-       '@code' => hash['code'].to_i,
-       '@visited' => hash['visited'],
-       '@depth' => hash['depth'].to_i,
-       '@referer' => hash['referer'],
-       '@redirect_to' => URI(hash['redirect_to']),
-       '@response_time' => hash['response_time'].to_i,
-       '@fetched' => hash['fetched']
-      }.each do |var, value|
+      page = new(URI(hash['url']))
+      { '@headers' => Marshal.load(hash['headers']),
+        '@data' => Marshal.load(hash['data']),
+        '@body' => hash['body'],
+        '@links' => hash['links'].map { |link| URI(link) },
+        '@code' => hash['code'].to_i,
+        '@visited' => hash['visited'],
+        '@depth' => hash['depth'].to_i,
+        '@referer' => hash['referer'],
+        '@redirect_to' => URI(hash['redirect_to']),
+        '@response_time' => hash['response_time'].to_i,
+        '@fetched' => hash['fetched'] }.each do |var, value|
         page.instance_variable_set(var, value)
       end
       page
     end
 
     def dup
-    Marshal.load( Marshal.dump( self ) )
+      Marshal.load(Marshal.dump(self))
     end
-
   end
 end

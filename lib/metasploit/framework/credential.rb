@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'active_model'
 
 module Metasploit
@@ -41,31 +42,31 @@ module Metasploit
       attr_accessor :realm_key
 
       validates :paired,
-        inclusion: { in: [true, false] }
+                inclusion: { in: [true, false] }
 
       # If we have no public we MUST have a private (e.g. SNMP Community String)
       validates :private,
-        exclusion: { in: [nil] },
-        if: "public.nil? or paired"
+                exclusion: { in: [nil] },
+                if: "public.nil? or paired"
 
       # These values should be #demodularized from subclasses of
       # `Metasploit::Credential::Private`
       validates :private_type,
-        inclusion: { in: [ :password, :ntlm_hash, :postgres_md5, :ssh_key ] },
-        if: "private_type.present?"
+                inclusion: { in: [ :password, :ntlm_hash, :postgres_md5, :ssh_key ] },
+                if: "private_type.present?"
 
       # If we have no private we MUST have a public
       validates :public,
-        presence: true,
-        if: "private.nil? or paired"
+                presence: true,
+                if: "private.nil? or paired"
 
       # @param attributes [Hash{Symbol => String,nil}]
-      def initialize(attributes={})
+      def initialize(attributes = {})
         attributes.each do |attribute, value|
           public_send("#{attribute}=", value)
         end
 
-        self.paired = true if self.paired.nil?
+        self.paired = true if paired.nil?
       end
 
       def inspect
@@ -74,23 +75,23 @@ module Metasploit
 
       def to_s
         if realm && realm_key == Metasploit::Model::Realm::Key::ACTIVE_DIRECTORY_DOMAIN
-          "#{self.realm}\\#{self.public}:#{self.private}"
-        elsif self.private
-          "#{self.public}:#{self.private}#{at_realm}"
+          "#{realm}\\#{public}:#{private}"
+        elsif private
+          "#{public}:#{private}#{at_realm}"
         else
-          self.public
+          public
         end
       end
 
       def ==(other)
-        other.respond_to?(:public) && other.public == self.public &&
-        other.respond_to?(:private) && other.private == self.private &&
-        other.respond_to?(:realm) && other.realm == self.realm
+        other.respond_to?(:public) && other.public == public &&
+          other.respond_to?(:private) && other.private == private &&
+          other.respond_to?(:realm) && other.realm == realm
       end
 
       def to_credential
         self.parent = self
-        self        
+        self
       end
 
       # This method takes all of the attributes of the {Credential} and spits
@@ -99,19 +100,19 @@ module Metasploit
       # @return [Hash] a hash compatible with #create_credential
       def to_h
         {
-            private_data: private,
-            private_type: private_type,
-            username: public,
-            realm_key: realm_key,
-            realm_value: realm
+          private_data: private,
+          private_type: private_type,
+          username: public,
+          realm_key: realm_key,
+          realm_value: realm
         }
       end
 
       private
 
       def at_realm
-        if self.realm.present?
-          "@#{self.realm}"
+        if realm.present?
+          "@#{realm}"
         else
           ""
         end

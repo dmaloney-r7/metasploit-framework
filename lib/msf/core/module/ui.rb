@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 module Msf::Module::UI
   autoload :Line, 'msf/core/module/ui/line'
   autoload :Message, 'msf/core/module/ui/message'

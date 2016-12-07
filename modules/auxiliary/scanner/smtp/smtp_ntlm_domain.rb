@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::Smtp
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::Scanner
@@ -23,13 +23,14 @@ class MetasploitModule < Msf::Auxiliary
     register_options(
       [
         Opt::RPORT(25),
-        OptString.new('EHLO_DOMAIN', [ true, 'The domain to send with the EHLO command', 'localhost' ]),
-      ], self.class)
+        OptString.new('EHLO_DOMAIN', [ true, 'The domain to send with the EHLO command', 'localhost' ])
+      ], self.class
+    )
 
     deregister_options('MAILTO', 'MAILFROM')
   end
 
-  def run_host(ip)
+  def run_host(_ip)
     begin
       domain = nil
       connect
@@ -49,13 +50,12 @@ class MetasploitModule < Msf::Auxiliary
 
       # Find all NTLM references in the EHLO response
       exts = sock.get_once.to_s.split(/\n/).grep(/NTLM/)
-      if exts.length == 0
+      if exts.empty?
         vprint_error("#{rhost}:#{rport} No NTLM extensions found")
         return
       end
 
       exts.each do |ext|
-
         # Extract the reply minus the first 4 chars (response code + dash)
         e = ext[4..-1].chomp
 
@@ -81,7 +81,7 @@ class MetasploitModule < Msf::Auxiliary
           # Capture the challenge sent by server
           challenge = sock.get_once.to_s.split(/\s+/).last
 
-          if challenge.length == 0
+          if challenge.empty?
             vprint_status("#{rhost}:#{rport} Empty challenge response, aborting...")
             break
           end
@@ -89,14 +89,14 @@ class MetasploitModule < Msf::Auxiliary
           begin
             # Extract the domain out of the NTLM response
             ntlm_reply = Rex::Proto::NTLM::Message.parse(Rex::Text.decode_base64(challenge))
-            if ! ntlm_reply && ntlm_reply.has_key?(:target_name)
+            if !ntlm_reply && ntlm_reply.key?(:target_name)
               vprint_status("#{rhost}:#{rport} Invalid challenge response, aborting...")
               break
             end
 
             # TODO: Extract the server name from :target_info as well
-            domain = ntlm_reply[:target_name].value.to_s.gsub(/\x00/, '')
-            if domain.to_s.length == 0
+            domain = ntlm_reply[:target_name].value.to_s.delete("\u0000")
+            if domain.to_s.empty?
               vprint_status("#{rhost}:#{rport} Invalid target name in challenge response, aborting...")
               break
             end
@@ -112,9 +112,7 @@ class MetasploitModule < Msf::Auxiliary
         end
       end
 
-      if ! domain
-        vprint_error("#{rhost}:#{rport} No NTLM domain found")
-      end
+      vprint_error("#{rhost}:#{rport} No NTLM domain found") unless domain
 
     rescue ::Rex::ConnectionRefused, ::Rex::HostUnreachable, ::Rex::ConnectionTimeout, ::Timeout::Error
       # Ignore common networking and response timeout errors
@@ -122,5 +120,4 @@ class MetasploitModule < Msf::Auxiliary
       disconnect
     end
   end
-
 end

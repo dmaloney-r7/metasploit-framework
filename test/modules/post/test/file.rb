@@ -1,33 +1,33 @@
+# frozen_string_literal: true
 require 'msf/core'
 
 lib = File.join(Msf::Config.install_root, "test", "lib")
-$:.push(lib) unless $:.include?(lib)
+$LOAD_PATH.push(lib) unless $LOAD_PATH.include?(lib)
 require 'module_test'
 
-#load 'test/lib/module_test.rb'
-#load 'lib/rex/text.rb'
-#load 'lib/msf/core/post/file.rb'
+# load 'test/lib/module_test.rb'
+# load 'lib/rex/text.rb'
+# load 'lib/msf/core/post/file.rb'
 
 class MetasploitModule < Msf::Post
-
   include Msf::ModuleTest::PostTest
   include Msf::Post::Common
   include Msf::Post::File
 
-  def initialize(info={})
-    super( update_info( info,
-        'Name'          => 'Testing Remote File Manipulation',
-        'Description'   => %q{ This module will test Post::File API methods },
-        'License'       => MSF_LICENSE,
-        'Author'        => [ 'egypt'],
-        'Platform'      => [ 'windows', 'linux', 'java' ],
-        'SessionTypes'  => [ 'meterpreter', 'shell' ]
-      ))
+  def initialize(info = {})
+    super(update_info(info,
+                      'Name'          => 'Testing Remote File Manipulation',
+                      'Description'   => %q( This module will test Post::File API methods ),
+                      'License'       => MSF_LICENSE,
+                      'Author'        => [ 'egypt'],
+                      'Platform'      => [ 'windows', 'linux', 'java' ],
+                      'SessionTypes'  => [ 'meterpreter', 'shell' ]))
 
     register_options(
       [
-        OptString.new("BaseFileName" , [true, "File name to create", "meterpreter-test"])
-      ], self.class)
+        OptString.new("BaseFileName", [true, "File name to create", "meterpreter-test"])
+      ], self.class
+    )
   end
 
   #
@@ -37,7 +37,7 @@ class MetasploitModule < Msf::Post
   #
   def setup
     @old_pwd = pwd
-    tmp = (directory?("/tmp")) ? "/tmp" : "%TEMP%"
+    tmp = directory?("/tmp") ? "/tmp" : "%TEMP%"
     vprint_status("Setup: changing working directory to #{tmp}")
     cd(tmp)
 
@@ -52,9 +52,9 @@ class MetasploitModule < Msf::Post
         "c:\\pagefile.sys",
         "/etc/passwd",
         "/etc/master.passwd"
-      ].each { |path|
+      ].each do |path|
         ret = true if file?(path)
-      }
+      end
 
       ret
     end
@@ -65,9 +65,9 @@ class MetasploitModule < Msf::Post
         "c:\\",
         "/etc/",
         "/tmp"
-      ].each { |path|
+      ].each do |path|
         ret = true if directory?(path)
-      }
+      end
 
       ret
     end
@@ -106,33 +106,47 @@ class MetasploitModule < Msf::Post
     it "should delete text files" do
       file_rm(datastore["BaseFileName"])
 
-      not file_exist?(datastore["BaseFileName"])
+      !file_exist?(datastore["BaseFileName"])
     end
 
     it "should move files" do
-        # Make sure we don't have leftovers from a previous run
-        file_rm("meterpreter-test") rescue nil
-        file_rm("meterpreter-test-moved") rescue nil
+      # Make sure we don't have leftovers from a previous run
+      begin
+          file_rm("meterpreter-test")
+        rescue
+          nil
+        end
+      begin
+        file_rm("meterpreter-test-moved")
+      rescue
+        nil
+      end
 
-        # touch a new file
-        write_file("meterpreter-test", "")
+      # touch a new file
+      write_file("meterpreter-test", "")
 
-        rename_file("meterpreter-test", "meterpreter-test-moved")
-        res &&= exist?("meterpreter-test-moved")
-        res &&= !exist?("meterpreter-test")
+      rename_file("meterpreter-test", "meterpreter-test-moved")
+      res &&= exist?("meterpreter-test-moved")
+      res &&= !exist?("meterpreter-test")
 
-        # clean up
-        file_rm("meterpreter-test") rescue nil
-        file_rm("meterpreter-test-moved") rescue nil
+      # clean up
+      begin
+        file_rm("meterpreter-test")
+      rescue
+        nil
+      end
+      begin
+        file_rm("meterpreter-test-moved")
+      rescue
+        nil
+      end
     end
-
   end
 
   def test_binary_files
-
-    #binary_data = ::File.read("/bin/ls")
+    # binary_data = ::File.read("/bin/ls")
     binary_data = ::File.read("/bin/echo")
-    #binary_data = "\xff\x00\xff\xfe\xff\`$(echo blha)\`"
+    # binary_data = "\xff\x00\xff\xfe\xff\`$(echo blha)\`"
     it "should write binary data" do
       vprint_status "Writing #{binary_data.length} bytes"
       t = Time.now
@@ -152,7 +166,7 @@ class MetasploitModule < Msf::Post
     it "should delete binary files" do
       file_rm(datastore["BaseFileName"])
 
-      not file_exist?(datastore["BaseFileName"])
+      !file_exist?(datastore["BaseFileName"])
     end
 
     it "should append binary data" do
@@ -163,7 +177,6 @@ class MetasploitModule < Msf::Post
 
       bin == "\xde\xad\xbe\xef"
     end
-
   end
 
   def cleanup
@@ -171,6 +184,4 @@ class MetasploitModule < Msf::Post
     cd(@old_pwd)
     super
   end
-
 end
-

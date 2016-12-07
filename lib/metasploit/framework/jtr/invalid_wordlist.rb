@@ -1,7 +1,7 @@
+# frozen_string_literal: true
 module Metasploit
   module Framework
     module JtR
-
       # This class is the generic Exception raised by a {Wordlist} when
       # it fails validation. It rolls up all validation errors into a
       # single exception so that all errors can be dealt with at once.

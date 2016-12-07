@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'thread'
 require 'robots'
 require 'anemone/tentacle'
@@ -8,18 +9,16 @@ require 'anemone/storage'
 require 'anemone/storage/base'
 
 module Anemone
-
   VERSION = '0.5.0'
 
   #
   # Convenience method to start a crawl
   #
-  def Anemone.crawl(urls, options = {}, &block)
+  def self.crawl(urls, options = {}, &block)
     Core.crawl(urls, options, &block)
   end
 
   class Core
-
     # PageStore storing all Page objects encountered during the crawl
     attr_reader :pages
     # Hash of options for the crawl
@@ -27,35 +26,35 @@ module Anemone
 
     DEFAULT_OPTS = {
       # run 4 Tentacle threads to fetch pages
-      :threads => 4,
+      threads: 4,
       # disable verbose output
-      :verbose => false,
+      verbose: false,
       # don't throw away the page response body after scanning it for links
-      :discard_page_bodies => false,
+      discard_page_bodies: false,
       # identify self as Anemone/VERSION
-      :user_agent => "Anemone/#{Anemone::VERSION}",
+      user_agent: "Anemone/#{Anemone::VERSION}",
       # no delay between requests
-      :delay => 0,
+      delay: 0,
       # don't obey the robots exclusion protocol
-      :obey_robots_txt => false,
+      obey_robots_txt: false,
       # by default, don't limit the depth of the crawl
-      :depth_limit => false,
+      depth_limit: false,
       # number of times HTTP redirects will be followed
-      :redirect_limit => 5,
+      redirect_limit: 5,
       # storage engine defaults to Hash in +process_options+ if none specified
-      :storage => nil,
+      storage: nil,
       # hash of cookie name => value to send with HTTP requests
-      :cookies => nil,
+      cookies: nil,
       # basic authentication data to send with HTTP requests
-      :http_basic_auth => nil,
+      http_basic_auth: nil,
       # array or raw header lines to inject into each request
-      :inject_headers => [],
+      inject_headers: [],
       # accept cookies from the server and send them back?
-      :accept_cookies => false,
+      accept_cookies: false,
       # skip any link with a query string? e.g. http://foo.com/?u=user
-      :skip_query_strings => false,
-      :dirbust  => true
-    }
+      skip_query_strings: false,
+      dirbust: true
+    }.freeze
 
     # Create setter methods for all options to be called from the crawl block
     DEFAULT_OPTS.keys.each do |key|
@@ -69,12 +68,12 @@ module Anemone
     # and optional *block*
     #
     def initialize(urls, opts = {})
-      @urls = [urls].flatten.map{ |url| url.is_a?(URI) ? url : URI(url) }
-      @urls.each{ |url| url.path = '/' if url.path.empty? }
+      @urls = [urls].flatten.map { |url| url.is_a?(URI) ? url : URI(url) }
+      @urls.each { |url| url.path = '/' if url.path.empty? }
 
       @tentacles = []
       @on_every_page_blocks = []
-      @on_pages_like_blocks = Hash.new { |hash,key| hash[key] = [] }
+      @on_pages_like_blocks = Hash.new { |hash, key| hash[key] = [] }
       @skip_link_patterns = []
       @after_crawl_blocks = []
       @opts = opts
@@ -86,7 +85,7 @@ module Anemone
     # Convenience method to start a new crawl
     #
     def self.crawl(urls, opts = {})
-      self.new(urls, opts) do |core|
+      new(urls, opts) do |core|
         yield core if block_given?
         core.run
       end
@@ -124,10 +123,8 @@ module Anemone
     # one or more patterns
     #
     def on_pages_like(*patterns, &block)
-      if patterns
-        patterns.each do |pattern|
-          @on_pages_like_blocks[pattern] << block
-        end
+      patterns&.each do |pattern|
+        @on_pages_like_blocks[pattern] << block
       end
       self
     end
@@ -157,7 +154,7 @@ module Anemone
         @tentacles << Thread.new { Tentacle.new(link_queue, page_queue, @opts).run }
       end
 
-      @urls.each{ |url| link_queue.enq(url) }
+      @urls.each { |url| link_queue.enq(url) }
 
       loop do
         page = page_queue.deq
@@ -175,18 +172,15 @@ module Anemone
         @pages[page.url] = page
 
         # if we are done with the crawl, tell the threads to end
-        if link_queue.empty? and page_queue.empty?
-          until link_queue.num_waiting == @tentacles.size
-            Thread.pass
-          end
-          if page_queue.empty?
-            @tentacles.size.times { link_queue << :END }
-            break
-          end
+        next unless link_queue.empty? && page_queue.empty?
+        Thread.pass until link_queue.num_waiting == @tentacles.size
+        if page_queue.empty?
+          @tentacles.size.times { link_queue << :END }
+          break
         end
       end
 
-      @tentacles.each { |thread| thread.join }
+      @tentacles.each(&:join)
       do_after_crawl_blocks
       self
     end
@@ -210,7 +204,11 @@ module Anemone
     def freeze_options
       @opts.freeze
       @opts.each_key { |key| @opts[key].freeze }
-      @opts[:cookies].each_key { |key| @opts[:cookies][key].freeze } rescue nil
+      begin
+        @opts[:cookies].each_key { |key| @opts[:cookies][key].freeze }
+      rescue
+        nil
+      end
     end
 
     #
@@ -240,7 +238,7 @@ module Anemone
     #
     def links_to_follow(page)
       links = @focus_crawl_block ? @focus_crawl_block.call(page) : page.links
-      links.select { |link| visit_link?(link, page) }.map { |link| link.dup }
+      links.select { |link| visit_link?(link, page) }.map(&:dup)
     end
 
     #
@@ -252,10 +250,10 @@ module Anemone
     #
     def visit_link?(link, from_page = nil)
       !@pages.has_page?(link) &&
-      !skip_link?(link) &&
-      !skip_query_string?(link) &&
-      allowed(link) &&
-      !too_deep?(from_page)
+        !skip_link?(link) &&
+        !skip_query_string?(link) &&
+        allowed(link) &&
+        !too_deep?(from_page)
     end
 
     #
@@ -298,10 +296,15 @@ module Anemone
     #
     # Kills all active threads
     #
-  def shutdown
-      @tentacles.each {|t| t.kill rescue nil }
+    def shutdown
+      @tentacles.each do |t|
+        begin
+                             t.kill
+                           rescue
+                             nil
+                           end
+      end
       @pages = nil
-  end
-
+    end
   end
 end

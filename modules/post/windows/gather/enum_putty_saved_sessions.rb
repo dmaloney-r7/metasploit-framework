@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -14,9 +15,9 @@ class MetasploitModule < Msf::Post
   include Msf::Post::File
   include Msf::Post::Windows::Registry
 
-  INTERESTING_KEYS = ['HostName', 'UserName', 'PublicKeyFile', 'PortNumber', 'PortForwardings']
+  INTERESTING_KEYS = ['HostName', 'UserName', 'PublicKeyFile', 'PortNumber', 'PortForwardings'].freeze
   PAGEANT_REGISTRY_KEY = "HKCU\\Software\\SimonTatham\\PuTTY"
-  PUTTY_PRIVATE_KEY_ANALYSIS = ['Name', 'HostName', 'UserName', 'PublicKeyFile', 'Type', 'Cipher', 'Comment']
+  PUTTY_PRIVATE_KEY_ANALYSIS = ['Name', 'HostName', 'UserName', 'PublicKeyFile', 'Type', 'Cipher', 'Comment'].freeze
 
   def initialize(info = {})
     super(update_info(info,
@@ -33,8 +34,7 @@ class MetasploitModule < Msf::Post
                       'License'         => MSF_LICENSE,
                       'Platform'        => ['win'],
                       'SessionTypes'    => ['meterpreter'],
-                      'Author'          => ['Stuart Morgan <stuart.morgan[at]mwrinfosecurity.com>']
-                     ))
+                      'Author'          => ['Stuart Morgan <stuart.morgan[at]mwrinfosecurity.com>']))
   end
 
   def get_saved_session_details(sessions)
@@ -186,21 +186,21 @@ class MetasploitModule < Msf::Post
             # This is an SSH1 header
             private_key['Type'] = 'ssh1'
             private_key['Comment'] = '-'
-            if ppk[33] == "\x00"
-              private_key['Cipher'] = 'none'
-            elsif ppk[33] == "\x03"
-              private_key['Cipher'] = '3DES'
-            else
-              private_key['Cipher'] = '(Unrecognised)'
-            end
+            private_key['Cipher'] = if ppk[33] == "\x00"
+                                      'none'
+                                    elsif ppk[33] == "\x03"
+                                      '3DES'
+                                    else
+                                      '(Unrecognised)'
+                                    end
           elsif rx = /^PuTTY-User-Key-File-2:\sssh-(?<keytype>rsa|dss)[\r\n]/.match(ppk.to_s)
             # This is an SSH2 header
             private_key['Type'] = "ssh2 (#{rx[:keytype]})"
-            if rx = /^Encryption:\s(?<cipher>[-a-z0-9]+?)[\r\n]/.match(ppk.to_s)
-              private_key['Cipher'] = rx[:cipher]
-            else
-              private_key['Cipher'] = '(Unrecognised)'
-            end
+            private_key['Cipher'] = if rx = /^Encryption:\s(?<cipher>[-a-z0-9]+?)[\r\n]/.match(ppk.to_s)
+                                      rx[:cipher]
+                                    else
+                                      '(Unrecognised)'
+                                    end
 
             if rx = /^Comment:\s(?<comment>.+?)[\r\n]/.match(ppk.to_s)
               private_key['Comment'] = rx[:comment]

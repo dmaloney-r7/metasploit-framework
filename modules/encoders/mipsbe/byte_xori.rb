@@ -1,15 +1,13 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 require 'metasm'
 
-
 class MetasploitModule < Msf::Encoder::Xor
-
   Rank = NormalRanking
 
   def initialize
@@ -31,7 +29,7 @@ class MetasploitModule < Msf::Encoder::Xor
         {
           'KeySize'   => 1,
           'BlockSize' => 1,
-          'KeyPack'   => 'C',
+          'KeyPack'   => 'C'
         })
   end
 
@@ -40,14 +38,13 @@ class MetasploitModule < Msf::Encoder::Xor
   # being encoded.
   #
   def decoder_stub(state)
-
     # add 4 number of passes  for the space reserved for the key, at the end of the decoder stub
     # (see commented source)
-    number_of_passes=state.buf.length+4
-    raise EncodingError.new("The payload being encoded is too long (#{state.buf.length} bytes)") if number_of_passes > 32766
+    number_of_passes = state.buf.length + 4
+    raise EncodingError, "The payload being encoded is too long (#{state.buf.length} bytes)" if number_of_passes > 32766
 
     # 16-bits not (again, see also commented source)
-    reg_14 = (number_of_passes+1)^0xFFFF
+    reg_14 = (number_of_passes + 1) ^ 0xFFFF
 
     decoder = Metasm::Shellcode.assemble(Metasm::MIPS.new(:big), <<EOS).encoded.data
 main:
@@ -92,14 +89,13 @@ loop:
   nop                                    ; encoded shellcoded must be here (xor key right here ;) after decoding will result in a nop
 EOS
 
-    return decoder
+    decoder
   end
 
-
-  def padded_key(state, size=1)
+  def padded_key(state, size = 1)
     key = Rex::Text.rand_text(size, state.badchars)
     key << [state.key].pack("C")
-    return key.unpack("n")[0].to_s(16)
+    key.unpack("n")[0].to_s(16)
   end
 
   # Returns an two-bytes immediate value without badchars. The value must be
@@ -107,7 +103,7 @@ EOS
   # than signed immediate)
   def slti_imm(state)
     imm = Rex::Text.rand_text(2, state.badchars + (0x00..0x7f).to_a.pack("C*"))
-    return imm.unpack("n")[0].to_s(16)
+    imm.unpack("n")[0].to_s(16)
   end
 
   # Since 0x14 contains the number of passes, and because of the li macro, can't be
@@ -119,14 +115,12 @@ EOS
       "slt    $30, $23, $14" => "\x02\xee\xf0\x2a"  # set less than
     }
 
-    instructions.each do |k,v|
-      if Rex::Text.badchar_index(v, state.badchars) == nil
-        return k
-      end
+    instructions.each do |k, v|
+      return k if Rex::Text.badchar_index(v, state.badchars).nil?
     end
 
     raise BadcharError.new,
-          "The #{self.name} encoder failed to encode the decoder stub without bad characters.",
+          "The #{name} encoder failed to encode the decoder stub without bad characters.",
           caller
   end
 
@@ -140,7 +134,6 @@ EOS
     stub[-3, state.decoder_key_size] = [ real_key.to_i ].pack(state.decoder_key_pack)
     stub[-2, state.decoder_key_size] = [ real_key.to_i ].pack(state.decoder_key_pack)
     stub[-1, state.decoder_key_size] = [ real_key.to_i ].pack(state.decoder_key_pack)
-    return stub
+    stub
   end
-
 end

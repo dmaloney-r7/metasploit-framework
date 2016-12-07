@@ -1,332 +1,318 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 require 'rex/post/dir'
 require 'rex/post/meterpreter/extensions/stdapi/stdapi'
 
 module Rex
-module Post
-module Meterpreter
-module Extensions
-module Stdapi
-module Fs
+  module Post
+    module Meterpreter
+      module Extensions
+        module Stdapi
+          module Fs
+            ###
+            #
+            # This class implements directory operations against the remote endpoint.  It
+            # implements the Rex::Post::Dir interface.
+            #
+            ###
+            class Dir < Rex::Post::Dir
+              class << self
+                attr_accessor :client
+              end
 
-###
-#
-# This class implements directory operations against the remote endpoint.  It
-# implements the Rex::Post::Dir interface.
-#
-###
-class Dir < Rex::Post::Dir
+              ##
+              #
+              # Constructor
+              #
+              ##
 
-  class << self
-    attr_accessor :client
-  end
+              #
+              # Initializes the directory instance.
+              #
+              def initialize(path)
+                self.path   = path
+                self.client = self.class.client
+              end
 
-  ##
-  #
-  # Constructor
-  #
-  ##
+              ##
+              #
+              # Enumeration
+              #
+              ##
 
-  #
-  # Initializes the directory instance.
-  #
-  def initialize(path)
-    self.path   = path
-    self.client = self.class.client
-  end
+              #
+              # Enumerates all of the contents of the directory.
+              #
+              def each(&block)
+                client.fs.dir.foreach(path, &block)
+              end
 
-  ##
-  #
-  # Enumeration
-  #
-  ##
+              #
+              # Enumerates all of the files/folders in a given directory.
+              #
+              def self.entries(name = getwd, glob = nil)
+                request = Packet.create_request('stdapi_fs_ls')
+                files   = []
+                name = name + ::File::SEPARATOR + glob if glob
 
-  #
-  # Enumerates all of the contents of the directory.
-  #
-  def each(&block)
-    client.fs.dir.foreach(self.path, &block)
-  end
+                request.add_tlv(TLV_TYPE_DIRECTORY_PATH, client.unicode_filter_decode(name))
 
-  #
-  # Enumerates all of the files/folders in a given directory.
-  #
-  def Dir.entries(name = getwd, glob = nil)
-    request = Packet.create_request('stdapi_fs_ls')
-    files   = []
-    name = name + ::File::SEPARATOR + glob if glob
+                response = client.send_request(request)
 
-    request.add_tlv(TLV_TYPE_DIRECTORY_PATH, client.unicode_filter_decode(name))
+                response.each(TLV_TYPE_FILE_NAME) do |file_name|
+                  files << client.unicode_filter_encode(file_name.value)
+                end
 
-    response = client.send_request(request)
+                files
+              end
 
-    response.each(TLV_TYPE_FILE_NAME) { |file_name|
-      files << client.unicode_filter_encode(file_name.value)
-    }
+              #
+              # Enumerates files with a bit more information than the default entries.
+              #
+              def self.entries_with_info(name = getwd)
+                request = Packet.create_request('stdapi_fs_ls')
+                files   = []
 
-    return files
-  end
+                request.add_tlv(TLV_TYPE_DIRECTORY_PATH, client.unicode_filter_decode(name))
 
-  #
-  # Enumerates files with a bit more information than the default entries.
-  #
-  def Dir.entries_with_info(name = getwd)
-    request = Packet.create_request('stdapi_fs_ls')
-    files   = []
+                response = client.send_request(request)
 
-    request.add_tlv(TLV_TYPE_DIRECTORY_PATH, client.unicode_filter_decode(name))
+                fname = response.get_tlvs(TLV_TYPE_FILE_NAME)
+                fsname = response.get_tlvs(TLV_TYPE_FILE_SHORT_NAME)
+                fpath = response.get_tlvs(TLV_TYPE_FILE_PATH)
+                sbuf  = response.get_tlvs(TLV_TYPE_STAT_BUF)
 
-    response = client.send_request(request)
+                return [] if !fname || !sbuf
 
-    fname = response.get_tlvs(TLV_TYPE_FILE_NAME)
-    fsname = response.get_tlvs(TLV_TYPE_FILE_SHORT_NAME)
-    fpath = response.get_tlvs(TLV_TYPE_FILE_PATH)
-    sbuf  = response.get_tlvs(TLV_TYPE_STAT_BUF)
+                fname.each_with_index do |file_name, idx|
+                  st = nil
 
-    if (!fname or !sbuf)
-      return []
-    end
+                  if sbuf[idx]
+                    st = ::Rex::Post::FileStat.new
+                    st.update(sbuf[idx].value)
+                  end
 
-    fname.each_with_index { |file_name, idx|
-      st = nil
+                  files <<
+                    {
+                      'FileName' => client.unicode_filter_encode(file_name.value),
+                      'FilePath' => client.unicode_filter_encode(fpath[idx].value),
+                      'FileShortName' => fsname[idx] ? fsname[idx].value : nil,
+                      'StatBuf' => st
+                    }
+                end
 
-      if (sbuf[idx])
-        st = ::Rex::Post::FileStat.new
-        st.update(sbuf[idx].value)
-      end
+                files
+              end
 
-      files <<
-        {
-          'FileName' => client.unicode_filter_encode(file_name.value),
-          'FilePath' => client.unicode_filter_encode(fpath[idx].value),
-          'FileShortName' => fsname[idx] ? fsname[idx].value : nil,
-          'StatBuf'  => st,
-        }
-    }
+              ##
+              #
+              # General directory operations
+              #
+              ##
 
-    return files
-  end
+              #
+              # Changes the working directory of the remote process.
+              #
+              def self.chdir(path)
+                request = Packet.create_request('stdapi_fs_chdir')
 
-  ##
-  #
-  # General directory operations
-  #
-  ##
+                request.add_tlv(TLV_TYPE_DIRECTORY_PATH, client.unicode_filter_decode(path))
 
-  #
-  # Changes the working directory of the remote process.
-  #
-  def Dir.chdir(path)
-    request = Packet.create_request('stdapi_fs_chdir')
+                response = client.send_request(request)
 
-    request.add_tlv(TLV_TYPE_DIRECTORY_PATH, client.unicode_filter_decode( path ))
+                0
+              end
 
-    response = client.send_request(request)
+              #
+              # Creates a directory.
+              #
+              def self.mkdir(path)
+                request = Packet.create_request('stdapi_fs_mkdir')
 
-    return 0
-  end
+                request.add_tlv(TLV_TYPE_DIRECTORY_PATH, client.unicode_filter_decode(path))
 
-  #
-  # Creates a directory.
-  #
-  def Dir.mkdir(path)
-    request = Packet.create_request('stdapi_fs_mkdir')
+                response = client.send_request(request)
 
-    request.add_tlv(TLV_TYPE_DIRECTORY_PATH, client.unicode_filter_decode( path ))
+                0
+              end
 
-    response = client.send_request(request)
+              #
+              # Returns the current working directory of the remote process.
+              #
+              def self.pwd
+                request = Packet.create_request('stdapi_fs_getwd')
 
-    return 0
-  end
+                response = client.send_request(request)
 
-  #
-  # Returns the current working directory of the remote process.
-  #
-  def Dir.pwd
-    request = Packet.create_request('stdapi_fs_getwd')
+                client.unicode_filter_encode(response.get_tlv(TLV_TYPE_DIRECTORY_PATH).value)
+              end
 
-    response = client.send_request(request)
+              #
+              # Synonym for pwd.
+              #
+              def self.getwd
+                pwd
+              end
 
-    return client.unicode_filter_encode(response.get_tlv(TLV_TYPE_DIRECTORY_PATH).value)
-  end
+              #
+              # Removes the supplied directory if it's empty.
+              #
+              def self.delete(path)
+                request = Packet.create_request('stdapi_fs_delete_dir')
 
-  #
-  # Synonym for pwd.
-  #
-  def Dir.getwd
-    pwd
-  end
+                request.add_tlv(TLV_TYPE_DIRECTORY_PATH, client.unicode_filter_decode(path))
 
-  #
-  # Removes the supplied directory if it's empty.
-  #
-  def Dir.delete(path)
-    request = Packet.create_request('stdapi_fs_delete_dir')
+                response = client.send_request(request)
 
-    request.add_tlv(TLV_TYPE_DIRECTORY_PATH, client.unicode_filter_decode( path ))
+                0
+              end
 
-    response = client.send_request(request)
+              #
+              # Synonyms for delete.
+              #
+              def self.rmdir(path)
+                delete(path)
+              end
 
-    return 0
-  end
+              #
+              # Synonyms for delete.
+              #
+              def self.unlink(path)
+                delete(path)
+              end
 
-  #
-  # Synonyms for delete.
-  #
-  def Dir.rmdir(path)
-    delete(path)
-  end
+              ##
+              #
+              # Directory mirroring
+              #
+              ##
 
-  #
-  # Synonyms for delete.
-  #
-  def Dir.unlink(path)
-    delete(path)
-  end
+              #
+              # Downloads the contents of a remote directory a
+              # local directory, optionally in a recursive fashion.
+              #
+              def self.download(dst, src, opts, force = true, glob = nil, &stat)
+                recursive = false
+                continue = false
+                tries = false
+                tries_no = 0
+                tries_cnt = 0
+                if opts
+                  timestamp = opts["timestamp"]
+                  recursive = true if opts["recursive"]
+                  continue = true if opts["continue"]
+                  tries = true if opts["tries"]
+                  tries_no = opts["tries_no"]
+                end
+                begin
+                  dir_files = entries(src, glob)
+                rescue Rex::TimeoutError
+                  if tries && (tries_no == 0 || tries_cnt < tries_no)
+                    tries_cnt += 1
+                    stat&.call('error listing  - retry #', tries_cnt, src)
+                    retry
+                  else
+                    stat&.call('error listing directory - giving up', src, dst)
+                    raise
+                  end
+                end
 
-  ##
-  #
-  # Directory mirroring
-  #
-  ##
+                dir_files.each do |src_sub|
+                  dst_item = dst + ::File::SEPARATOR + client.unicode_filter_encode(src_sub)
+                  src_item = src + client.fs.file.separator + client.unicode_filter_encode(src_sub)
 
-  #
-  # Downloads the contents of a remote directory a
-  # local directory, optionally in a recursive fashion.
-  #
-  def Dir.download(dst, src, opts, force = true, glob = nil, &stat)
-    recursive = false
-    continue = false
-    tries = false
-    tries_no = 0
-    tries_cnt = 0
-    if opts
-      timestamp = opts["timestamp"]
-      recursive = true if opts["recursive"]
-      continue = true if opts["continue"]
-      tries = true if opts["tries"]
-      tries_no = opts["tries_no"]
-    end
-    begin
-      dir_files = self.entries(src, glob)
-    rescue Rex::TimeoutError
-      if (tries && (tries_no == 0 || tries_cnt < tries_no))
-        tries_cnt += 1
-        stat.call('error listing  - retry #', tries_cnt, src) if (stat)
-        retry
-      else
-        stat.call('error listing directory - giving up', src, dst) if (stat)
-        raise
-      end
-    end
+                  next if (src_sub == '.') || (src_sub == '..')
 
-    dir_files.each { |src_sub|
-      dst_item = dst + ::File::SEPARATOR + client.unicode_filter_encode(src_sub)
-      src_item = src + client.fs.file.separator + client.unicode_filter_encode(src_sub)
+                  tries_cnt = 0
+                  begin
+                    src_stat = client.fs.filestat.new(src_item)
+                  rescue Rex::TimeoutError
+                    if tries && (tries_no == 0 || tries_cnt < tries_no)
+                      tries_cnt += 1
+                      stat&.call('error opening file - retry #', tries_cnt, src_item)
+                      retry
+                    else
+                      stat&.call('error opening file - giving up', tries_cnt, src_item)
+                      raise
+                    end
+                  end
 
-      if (src_sub == '.' or src_sub == '..')
-        next
-      end
+                  if src_stat.file?
+                    dst_item << timestamp if timestamp
 
-      tries_cnt = 0
-      begin
-        src_stat = client.fs.filestat.new(src_item)
-      rescue Rex::TimeoutError
-        if (tries && (tries_no == 0 || tries_cnt < tries_no))
-          tries_cnt += 1
-          stat.call('error opening file - retry #', tries_cnt, src_item) if (stat)
-          retry
-        else
-          stat.call('error opening file - giving up', tries_cnt, src_item) if (stat)
-          raise
-        end
-      end
+                    stat&.call('downloading', src_item, dst_item)
 
-      if (src_stat.file?)
-        if timestamp
-          dst_item << timestamp
-        end
+                    begin
+                      result = if continue || tries # allow to file.download to log messages
+                                 client.fs.file.download_file(dst_item, src_item, opts, &stat)
+                               else
+                                 client.fs.file.download_file(dst_item, src_item, opts)
+                               end
+                      stat&.call(result, src_item, dst_item)
+                    rescue ::Rex::Post::Meterpreter::RequestError => e
+                      if force
+                        stat&.call('failed', src_item, dst_item)
+                      else
+                        raise e
+                      end
+                    end
 
-        stat.call('downloading', src_item, dst_item) if (stat)
+                  elsif src_stat.directory?
+                    next if recursive == false
 
-        begin
-          if (continue || tries)  # allow to file.download to log messages
-            result = client.fs.file.download_file(dst_item, src_item, opts, &stat)
-          else
-            result = client.fs.file.download_file(dst_item, src_item, opts)
-          end
-          stat.call(result, src_item, dst_item) if (stat)
-        rescue ::Rex::Post::Meterpreter::RequestError => e
-          if force
-            stat.call('failed', src_item, dst_item) if (stat)
-          else
-            raise e
-          end
-        end
+                    begin
+                      ::Dir.mkdir(dst_item)
+                    rescue
+                    end
 
-      elsif (src_stat.directory?)
-        if (recursive == false)
-          next
-        end
+                    stat&.call('mirroring', src_item, dst_item)
+                    download(dst_item, src_item, opts, force, glob, &stat)
+                    stat&.call('mirrored', src_item, dst_item)
+                  end
+                end # entries
+              end
 
-        begin
-          ::Dir.mkdir(dst_item)
-        rescue
-        end
+              #
+              # Uploads the contents of a local directory to a remote
+              # directory, optionally in a recursive fashion.
+              #
+              def self.upload(dst, src, recursive = false, &stat)
+                ::Dir.entries(src).each do |src_sub|
+                  dst_item = dst + client.fs.file.separator + client.unicode_filter_encode(src_sub)
+                  src_item = src + ::File::SEPARATOR + client.unicode_filter_encode(src_sub)
 
-        stat.call('mirroring', src_item, dst_item) if (stat)
-        download(dst_item, src_item, opts, force, glob, &stat)
-        stat.call('mirrored', src_item, dst_item) if (stat)
-      end
-    } # entries
-  end
+                  next if (src_sub == '.') || (src_sub == '..')
 
-  #
-  # Uploads the contents of a local directory to a remote
-  # directory, optionally in a recursive fashion.
-  #
-  def Dir.upload(dst, src, recursive = false, &stat)
-    ::Dir.entries(src).each { |src_sub|
-      dst_item = dst + client.fs.file.separator + client.unicode_filter_encode(src_sub)
-      src_item = src + ::File::SEPARATOR + client.unicode_filter_encode(src_sub)
+                  src_stat = ::File.stat(src_item)
 
-      if (src_sub == '.' or src_sub == '..')
-        next
-      end
+                  if src_stat.file?
+                    stat&.call('uploading', src_item, dst_item)
+                    client.fs.file.upload(dst_item, src_item)
+                    stat&.call('uploaded', src_item, dst_item)
+                  elsif src_stat.directory?
+                    next if recursive == false
 
-      src_stat = ::File.stat(src_item)
+                    begin
+                      mkdir(dst_item)
+                    rescue
+                    end
 
-      if (src_stat.file?)
-        stat.call('uploading', src_item, dst_item) if (stat)
-        client.fs.file.upload(dst_item, src_item)
-        stat.call('uploaded', src_item, dst_item) if (stat)
-      elsif (src_stat.directory?)
-        if (recursive == false)
-          next
-        end
+                    stat&.call('mirroring', src_item, dst_item)
+                    upload(dst_item, src_item, recursive, &stat)
+                    stat&.call('mirrored', src_item, dst_item)
+                  end
+                end
+              end
 
-        begin
-          self.mkdir(dst_item)
-        rescue
-        end
+              #
+              # The path of the directory that was opened.
+              #
+              attr_reader :path
 
-        stat.call('mirroring', src_item, dst_item) if (stat)
-        upload(dst_item, src_item, recursive, &stat)
-        stat.call('mirrored', src_item, dst_item) if (stat)
-      end
-    }
-  end
+              protected
 
-  #
-  # The path of the directory that was opened.
-  #
-  attr_reader   :path
-protected
-  attr_accessor :client # :nodoc:
-  attr_writer   :path # :nodoc:
-
-end
-
-end; end; end; end; end; end
-
+              attr_accessor :client # :nodoc:
+              attr_writer   :path # :nodoc:
+            end
+          end; end; end; end; end; end

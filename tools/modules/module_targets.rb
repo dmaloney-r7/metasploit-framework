@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 #
 # $Id$
 #
@@ -12,16 +13,16 @@ while File.symlink?(msfbase)
   msfbase = File.expand_path(File.readlink(msfbase), File.dirname(msfbase))
 end
 
-$:.unshift(File.expand_path(File.join(File.dirname(msfbase), '..', '..', 'lib')))
+$LOAD_PATH.unshift(File.expand_path(File.join(File.dirname(msfbase), '..', '..', 'lib')))
 require 'msfenv'
 
-$:.unshift(ENV['MSF_LOCAL_LIB']) if ENV['MSF_LOCAL_LIB']
+$LOAD_PATH.unshift(ENV['MSF_LOCAL_LIB']) if ENV['MSF_LOCAL_LIB']
 
 require 'rex'
 require 'msf/ui'
 require 'msf/base'
 
-sort=0
+sort = 0
 fil = 0
 filter = ""
 
@@ -32,7 +33,7 @@ opts = Rex::Parser::Arguments.new(
   "-x" => [ true, "String or RegEx to try and match against the Targets field"]
 )
 
-opts.parse(ARGV) { |opt, idx, val|
+opts.parse(ARGV) do |opt, _idx, val|
   case opt
   when "-h"
     puts "\nMetasploit Script for Displaying Module Target information."
@@ -48,9 +49,9 @@ opts.parse(ARGV) { |opt, idx, val|
   when "-x"
     puts "Filter: #{val}"
     filter = val
-    fil=1		
+    fil = 1
   end
-}
+end
 
 Indent = '    '
 
@@ -60,24 +61,19 @@ $framework = Msf::Simple::Framework.create('DisableDatabase' => true)
 tbl = Rex::Text::Table.new(
   'Header'  => 'Module Targets',
   'Indent'  => Indent.length,
-  'Columns' => [ 'Module name','Target' ]
+  'Columns' => [ 'Module name', 'Target' ]
 )
 
 all_modules = $framework.exploits
 
-all_modules.each_module { |name, mod|
+all_modules.each_module do |_name, mod|
   x = mod.new
   x.targets.each do |targ|
-    if fil==0 or targ.name=~/#{filter}/
-      tbl << [ x.fullname, targ.name ]
-    end
+    tbl << [ x.fullname, targ.name ] if (fil == 0) || targ.name =~ /#{filter}/
   end
-}
-
-if sort == 1
-  tbl.sort_rows(1)
 end
 
+tbl.sort_rows(1) if sort == 1
 
 if sort == 2
   tbl.sort_rows(1)

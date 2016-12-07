@@ -1,21 +1,21 @@
+# frozen_string_literal: true
 require 'spec_helper'
 require 'metasploit/framework/login_scanner/vnc'
 
 RSpec.describe Metasploit::Framework::LoginScanner::VNC do
   let(:private) { 'password' }
   let(:blank) { '' }
-  let(:test_cred) {
-    Metasploit::Framework::Credential.new( paired: false, private: private )
-  }
-  let(:blank_cred) {
-    Metasploit::Framework::Credential.new( paired: false, private: blank )
-  }
+  let(:test_cred) do
+    Metasploit::Framework::Credential.new(paired: false, private: private)
+  end
+  let(:blank_cred) do
+    Metasploit::Framework::Credential.new(paired: false, private: blank)
+  end
   subject(:login_scanner) { described_class.new }
 
-  it_behaves_like 'Metasploit::Framework::LoginScanner::Base',  has_realm_key: false, has_default_realm: false
+  it_behaves_like 'Metasploit::Framework::LoginScanner::Base', has_realm_key: false, has_default_realm: false
   it_behaves_like 'Metasploit::Framework::LoginScanner::RexSocket'
   it_behaves_like 'Metasploit::Framework::Tcp::Client'
-
 
   context '#attempt_login' do
     it 'creates a new RFB client' do
@@ -77,9 +77,5 @@ RSpec.describe Metasploit::Framework::LoginScanner::VNC do
         expect(result.proof).to eq ::Timeout::Error.new.to_s
       end
     end
-
-
-
   end
-
 end

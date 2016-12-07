@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,36 +7,34 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::Tcp
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'          => 'Modbus Client Utility',
-      'Description'   => %q{
-        This module allows reading and writing data to a PLC using the Modbus protocol.
-        This module is based on the 'modiconstop.rb' Basecamp module from DigitalBond,
-        as well as the mbtget perl script.
-      },
-      'Author'         =>
-        [
-          'EsMnemon <esm[at]mnemonic.no>', # original write-only module
-          'Arnaud SOULLIE  <arnaud.soullie[at]solucom.fr>', # code that allows read/write
-          'Alexandrine TORRENTS <alexandrine.torrents[at]eurecom.fr>', # code that allows reading/writing at multiple consecutive addresses
-          'Mathieu CHEVALIER <mathieu.chevalier[at]eurecom.fr>'
-        ],
-      'License'        => MSF_LICENSE,
-      'Actions'        =>
-        [
-          ['READ_COILS', { 'Description' => 'Read bits from several coils' } ],
-          ['READ_REGISTERS', { 'Description' => 'Read words from several registers' } ],
-          ['WRITE_COIL', { 'Description' => 'Write one bit to a coil' } ],
-          ['WRITE_REGISTER', { 'Description' => 'Write one word to a register' } ],
-          ['WRITE_COILS', { 'Description' => 'Write bits to several coils' } ],
-          ['WRITE_REGISTERS', { 'Description' => 'Write words to several registers' } ]
-        ],
-      'DefaultAction' => 'READ_REGISTERS'
-      ))
+                      'Name'          => 'Modbus Client Utility',
+                      'Description'   => %q(
+                        This module allows reading and writing data to a PLC using the Modbus protocol.
+                        This module is based on the 'modiconstop.rb' Basecamp module from DigitalBond,
+                        as well as the mbtget perl script.
+                      ),
+                      'Author'         =>
+                        [
+                          'EsMnemon <esm[at]mnemonic.no>', # original write-only module
+                          'Arnaud SOULLIE  <arnaud.soullie[at]solucom.fr>', # code that allows read/write
+                          'Alexandrine TORRENTS <alexandrine.torrents[at]eurecom.fr>', # code that allows reading/writing at multiple consecutive addresses
+                          'Mathieu CHEVALIER <mathieu.chevalier[at]eurecom.fr>'
+                        ],
+                      'License'        => MSF_LICENSE,
+                      'Actions'        =>
+                        [
+                          ['READ_COILS', { 'Description' => 'Read bits from several coils' } ],
+                          ['READ_REGISTERS', { 'Description' => 'Read words from several registers' } ],
+                          ['WRITE_COIL', { 'Description' => 'Write one bit to a coil' } ],
+                          ['WRITE_REGISTER', { 'Description' => 'Write one word to a register' } ],
+                          ['WRITE_COILS', { 'Description' => 'Write bits to several coils' } ],
+                          ['WRITE_REGISTERS', { 'Description' => 'Write words to several registers' } ]
+                        ],
+                      'DefaultAction' => 'READ_REGISTERS'))
 
     register_options(
       [
@@ -45,9 +44,9 @@ class MetasploitModule < Msf::Auxiliary
         OptInt.new('DATA', [false, "Data to write (WRITE_COIL and WRITE_REGISTER modes only)"]),
         OptString.new('DATA_COILS', [false, "Data in binary to write (WRITE_COILS mode only) e.g. 0110"]),
         OptString.new('DATA_REGISTERS', [false, "Words to write to each register separated with a comma (WRITE_REGISTERS mode only) e.g. 1,2,3,4"]),
-        OptInt.new('UNIT_NUMBER', [false, "Modbus unit number", 1]),
-      ], self.class)
-
+        OptInt.new('UNIT_NUMBER', [false, "Modbus unit number", 1])
+      ], self.class
+    )
   end
 
   # a wrapper just to be sure we increment the counter
@@ -59,7 +58,7 @@ class MetasploitModule < Msf::Auxiliary
 
   def make_payload(payload)
     packet_data = [@modbus_counter].pack("n")
-    packet_data += "\x00\x00\x00" #dunno what these are
+    packet_data += "\x00\x00\x00" # dunno what these are
     packet_data += [payload.size].pack("c") # size byte
     packet_data += payload
 
@@ -92,7 +91,7 @@ class MetasploitModule < Msf::Auxiliary
     payload += [datastore['DATA_ADDRESS']].pack("n")
     payload += [datastore['DATA_COILS'].size].pack("n") # bit count
     payload += [byte].pack("c") # byte count
-    for i in 0..(byte-1)
+    for i in 0..(byte - 1)
       payload += [data[i]].pack("b*")
     end
 
@@ -115,8 +114,8 @@ class MetasploitModule < Msf::Auxiliary
     payload += [@function_code].pack("c")
     payload += [datastore['DATA_ADDRESS']].pack("n")
     payload += [size].pack("n") # word count
-    payload += [2*size].pack("c") # byte count
-    for i in 0..(size-1)
+    payload += [2 * size].pack("c") # byte count
+    for i in 0..(size - 1)
       payload += [data[i]].pack("n")
     end
 
@@ -138,11 +137,11 @@ class MetasploitModule < Msf::Auxiliary
     else
       print_error("Unknown error")
     end
-    return
+    nil
   end
 
   def read_coils
-    if datastore['NUMBER']+datastore['DATA_ADDRESS'] > 65535
+    if datastore['NUMBER'] + datastore['DATA_ADDRESS'] > 65535
       print_error("Coils addresses go from 0 to 65535. You cannot go beyond.")
       return
     end
@@ -156,25 +155,25 @@ class MetasploitModule < Msf::Auxiliary
     elsif response.unpack("C*")[7] == (0x80 | @function_code)
       handle_error(response)
     elsif response.unpack("C*")[7] == @function_code
-      loop = (datastore['NUMBER']-1)/8
+      loop = (datastore['NUMBER'] - 1) / 8
       for i in 0..loop
-        bin_value = response[9+i].unpack("b*")[0]
+        bin_value = response[9 + i].unpack("b*")[0]
         list = bin_value.split("")
         for j in 0..7
           list[j] = list[j].to_i
-          values[i*8 + j] = list[j]
+          values[i * 8 + j] = list[j]
         end
       end
-      values = values[0..(datastore['NUMBER']-1)]
+      values = values[0..(datastore['NUMBER'] - 1)]
       print_good("#{datastore['NUMBER']} coil values from address #{datastore['DATA_ADDRESS']} : ")
-      print_good("#{values}")
+      print_good(values.to_s)
     else
       print_error("Unknown answer")
     end
   end
 
   def read_registers
-    if datastore['NUMBER']+datastore['DATA_ADDRESS'] > 65535
+    if datastore['NUMBER'] + datastore['DATA_ADDRESS'] > 65535
       print_error("Registers addresses go from 0 to 65535. You cannot go beyond.")
       return
     end
@@ -187,11 +186,11 @@ class MetasploitModule < Msf::Auxiliary
     elsif response.unpack("C*")[7] == (0x80 | @function_code)
       handle_error(response)
     elsif response.unpack("C*")[7] == @function_code
-      for i in 0..(datastore['NUMBER']-1)
-        values.push(response[9+2*i..10+2*i].unpack("n")[0])
+      for i in 0..(datastore['NUMBER'] - 1)
+        values.push(response[9 + 2 * i..10 + 2 * i].unpack("n")[0])
       end
       print_good("#{datastore['NUMBER']} register values from address #{datastore['DATA_ADDRESS']} : ")
-      print_good("#{values}")
+      print_good(values.to_s)
     else
       print_error("Unknown answer")
     end
@@ -229,16 +228,16 @@ class MetasploitModule < Msf::Auxiliary
       return
     end
     for j in check
-      if j=="0" or j=="1"
+      if (j == "0") || (j == "1")
       else
         print_error("DATA_COILS value must only contain 0s and 1s without space")
         return
       end
     end
-    byte_number = (temp.size-1)/8 + 1
+    byte_number = (temp.size - 1) / 8 + 1
     data = []
-    for i in 0..(byte_number-1)
-      data.push(temp[(i*8+0)..(i*8+7)])
+    for i in 0..(byte_number - 1)
+      data.push(temp[(i * 8 + 0)..(i * 8 + 7)])
     end
     print_status("Sending WRITE COILS...")
     response = send_frame(make_write_coils_payload(data, byte_number))
@@ -275,9 +274,9 @@ class MetasploitModule < Msf::Auxiliary
   def write_registers
     @function_code = 16
     check = datastore['DATA_REGISTERS'].split("")
-    for j in 0..(check.size-1)
-      if check[j] == "0" or check[j]== "1" or check[j]== "2" or check[j]== "3" or check[j]== "4" or check[j]== "5" or check[j]== "6" or check[j]== "7" or check[j]== "8" or check[j]== "9" or check[j]== ","
-        if check[j] == "," and check[j+1] == ","
+    for j in 0..(check.size - 1)
+      if (check[j] == "0") || (check[j] == "1") || (check[j] == "2") || (check[j] == "3") || (check[j] == "4") || (check[j] == "5") || (check[j] == "6") || (check[j] == "7") || (check[j] == "8") || (check[j] == "9") || (check[j] == ",")
+        if (check[j] == ",") && (check[j + 1] == ",")
           print_error("DATA_REGISTERS cannot contain two consecutive commas")
           return
         end
@@ -287,15 +286,15 @@ class MetasploitModule < Msf::Auxiliary
       end
     end
     list = datastore['DATA_REGISTERS'].split(",")
-    if list.size+datastore['DATA_ADDRESS'] > 65535
+    if list.size + datastore['DATA_ADDRESS'] > 65535
       print_error("Registers addresses go from 0 to 65535. You cannot go beyond.")
       return
     end
     data = []
-    for i in 0..(list.size-1)
+    for i in 0..(list.size - 1)
       data[i] = list[i].to_i
     end
-    for j in 0..(data.size-1)
+    for j in 0..(data.size - 1)
       if data[j] < 0 || data[j] > 65535
         print_error("Each word to write must be an integer between 0 and 65535 in WRITE_REGISTERS mode")
         return
@@ -327,14 +326,14 @@ class MetasploitModule < Msf::Auxiliary
     when "WRITE_REGISTER"
       write_register
     when "WRITE_COILS"
-      if datastore['DATA_COILS'] == nil
+      if datastore['DATA_COILS'].nil?
         print_error("The following option is needed in WRITE_COILS mode: DATA_COILS.")
         return
       else
         write_coils
       end
     when "WRITE_REGISTERS"
-      if datastore['DATA_REGISTERS'] == nil
+      if datastore['DATA_REGISTERS'].nil?
         print_error("The following option is needed in WRITE_REGISTERS mode: DATA_REGISTERS.")
         return
       else

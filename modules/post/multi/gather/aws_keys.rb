@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -47,9 +48,7 @@ class MetasploitModule < Msf::Post
       aws_access_key_id = nil
       aws_secret_access_key = nil
       profile_config.each_pair do |key, value|
-        if key == AWS_KEY.downcase || key == S3_KEY
-          aws_access_key_id = value
-        end
+        aws_access_key_id = value if key == AWS_KEY.downcase || key == S3_KEY
 
         if key == AWS_SECRET.downcase || key == S3_SECRET
           aws_secret_access_key = value

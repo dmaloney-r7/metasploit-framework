@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,7 +8,6 @@ require 'msf/core'
 require 'timeout'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Capture
   include Msf::Auxiliary::Scanner
   include Msf::Auxiliary::Report
@@ -33,16 +33,16 @@ class MetasploitModule < Msf::Auxiliary
     )
 
     register_options([
-      Opt::RPORT(80),
-      OptInt.new('TIMEOUT', [true, "The reply read timeout in milliseconds", 500]),
-      OptString.new('INTERFACE', [false, 'The name of the interface'])
-    ])
+                       Opt::RPORT(80),
+                       OptInt.new('TIMEOUT', [true, "The reply read timeout in milliseconds", 500]),
+                       OptString.new('INTERFACE', [false, 'The name of the interface'])
+                     ])
 
     register_advanced_options([
-      OptInt.new('SAMPLES', [true, "The IPID sample size", 6])
-    ])
+                                OptInt.new('SAMPLES', [true, "The IPID sample size", 6])
+                              ])
 
-    deregister_options('FILTER','PCAPFILE')
+    deregister_options('FILTER', 'PCAPFILE')
   end
 
   def rport
@@ -54,7 +54,7 @@ class MetasploitModule < Msf::Auxiliary
 
     raise "SAMPLES option must be >= 2" if datastore['SAMPLES'] < 2
 
-    pcap = self.capture
+    pcap = capture
 
     shost = Rex::Socket.source_address(ip)
 
@@ -73,7 +73,7 @@ class MetasploitModule < Msf::Auxiliary
 
       reply = probereply(pcap, to)
 
-      next if not reply
+      next unless reply
 
       ipids << reply.ip_id
     end
@@ -84,12 +84,12 @@ class MetasploitModule < Msf::Auxiliary
 
     print_status("#{ip}'s IPID sequence class: #{analyze(ipids)}")
 
-    #Add Report
+    # Add Report
     report_note(
-      :host	=> ip,
-      :proto	=> 'ip',
-      :type	=> 'IPID sequence',
-      :data	=> "IPID sequence class: #{analyze(ipids)}"
+      host: ip,
+      proto: 'ip',
+      type: 'IPID sequence',
+      data: "IPID sequence class: #{analyze(ipids)}"
     )
   end
 
@@ -113,19 +113,15 @@ class MetasploitModule < Msf::Auxiliary
       p = ipids[i - 1]
       c = ipids[i]
 
-      if p != 0 or c != 0
-        allzeros = false
-      end
+      allzeros = false if (p != 0) || (c != 0)
 
-      if p <= c
-        diffs[i - 1] = c - p
-      else
-        diffs[i - 1] = c - p + 65536
-      end
+      diffs[i - 1] = if p <= c
+                       c - p
+                     else
+                       c - p + 65536
+                     end
 
-      if ipids.size > 2 and diffs[i - 1] > 20000
-        return "Randomized"
-      end
+      return "Randomized" if ipids.size > 2 && diffs[i - 1] > 20000
 
       i += 1
     end
@@ -133,13 +129,13 @@ class MetasploitModule < Msf::Auxiliary
     return "All zeros" if allzeros
 
     diffs.each do |diff|
-      if diff > 1000 and ((diff % 256) != 0 or ((diff % 256) == 0 and diff >= 25600))
+      if diff > 1000 && (((diff % 256) != 0) || (((diff % 256) == 0) && (diff >= 25600)))
         return "Random positive increments"
       end
 
       allsame = false if diff != 0
 
-      mul256 = false if diff > 5120 or (diff % 256) != 0
+      mul256 = false if diff > 5120 || ((diff % 256) != 0)
 
       inc = false if diff >= 10
     end
@@ -154,8 +150,8 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   def getfilter(shost, dhost, dport)
-    "tcp and src host #{dhost} and src port #{dport} and " +
-    "dst host #{shost}"
+    "tcp and src host #{dhost} and src port #{dport} and " \
+      "dst host #{shost}"
   end
 
   # This gets set via the usual capture_sendto interface
@@ -186,7 +182,6 @@ class MetasploitModule < Msf::Auxiliary
     rescue Timeout::Error
     end
 
-    return reply
+    reply
   end
-
 end

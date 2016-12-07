@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'metasploit/framework/tcp/client'
 require 'metasploit/framework/afp/client'
 require 'metasploit/framework/login_scanner/base'
@@ -6,7 +7,6 @@ require 'metasploit/framework/login_scanner/rex_socket'
 module Metasploit
   module Framework
     module LoginScanner
-
       # This is the LoginScanner class for dealing with Apple Filing
       # Protocol.
       class AFP
@@ -16,9 +16,9 @@ module Metasploit
         include Metasploit::Framework::AFP::Client
 
         DEFAULT_PORT         = 548
-        LIKELY_PORTS         = [ DEFAULT_PORT ]
-        LIKELY_SERVICE_NAMES = [ "afp" ]
-        PRIVATE_TYPES        = [ :password ]
+        LIKELY_PORTS         = [ DEFAULT_PORT ].freeze
+        LIKELY_SERVICE_NAMES = [ "afp" ].freeze
+        PRIVATE_TYPES        = [ :password ].freeze
         REALM_KEY            = nil
 
         # @!attribute login_timeout
@@ -34,10 +34,10 @@ module Metasploit
             begin
               success = login(credential.public, credential.private)
             rescue RuntimeError => e
-              return {:status => Metasploit::Model::Login::Status::UNABLE_TO_CONNECT, :proof => e.message}
+              return { status: Metasploit::Model::Login::Status::UNABLE_TO_CONNECT, proof: e.message }
             end
 
-            status = (success == true) ? Metasploit::Model::Login::Status::SUCCESSFUL : Metasploit::Model::Login::Status::INCORRECT
+            status = success == true ? Metasploit::Model::Login::Status::SUCCESSFUL : Metasploit::Model::Login::Status::INCORRECT
           end
 
           result = Result.new(credential: credential, status: status)

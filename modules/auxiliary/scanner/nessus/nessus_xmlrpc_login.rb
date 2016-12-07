@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # nessus_xmlrpc_login.rb
 ##
@@ -10,7 +11,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::AuthBrute
@@ -19,10 +19,10 @@ class MetasploitModule < Msf::Auxiliary
   def initialize
     super(
       'Name'           => 'Nessus XMLRPC Interface Login Utility',
-      'Description'    => %q{
+      'Description'    => %q(
         This module simply attempts to login to a Nessus XMLRPC interface using a
         specific user/pass.
-      },
+      ),
       'Author'         => [ 'Vlatko Kosturjak <kost[at]linux.hr>' ],
       'License'        => MSF_LICENSE,
       'DefaultOptions' => { 'SSL' => true }
@@ -33,22 +33,23 @@ class MetasploitModule < Msf::Auxiliary
         Opt::RPORT(8834),
         OptString.new('URI', [true, "URI for Nessus XMLRPC login. Default is /login", "/login"]),
         OptBool.new('BLANK_PASSWORDS', [false, "Try blank passwords for all users", false])
-      ], self.class)
+      ], self.class
+    )
   end
 
-  def run_host(ip)
+  def run_host(_ip)
     begin
       res = send_request_cgi({
-        'uri'     => datastore['URI'],
-        'method'  => 'GET'
-        }, 25)
-      http_fingerprint({ :response => res })
+                               'uri' => datastore['URI'],
+                               'method' => 'GET'
+                             }, 25)
+      http_fingerprint(response: res)
     rescue ::Rex::ConnectionError => e
       vprint_error("#{datastore['URI']} - #{e}")
       return
     end
 
-    if not res
+    unless res
       vprint_error("#{datastore['URI']} - No response")
       return
     end
@@ -62,28 +63,28 @@ class MetasploitModule < Msf::Auxiliary
     end
   end
 
-  def do_login(user='nessus', pass='nessus')
+  def do_login(user = 'nessus', pass = 'nessus')
     vprint_status("Trying username:'#{user}' with password:'#{pass}'")
     headers = {}
 
     begin
       res = send_request_cgi({
-        'encode'    => true,
-        'uri'       => datastore['URI'],
-        'method'    => 'POST',
-        'headers'   => headers,
-        'vars_post' => {
-          'login'    => user,
-          'password' => pass
-        }
-      }, 25)
+                               'encode' => true,
+                               'uri'       => datastore['URI'],
+                               'method'    => 'POST',
+                               'headers'   => headers,
+                               'vars_post' => {
+                                 'login' => user,
+                                 'password' => pass
+                               }
+                             }, 25)
 
     rescue ::Rex::ConnectionError, Errno::ECONNREFUSED, Errno::ETIMEDOUT
       print_error("HTTP Connection Failed, Aborting")
       return :abort
     end
 
-    if not res
+    unless res
       print_error("Connection timed out, Aborting")
       return :abort
     end
@@ -107,7 +108,7 @@ class MetasploitModule < Msf::Auxiliary
       end
     end
     vprint_error("FAILED LOGIN. '#{user}':'#{pass}'")
-    return :skip_pass
+    :skip_pass
   end
 
   def report_cred(opts)
@@ -130,10 +131,9 @@ class MetasploitModule < Msf::Auxiliary
     login_data = {
       last_attempted_at: DateTime.now,
       core: create_credential(credential_data),
-      status: Metasploit::Model::Login::Status::SUCCESSFUL,
+      status: Metasploit::Model::Login::Status::SUCCESSFUL
     }.merge(service_data)
 
     create_credential_login(login_data)
   end
-
 end

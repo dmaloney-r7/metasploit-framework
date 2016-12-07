@@ -1,15 +1,16 @@
+# frozen_string_literal: true
 module Msf::DBManager::Session
   # Returns a session based on opened_time, host address, and workspace
   # (or returns nil)
   def get_session(opts)
-    return if not active
-  ::ActiveRecord::Base.connection_pool.with_connection {
-    wspace = opts[:workspace] || opts[:wspace] || workspace
-    addr   = opts[:addr] || opts[:address] || opts[:host] || return
-    host = get_host(:workspace => wspace, :host => addr)
-    time = opts[:opened_at] || opts[:created_at] || opts[:time] || return
-    ::Mdm::Session.find_by_host_id_and_opened_at(host.id, time)
-  }
+    return unless active
+    ::ActiveRecord::Base.connection_pool.with_connection do
+      wspace = opts[:workspace] || opts[:wspace] || workspace
+      addr   = opts[:addr] || opts[:address] || opts[:host] || return
+      host = get_host(workspace: wspace, host: addr)
+      time = opts[:opened_at] || opts[:created_at] || opts[:time] || return
+      ::Mdm::Session.find_by_host_id_and_opened_at(host.id, time)
+    end
   end
 
   # @note The Mdm::Session#desc will be truncated to 255 characters.
@@ -76,29 +77,28 @@ module Msf::DBManager::Session
   #
   # @raise ArgumentError if :host and :session are both +nil+
   def report_session(opts)
-    return if not active
+    return unless active
 
-  ::ActiveRecord::Base.connection_pool.with_connection {
-    if opts[:session]
-      session = opts[:session]
-      s = create_mdm_session_from_session(opts)
-      session.db_record = s
-    elsif opts[:host]
-      s = create_mdm_session_from_host(opts)
-    else
-      raise ArgumentError.new("Missing option :session or :host")
+    ::ActiveRecord::Base.connection_pool.with_connection do
+      if opts[:session]
+        session = opts[:session]
+        s = create_mdm_session_from_session(opts)
+        session.db_record = s
+      elsif opts[:host]
+        s = create_mdm_session_from_host(opts)
+      else
+        raise ArgumentError, "Missing option :session or :host"
+      end
+
+      wspace = s.workspace
+
+      if session && session.via_exploit
+        # This is a live session, we know the host is vulnerable to something.
+        infer_vuln_from_session(session, wspace)
     end
 
-    wspace = s.workspace
-
-
-    if session and session.via_exploit
-      # This is a live session, we know the host is vulnerable to something.
-      infer_vuln_from_session(session, wspace)
+      s
     end
-
-    s
-  }
   end
 
   protected
@@ -107,15 +107,15 @@ module Msf::DBManager::Session
   # @param wspace [Mdm::Workspace]
   # @return [void]
   def infer_vuln_from_session(session, wspace)
-    ::ActiveRecord::Base.connection_pool.with_connection {
+    ::ActiveRecord::Base.connection_pool.with_connection do
       s = session.db_record
       host = s.host
 
-      if session.via_exploit == "exploit/multi/handler" and session.exploit_datastore['ParentModule']
-        mod_fullname = session.exploit_datastore['ParentModule']
-      else
-        mod_fullname = session.via_exploit
-      end
+      mod_fullname = if (session.via_exploit == "exploit/multi/handler") && session.exploit_datastore['ParentModule']
+                       session.exploit_datastore['ParentModule']
+                     else
+                       session.via_exploit
+                     end
       mod_detail = ::Mdm::Module::Detail.find_by_fullname(mod_fullname)
       if mod_detail.nil?
         # Then the cache isn't built yet, take the hit for instantiating the
@@ -130,7 +130,7 @@ module Msf::DBManager::Session
         info: "Exploited by #{mod_fullname} to create Session #{s.id}",
         name: mod_name,
         refs: mod_detail.refs.map(&:name),
-        workspace: wspace,
+        workspace: wspace
       }
 
       port    = session.exploit_datastore["RPORT"]
@@ -156,18 +156,18 @@ module Msf::DBManager::Session
       framework.db.report_exploit_success(attempt_info)
 
       vuln
-    }
+    end
   end
 
   def create_mdm_session_from_session(opts)
-    ::ActiveRecord::Base.connection_pool.with_connection {
+    ::ActiveRecord::Base.connection_pool.with_connection do
       session = opts[:session]
-      raise ArgumentError.new("Invalid :session, expected Msf::Session") unless session.kind_of? Msf::Session
+      raise ArgumentError, "Invalid :session, expected Msf::Session" unless session.is_a? Msf::Session
 
       wspace = opts[:workspace] || find_workspace(session.workspace)
-      h_opts = { }
+      h_opts = {}
       h_opts[:host]      = normalize_host(session)
-      h_opts[:arch]      = session.arch if session.respond_to?(:arch) and session.arch
+      h_opts[:arch]      = session.arch if session.respond_to?(:arch) && session.arch
       h_opts[:workspace] = wspace
       host = find_or_create_host(h_opts)
       sess_data = {
@@ -182,33 +182,33 @@ module Msf::DBManager::Session
         routes: [],
         stype: session.type,
         via_exploit: session.via_exploit,
-        via_payload: session.via_payload,
+        via_payload: session.via_payload
       }
 
       # In the case of exploit/multi/handler we cannot yet determine the true
       # exploit responsible. But we can at least show the parent versus
       # just the generic handler:
-      if session.via_exploit == "exploit/multi/handler" and sess_data[:datastore]['ParentModule']
+      if (session.via_exploit == "exploit/multi/handler") && sess_data[:datastore]['ParentModule']
         sess_data[:via_exploit] = sess_data[:datastore]['ParentModule']
       end
 
       s = ::Mdm::Session.create!(sess_data)
 
-      if session.exploit_task and session.exploit_task.record
+      if session.exploit_task && session.exploit_task.record
         session_task = session.exploit_task.record
         if session_task.class == Mdm::Task
-          Mdm::TaskSession.create(task: session_task, session: s )
+          Mdm::TaskSession.create(task: session_task, session: s)
         end
       end
 
       s
-    }
+    end
   end
 
   def create_mdm_session_from_host(opts)
-    ::ActiveRecord::Base.connection_pool.with_connection {
+    ::ActiveRecord::Base.connection_pool.with_connection do
       host = opts[:host]
-      raise ArgumentError.new("Invalid :host, expected Host object") unless host.kind_of? ::Mdm::Host
+      raise ArgumentError, "Invalid :host, expected Host object" unless host.is_a? ::Mdm::Host
       sess_data = {
         host_id: host.id,
         stype: opts[:stype],
@@ -221,13 +221,11 @@ module Msf::DBManager::Session
         opened_at: opts[:opened_at],
         closed_at: opts[:closed_at],
         last_seen: opts[:last_seen] || opts[:closed_at],
-        close_reason: opts[:close_reason],
+        close_reason: opts[:close_reason]
       }
-
 
       s = ::Mdm::Session.create!(sess_data)
       s
-    }
+    end
   end
-
 end

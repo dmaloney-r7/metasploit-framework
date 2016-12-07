@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -27,11 +28,11 @@ class MetasploitModule < Msf::Post
     ))
 
     register_options([
-      OptBool.new('WITH_MANAGERS_ONLY', [true, 'Only users with managers', false]),
-      OptBool.new('ACTIVE_USERS_ONLY', [true, 'Only include active users (i.e. not disabled ones)', true]),
-      OptBool.new('STORE_LOOT', [true, 'Store the organizational chart information in CSV format in loot', true]),
-      OptString.new('FILTER', [false, 'Additional LDAP filter to use when searching for users', ''])
-    ], self.class)
+                       OptBool.new('WITH_MANAGERS_ONLY', [true, 'Only users with managers', false]),
+                       OptBool.new('ACTIVE_USERS_ONLY', [true, 'Only include active users (i.e. not disabled ones)', true]),
+                       OptBool.new('STORE_LOOT', [true, 'Store the organizational chart information in CSV format in loot', true]),
+                       OptString.new('FILTER', [false, 'Additional LDAP filter to use when searching for users', ''])
+                     ], self.class)
   end
 
   def run
@@ -83,21 +84,21 @@ class MetasploitModule < Msf::Post
       result.each_with_index do |field, idx|
         next if idx == 1 # Don't include the manager DN
 
-        if field.nil?
-          row << ""
-        else
-          row << field[:value]
-        end
+        row << if field.nil?
+                 ""
+               else
+                 field[:value]
+               end
       end
 
       # Parse the manager CN string to grab the CN= field only.
       # Note that it needs the negative lookbehind to avoid escaped characters.
       reports_to = /^CN=(?<cn>.+?),(?<!\\,)/.match(result[1][:value])
-      if reports_to.nil?
-        row << ""
-      else
-        row << reports_to['cn'].gsub('\,', ',')
-      end
+      row << if reports_to.nil?
+               ""
+             else
+               reports_to['cn'].gsub('\,', ',')
+             end
 
       results_table << row
     end

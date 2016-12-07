@@ -1,75 +1,73 @@
+# frozen_string_literal: true
 #
 # $Id$
 # $Revision$
 #
 
 module Msf
-
-###
-#
-# This class hooks all socket calls and updates the database with
-# data gathered from the connection parameters
-#
-###
-
-class Plugin::DB_Tracer < Msf::Plugin
-
   ###
   #
-  # This class implements a socket communication tracker
+  # This class hooks all socket calls and updates the database with
+  # data gathered from the connection parameters
   #
   ###
-  class DBTracerEventHandler
-    include Rex::Socket::Comm::Events
 
-    def on_before_socket_create(comm, param)
-    end
+  class Plugin::DB_Tracer < Msf::Plugin
+    ###
+    #
+    # This class implements a socket communication tracker
+    #
+    ###
+    class DBTracerEventHandler
+      include Rex::Socket::Comm::Events
 
-    def on_socket_created(comm, sock, param)
-      # Ignore local listening sockets
-      return if not sock.peerhost
+      def on_before_socket_create(comm, param)
+      end
 
-      if (sock.peerhost != '0.0.0.0' and sock.peerport)
+      def on_socket_created(_comm, sock, param)
+        # Ignore local listening sockets
+        return unless sock.peerhost
 
-        # Ignore sockets that didn't set up their context
-        # to hold the framework in 'Msf'
-        return if not param.context['Msf']
+        if (sock.peerhost != '0.0.0.0') && sock.peerport
 
-        host = param.context['Msf'].db.find_or_create_host(:host => sock.peerhost, :state => Msf::HostState::Alive)
-        return if not host
+          # Ignore sockets that didn't set up their context
+          # to hold the framework in 'Msf'
+          return unless param.context['Msf']
 
-        param.context['Msf'].db.report_service(:host => host, :proto => param.proto, :port => sock.peerport)
+          host = param.context['Msf'].db.find_or_create_host(host: sock.peerhost, state: Msf::HostState::Alive)
+          return unless host
+
+          param.context['Msf'].db.report_service(host: host, proto: param.proto, port: sock.peerport)
+        end
       end
     end
-  end
 
-  def initialize(framework, opts)
-    super
+    def initialize(framework, opts)
+      super
 
-    if(not framework.db.active)
-      raise PluginLoadError.new("The database backend has not been initialized")
-    end
-    framework.plugins.each { |plugin|
-      if (plugin.class == Msf::Plugin::DB_Tracer)
-        raise PluginLoadError.new("This plugin should not be loaded more than once")
+      unless framework.db.active
+        raise PluginLoadError, "The database backend has not been initialized"
       end
-    }
+      framework.plugins.each do |plugin|
+        if plugin.class == Msf::Plugin::DB_Tracer
+          raise PluginLoadError, "This plugin should not be loaded more than once"
+        end
+      end
 
-    @eh = DBTracerEventHandler.new
-    Rex::Socket::Comm::Local.register_event_handler(@eh)
-  end
+      @eh = DBTracerEventHandler.new
+      Rex::Socket::Comm::Local.register_event_handler(@eh)
+    end
 
-  def cleanup
-    Rex::Socket::Comm::Local.deregister_event_handler(@eh)
-  end
+    def cleanup
+      Rex::Socket::Comm::Local.deregister_event_handler(@eh)
+    end
 
-  def name
-    "db_tracker"
-  end
+    def name
+      "db_tracker"
+    end
 
-  def desc
-    "Monitors socket calls and updates the database backend"
-  end
-
-end
+    def desc
+      "Monitors socket calls and updates the database backend"
+    end
+    end
 end

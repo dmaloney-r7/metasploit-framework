@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::SNMPClient
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::Scanner
@@ -14,10 +14,10 @@ class MetasploitModule < Msf::Auxiliary
   def initialize
     super(
       'Name'           => 'Xerox WorkCentre User Enumeration (SNMP)',
-      'Description'    => %q{
+      'Description'    => %q(
           This module will do user enumeration based on the Xerox WorkCentre present on the network.
           SNMP is used to extract the usernames.
-      },
+      ),
       'Author'         =>
         [
           'pello <fropert[at]packetfault.org>'
@@ -32,29 +32,30 @@ class MetasploitModule < Msf::Auxiliary
 
       if snmp.get_value('sysDescr.0') =~ /Xerox/
         @users = []
-        285222001.upto(285222299) { |oidusernames|
+        285222001.upto(285222299) do |oidusernames|
           snmp.walk("1.3.6.1.4.1.253.8.51.5.1.1.4.151.#{oidusernames}") do |row|
             row.each { |val| @users << val.value.to_s if val.value.to_s.length >= 1 }
           end
-        }
-        print_good("#{ip} Found Users: #{@users.uniq.sort.join(", ")} ")
+        end
+        print_good("#{ip} Found Users: #{@users.uniq.sort.join(', ')} ")
 
         @users.each do |user|
           report_note(
-          :host => rhost,
-          :port => datastore['RPORT'],
-          :proto => 'udp',
-          :sname => 'snmp',
-          :update => :unique_data,
-          :type => 'xerox.workcenter.user',
-          :data => user)
+            host: rhost,
+            port: datastore['RPORT'],
+            proto: 'udp',
+            sname: 'snmp',
+            update: :unique_data,
+            type: 'xerox.workcenter.user',
+            data: user
+          )
         end
       end
 
     # No need to make noise about timeouts
     rescue ::Rex::ConnectionError, ::SNMP::RequestTimeout, ::SNMP::UnsupportedVersion
     rescue ::Interrupt
-      raise $!
+      raise $ERROR_INFO
     rescue ::Exception => e
       print_error("#{ip} Error: #{e.class} #{e} #{e.backtrace}")
     ensure

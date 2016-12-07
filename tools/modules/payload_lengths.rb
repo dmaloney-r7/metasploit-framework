@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 #
 # $Id$
 # $Revision$
@@ -12,10 +13,10 @@ while File.symlink?(msfbase)
   msfbase = File.expand_path(File.readlink(msfbase), File.dirname(msfbase))
 end
 
-$:.unshift(File.expand_path(File.join(File.dirname(msfbase), '..', '..', 'lib')))
+$LOAD_PATH.unshift(File.expand_path(File.join(File.dirname(msfbase), '..', '..', 'lib')))
 require 'msfenv'
 
-$:.unshift(ENV['MSF_LOCAL_LIB']) if ENV['MSF_LOCAL_LIB']
+$LOAD_PATH.unshift(ENV['MSF_LOCAL_LIB']) if ENV['MSF_LOCAL_LIB']
 
 require 'rex'
 require 'msf/ui'
@@ -42,40 +43,39 @@ tbl = Rex::Text::Table.new(
 
 enc = nil
 
-$framework.payloads.each_module { |payload_name, mod|
-
+$framework.payloads.each_module do |payload_name, mod|
   len = 'Error: Unknown error!'
 
   begin
     # Create the payload instance
     payload = mod.new
-    raise "Invalid payload" if not payload
+    raise "Invalid payload" unless payload
 
     # Set the variables from the cmd line
     payload.datastore.import_options_from_s(options)
 
     # Skip non-specified architectures
     if (ds_arch = payload.datastore['ARCH'])
-      next if not payload.arch?(ds_arch)
+      next unless payload.arch?(ds_arch)
     end
 
     # Skip non-specified platforms
     if (ds_plat = payload.datastore['PLATFORM'])
       ds_plat = Msf::Module::PlatformList.transform(ds_plat)
-      next if not payload.platform.supports?(ds_plat)
+      next unless payload.platform.supports?(ds_plat)
     end
 
     len = payload.size
-    if len > 0
-      len = len.to_s
-    else
-      len = "Error: Empty payload"
-    end
+    len = if len > 0
+            len.to_s
+          else
+            "Error: Empty payload"
+          end
   rescue
-    len = "Error: #{$!}"
+    len = "Error: #{$ERROR_INFO}"
   end
 
   tbl << [ payload_name, len ]
-}
+end
 
 puts tbl.to_s

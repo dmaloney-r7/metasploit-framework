@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 #
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,31 +7,30 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::Tcp
   include Msf::Auxiliary::Report
 
-  def initialize(info={})
+  def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Xerox Administrator Console Password Extractor',
-      'Description'    => %q{
-        This module will extract the management console's admin password from the
-        Xerox file system using firmware bootstrap injection.
-      },
-      'Author'         =>
-        [
-          'Deral "Percentx" Heiland',
-          'Pete "Bokojan" Arzamendi'
-        ],
-      'License'        => MSF_LICENSE
-    ))
+                      'Name'           => 'Xerox Administrator Console Password Extractor',
+                      'Description'    => %q(
+                        This module will extract the management console's admin password from the
+                        Xerox file system using firmware bootstrap injection.
+                      ),
+                      'Author'         =>
+                        [
+                          'Deral "Percentx" Heiland',
+                          'Pete "Bokojan" Arzamendi'
+                        ],
+                      'License'        => MSF_LICENSE))
 
     register_options(
       [
         OptPort.new('RPORT', [true, 'Web management console port for the printer', 80]),
         OptPort.new('JPORT', [true, 'Jetdirect port', 9100]),
-         OptInt.new('TIMEOUT', [true, 'Timeout to wait for printer job to run', 45])
-      ], self.class)
+        OptInt.new('TIMEOUT', [true, 'Timeout to wait for printer job to run', 45])
+      ], self.class
+    )
   end
 
   def jport
@@ -160,7 +160,7 @@ class MetasploitModule < Msf::Auxiliary
   def register_creds(service_name, remote_host, remote_port, username, password)
     credential_data = {
       origin_type: :service,
-      module_fullname: self.fullname,
+      module_fullname: fullname,
       workspace_id: myworkspace.id,
       private_data: password,
       private_type: :password,

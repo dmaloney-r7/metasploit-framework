@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 # JAVA RMI Wire protocol implementation
@@ -6,4 +7,3 @@
 require 'rex/proto/rmi/exception'
 require 'rex/proto/rmi/decode_error'
 require 'rex/proto/rmi/model'
-

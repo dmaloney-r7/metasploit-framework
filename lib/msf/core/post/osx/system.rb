@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 module Msf::Post::OSX::System
@@ -11,13 +12,13 @@ module Msf::Post::OSX::System
     system_info = {}
     cmd_output = cmd_exec("/usr/bin/sw_vers").split("\n")
     cmd_output.each do |l|
-      field,val = l.chomp.split(":")
+      field, val = l.chomp.split(":")
       system_info[field] = val.strip
     end
     system_info["Kernel"] = cmd_exec("uname -a")
     system_info["Hostname"] = system_info["Kernel"].split(" ")[1]
 
-    return system_info
+    system_info
   end
 
   #
@@ -29,16 +30,15 @@ module Msf::Post::OSX::System
     users = []
     users_arry = cmd_output.split("\n\n")
     users_arry.each do |u|
-      entry = Hash.new
+      entry = {}
       u.each_line do |l|
-        field,val = l.chomp.split(": ")
+        field, val = l.chomp.split(": ")
         next if field == "password"
         entry[field] = val.chomp
-
       end
       users << entry
     end
-    return users
+    users
   end
 
   #
@@ -52,14 +52,14 @@ module Msf::Post::OSX::System
     users_arry.each do |u|
       entry = {}
       u.each_line do |l|
-        field,val = l.chomp.split(": ")
+        field, val = l.chomp.split(": ")
         next if field == "password"
         entry[field] = val.chomp
       end
       next if entry["name"] !~ /^_/
       users << entry
     end
-    return users
+    users
   end
 
   #
@@ -73,14 +73,14 @@ module Msf::Post::OSX::System
     users_arry.each do |u|
       entry = {}
       u.each_line do |l|
-        field,val = l.chomp.split(": ")
+        field, val = l.chomp.split(": ")
         next if field == "password"
         entry[field] = val.chomp
       end
       next if entry["name"] =~ /^_/
       users << entry
     end
-    return users
+    users
   end
 
   #
@@ -92,15 +92,14 @@ module Msf::Post::OSX::System
     groups = []
     groups_arry = cmd_output.split("\n\n")
     groups_arry.each do |u|
-      entry = Hash.new
+      entry = {}
       u.each_line do |l|
-        field,val = l.chomp.split(": ")
+        field, val = l.chomp.split(": ")
         next if field == "password"
         entry[field] = val.chomp
-
       end
       groups << entry
     end
-    return groups
+    groups
   end
 end

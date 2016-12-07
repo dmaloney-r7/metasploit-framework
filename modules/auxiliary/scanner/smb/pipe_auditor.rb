@@ -1,14 +1,12 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 
-
 class MetasploitModule < Msf::Auxiliary
-
   # Exploit mixins should be called first
   include Msf::Exploit::Remote::SMB::Client
   include Msf::Exploit::Remote::SMB::Client::Authenticated
@@ -58,49 +56,45 @@ class MetasploitModule < Msf::Auxiliary
 
   # Fingerprint a single host
   def run_host(ip)
-
     pass = []
 
     [[139, false], [445, true]].each do |info|
+      datastore['RPORT'] = info[0]
+      datastore['SMBDirect'] = info[1]
 
-    datastore['RPORT'] = info[0]
-    datastore['SMBDirect'] = info[1]
-
-    begin
-      connect()
-      smb_login()
-      @@target_pipes.each do |pipe|
-        begin
-          fid = smb_create("\\#{pipe}")
-          #print_status("Opened pipe \\#{pipe}")
-          pass.push(pipe)
-        rescue ::Rex::Proto::SMB::Exceptions::ErrorCode => e
-          #print_error("Could not open \\#{pipe}: Error 0x%.8x" % e.error_code)
+      begin
+        connect
+        smb_login
+        @@target_pipes.each do |pipe|
+          begin
+            fid = smb_create("\\#{pipe}")
+            # print_status("Opened pipe \\#{pipe}")
+            pass.push(pipe)
+          rescue ::Rex::Proto::SMB::Exceptions::ErrorCode => e
+            # print_error("Could not open \\#{pipe}: Error 0x%.8x" % e.error_code)
+          end
         end
+
+        disconnect
+
+        break
+      rescue ::Exception => e
+        # print_line($!.to_s)
+        # print_line($!.backtrace.join("\n"))
       end
-
-      disconnect()
-
-      break
-    rescue ::Exception => e
-      #print_line($!.to_s)
-      #print_line($!.backtrace.join("\n"))
-    end
     end
 
-    if(pass.length > 0)
-      print_status("Pipes: #{pass.map{|c| "\\#{c}"}.join(", ")}")
+    unless pass.empty?
+      print_status("Pipes: #{pass.map { |c| "\\#{c}" }.join(', ')}")
       # Add Report
       report_note(
-        :host	=> ip,
-        :proto => 'tcp',
-        :sname	=> 'smb',
-        :port	=> rport,
-        :type	=> 'Pipes Founded',
-        :data	=> "Pipes: #{pass.map{|c| "\\#{c}"}.join(", ")}"
+        host: ip,
+        proto: 'tcp',
+        sname: 'smb',
+        port: rport,
+        type: 'Pipes Founded',
+        data: "Pipes: #{pass.map { |c| "\\#{c}" }.join(', ')}"
       )
     end
   end
-
-
 end

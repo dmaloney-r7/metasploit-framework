@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::Imap
   include Msf::Auxiliary::Scanner
   include Msf::Auxiliary::Report
@@ -25,7 +25,7 @@ class MetasploitModule < Msf::Auxiliary
       connect
       banner_sanitized = Rex::Text.to_hex_ascii(banner.to_s)
       print_status("#{ip}:#{rport} IMAP #{banner_sanitized}")
-      report_service(:host => rhost, :port => rport, :name => "imap", :info => banner)
+      report_service(host: rhost, port: rport, name: "imap", info: banner)
     rescue ::Rex::ConnectionError
     rescue ::EOFError
       print_error("#{ip}:#{rport} - The service failed to respond")
@@ -33,5 +33,4 @@ class MetasploitModule < Msf::Auxiliary
       print_error("#{ip}:#{rport} - #{e} #{e.backtrace}")
     end
   end
-
 end

@@ -1,7 +1,9 @@
+# frozen_string_literal: true
 require 'rex/parser/ini'
 
 RSpec.describe Rex::Parser::Ini do
-  let(:ini_contents) { <<EOF
+  let(:ini_contents) do
+    <<EOF
 # global comment
 global settting = blah
 [foo]
@@ -12,7 +14,7 @@ b = c
 [baf]
 c = d
 EOF
-  }
+  end
 
   let(:ini) { described_class.from_s(ini_contents) }
 

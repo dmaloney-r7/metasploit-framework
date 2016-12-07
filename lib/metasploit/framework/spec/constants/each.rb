@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # @note This should only temporarily be used in `spec/spec_helper.rb` when
 #   `Metasploit::Framework::Spec::Constants::Suite.configure!` detects a leak.  Permanently having
 #   `Metasploit::Framework::Spec::Constants::Each.configure!` can lead to false positives when modules are purposely
@@ -47,7 +48,7 @@ module Metasploit::Framework::Spec::Constants::Each
         config.after(:each) do |example|
           child_names = Metasploit::Framework::Spec::Constants.to_enum(:each).to_a
 
-          if child_names.length > 0
+          unless child_names.empty?
             lines = ['Leaked constants:']
 
             child_names.sort.each do |child_name|
@@ -61,21 +62,19 @@ module Metasploit::Framework::Spec::Constants::Each
 
             # use caller metadata so that Jump to Source in the Rubymine RSpec running jumps to the example instead of
             # here
-            fail RuntimeError, message, example.metadata[:caller]
+            raise RuntimeError, message, example.metadata[:caller]
           end
         end
 
         config.after(:suite) do
           if Metasploit::Framework::Spec::Constants::Each.leaks_cleaned?
-            if LOG_PATHNAME.exist?
-              LOG_PATHNAME.delete
-            end
+            LOG_PATHNAME.delete if LOG_PATHNAME.exist?
           else
-            LOG_PATHNAME.open('w') { |f|
+            LOG_PATHNAME.open('w') do |f|
               f.puts "No leaks were cleaned by `Metasploit::Framework::Spec::Constants::Each.configured!`.  Remove " \
                      "it from `spec/spec_helper.rb` so it does not interfere with contexts that persist loaded " \
                      "modules for entire context and clean up modules in `after(:all)`"
-            }
+            end
           end
         end
       end
@@ -97,20 +96,18 @@ module Metasploit::Framework::Spec::Constants::Each
   # @return [void]
   def self.define_task
     Rake::Task.define_task('metasploit:framework:spec:constant:each:clean') do
-      if LOG_PATHNAME.exist?
-        LOG_PATHNAME.delete
-      end
+      LOG_PATHNAME.delete if LOG_PATHNAME.exist?
     end
 
     Rake::Task.define_task(spec: 'metasploit:framework:spec:constant:each:clean')
 
     Rake::Task.define_task(:spec) do
       if LOG_PATHNAME.exist?
-        LOG_PATHNAME.open { |f|
+        LOG_PATHNAME.open do |f|
           f.each_line do |line|
             $stderr.write line
           end
-        }
+        end
 
         exit(1)
       end

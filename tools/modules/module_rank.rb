@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 #
 # $Id$
 #
@@ -12,16 +13,16 @@ while File.symlink?(msfbase)
   msfbase = File.expand_path(File.readlink(msfbase), File.dirname(msfbase))
 end
 
-$:.unshift(File.expand_path(File.join(File.dirname(msfbase), '..', '..', 'lib')))
+$LOAD_PATH.unshift(File.expand_path(File.join(File.dirname(msfbase), '..', '..', 'lib')))
 require 'msfenv'
 
-$:.unshift(ENV['MSF_LOCAL_LIB']) if ENV['MSF_LOCAL_LIB']
+$LOAD_PATH.unshift(ENV['MSF_LOCAL_LIB']) if ENV['MSF_LOCAL_LIB']
 
 require 'rex'
 require 'msf/ui'
 require 'msf/base'
 
-ranks= Hash.new
+ranks = {}
 
 ranks['Manual'] = 0
 ranks['Low'] = 100
@@ -31,11 +32,11 @@ ranks['Good'] = 400
 ranks['Great'] = 500
 ranks['Excellent'] = 600
 
-minrank= 0
-maxrank= 600
+minrank = 0
+maxrank = 600
 sort = 0
-filter= 'All'
-filters = ['all','exploit','payload','post','nop','encoder','auxiliary']
+filter = 'All'
+filters = ['all', 'exploit', 'payload', 'post', 'nop', 'encoder', 'auxiliary']
 
 opts = Rex::Parser::Arguments.new(
   "-h" => [ false, "Help menu." ],
@@ -43,10 +44,10 @@ opts = Rex::Parser::Arguments.new(
   "-m" => [ true, "Set Minimum Rank [Manual,Low,Average,Normal,Good,Great,Excellent] (Default = Manual)."],
   "-s" => [ false, "Sort by Rank instead of Module Type."],
   "-r" => [ false, "Reverse Sort by Rank"],
-  "-f" => [ true, "Filter based on Module Type [#{filters.map{|f|f.capitalize}.join(", ")}] (Default = All)."],
+  "-f" => [ true, "Filter based on Module Type [#{filters.map(&:capitalize).join(', ')}] (Default = All)."]
 )
 
-opts.parse(ARGV) { |opt, idx, val|
+opts.parse(ARGV) do |opt, _idx, val|
   case opt
   when "-h"
     puts "\nMetasploit Script for Displaying Module Rank information."
@@ -78,16 +79,14 @@ opts.parse(ARGV) { |opt, idx, val|
   when "-f"
     unless filters.include?(val.downcase)
       puts "Invalid Filter Supplied: #{val}"
-      puts "Please use one of these: #{filters.map{|f|f.capitalize}.join(", ")}"
+      puts "Please use one of these: #{filters.map(&:capitalize).join(', ')}"
       exit
     end
     puts "Module Filter: #{val}"
     filter = val
 
   end
-
-}
-
+end
 
 Indent = '    '
 
@@ -96,13 +95,12 @@ Indent = '    '
 framework_opts = { 'DisableDatabase' => true }
 
 # If the user only wants a particular module type, no need to load the others
-if filter.downcase != 'all'
+unless filter.casecmp('all').zero?
   framework_opts[:module_types] = [ filter.downcase ]
 end
 
 # Initialize the simplified framework instance.
 $framework = Msf::Simple::Framework.create(framework_opts)
-
 
 tbl = Rex::Text::Table.new(
   'Header'  => 'Module Ranks',
@@ -110,18 +108,13 @@ tbl = Rex::Text::Table.new(
   'Columns' => [ 'Module', 'Rank' ]
 )
 
-$framework.modules.each { |name, mod|
+$framework.modules.each do |_name, mod|
   x = mod.new
   modrank = x.rank
-  if modrank >= minrank and modrank<= maxrank
-    tbl << [ x.fullname, modrank ]
-  end
-
-}
-
-if sort == 1
-  tbl.sort_rows(1)
+  tbl << [ x.fullname, modrank ] if (modrank >= minrank) && (modrank <= maxrank)
 end
+
+tbl.sort_rows(1) if sort == 1
 
 if sort == 2
   tbl.sort_rows(1)

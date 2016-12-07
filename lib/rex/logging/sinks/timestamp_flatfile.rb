@@ -1,21 +1,19 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 module Rex
-module Logging
-module Sinks
-
-###
-#
-# This class implements the LogSink interface and backs it against a
-# file on disk with a Timestamp.
-#
-###
-class TimestampFlatfile < Flatfile
-
-  def log(sev, src, level, msg, from) # :nodoc:
-    msg = msg.chop.gsub(/\x1b\[[0-9;]*[mG]/,'').gsub(/[\x01-\x02]/, " ")
-    fd.write("[#{get_current_timestamp}] #{msg}\n")
-    fd.flush
-  end
-end
-
-end end end
+  module Logging
+    module Sinks
+      ###
+      #
+      # This class implements the LogSink interface and backs it against a
+      # file on disk with a Timestamp.
+      #
+      ###
+      class TimestampFlatfile < Flatfile
+        def log(_sev, _src, _level, msg, _from) # :nodoc:
+          msg = msg.chop.gsub(/\x1b\[[0-9;]*[mG]/, '').gsub(/[\x01-\x02]/, " ")
+          fd.write("[#{get_current_timestamp}] #{msg}\n")
+          fd.flush
+      end
+      end
+      end end end

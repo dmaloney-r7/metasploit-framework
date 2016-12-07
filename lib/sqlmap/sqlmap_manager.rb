@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'json'
 
 module Sqlmap
@@ -18,7 +19,7 @@ module Sqlmap
 
     def set_option(task_id, key, value)
       post = { key => value }
-      res = @session.post('/option/' + task_id + '/set', nil, post.to_json, {'ctype' => 'application/json'})
+      res = @session.post('/option/' + task_id + '/set', nil, post.to_json, 'ctype' => 'application/json')
       parse_response(res)
     end
 
@@ -28,9 +29,8 @@ module Sqlmap
     end
 
     def start_task(task_id, options = {})
-      res = @session.post('/scan/' + task_id + '/start' , nil, options.to_json, {'ctype' => 'application/json'})
+      res = @session.post('/scan/' + task_id + '/start', nil, options.to_json, 'ctype' => 'application/json')
       parse_response(res)
-
     end
 
     def get_task_status(task_id)
@@ -49,6 +49,7 @@ module Sqlmap
     end
 
     private
+
     def parse_response(res)
       json = {}
       if res && res.body

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -21,7 +22,7 @@ class MetasploitModule < Msf::Auxiliary
         contents of packets traversing a Cisco router with DLSw configured
         and active.
       ),
-      'Author'         => [
+      'Author' => [
         'Tate Hansen', # Vulnerability discovery
         'John McLeod', # Vulnerability discovery
         'Kyle Rainey' # Built lab to recreate vulnerability and help test
@@ -39,7 +40,8 @@ class MetasploitModule < Msf::Auxiliary
       [
         Opt::RPORT(2067),
         OptInt.new('LEAK_AMOUNT', [true, 'The number of bytes to store before shutting down.', 1024])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def get_response(size = 72)

@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 #
 # $Id$
 # $Revision$
@@ -11,10 +12,10 @@ while File.symlink?(msfbase)
   msfbase = File.expand_path(File.readlink(msfbase), File.dirname(msfbase))
 end
 
-$:.unshift(File.expand_path(File.join(File.dirname(msfbase), '..', '..', 'lib')))
+$LOAD_PATH.unshift(File.expand_path(File.join(File.dirname(msfbase), '..', '..', 'lib')))
 require 'msfenv'
 
-$:.unshift(ENV['MSF_LOCAL_LIB']) if ENV['MSF_LOCAL_LIB']
+$LOAD_PATH.unshift(ENV['MSF_LOCAL_LIB']) if ENV['MSF_LOCAL_LIB']
 
 require 'rex'
 require 'msf/ui'
@@ -23,22 +24,22 @@ require 'msf/base'
 nilc = false
 sort = 0
 filter = 'All'
-filters = ['all','exploit','payload','post','nop','encoder','auxiliary']
+filters = ['all', 'exploit', 'payload', 'post', 'nop', 'encoder', 'auxiliary']
 startdate = Date.new
-enddate = Date.new(2525,01,01)
+enddate = Date.new(2525, 0o1, 0o1)
 match = nil
 
 opts = Rex::Parser::Arguments.new(
   "-h" => [ false, "Help menu." ],
   "-s" => [ false, "Sort by Disclosure Date instead of Module Type."],
   "-r" => [ false, "Reverse Sort"],
-  "-f" => [ true, "Filter based on Module Type [#{filters.map{|f|f.capitalize}.join(", ")}] (Default = All)."],
+  "-f" => [ true, "Filter based on Module Type [#{filters.map(&:capitalize).join(', ')}] (Default = All)."],
   "-n" => [ false, "Filter out modules that have no Disclosure Date listed."],
   "-d" => [ true, "Start of Date Range YYYY-MM-DD."],
   "-D" => [ true, "End of Date Range YYYY-MM-DD."]
 )
 
-opts.parse(ARGV) { |opt, idx, val|
+opts.parse(ARGV) do |opt, _idx, val|
   case opt
   when "-h"
     puts "\nMetasploit Script for Displaying Module Disclosure Date Information."
@@ -54,27 +55,27 @@ opts.parse(ARGV) { |opt, idx, val|
   when "-f"
     unless filters.include?(val.downcase)
       puts "Invalid Filter Supplied: #{val}"
-      puts "Please use one of these: #{filters.map{|f|f.capitalize}.join(", ")}"
+      puts "Please use one of these: #{filters.map(&:capitalize).join(', ')}"
       exit
     end
     puts "Module Filter: #{val}"
     filter = val
   when "-n"
     puts "Excluding Null dates"
-    nilc=1
+    nilc = 1
   when "-d"
-    (year,month,day) = val.split('-')
-    if Date.valid_civil?(year.to_i,month.to_i,day.to_i)
-      startdate= Date.new(year.to_i,month.to_i,day.to_i)
+    (year, month, day) = val.split('-')
+    if Date.valid_civil?(year.to_i, month.to_i, day.to_i)
+      startdate = Date.new(year.to_i, month.to_i, day.to_i)
       puts "Start Date: #{startdate}"
     else
       puts "Invalid Start Date: #{val}"
       exit
     end
   when "-D"
-    (year,month,day) = val.split('-')
-    if Date.valid_civil?(year.to_i,month.to_i,day.to_i)
-      enddate= Date.new(year.to_i,month.to_i,day.to_i)
+    (year, month, day) = val.split('-')
+    if Date.valid_civil?(year.to_i, month.to_i, day.to_i)
+      enddate = Date.new(year.to_i, month.to_i, day.to_i)
       puts "End Date: #{enddate}"
     else
       puts "Invalid Start Date: #{val}"
@@ -87,8 +88,7 @@ opts.parse(ARGV) { |opt, idx, val|
     end
     match = Regexp.new(val)
   end
-
-}
+end
 
 Indent = '  '
 
@@ -97,13 +97,12 @@ Indent = '  '
 framework_opts = { 'DisableDatabase' => true }
 
 # If the user only wants a particular module type, no need to load the others
-if filter.downcase != 'all'
+unless filter.casecmp('all').zero?
   framework_opts[:module_types] = [ filter.downcase ]
 end
 
 # Initialize the simplified framework instance.
 $framework = Msf::Simple::Framework.create(framework_opts)
-
 
 tbl = Rex::Text::Table.new(
   'Header'  => 'Module References',
@@ -111,25 +110,19 @@ tbl = Rex::Text::Table.new(
   'Columns' => [ 'Module', 'Disclosure Date' ]
 )
 
-$framework.modules.each { |name, mod|
-  next if match and not name =~ match
+$framework.modules.each do |name, mod|
+  next if match && !(name =~ match)
   x = mod.new
   if x.disclosure_date.nil?
-    if nilc==1
-      tbl << [ x.fullname, '' ]
-    end
+    tbl << [ x.fullname, '' ] if nilc == 1
   else
-    if x.disclosure_date >= startdate and x.disclosure_date <= enddate
+    if (x.disclosure_date >= startdate) && (x.disclosure_date <= enddate)
       tbl << [ x.fullname, x.disclosure_date ]
     end
   end
-}
-
-
-if sort == 1
-  tbl.sort_rows(1)
 end
 
+tbl.sort_rows(1) if sort == 1
 
 if sort == 2
   tbl.sort_rows(1)

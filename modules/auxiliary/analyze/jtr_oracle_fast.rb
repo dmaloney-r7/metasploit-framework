@@ -1,37 +1,36 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 require 'msf/core/auxiliary/jtr'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Auxiliary::JohnTheRipper
 
   def initialize
     super(
       'Name'           => 'John the Ripper Oracle Password Cracker (Fast Mode)',
-      'Description'    => %Q{
+      'Description'    => %(
           This module uses John the Ripper to identify weak passwords that have been
         acquired from the oracle_hashdump module. Passwords that have been successfully
         cracked are then saved as proper credentials
-      },
+      ),
       'Author'         =>
         [
           'theLightCosine',
           'hdm'
-        ] ,
-      'License'        => MSF_LICENSE  # JtR itself is GPLv2, but this wrapper is MSF (BSD)
+        ],
+      'License'        => MSF_LICENSE # JtR itself is GPLv2, but this wrapper is MSF (BSD)
     )
   end
 
   def run
     @wordlist = Rex::Quickfile.new("jtrtmp")
 
-    @wordlist.write( build_seed().flatten.uniq.join("\n") + "\n" )
+    @wordlist.write(build_seed.flatten.uniq.join("\n") + "\n")
     @wordlist.close
     crack("oracle")
     crack("oracle11g")
@@ -64,13 +63,11 @@ class MetasploitModule < Msf::Auxiliary
     create_credential_login(login_data)
   end
 
-
   def crack(format)
-
     hashlist = Rex::Quickfile.new("jtrtmp")
-    ltype= "#{format}.hashes"
+    ltype = "#{format}.hashes"
     myloots = myworkspace.loots.where('ltype=?', ltype)
-    unless myloots.nil? or myloots.empty?
+    unless myloots.nil? || myloots.empty?
       myloots.each do |myloot|
         begin
           oracle_array = CSV.read(myloot.path).drop(1)
@@ -85,18 +82,18 @@ class MetasploitModule < Msf::Auxiliary
 
       print_status("HashList: #{hashlist.path}")
       print_status("Trying Wordlist: #{@wordlist.path}")
-      john_crack(hashlist.path, :wordlist => @wordlist.path, :rules => 'single', :format => format)
+      john_crack(hashlist.path, wordlist: @wordlist.path, rules: 'single', format: format)
 
       print_status("Trying Rule: All4...")
-      john_crack(hashlist.path, :incremental => "All4", :format => format)
+      john_crack(hashlist.path, incremental: "All4", format: format)
 
       print_status("Trying Rule: Digits5...")
-      john_crack(hashlist.path, :incremental => "Digits5", :format => format)
+      john_crack(hashlist.path, incremental: "Digits5", format: format)
 
       cracked = john_show_passwords(hashlist.path, format)
 
       print_status("#{cracked[:cracked]} hashes were cracked!")
-      cracked[:users].each_pair do |k,v|
+      cracked[:users].each_pair do |k, v|
         print_good("Host: #{v[1]} Port: #{v[2]} User: #{k} Pass: #{v[0]}")
         report_cred(
           ip: v[1],
@@ -110,5 +107,4 @@ class MetasploitModule < Msf::Auxiliary
       end
     end
   end
-
 end

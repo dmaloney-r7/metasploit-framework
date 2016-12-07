@@ -1,14 +1,12 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 
-
 class MetasploitModule < Msf::Auxiliary
-
   # Exploit mixins should be called first
   include Msf::Exploit::Remote::SMB::Client
   include Msf::Exploit::Remote::SMB::Client::Authenticated
@@ -20,17 +18,16 @@ class MetasploitModule < Msf::Auxiliary
   XCEPT  = Rex::Proto::SMB::Exceptions
   CONST  = Rex::Proto::SMB::Constants
 
-
   def initialize
     super(
       'Name'        => 'SMB Scanner Check File/Directory Utility',
-      'Description' => %Q{
+      'Description' => %(
         This module is useful when checking an entire network
         of SMB hosts for the presence of a known file or directory.
         An example would be to scan all systems for the presence of
         antivirus or known malware outbreak. Typically you must set
         RPATH, SMBUser, SMBDomain and SMBPass to operate correctly.
-      },
+      ),
       'Author'      =>
         [
           'patrick',
@@ -43,10 +40,9 @@ class MetasploitModule < Msf::Auxiliary
     )
 
     register_options([
-      OptString.new('SMBSHARE', [true, 'The name of an accessible share on the server', 'C$']),
-      OptString.new('RPATH', [true, 'The name of the remote file/directory relative to the share'])
-    ], self.class)
-
+                       OptString.new('SMBSHARE', [true, 'The name of an accessible share on the server', 'C$']),
+                       OptString.new('RPATH', [true, 'The name of the remote file/directory relative to the share'])
+                     ], self.class)
   end
 
   def check_path(path)
@@ -77,7 +73,7 @@ class MetasploitModule < Msf::Auxiliary
     end
   end
 
-  def run_host(ip)
+  def run_host(_ip)
     vprint_status("Connecting to the server...")
 
     begin
@@ -85,12 +81,12 @@ class MetasploitModule < Msf::Auxiliary
       smb_login
 
       vprint_status("Mounting the remote share \\\\#{datastore['RHOST']}\\#{datastore['SMBSHARE']}'...")
-      self.simple.connect("\\\\#{rhost}\\#{datastore['SMBSHARE']}")
+      simple.connect("\\\\#{rhost}\\#{datastore['SMBSHARE']}")
       vprint_status("Checking for file/folder #{datastore['RPATH']}...")
 
       datastore['RPATH'].each_line do |path|
         check_path(path.chomp)
-      end #end do
+      end # end do
     rescue ::Rex::HostUnreachable
       vprint_error("Host offline.")
     rescue ::Rex::Proto::SMB::Exceptions::LoginError

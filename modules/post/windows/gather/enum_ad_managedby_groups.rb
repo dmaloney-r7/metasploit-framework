@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -36,10 +37,10 @@ class MetasploitModule < Msf::Post
     ))
 
     register_options([
-      OptString.new('ADDITIONAL_FIELDS', [false, 'Additional group fields to retrieve, comma separated.', nil]),
-      OptBool.new('RESOLVE_MANAGERS', [true, 'Query LDAP to get the account name of group managers.', TRUE]),
-      OptBool.new('SECURITY_GROUPS_ONLY', [true, 'Only include security groups.', TRUE])
-    ], self.class)
+                       OptString.new('ADDITIONAL_FIELDS', [false, 'Additional group fields to retrieve, comma separated.', nil]),
+                       OptBool.new('RESOLVE_MANAGERS', [true, 'Query LDAP to get the account name of group managers.', TRUE]),
+                       OptBool.new('SECURITY_GROUPS_ONLY', [true, 'Only include security groups.', TRUE])
+                     ], self.class)
   end
 
   def run
@@ -86,20 +87,20 @@ class MetasploitModule < Msf::Post
       row = []
 
       result.each do |field|
-        if field.nil?
-          row << ""
-        else
-          row << field[:value]
-        end
+        row << if field.nil?
+                 ""
+               else
+                 field[:value]
+               end
       end
       if datastore['RESOLVE_MANAGERS']
         begin
           m = query("(distinguishedName=#{result[2][:value]})", 1, ['sAMAccountName'])
-          if !m.nil? && !m[:results].empty?
-            row << m[:results][0][0][:value]
-          else
-            row << ""
-          end
+          row << if !m.nil? && !m[:results].empty?
+                   m[:results][0][0][:value]
+                 else
+                   ""
+                 end
         rescue
           row << ""
         end

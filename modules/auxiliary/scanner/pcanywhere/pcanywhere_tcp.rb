@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::Tcp
   include Msf::Auxiliary::Scanner
   include Msf::Auxiliary::Report
@@ -20,34 +20,33 @@ class MetasploitModule < Msf::Auxiliary
     )
 
     register_options(
-    [
-      Opt::RPORT(5631)
-    ], self.class)
+      [
+        Opt::RPORT(5631)
+      ], self.class
+    )
   end
 
-  def run_host(ip)
+  def run_host(_ip)
     begin
       connect
       sock.put("\x00\x00\x00\x00")
       res = sock.get_once(-1, 15)
-      if not (res and res.index("Please press <Enter>"))
+      unless res && res.index("Please press <Enter>")
         disconnect
         return
       end
 
-=begin
-      sock.put( "\x6f\x06\xfe" )
-      res = sock.get_once(-1, 15)
+      #       sock.put( "\x6f\x06\xfe" )
+      #       res = sock.get_once(-1, 15)
+      #
+      #       sock.put("\x6f\x61\xff\x09\x00\x07\x00\x00\x01\xff\x00\x00\x07\x00")
+      #       res = sock.get_once(-1, 15)
+      #
+      #       sock.put("\x6f\x62\x00\x02\x00\x00\x00")
+      #       res = sock.get_once(-1, 15)
+      #       print_status(Rex::Text.to_hex_dump(res))
 
-      sock.put("\x6f\x61\xff\x09\x00\x07\x00\x00\x01\xff\x00\x00\x07\x00")
-      res = sock.get_once(-1, 15)
-
-      sock.put("\x6f\x62\x00\x02\x00\x00\x00")
-      res = sock.get_once(-1, 15)
-      print_status(Rex::Text.to_hex_dump(res))
-=end
-
-      report_service(:host => rhost, :port => rport, :name => "pcanywhere_data", :info => "")
+      report_service(host: rhost, port: rport, name: "pcanywhere_data", info: "")
       print_status("#{rhost}:#{rport} pcAnywhere data service")
 
     rescue ::Rex::ConnectionError, ::EOFError, ::Errno::ECONNRESET

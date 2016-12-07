@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 RSpec.shared_examples_for 'Msf::ModuleManager::Cache' do
   let(:parent_path) do
     parent_pathname.to_path
@@ -21,8 +22,8 @@ RSpec.shared_examples_for 'Msf::ModuleManager::Cache' do
 
   let(:pathname) do
     parent_pathname.join(
-        'exploits',
-        "#{reference_name}.rb"
+      'exploits',
+      "#{reference_name}.rb"
     )
   end
 
@@ -50,7 +51,7 @@ RSpec.shared_examples_for 'Msf::ModuleManager::Cache' do
     context 'without empty' do
       let(:module_info_by_path) do
         {
-            'path/to/module' => {}
+          'path/to/module' => {}
         }
       end
 
@@ -61,10 +62,10 @@ RSpec.shared_examples_for 'Msf::ModuleManager::Cache' do
   context '#cache_in_memory' do
     def cache_in_memory
       module_manager.cache_in_memory(
-          class_or_module,
-          :path => path,
-          :reference_name => reference_name,
-          :type => type
+        class_or_module,
+        path: path,
+        reference_name: reference_name,
+        type: type
       )
     end
 
@@ -73,18 +74,18 @@ RSpec.shared_examples_for 'Msf::ModuleManager::Cache' do
     end
 
     let(:class_or_module) do
-      double('Class<Msf::Module> or Module', :parent => namespace_module)
+      double('Class<Msf::Module> or Module', parent: namespace_module)
     end
 
     let(:namespace_module) do
-      double('Msf::Modules::Namespace', :parent_path => parent_path)
+      double('Msf::Modules::Namespace', parent_path: parent_path)
     end
 
     context 'with existing :path' do
       it 'should update module_info_by_path' do
-        expect {
+        expect do
           cache_in_memory
-        }.to change { module_info_by_path }
+        end.to change { module_info_by_path }
       end
 
       context 'module_info_by_path' do
@@ -130,15 +131,15 @@ RSpec.shared_examples_for 'Msf::ModuleManager::Cache' do
       end
 
       it 'should not raise error' do
-        expect {
+        expect do
           cache_in_memory
-        }.to_not raise_error
+        end.to_not raise_error
       end
 
       it 'should not update module_info_by_path' do
-        expect {
+        expect do
           cache_in_memory
-        }.to_not change { module_info_by_path }
+        end.to_not change { module_info_by_path }
       end
     end
   end
@@ -157,11 +158,11 @@ RSpec.shared_examples_for 'Msf::ModuleManager::Cache' do
 
       let(:module_info_by_path) do
         {
-            'path/to/module' => {
-                :parent_path => parent_path,
-                :reference_name => reference_name,
-                :type => type
-            }
+          'path/to/module' => {
+            parent_path: parent_path,
+            reference_name: reference_name,
+            type: type
+          }
         }
       end
 
@@ -175,12 +176,12 @@ RSpec.shared_examples_for 'Msf::ModuleManager::Cache' do
 
       it 'should force load using #load_module on the loader' do
         expect_any_instance_of(Msf::Modules::Loader::Directory).to receive(
-            :load_module
+          :load_module
         ).with(
-            parent_path,
-            type,
-            reference_name,
-            :force => true
+          parent_path,
+          type,
+          reference_name,
+          force: true
         ).and_call_original
 
         load_cached_module
@@ -381,11 +382,10 @@ RSpec.shared_examples_for 'Msf::ModuleManager::Cache' do
 
         let!(:mdm_module_detail) do
           FactoryGirl.create(:mdm_module_detail,
-                             :file => path,
-                             :mtype => type,
-                             :mtime => pathname.mtime,
-                             :refname => reference_name
-          )
+                             file: path,
+                             mtype: type,
+                             mtime: pathname.mtime,
+                             refname: reference_name)
         end
 
         it 'should create cache entry for path' do
@@ -426,9 +426,9 @@ RSpec.shared_examples_for 'Msf::ModuleManager::Cache' do
             end
 
             it 'should not change reference_name value' do
-              expect {
+              expect do
                 module_info_by_path_from_database!
-              }.to_not change {
+              end.to_not change {
                 typed_module_set[reference_name]
               }
             end

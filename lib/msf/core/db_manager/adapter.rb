@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 module Msf::DBManager::Adapter
   #
   # CONSTANTS
@@ -31,7 +32,7 @@ module Msf::DBManager::Adapter
 
     if connection_established? && ActiveRecord::Base.connection_config[:adapter] == ADAPTER
       dlog("Already established connection to #{ADAPTER}, so reusing active connection.")
-      self.drivers << ADAPTER
+      drivers << ADAPTER
       self.driver = ADAPTER
     else
       begin
@@ -40,7 +41,7 @@ module Msf::DBManager::Adapter
       rescue Exception => error
         @adapter_error = error
       else
-        self.drivers << ADAPTER
+        drivers << ADAPTER
         self.driver = ADAPTER
       end
     end

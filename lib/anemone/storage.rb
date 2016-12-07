@@ -1,6 +1,6 @@
+# frozen_string_literal: true
 module Anemone
   module Storage
-
     def self.Hash(*args)
       hash = Hash.new(*args)
       # add close method for compatibility with Storage::Base
@@ -29,6 +29,5 @@ module Anemone
       require 'anemone/storage/redis'
       self::Redis.new(opts)
     end
-
   end
 end

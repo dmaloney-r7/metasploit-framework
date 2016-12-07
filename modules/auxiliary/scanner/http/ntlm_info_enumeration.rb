@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -5,7 +6,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Scanner
   include Msf::Auxiliary::Report
@@ -29,22 +29,21 @@ class MetasploitModule < Msf::Auxiliary
       [
         OptString.new('TARGET_URI', [ false, "Single target URI", nil]),
         OptPath.new('TARGET_URIS_FILE', [ false, "Path to list of URIs to request",
-          File.join(Msf::Config.data_directory, "wordlists", "http_owa_common.txt")]),
-      ], self.class)
+                                          File.join(Msf::Config.data_directory, "wordlists", "http_owa_common.txt")])
+      ], self.class
+    )
   end
 
-  def run_host(ip)
+  def run_host(_ip)
     test_uris = []
     turi = datastore['TARGET_URI']
     turis_file = datastore['TARGET_URIS_FILE']
-    if (!turi && !turis_file)
+    if !turi && !turis_file
       # can't simply return here as we'll print an error for each host
       fail_with "Either TARGET_URI or TARGET_URIS_FILE must be specified"
     end
-    if (turi && !turi.blank?)
-      test_uris << normalize_uri(turi)
-    end
-    if (turis_file && !turis_file.blank?)
+    test_uris << normalize_uri(turi) if turi && !turi.blank?
+    if turis_file && !turis_file.blank?
       File.open(turis_file, 'rb') { |f| test_uris += f.readlines }
       test_uris.collect! do |test_uri|
         normalize_uri(test_uri.chomp)
@@ -65,19 +64,19 @@ class MetasploitModule < Msf::Auxiliary
     message << "(server_fqdn:#{result[:dns_server]})"
     print_good(message)
     report_note(
-      :host  => rhost,
-      :port  => rport,
-      :proto => 'tcp',
-      :sname => (ssl ? 'https' : 'http'),
-      :ntype => 'ntlm.enumeration.info',
-      :data  => {
-        :uri        => path,
-        :SMBName    => result[:nb_name],
-        :SMBDomain  => result[:nb_domain],
-        :FQDNDomain => result[:dns_domain],
-        :FQDNName   => result[:dns_server]
+      host: rhost,
+      port: rport,
+      proto: 'tcp',
+      sname: (ssl ? 'https' : 'http'),
+      ntype: 'ntlm.enumeration.info',
+      data: {
+        uri: path,
+        SMBName: result[:nb_name],
+        SMBDomain: result[:nb_domain],
+        FQDNDomain: result[:dns_domain],
+        FQDNName: result[:dns_server]
       },
-      :update => :unique_data
+      update: :unique_data
     )
   end
 
@@ -85,12 +84,10 @@ class MetasploitModule < Msf::Auxiliary
     begin
 
       vprint_status("Checking #{peer} URL #{test_uri}")
-      res = send_request_cgi({
-        'encode'   => true,
-        'uri'      => "#{test_uri}",
-        'method'   => 'GET',
-        'headers'  =>  { "Authorization" => "NTLM TlRMTVNTUAABAAAAB4IIogAAAAAAAAAAAAAAAAAAAAAGAbEdAAAADw=="}
-      })
+      res = send_request_cgi('encode' => true,
+                             'uri'      => test_uri.to_s,
+                             'method'   => 'GET',
+                             'headers' => { "Authorization" => "NTLM TlRMTVNTUAABAAAAB4IIogAAAAAAAAAAAAAAAAAAAAAGAbEdAAAADw==" })
     rescue OpenSSL::SSL::SSLError
       vprint_error("SSL error")
       return
@@ -108,7 +105,7 @@ class MetasploitModule < Msf::Auxiliary
     if res && res.code == 401 && res['WWW-Authenticate'] && res['WWW-Authenticate'].match(/^NTLM/i)
       hash = res['WWW-Authenticate'].split('NTLM ')[1]
       # Parse out the NTLM and just get the Target Information Data
-      target = Rex::Proto::NTLM::Message.parse(Rex::Text.decode_base64(hash))[:target_info].value()
+      target = Rex::Proto::NTLM::Message.parse(Rex::Text.decode_base64(hash))[:target_info].value
       # Retrieve Domain name subblock info
       nb_domain = parse_ntlm_info(target, "\x02\x00", 0)
       # Retrieve Server name subblock info
@@ -119,22 +116,21 @@ class MetasploitModule < Msf::Auxiliary
       dns_server = parse_ntlm_info(target, "\x03\x00", dns_domain[:new_offset])
 
       return {
-        :nb_name    => nb_name[:message],
-        :nb_domain  => nb_domain[:message],
-        :dns_domain => dns_domain[:message],
-        :dns_server => dns_server[:message]
+        nb_name: nb_name[:message],
+        nb_domain: nb_domain[:message],
+        dns_domain: dns_domain[:message],
+        dns_server: dns_server[:message]
       }
     end
   end
 
-  def parse_ntlm_info(message,pattern,offset)
-    name_index = message.index(pattern,offset)
+  def parse_ntlm_info(message, pattern, offset)
+    name_index = message.index(pattern, offset)
     offset = name_index.to_i
-    size = message[offset+2].unpack('C').first
-    return {
-      :message=>message[offset+3,size].gsub(/\0/,''),
-      :new_offset => offset + size
+    size = message[offset + 2].unpack('C').first
+    {
+      message: message[offset + 3, size].gsub(/\0/, ''),
+      new_offset: offset + size
     }
   end
-
 end

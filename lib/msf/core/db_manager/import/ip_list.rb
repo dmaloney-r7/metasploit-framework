@@ -1,5 +1,6 @@
+# frozen_string_literal: true
 module Msf::DBManager::Import::IPList
-  def import_ip_list(args={}, &block)
+  def import_ip_list(args = {}, &block)
     data = args[:data]
     wspace = args[:wspace] || workspace
     bl = validate_ips(args[:blacklist]) ? args[:blacklist].split : []
@@ -9,13 +10,13 @@ module Msf::DBManager::Import::IPList
       if bl.include? ip
         next
       else
-        yield(:address,ip) if block
+        yield(:address, ip) if block
       end
-      host = find_or_create_host(:workspace => wspace, :host=> ip, :state => Msf::HostState::Alive, :task => args[:task])
+      host = find_or_create_host(workspace: wspace, host: ip, state: Msf::HostState::Alive, task: args[:task])
     end
   end
 
-  def import_ip_list_file(args={})
+  def import_ip_list_file(args = {})
     filename = args[:filename]
     wspace = args[:wspace] || workspace
 
@@ -23,6 +24,6 @@ module Msf::DBManager::Import::IPList
     ::File.open(filename, 'rb') do |f|
       data = f.read(f.stat.size)
     end
-    import_ip_list(args.merge(:data => data))
+    import_ip_list(args.merge(data: data))
   end
 end

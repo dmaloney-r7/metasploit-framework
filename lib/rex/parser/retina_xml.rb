@@ -1,86 +1,89 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 module Rex
-module Parser
+  module Parser
+    # XXX - Retina XML does not include ANY service/port information export
+    class RetinaXMLStreamParser
+      attr_accessor :on_found_host
 
-# XXX - Retina XML does not include ANY service/port information export
-class RetinaXMLStreamParser
-
-  attr_accessor :on_found_host
-
-  def initialize(on_found_host = nil)
-    reset_state
-    self.on_found_host = on_found_host if on_found_host
-  end
-
-  def reset_state
-    @state = :generic_state
-    @host  = { 'vulns' => [] }
-    reset_audit_state
-  end
-
-  def reset_audit_state
-    @audit = { 'refs' => [] }
-  end
-
-  def tag_start(name, attributes)
-    @state = "in_#{name.downcase}".intern
-  end
-
-  def text(str)
-    case @state
-    when :in_ip
-      @host["address"] = str
-    when :in_dnsname
-      @host["hostname"] = str.split(/\s+/).first
-    when :in_netbiosname
-      @host["netbios"] = str
-    when :in_mac
-      @host["mac"] = str
-    when :in_os
-      @host["os"] = str
-    when :in_rthid
-      @audit['refs'].push(['RETINA', str])
-    when :in_cve
-      str.split(",").each do |cve|
-        cve = cve.to_s.strip
-        next if cve.empty?
-        pre,val = cve.split('-', 2)
-        next if not val
-        next if pre != "CVE"
-        @audit['refs'].push( ['CVE', val] )
+      def initialize(on_found_host = nil)
+        reset_state
+        self.on_found_host = on_found_host if on_found_host
       end
-    when :in_name
-      @audit['name'] = str
-    when :in_description
-      @audit['description'] = str
-    when :in_risk
-      @audit['risk'] = str
-    when :in_cce
-      @audit['cce'] = str
-    when :in_date
-      @audit['data'] = str
+
+      def reset_state
+        @state = :generic_state
+        @host  = { 'vulns' => [] }
+        reset_audit_state
+      end
+
+      def reset_audit_state
+        @audit = { 'refs' => [] }
+      end
+
+      def tag_start(name, _attributes)
+        @state = "in_#{name.downcase}".intern
+      end
+
+      def text(str)
+        case @state
+        when :in_ip
+          @host["address"] = str
+        when :in_dnsname
+          @host["hostname"] = str.split(/\s+/).first
+        when :in_netbiosname
+          @host["netbios"] = str
+        when :in_mac
+          @host["mac"] = str
+        when :in_os
+          @host["os"] = str
+        when :in_rthid
+          @audit['refs'].push(['RETINA', str])
+        when :in_cve
+          str.split(",").each do |cve|
+            cve = cve.to_s.strip
+            next if cve.empty?
+            pre, val = cve.split('-', 2)
+            next unless val
+            next if pre != "CVE"
+            @audit['refs'].push(['CVE', val])
+          end
+        when :in_name
+          @audit['name'] = str
+        when :in_description
+          @audit['description'] = str
+        when :in_risk
+          @audit['risk'] = str
+        when :in_cce
+          @audit['cce'] = str
+        when :in_date
+          @audit['data'] = str
+        end
+      end
+
+      def tag_end(name)
+        case name
+        when "host"
+          on_found_host&.call(@host)
+          reset_state
+        when "audit"
+          @host['vulns'].push @audit
+          reset_audit_state
+        end
+      end
+
+      # We don't need these methods, but they're necessary to keep REXML happy
+      def xmldecl(version, encoding, standalone); end
+
+      def cdata; end
+
+      def comment(str); end
+
+      def instruction(name, instruction); end
+
+      def attlist; end
     end
   end
-
-  def tag_end(name)
-    case name
-    when "host"
-      on_found_host.call(@host) if on_found_host
-      reset_state
-    when "audit"
-      @host['vulns'].push @audit
-      reset_audit_state
-    end
-  end
-
-  # We don't need these methods, but they're necessary to keep REXML happy
-  def xmldecl(version, encoding, standalone); end
-  def cdata; end
-  def comment(str); end
-  def instruction(name, instruction); end
-  def attlist; end
-end
-end
 end
 
 __END__

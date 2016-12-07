@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   #
   # This module acts as an compromised webserver distributing PII Data
   #
@@ -15,24 +15,23 @@ class MetasploitModule < Msf::Auxiliary
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'VSploit Web PII',
-      'Description'    => 'This module emulates a webserver leaking PII data',
-      'License'        => MSF_LICENSE,
-      'Author'         => 'MJC',
-      'References' =>
-      [
-        [ 'URL', 'https://community.rapid7.com/community/metasploit/blog/2011/06/02/vsploit--virtualizing-exploitation-attributes-with-metasploit-framework']
-      ],
-      'DefaultOptions' => { 'HTTP::server_name' => 'IIS'}
-      ))
+                      'Name'           => 'VSploit Web PII',
+                      'Description'    => 'This module emulates a webserver leaking PII data',
+                      'License'        => MSF_LICENSE,
+                      'Author'         => 'MJC',
+                      'References' =>
+                      [
+                        [ 'URL', 'https://community.rapid7.com/community/metasploit/blog/2011/06/02/vsploit--virtualizing-exploitation-attributes-with-metasploit-framework']
+                      ],
+                      'DefaultOptions' => { 'HTTP::server_name' => 'IIS' }))
     register_options(
-        [
-          OptBool.new('META_REFRESH', [ false, "Set page to auto refresh.", false]),
-          OptInt.new('REFRESH_TIME', [ false, "Set page refresh interval.", 15]),
-          OptInt.new('ENTRIES', [ false, "PII Entry Count", 1000])
-        ],self.class)
+      [
+        OptBool.new('META_REFRESH', [ false, "Set page to auto refresh.", false]),
+        OptInt.new('REFRESH_TIME', [ false, "Set page refresh interval.", 15]),
+        OptInt.new('ENTRIES', [ false, "PII Entry Count", 1000])
+      ], self.class
+    )
   end
-
 
   def create_page
     # Webpage Title
@@ -73,21 +72,21 @@ EOS
     end
 
     # Start creating PII data
-    pii = create_pii()
+    pii = create_pii
     page << "\n"
     page << pii
     page << "</pre>\n</body>\n</html>"
     page
   end
 
-  def on_request_uri(cli,request)
+  def on_request_uri(cli, _request)
     # Transmit the response to the client
-    res = create_page()
+    res = create_page
     print_status("Leaking PII...")
-    send_response(cli, res, { 'Content-Type' => 'text/html' })
+    send_response(cli, res, 'Content-Type' => 'text/html')
   end
 
   def run
-    exploit()
+    exploit
   end
 end

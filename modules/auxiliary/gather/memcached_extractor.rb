@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -20,7 +21,7 @@ class MetasploitModule < Msf::Auxiliary
       ),
       'Author'        => [ 'Paul Deardorff <paul_deardorff[at]rapid7.com>' ],
       'License'       => MSF_LICENSE,
-      'References'     =>
+      'References' =>
         [
           ['URL', 'https://github.com/memcached/memcached/blob/master/doc/protocol.txt']
         ]
@@ -59,7 +60,7 @@ class MetasploitModule < Msf::Auxiliary
       loop do
         sock.send("stats cachedump #{sid} #{max_keys}\r\n", 0)
         data = sock.recv(4096)
-        break if !data || data.length == 0
+        break if !data || data.empty?
         matches = /^ITEM (?<key>.*) \[/.match(data)
         keys << matches[:key] if matches
         break if data =~ /^END/
@@ -74,7 +75,7 @@ class MetasploitModule < Msf::Auxiliary
     slab_ids = []
     loop do
       data = sock.recv(4096)
-      break if !data || data.length == 0
+      break if !data || data.empty?
       matches = data.scan(/^STAT (?<slab_id>(\d)*):/)
       slab_ids << matches
       break if data =~ /^END/
@@ -90,7 +91,7 @@ class MetasploitModule < Msf::Auxiliary
       data = []
       loop do
         data_part = sock.recv(4096)
-        break if !data_part || data_part.length == 0
+        break if !data_part || data_part.empty?
         data << data_part
         break if data_part =~ /^END/
       end
@@ -102,11 +103,7 @@ class MetasploitModule < Msf::Auxiliary
   def determine_version
     sock.send("version\r\n", 0)
     stats = sock.recv(4096)
-    if /^VERSION (?<version>[\d\.]+)/ =~ stats
-      version
-    else
-      nil
-    end
+    version if /^VERSION (?<version>[\d\.]+)/ =~ stats
   end
 
   def run_host(ip)
@@ -131,7 +128,7 @@ class MetasploitModule < Msf::Auxiliary
       end
       keys = enumerate_keys
       print_good("Found #{keys.size} keys")
-      return if keys.size == 0
+      return if keys.empty?
 
       data = data_for_keys(keys)
       result_table = Rex::Text::Table.new(
@@ -141,7 +138,7 @@ class MetasploitModule < Msf::Auxiliary
       )
       data.take(print_keys).each { |key, value| result_table << [key, value.inspect] }
       print_line
-      print_line("#{result_table}")
+      print_line(result_table.to_s)
       unless localhost?(ip)
         path = store_loot('memcached.dump', 'text/plain', ip, data, 'memcached.txt', 'Memcached extractor')
         print_good("memcached loot stored at #{path}")

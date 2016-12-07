@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,30 +7,29 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::Ipv6
   include Msf::Exploit::Remote::Capture
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::Scanner
 
-
   def initialize
     super(
       'Name'        => 'IPv6 Local Neighbor Discovery',
-      'Description' => %q{
+      'Description' => %q(
         Enumerate local IPv6 hosts which respond to Neighbor Solicitations with a link-local address.
         Note, that like ARP scanning, this usually cannot be performed beyond the local
         broadcast network.
-    },
-    'Author'      => 'belch',
-    'License'     => MSF_LICENSE
+    ),
+      'Author'      => 'belch',
+      'License'     => MSF_LICENSE
     )
 
     register_options(
       [
         OptString.new('SHOST', [false, "Source IP Address"]),
-        OptString.new('SMAC', [false, "Source MAC Address"]),
-    ], self.class)
+        OptString.new('SMAC', [false, "Source MAC Address"])
+      ], self.class
+    )
 
     deregister_options('SNAPLEN', 'FILTER')
   end
@@ -39,10 +39,10 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   def run_batch(hosts)
-    open_pcap({'SNAPLEN' => 68, 'FILTER' => "arp[6:2] == 0x0002"})
+    open_pcap('SNAPLEN' => 68, 'FILTER' => "arp[6:2] == 0x0002")
 
     @netifaces = true
-    if not netifaces_implemented?
+    unless netifaces_implemented?
       print_error("WARNING : Pcaprub is not uptodate, some functionality will not be available")
       @netifaces = false
     end
@@ -52,49 +52,46 @@ class MetasploitModule < Msf::Auxiliary
     @interface = datastore['INTERFACE'] || Pcap.lookupdev
     @shost = datastore['SHOST']
     @shost ||= get_ipv4_addr(@interface) if @netifaces
-    raise RuntimeError ,'SHOST should be defined' unless @shost
+    raise 'SHOST should be defined' unless @shost
 
-    @smac  = datastore['SMAC']
+    @smac = datastore['SMAC']
     @smac ||= get_mac(@interface) if @netifaces
-    raise RuntimeError ,'SMAC should be defined' unless @smac
+    raise 'SMAC should be defined' unless @smac
 
     addrs = []
 
     begin
       found = {}
       hosts.each do |dhost|
-
         probe = buildprobe(@shost, @smac, dhost)
         capture.inject(probe)
-        while(reply = getreply())
+        while (reply = getreply)
           next unless reply.is_arp?
-          if not found[reply.arp_saddr_ip]
-            print_status(sprintf("  %16s ALIVE",reply.arp_saddr_ip))
-            addrs << [reply.arp_saddr_ip, reply.arp_saddr_mac]
-            report_host(:host => reply.arp_saddr_ip, :mac=>reply.arp_saddr_mac)
-            found[reply.arp_saddr_ip] = true
-          end
+          next if found[reply.arp_saddr_ip]
+          print_status(sprintf("  %16s ALIVE", reply.arp_saddr_ip))
+          addrs << [reply.arp_saddr_ip, reply.arp_saddr_mac]
+          report_host(host: reply.arp_saddr_ip, mac: reply.arp_saddr_mac)
+          found[reply.arp_saddr_ip] = true
         end
       end
 
       etime = ::Time.now.to_f + (hosts.length * 0.05)
 
-      while (::Time.now.to_f < etime)
-        while(reply = getreply())
+      while ::Time.now.to_f < etime
+        while (reply = getreply)
           next unless reply.is_arp?
-          if not found[reply.arp_saddr_ip]
-            print_status(sprintf("  %16s ALIVE",reply.arp_saddr_ip))
-            addrs << [reply.arp_saddr_ip, reply.arp_saddr_mac]
-            report_host(:host => reply.arp_saddr_ip, :mac=>reply.arp_saddr_mac)
-            found[reply.arp_saddr_ip] = true
-          end
+          next if found[reply.arp_saddr_ip]
+          print_status(sprintf("  %16s ALIVE", reply.arp_saddr_ip))
+          addrs << [reply.arp_saddr_ip, reply.arp_saddr_mac]
+          report_host(host: reply.arp_saddr_ip, mac: reply.arp_saddr_mac)
+          found[reply.arp_saddr_ip] = true
         end
 
         ::IO.select(nil, nil, nil, 0.50)
       end
 
     ensure
-      close_pcap()
+      close_pcap
     end
 
     neighbor_discovery(addrs)
@@ -105,7 +102,7 @@ class MetasploitModule < Msf::Auxiliary
       ipv4_addr, mac_addr = node
       next unless adv.eth_saddr == mac_addr
       ipv6_addr = adv.ipv6_saddr
-      return {:eth => mac_addr, :ipv4 => ipv4_addr, :ipv6 => ipv6_addr}
+      return { eth: mac_addr, ipv4: ipv4_addr, ipv6: ipv6_addr }
     end
     nil
   end
@@ -114,8 +111,8 @@ class MetasploitModule < Msf::Auxiliary
     print_status("Discovering IPv6 addresses for IPv4 nodes...")
     print_status("")
 
-    smac  = @smac
-    open_pcap({'SNAPLEN' => 68, 'FILTER' => "icmp6"})
+    smac = @smac
+    open_pcap('SNAPLEN' => 68, 'FILTER' => "icmp6")
 
     begin
       neighs.each do |neigh|
@@ -127,19 +124,19 @@ class MetasploitModule < Msf::Auxiliary
         probe = buildsolicitation(smac, shost, neigh)
 
         capture.inject(probe)
-        Kernel.select(nil,nil,nil,0.1)
+        Kernel.select(nil, nil, nil, 0.1)
 
-        while(adv = getadvertisement())
+        while (adv = getadvertisement)
           next unless adv.is_ipv6?
 
           addr = map_neighbor(neighs, adv)
-          next if not addr
+          next unless addr
 
-          print_status(sprintf("  %16s maps to %s",addr[:ipv4], addr[:ipv6]))
+          print_status(sprintf("  %16s maps to %s", addr[:ipv4], addr[:ipv6]))
           report_note(
-            :host   => addr[:ipv4],
-            :type   => 'host.ipv4.ipv6.mapping',
-            :data   => "system with IPv4 address #{addr[:ipv4]} matches to IPv6 address #{addr[:ipv6]}"
+            host: addr[:ipv4],
+            type: 'host.ipv4.ipv6.mapping',
+            data: "system with IPv4 address #{addr[:ipv4]} matches to IPv6 address #{addr[:ipv6]}"
           )	# with this we have the results in our database
 
         end
@@ -147,20 +144,20 @@ class MetasploitModule < Msf::Auxiliary
 
       etime = ::Time.now.to_f + (neighs.length * 0.5)
 
-      while (::Time.now.to_f < etime)
-        while(adv = getadvertisement())
-          next if not adv
+      while ::Time.now.to_f < etime
+        while (adv = getadvertisement)
+          next unless adv
 
           addr = map_neighbor(neighs, adv)
-          next if not addr
+          next unless addr
 
-          print_status(sprintf("  %16s maps to %s",addr[:ipv4], addr[:ipv6]))
+          print_status(sprintf("  %16s maps to %s", addr[:ipv4], addr[:ipv6]))
         end
         ::IO.select(nil, nil, nil, 0.50)
       end
 
     ensure
-      close_pcap()
+      close_pcap
     end
   end
 
@@ -178,8 +175,8 @@ class MetasploitModule < Msf::Auxiliary
 
   def getreply
     pkt = capture.next
-    Kernel.select(nil,nil,nil,0.1)
-    return if not pkt
+    Kernel.select(nil, nil, nil, 0.1)
+    return unless pkt
     p = PacketFu::Packet.parse(pkt)
     return unless p.is_arp?
     return unless p.arp_opcode == 2
@@ -208,13 +205,12 @@ class MetasploitModule < Msf::Auxiliary
 
   def getadvertisement
     pkt = capture.next
-    Kernel.select(nil,nil,nil,0.1)
-    return if not pkt
+    Kernel.select(nil, nil, nil, 0.1)
+    return unless pkt
     p = PacketFu::Packet.parse(pkt)
     return unless p.is_ipv6?
     return unless p.ipv6_next == 0x3a
-    return unless p.payload[0,2] == "\x88\x00"
+    return unless p.payload[0, 2] == "\x88\x00"
     p
   end
-
 end

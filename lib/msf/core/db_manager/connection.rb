@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 module Msf::DBManager::Connection
   # Returns true if we are ready to load/store data
   def active
@@ -32,14 +33,11 @@ module Msf::DBManager::Connection
   #
   # Connects this instance to a database
   #
-  def connect(opts={})
-
-    return false if not @usable
+  def connect(opts = {})
+    return false unless @usable
 
     nopts = opts.dup
-    if (nopts['port'])
-      nopts['port'] = nopts['port'].to_i
-    end
+    nopts['port'] = nopts['port'].to_i if nopts['port']
 
     # Prefer the config file's pool setting
     nopts['pool'] ||= 75
@@ -60,7 +58,7 @@ module Msf::DBManager::Connection
     rescue ::Exception => e
       self.error = e
       elog("DB.connect threw an exception: #{e}")
-      dlog("Call stack: #{$@.join"\n"}", LEV_1)
+      dlog("Call stack: #{$ERROR_POSITION.join"\n"}", LEV_1)
       return false
     ensure
       after_establish_connection
@@ -71,7 +69,6 @@ module Msf::DBManager::Connection
 
     true
   end
-
 
   #
   # Attempt to create the database
@@ -96,13 +93,13 @@ module Msf::DBManager::Connection
       end
     rescue ::Exception => e
       errstr = e.to_s
-      if errstr =~ /does not exist/i or errstr =~ /Unknown database/
+      if errstr =~ /does not exist/i || errstr =~ /Unknown database/
         ilog("Database doesn't exist \"#{opts['database']}\", attempting to create it.")
         ActiveRecord::Base.establish_connection(
-            opts.merge(
-                'database' => 'postgres',
-                'schema_search_path' => 'public'
-            )
+          opts.merge(
+            'database' => 'postgres',
+            'schema_search_path' => 'public'
+          )
         )
 
         ActiveRecord::Base.connection.create_database(opts['database'])
@@ -118,32 +115,28 @@ module Msf::DBManager::Connection
   # @return [true] if an active connection can be made to the database using the current config.
   # @return [false] if an active connection cannot be made to the database.
   def connection_established?
-    begin
-      # use with_connection so the connection doesn't stay pinned to the thread.
-      ActiveRecord::Base.connection_pool.with_connection {
-        ActiveRecord::Base.connection.active?
-      }
-    rescue ActiveRecord::ConnectionNotEstablished, PG::ConnectionBad => error
-      elog("Connection not established: #{error.class} #{error}:\n#{error.backtrace.join("\n")}")
-
-      false
+    # use with_connection so the connection doesn't stay pinned to the thread.
+    ActiveRecord::Base.connection_pool.with_connection do
+      ActiveRecord::Base.connection.active?
     end
+  rescue ActiveRecord::ConnectionNotEstablished, PG::ConnectionBad => error
+    elog("Connection not established: #{error.class} #{error}:\n#{error.backtrace.join("\n")}")
+
+    false
   end
 
   #
   # Disconnects a database session
   #
   def disconnect
-    begin
-      ActiveRecord::Base.remove_connection
-      self.migrated = false
-      self.modules_cached = false
-    rescue ::Exception => e
-      self.error = e
-      elog("DB.disconnect threw an exception: #{e}")
-    ensure
-      # Database drivers can reset our KCODE, do not let them
-      $KCODE = 'NONE' if RUBY_VERSION =~ /^1\.8\./
-    end
+    ActiveRecord::Base.remove_connection
+    self.migrated = false
+    self.modules_cached = false
+  rescue ::Exception => e
+    self.error = e
+    elog("DB.disconnect threw an exception: #{e}")
+  ensure
+    # Database drivers can reset our KCODE, do not let them
+    $KCODE = 'NONE' if RUBY_VERSION =~ /^1\.8\./
   end
 end

@@ -1,10 +1,10 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 # https://en.wikipedia.org/wiki/Printer_Job_Language
 # See external links for PJL spec
 
 module Rex::Proto::PJL
-
   require "rex/proto/pjl/client"
 
   DEFAULT_PORT = 9100
@@ -31,5 +31,4 @@ module Rex::Proto::PJL
   FSUPLOAD = "#{PREFIX} FSUPLOAD"
   FSDOWNLOAD = "#{PREFIX} FSDOWNLOAD"
   FSDELETE = "#{PREFIX} FSDELETE"
-
 end

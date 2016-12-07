@@ -1,9 +1,9 @@
+# frozen_string_literal: true
 require 'uri'
 
 class Anemone::Extractors::Generic < Anemone::Extractors::Base
-
   def run
-    URI.extract( doc.to_s, %w(http https) ).map do |u|
+    URI.extract(doc.to_s, %w(http https)).map do |u|
       #
       # This extractor needs to be a tiny bit intelligent because
       # due to its generic nature it'll inevitably match some garbage.
@@ -27,13 +27,13 @@ class Anemone::Extractors::Generic < Anemone::Extractors::Base
       #
       # respectively.
       #
-      if !includes_quotes?( u )
+      if !includes_quotes?(u)
         u
       else
-        if html.include?( "'#{u}" )
-          u.split( '\'' ).first
-        elsif html.include?( "\"#{u}" )
-          u.split( '"' ).first
+        if html.include?("'#{u}")
+          u.split('\'').first
+        elsif html.include?("\"#{u}")
+          u.split('"').first
         else
           u
         end
@@ -43,8 +43,7 @@ class Anemone::Extractors::Generic < Anemone::Extractors::Base
     []
   end
 
-  def includes_quotes?( url )
-    url.include?( '\'' ) || url.include?( '"' )
+  def includes_quotes?(url)
+    url.include?('\'') || url.include?('"')
   end
-
 end

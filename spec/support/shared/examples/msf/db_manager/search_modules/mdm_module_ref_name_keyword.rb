@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 RSpec.shared_examples_for 'Msf::DBManager#search_modules Mdm::Module::Ref#name keyword' do |keyword|
   context "with #{keyword} keyword" do
     let(keyword) do
@@ -13,7 +14,7 @@ RSpec.shared_examples_for 'Msf::DBManager#search_modules Mdm::Module::Ref#name k
     end
 
     before(:example) do
-      FactoryGirl.create(:mdm_module_ref, :name => name)
+      FactoryGirl.create(:mdm_module_ref, name: name)
     end
 
     name_prefix = "#{keyword.to_s.upcase}-"
@@ -28,11 +29,11 @@ RSpec.shared_examples_for 'Msf::DBManager#search_modules Mdm::Module::Ref#name k
         expect(module_details.count).to be > 0
 
         expect(
-          module_details.all? { |module_detail|
-            module_detail.refs.any? { |module_ref|
+          module_details.all? do |module_detail|
+            module_detail.refs.any? do |module_ref|
               module_ref.name == name
-            }
-          }
+            end
+          end
         ).to eq true
       end
     end

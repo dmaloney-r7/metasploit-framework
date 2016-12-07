@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # Parsed options for {Metasploit::Framework::Command::Console}
 class Metasploit::Framework::ParsedOptions::Console < Metasploit::Framework::ParsedOptions::Base
   # Options parsed from msfconsole command-line.
@@ -5,7 +6,7 @@ class Metasploit::Framework::ParsedOptions::Console < Metasploit::Framework::Par
   # @return [ActiveSupport::OrderedOptions]
   def options
     unless @options
-      super.tap { |options|
+      super.tap do |options|
         options.console = ActiveSupport::OrderedOptions.new
 
         options.console.commands = []
@@ -16,7 +17,7 @@ class Metasploit::Framework::ParsedOptions::Console < Metasploit::Framework::Par
         options.console.real_readline = false
         options.console.resources = []
         options.console.subcommand = :run
-      }
+      end
     end
 
     @options
@@ -29,7 +30,7 @@ class Metasploit::Framework::ParsedOptions::Console < Metasploit::Framework::Par
   # @return [OptionParser]
   def option_parser
     unless @option_parser
-      super.tap { |option_parser|
+      super.tap do |option_parser|
         option_parser.banner = "Usage: #{option_parser.program_name} [options]"
 
         option_parser.separator ''
@@ -60,13 +61,13 @@ class Metasploit::Framework::ParsedOptions::Console < Metasploit::Framework::Par
         end
 
         option_parser.on(
-            '-x',
-            '--execute-command COMMAND',
-            'Execute the specified string as console commands (use ; for multiples)'
+          '-x',
+          '--execute-command COMMAND',
+          'Execute the specified string as console commands (use ; for multiples)'
         ) do |commands|
           options.console.commands += commands.split(/\s*;\s*/)
         end
-      }
+      end
     end
 
     @option_parser

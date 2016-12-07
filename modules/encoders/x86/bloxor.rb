@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -25,7 +26,6 @@ require 'rex/encoder/bloxor/bloxor'
 #
 
 class MetasploitModule < Rex::Encoder::BloXor
-
   # Note: Currently set to manual, bump it up to automatically get selected by the framework.
   # Note: BloXor by design is slow due to its exhaustive search for a solution.
   Rank = ManualRanking
@@ -41,11 +41,9 @@ class MetasploitModule < Rex::Encoder::BloXor
       )
   end
 
-  def compute_decoder( state )
+  def compute_decoder(state)
+    @machine = Rex::Poly::MachineX86.new(state.badchars)
 
-    @machine = Rex::Poly::MachineX86.new( state.badchars )
-
-    super( state )
+    super(state)
   end
-
 end

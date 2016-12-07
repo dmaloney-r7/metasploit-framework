@@ -1,8 +1,8 @@
+# frozen_string_literal: true
 require 'metasploit/framework/credential'
 
 module Metasploit
   module Framework
-
     # This class is responsible for taking datastore options from the snmp_login module
     # and yielding appropriate {Metasploit::Framework::Credential}s to the {Metasploit::Framework::LoginScanner::SNMP}.
     # This one has to be different from credentialCollection as it will only have a {Metasploit::Framework::Credential#public}
@@ -41,22 +41,20 @@ module Metasploit
       # @yieldparam credential [Metasploit::Framework::Credential]
       # @return [void]
       def each
-        begin
-          if pass_file.present?
-            pass_fd = File.open(pass_file, 'r:binary')
-            pass_fd.each_line do |line|
-              line.chomp!
-              yield Metasploit::Framework::Credential.new(public: line, paired: false)
-            end
+        if pass_file.present?
+          pass_fd = File.open(pass_file, 'r:binary')
+          pass_fd.each_line do |line|
+            line.chomp!
+            yield Metasploit::Framework::Credential.new(public: line, paired: false)
           end
-
-          if password.present?
-            yield Metasploit::Framework::Credential.new(public: password, paired: false)
-          end
-
-        ensure
-          pass_fd.close if pass_fd && !pass_fd.closed?
         end
+
+        if password.present?
+          yield Metasploit::Framework::Credential.new(public: password, paired: false)
+        end
+
+      ensure
+        pass_fd.close if pass_fd && !pass_fd.closed?
       end
 
       # Add {Credential credentials} that will be yielded by {#each}
@@ -68,7 +66,6 @@ module Metasploit
         prepended_creds.unshift cred
         self
       end
-
     end
   end
 end

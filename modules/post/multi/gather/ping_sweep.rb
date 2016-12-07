@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,22 +8,21 @@ require 'msf/core'
 require 'rex'
 
 class MetasploitModule < Msf::Post
-
-  def initialize(info={})
-    super( update_info( info,
-        'Name'          => 'Multi Gather Ping Sweep',
-        'Description'   => %q{ Performs IPv4 ping sweep using the OS included ping command.},
-        'License'       => MSF_LICENSE,
-        'Author'        => [ 'Carlos Perez <carlos_perez[at]darkoperator.com>'],
-        'Platform'      => %w{ bsd linux osx solaris win },
-        'SessionTypes'  => [ 'meterpreter', 'shell' ]
-      ))
+  def initialize(info = {})
+    super(update_info(info,
+                      'Name'          => 'Multi Gather Ping Sweep',
+                      'Description'   => %q( Performs IPv4 ping sweep using the OS included ping command.),
+                      'License'       => MSF_LICENSE,
+                      'Author'        => [ 'Carlos Perez <carlos_perez[at]darkoperator.com>'],
+                      'Platform'      => %w(bsd linux osx solaris win),
+                      'SessionTypes'  => [ 'meterpreter', 'shell' ]))
     register_options(
       [
 
-        OptAddressRange.new('RHOSTS', [true, 'IP Range to perform ping sweep against.']),
+        OptAddressRange.new('RHOSTS', [true, 'IP Range to perform ping sweep against.'])
 
-      ], self.class)
+      ], self.class
+    )
   end
 
   # Run Method for when run command is issued
@@ -33,11 +33,9 @@ class MetasploitModule < Msf::Post
     begin
       ipadd = Rex::Socket::RangeWalker.new(iprange)
       numip = ipadd.num_ips
-      while (iplst.length < numip)
+      while iplst.length < numip
         ipa = ipadd.next_ip
-        if (not ipa)
-          break
-        end
+        break unless ipa
         iplst << ipa
       end
 
@@ -54,26 +52,25 @@ class MetasploitModule < Msf::Post
 
       ip_found = []
 
-      while(not iplst.nil? and not iplst.empty?)
+      while !iplst.nil? && !iplst.empty?
         a = []
         1.upto session.max_threads do
-          a << framework.threads.spawn("Module(#{self.refname})", false, iplst.shift) do |ip_add|
+          a << framework.threads.spawn("Module(#{refname})", false, iplst.shift) do |ip_add|
             next if ip_add.nil?
-            if session.platform =~ /solaris/i
-              r = cmd_exec(cmd, "-n #{ip_add} 1")
-            else
-              r = cmd_exec(cmd, count + ip_add)
-            end
+            r = if session.platform =~ /solaris/i
+                  cmd_exec(cmd, "-n #{ip_add} 1")
+                else
+                  cmd_exec(cmd, count + ip_add)
+                end
             if r =~ /(TTL|Alive)/i
               print_status "\t#{ip_add} host found"
               ip_found << ip_add
             else
               vprint_status("\t#{ip_add} host not found")
             end
-
           end
         end
-        a.map {|x| x.join }
+        a.map(&:join)
       end
     rescue Rex::TimeoutError, Rex::Post::Meterpreter::RequestError
     rescue ::Exception => e
@@ -81,7 +78,7 @@ class MetasploitModule < Msf::Post
     end
 
     ip_found.each do |ip|
-      report_host(:host => ip)
+      report_host(host: ip)
     end
   end
 end

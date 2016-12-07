@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 require "msf/core/rpc/service"
 require "msf/core/rpc/client"
@@ -11,4 +12,3 @@ require "msf/core/rpc/job"
 require "msf/core/rpc/console"
 require "msf/core/rpc/db"
 require "msf/core/rpc/plugin"
-

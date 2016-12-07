@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'metasploit/framework/mssql/client'
 require 'metasploit/framework/login_scanner/base'
 require 'metasploit/framework/login_scanner/rex_socket'
@@ -6,7 +7,6 @@ require 'metasploit/framework/login_scanner/ntlm'
 module Metasploit
   module Framework
     module LoginScanner
-
       # This is the LoginScanner class for dealing with Microsoft SQL Servers.
       # It is responsible for taking a single target, and a list of credentials
       # and attempting them. It then saves the results
@@ -16,42 +16,42 @@ module Metasploit
         include Metasploit::Framework::LoginScanner::NTLM
         include Metasploit::Framework::MSSQL::Client
 
-        DEFAULT_PORT         = 1433
-        DEFAULT_REALM         = 'WORKSTATION'
+        DEFAULT_PORT = 1433
+        DEFAULT_REALM = 'WORKSTATION'
         # Lifted from lib/msf/core/exploit/mssql.rb
-        LIKELY_PORTS         = [ 1433, 1434, 1435, 14330, 2533, 9152, 2638 ]
+        LIKELY_PORTS         = [ 1433, 1434, 1435, 14330, 2533, 9152, 2638 ].freeze
         # Lifted from lib/msf/core/exploit/mssql.rb
-        LIKELY_SERVICE_NAMES = [ 'ms-sql-s', 'ms-sql2000', 'sybase', 'mssql' ]
-        PRIVATE_TYPES        = [ :password, :ntlm_hash ]
-        REALM_KEY           = Metasploit::Model::Realm::Key::ACTIVE_DIRECTORY_DOMAIN
+        LIKELY_SERVICE_NAMES = [ 'ms-sql-s', 'ms-sql2000', 'sybase', 'mssql' ].freeze
+        PRIVATE_TYPES        = [ :password, :ntlm_hash ].freeze
+        REALM_KEY = Metasploit::Model::Realm::Key::ACTIVE_DIRECTORY_DOMAIN
 
         # @!attribute windows_authentication
         #   @return [Boolean] Whether to use Windows Authentication instead of SQL Server Auth.
         attr_accessor :windows_authentication
 
         validates :windows_authentication,
-          inclusion: { in: [true, false] }
+                  inclusion: { in: [true, false] }
 
         attr_accessor :tdsencryption
 
         validates :tdsencryption,
-          inclusion: { in: [true, false] }
+                  inclusion: { in: [true, false] }
 
         def attempt_login(credential)
           result_options = {
-              credential: credential,
-              host: host,
-              port: port,
-              protocol: 'tcp',
-              service_name: 'mssql'
+            credential: credential,
+            host: host,
+            port: port,
+            protocol: 'tcp',
+            service_name: 'mssql'
           }
 
           begin
-            if mssql_login(credential.public, credential.private, '', credential.realm)
-              result_options[:status] = Metasploit::Model::Login::Status::SUCCESSFUL
-            else
-              result_options[:status] = Metasploit::Model::Login::Status::INCORRECT
-            end
+            result_options[:status] = if mssql_login(credential.public, credential.private, '', credential.realm)
+                                        Metasploit::Model::Login::Status::SUCCESSFUL
+                                      else
+                                        Metasploit::Model::Login::Status::INCORRECT
+                                      end
           rescue ::Rex::ConnectionError
             result_options[:status] = Metasploit::Model::Login::Status::UNABLE_TO_CONNECT
           end
@@ -68,17 +68,16 @@ module Metasploit
           self.send_delay            ||= 0
 
           # Don't use ||= with booleans
-          self.send_lm                = true if self.send_lm.nil?
-          self.send_ntlm              = true if self.send_ntlm.nil?
-          self.send_spn               = true if self.send_spn.nil?
-          self.use_lmkey              = false if self.use_lmkey.nil?
-          self.use_ntlm2_session      = true if self.use_ntlm2_session.nil?
-          self.use_ntlmv2             = true if self.use_ntlmv2.nil?
-          self.windows_authentication = false if self.windows_authentication.nil?
-          self.tdsencryption          = false if self.tdsencryption.nil?
+          self.send_lm                = true if send_lm.nil?
+          self.send_ntlm              = true if send_ntlm.nil?
+          self.send_spn               = true if send_spn.nil?
+          self.use_lmkey              = false if use_lmkey.nil?
+          self.use_ntlm2_session      = true if use_ntlm2_session.nil?
+          self.use_ntlmv2             = true if use_ntlmv2.nil?
+          self.windows_authentication = false if windows_authentication.nil?
+          self.tdsencryption          = false if tdsencryption.nil?
         end
       end
-
     end
   end
 end

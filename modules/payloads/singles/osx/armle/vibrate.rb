@@ -1,14 +1,12 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 
-
 module MetasploitModule
-
   CachedSize = 16
 
   include Msf::Payload::Single
@@ -16,15 +14,15 @@ module MetasploitModule
 
   def initialize(info = {})
     super(merge_info(info,
-      'Name'          => 'Apple iOS iPhone Vibrate',
-      'Description'   => %q|
-        Causes the iPhone to vibrate, only works when the AudioToolkit library has been loaded.
-        Based on work by Charlie Miller <cmiller[at]securityevaluators.com>.
-      |,
-      'Author'        => 'hdm',
-      'License'       => MSF_LICENSE,
-      'Platform'      => 'osx',
-      'Arch'          => ARCH_ARMLE))
+                     'Name'          => 'Apple iOS iPhone Vibrate',
+                     'Description'   => %q(
+                       Causes the iPhone to vibrate, only works when the AudioToolkit library has been loaded.
+                       Based on work by Charlie Miller <cmiller[at]securityevaluators.com>.
+                     ),
+                     'Author'        => 'hdm',
+                     'License'       => MSF_LICENSE,
+                     'Platform'      => 'osx',
+                     'Arch'          => ARCH_ARMLE))
   end
 
   def generate
@@ -35,5 +33,4 @@ module MetasploitModule
       0x03ea4444  #  Parameter: 0x03ea
     ].pack("V*")
   end
-
 end

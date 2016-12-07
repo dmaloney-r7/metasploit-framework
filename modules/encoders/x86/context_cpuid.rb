@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,7 +8,6 @@ require 'rex/poly'
 require 'msf/core'
 
 class MetasploitModule < Msf::Encoder::XorAdditiveFeedback
-
   # Manual ranking because the cpuid value is generated and supplied
   # manually...
 
@@ -16,9 +16,9 @@ class MetasploitModule < Msf::Encoder::XorAdditiveFeedback
   def initialize
     super(
       'Name'             => 'CPUID-based Context Keyed Payload Encoder',
-      'Description'      => %q{
+      'Description'      => %q(
         This is a Context-Keyed Payload Encoder based on CPUID and Shikata Ga Nai.
-      },
+      ),
       'Author'           => 'Dimitris Glynos',
       'Arch'             => ARCH_X86,
       'License'          => MSF_LICENSE,
@@ -31,15 +31,16 @@ class MetasploitModule < Msf::Encoder::XorAdditiveFeedback
     register_options(
       [
         OptString.new('CPUID_KEY',
-          [ true,
-          "CPUID key from target host (see tools/context/cpuid-key utility)",
-          "0x00000000"]),
-      ], self.class)
+                      [ true,
+                        "CPUID key from target host (see tools/context/cpuid-key utility)",
+                        "0x00000000"])
+      ], self.class
+    )
   end
 
-  def obtain_key(buf, badchars, state)
+  def obtain_key(_buf, _badchars, state)
     state.key = datastore['CPUID_KEY'].hex
-    return state.key
+    state.key
   end
 
   #
@@ -48,11 +49,11 @@ class MetasploitModule < Msf::Encoder::XorAdditiveFeedback
   def decoder_stub(state)
     # If the decoder stub has not already been generated for this state, do
     # it now.  The decoder stub method may be called more than once.
-    if (state.decoder_stub == nil)
+    if state.decoder_stub.nil?
       # Shikata will only cut off the last 1-4 bytes of it's own end
       # depending on the alignment of the original buffer
       cutoff = 4 - (state.buf.length & 3)
-      block = keygen_stub() + generate_shikata_block(state, state.buf.length + cutoff, cutoff) || (raise BadGenerateError)
+      block = keygen_stub + generate_shikata_block(state, state.buf.length + cutoff, cutoff) || (raise BadGenerateError)
 
       # Take the last 1-4 bytes of shikata and prepend them to the buffer
       # that is going to be encoded to make it align on a 4-byte boundary.
@@ -67,7 +68,8 @@ class MetasploitModule < Msf::Encoder::XorAdditiveFeedback
     state.decoder_stub
   end
 
-protected
+  protected
+
   def keygen_stub
     payload =
       "\x31\xf6" +     # xor %esi,%esi
@@ -107,7 +109,7 @@ protected
     fpus << "\xd9\xe5"
 
     # This FPU instruction seems to fail consistently on Linux
-    #fpus << "\xdb\xe1"
+    # fpus << "\xdb\xe1"
 
     fpus
   end
@@ -127,19 +129,19 @@ protected
 
     # FPU blocks
     fpu = Rex::Poly::LogicalBlock.new('fpu',
-      *fpu_instructions)
+                                      *fpu_instructions)
     fnstenv = Rex::Poly::LogicalBlock.new('fnstenv', "\xd9\x74\x24\xf4")
 
     # Get EIP off the stack
     popeip = Rex::Poly::LogicalBlock.new('popeip',
-      Proc.new { |b| (0x58 + b.regnum_of(addr_reg)).chr })
+                                         proc { |b| (0x58 + b.regnum_of(addr_reg)).chr })
 
     # Clear the counter register
     clear_register = Rex::Poly::LogicalBlock.new('clear_register',
-      "\x31\xc9",
-      "\x29\xc9",
-      "\x33\xc9",
-      "\x2b\xc9")
+                                                 "\x31\xc9",
+                                                 "\x29\xc9",
+                                                 "\x33\xc9",
+                                                 "\x2b\xc9")
 
     # Initialize the counter after zeroing it
     init_counter = Rex::Poly::LogicalBlock.new('init_counter')
@@ -149,7 +151,7 @@ protected
     length += 4 + (4 - (length & 3)) & 3
     length /= 4
 
-    if (length <= 255)
+    if length <= 255
       init_counter.add_perm("\xb1" + [ length ].pack('C'))
     else
       init_counter.add_perm("\x66\xb9" + [ length ].pack('v'))
@@ -160,26 +162,27 @@ protected
     # Decoder loop block
     loop_block = Rex::Poly::LogicalBlock.new('loop_block')
 
-    xor  = Proc.new { |b| "\x31" + (0x40 + b.regnum_of(addr_reg) + (8 * b.regnum_of(key_reg))).chr }
-    xor1 = Proc.new { |b| xor.call(b) + [ (b.offset_of(endb) - b.offset_of(fpu) - cutoff) ].pack('c') }
-    xor2 = Proc.new { |b| xor.call(b) + [ (b.offset_of(endb) - b.offset_of(fpu) - 4 - cutoff) ].pack('c') }
-    add  = Proc.new { |b| "\x03" + (0x40 + b.regnum_of(addr_reg) + (8 * b.regnum_of(key_reg))).chr }
-    add1 = Proc.new { |b| add.call(b) + [ (b.offset_of(endb) - b.offset_of(fpu) - cutoff) ].pack('c') }
-    add2 = Proc.new { |b| add.call(b) + [ (b.offset_of(endb) - b.offset_of(fpu) - 4 - cutoff) ].pack('c') }
-    sub4 = Proc.new { |b| "\x83" + (0xe8 + b.regnum_of(addr_reg)).chr + "\xfc" }
-    add4 = Proc.new { |b| "\x83" + (0xc0 + b.regnum_of(addr_reg)).chr + "\x04" }
+    xor  = proc { |b| "\x31" + (0x40 + b.regnum_of(addr_reg) + (8 * b.regnum_of(key_reg))).chr }
+    xor1 = proc { |b| xor.call(b) + [ (b.offset_of(endb) - b.offset_of(fpu) - cutoff) ].pack('c') }
+    xor2 = proc { |b| xor.call(b) + [ (b.offset_of(endb) - b.offset_of(fpu) - 4 - cutoff) ].pack('c') }
+    add  = proc { |b| "\x03" + (0x40 + b.regnum_of(addr_reg) + (8 * b.regnum_of(key_reg))).chr }
+    add1 = proc { |b| add.call(b) + [ (b.offset_of(endb) - b.offset_of(fpu) - cutoff) ].pack('c') }
+    add2 = proc { |b| add.call(b) + [ (b.offset_of(endb) - b.offset_of(fpu) - 4 - cutoff) ].pack('c') }
+    sub4 = proc { |b| "\x83" + (0xe8 + b.regnum_of(addr_reg)).chr + "\xfc" }
+    add4 = proc { |b| "\x83" + (0xc0 + b.regnum_of(addr_reg)).chr + "\x04" }
 
     loop_block.add_perm(
-      Proc.new { |b| xor1.call(b) + add1.call(b) + sub4.call(b) },
-      Proc.new { |b| xor1.call(b) + sub4.call(b) + add2.call(b) },
-      Proc.new { |b| sub4.call(b) + xor2.call(b) + add2.call(b) },
-      Proc.new { |b| xor1.call(b) + add1.call(b) + add4.call(b) },
-      Proc.new { |b| xor1.call(b) + add4.call(b) + add2.call(b) },
-      Proc.new { |b| add4.call(b) + xor2.call(b) + add2.call(b) })
+      proc { |b| xor1.call(b) + add1.call(b) + sub4.call(b) },
+      proc { |b| xor1.call(b) + sub4.call(b) + add2.call(b) },
+      proc { |b| sub4.call(b) + xor2.call(b) + add2.call(b) },
+      proc { |b| xor1.call(b) + add1.call(b) + add4.call(b) },
+      proc { |b| xor1.call(b) + add4.call(b) + add2.call(b) },
+      proc { |b| add4.call(b) + xor2.call(b) + add2.call(b) }
+    )
 
     # Loop instruction block
     loop_inst = Rex::Poly::LogicalBlock.new('loop_inst',
-      "\xe2\xf5")
+                                            "\xe2\xf5")
 
     # Define block dependencies
     fnstenv.depends_on(fpu)
@@ -190,9 +193,9 @@ protected
 
     # Generate a permutation saving the EAX, ECX and ESP registers
     loop_inst.generate([
-      Rex::Arch::X86::EAX,
-      Rex::Arch::X86::ESP,
-      Rex::Arch::X86::ECX ], nil, state.badchars)
+                         Rex::Arch::X86::EAX,
+                         Rex::Arch::X86::ESP,
+                         Rex::Arch::X86::ECX
+                       ], nil, state.badchars)
   end
-
 end

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # The states that a service can be in.
 module Msf::ServiceState
   Closed    = "closed"

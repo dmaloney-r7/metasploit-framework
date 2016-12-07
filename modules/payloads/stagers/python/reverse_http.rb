@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -9,7 +10,6 @@ require 'msf/core/payload/python'
 require 'msf/core/payload/python/reverse_http'
 
 module MetasploitModule
-
   CachedSize = 494
 
   include Msf::Payload::Stager
@@ -18,15 +18,13 @@ module MetasploitModule
 
   def initialize(info = {})
     super(merge_info(info,
-      'Name'          => 'Python Reverse HTTP Stager',
-      'Description'   => 'Tunnel communication over HTTP',
-      'Author'        => 'Spencer McIntyre',
-      'License'       => MSF_LICENSE,
-      'Platform'      => 'python',
-      'Arch'          => ARCH_PYTHON,
-      'Handler'       => Msf::Handler::ReverseHttp,
-      'Stager'        => {'Payload' => ""}
-    ))
+                     'Name'          => 'Python Reverse HTTP Stager',
+                     'Description'   => 'Tunnel communication over HTTP',
+                     'Author'        => 'Spencer McIntyre',
+                     'License'       => MSF_LICENSE,
+                     'Platform'      => 'python',
+                     'Arch'          => ARCH_PYTHON,
+                     'Handler'       => Msf::Handler::ReverseHttp,
+                     'Stager'        => { 'Payload' => "" }))
   end
-
 end

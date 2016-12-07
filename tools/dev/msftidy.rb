@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 # -*- coding: binary -*-
 #
 # Check (recursively) for style compliance violations and other
@@ -12,7 +13,7 @@ require 'time'
 
 CHECK_OLD_RUBIES = !!ENV['MSF_CHECK_OLD_RUBIES']
 SUPPRESS_INFO_MESSAGES = !!ENV['MSF_SUPPRESS_INFO_MESSAGES']
-TITLE_WHITELIST = %w{
+TITLE_WHITELIST = %w(
   a an and as at avserve callmenum configdir connect debug docbase dtspcd
   execve file for from getinfo goaway gsad hetro historysearch htpasswd ibstat
   id in inetd iseemedia jhot libxslt lmgrd lnk load main map migrate mimencode
@@ -21,7 +22,7 @@ TITLE_WHITELIST = %w{
   relfile rev rexec rlogin rsh rsyslog sa sadmind say sblistpack spamd
   sreplace tagprinter the tnftp to twikidraw udev uplay user username via
   welcome with ypupdated zsudo
-}
+).freeze
 
 if CHECK_OLD_RUBIES
   require 'rvm'
@@ -51,7 +52,6 @@ class String
 end
 
 class Msftidy
-
   # Status codes
   OK       = 0x00
   WARNINGS = 0x10
@@ -81,9 +81,9 @@ class Msftidy
   #
   # @return status [Integer] Returns WARNINGS unless we already have an
   # error.
-  def warn(txt, line=0) line_msg = (line>0) ? ":#{line}" : ''
-    puts "#{@full_filepath}#{line_msg} - [#{'WARNING'.yellow}] #{cleanup_text(txt)}"
-    @status == ERRORS ? @status = ERRORS : @status = WARNINGS
+  def warn(txt, line = 0) line_msg = line > 0 ? ":#{line}" : ''
+                        puts "#{@full_filepath}#{line_msg} - [#{'WARNING'.yellow}] #{cleanup_text(txt)}"
+                        @status = @status == ERRORS ? ERRORS : WARNINGS
   end
 
   #
@@ -92,24 +92,24 @@ class Msftidy
   # really ought to be fixed.
   #
   # @return status [Integer] Returns ERRORS
-  def error(txt, line=0)
-    line_msg = (line>0) ? ":#{line}" : ''
+  def error(txt, line = 0)
+    line_msg = line > 0 ? ":#{line}" : ''
     puts "#{@full_filepath}#{line_msg} - [#{'ERROR'.red}] #{cleanup_text(txt)}"
     @status = ERRORS
   end
 
   # Currently unused, but some day msftidy will fix errors for you.
-  def fixed(txt, line=0)
-    line_msg = (line>0) ? ":#{line}" : ''
+  def fixed(txt, line = 0)
+    line_msg = line > 0 ? ":#{line}" : ''
     puts "#{@full_filepath}#{line_msg} - [#{'FIXED'.green}] #{cleanup_text(txt)}"
   end
 
   #
   # Display an info message. Info messages do not alter the exit status.
   #
-  def info(txt, line=0)
+  def info(txt, line = 0)
     return if SUPPRESS_INFO_MESSAGES
-    line_msg = (line>0) ? ":#{line}" : ''
+    line_msg = line > 0 ? ":#{line}" : ''
     puts "#{@full_filepath}#{line_msg} - [#{'INFO'.cyan}] #{cleanup_text(txt)}"
   end
 
@@ -120,15 +120,13 @@ class Msftidy
   ##
 
   def check_mode
-    unless (@stat.mode & 0111).zero?
+    unless (@stat.mode & 0o111).zero?
       warn("Module should not be marked executable")
     end
   end
 
   def check_shebang
-    if @lines.first =~ /^#!/
-      warn("Module should not have a #! line")
-    end
+    warn("Module should not have a #! line") if @lines.first =~ /^#!/
   end
 
   # Updated this check to see if Nokogiri::XML.parse is being called
@@ -144,7 +142,7 @@ class Msftidy
     has_nokogiri_xml_parser = false
     @lines.each do |line|
       if has_nokogiri
-        if line =~ /Nokogiri::XML\.parse/ or line =~ /Nokogiri::XML::Reader/
+        if line =~ /Nokogiri::XML\.parse/ || line =~ /Nokogiri::XML::Reader/
           has_nokogiri_xml_parser = true
           break
         end
@@ -160,20 +158,20 @@ class Msftidy
     in_refs  = false
 
     @lines.each do |line|
-      if !in_super and line =~ /\s+super\(/
+      if !in_super && line =~ /\s+super\(/
         in_super = true
-      elsif in_super and line =~ /[[:space:]]*def \w+[\(\w+\)]*/
+      elsif in_super && line =~ /[[:space:]]*def \w+[\(\w+\)]*/
         in_super = false
         break
       end
 
-      if in_super and line =~ /["']References["'][[:space:]]*=>/
+      if in_super && line =~ /["']References["'][[:space:]]*=>/
         in_refs = true
-      elsif in_super and in_refs and line =~ /^[[:space:]]+\],*/m
+      elsif in_super && in_refs && line =~ /^[[:space:]]+\],*/m
         break
-      elsif in_super and in_refs and line =~ /[^#]+\[[[:space:]]*['"](.+)['"][[:space:]]*,[[:space:]]*['"](.+)['"][[:space:]]*\]/
-        identifier = $1.strip.upcase
-        value      = $2.strip
+      elsif in_super && in_refs && line =~ /[^#]+\[[[:space:]]*['"](.+)['"][[:space:]]*,[[:space:]]*['"](.+)['"][[:space:]]*\]/
+        identifier = Regexp.last_match(1).strip.upcase
+        value      = Regexp.last_match(2).strip
 
         case identifier
         when 'CVE'
@@ -277,7 +275,7 @@ class Msftidy
   end
 
   def check_badchars
-    badchars = %Q|&<=>|
+    badchars = %|&<=>|
 
     in_super   = false
     in_author  = false
@@ -286,9 +284,9 @@ class Msftidy
       #
       # Mark our "super" code block
       #
-      if !in_super and line =~ /\s+super\(/
+      if !in_super && line =~ /\s+super\(/
         in_super = true
-      elsif in_super and line =~ /[[:space:]]*def \w+[\(\w+\)]*/
+      elsif in_super && line =~ /[[:space:]]*def \w+[\(\w+\)]*/
         in_super = false
         break
       end
@@ -296,16 +294,16 @@ class Msftidy
       #
       # While in super() code block
       #
-      if in_super and line =~ /["']Name["'][[:space:]]*=>[[:space:]]*['|"](.+)['|"]/
+      if in_super && line =~ /["']Name["'][[:space:]]*=>[[:space:]]*['|"](.+)['|"]/
         # Now we're checking the module titlee
-        mod_title = $1
+        mod_title = Regexp.last_match(1)
         mod_title.each_char do |c|
           if badchars.include?(c)
             error("'#{c}' is a bad character in module title.")
           end
         end
 
-        if not mod_title.ascii_only?
+        unless mod_title.ascii_only?
           error("Please avoid unicode or non-printable characters in module title.")
         end
 
@@ -319,30 +317,29 @@ class Msftidy
       #
       # Mark our 'Author' block
       #
-      if in_super and !in_author and line =~ /["']Author["'][[:space:]]*=>/
+      if in_super && !in_author && line =~ /["']Author["'][[:space:]]*=>/
         in_author = true
-      elsif in_super and in_author and line =~ /\],*\n/ or line =~ /['"][[:print:]]*['"][[:space:]]*=>/
+      elsif in_super && in_author && line =~ /\],*\n/ || line =~ /['"][[:print:]]*['"][[:space:]]*=>/
         in_author = false
       end
-
 
       #
       # While in 'Author' block, check for malformed authors
       #
-      if in_super and in_author
-        if line =~ /Author['"]\s*=>\s*['"](.*)['"],/
-          author_name = Regexp.last_match(1)
+      if in_super && in_author
+        author_name = if line =~ /Author['"]\s*=>\s*['"](.*)['"],/
+          Regexp.last_match(1)
         elsif line =~ /Author/
-          author_name = line.scan(/\[[[:space:]]*['"](.+)['"]/).flatten[-1] || ''
+          line.scan(/\[[[:space:]]*['"](.+)['"]/).flatten[-1] || ''
         else
-          author_name = line.scan(/['"](.+)['"]/).flatten[-1] || ''
-        end
+          line.scan(/['"](.+)['"]/).flatten[-1] || ''
+                      end
 
         if author_name =~ /^@.+$/
           error("No Twitter handles, please. Try leaving it in a comment instead.")
         end
 
-        if not author_name.ascii_only?
+        unless author_name.ascii_only?
           error("Please avoid unicode or non-printable characters in Author")
         end
 
@@ -368,7 +365,7 @@ class Msftidy
     return true unless Object.const_defined? :RVM
     puts "Checking syntax for #{@name}."
     rubies ||= RVM.list_strings
-    res = %x{rvm all do ruby -c #{@full_filepath}}.split("\n").select {|msg| msg =~ /Syntax OK/}
+    res = `rvm all do ruby -c #{@full_filepath}`.split("\n").select { |msg| msg =~ /Syntax OK/ }
     error("Fails alternate Ruby version check") if rubies.size != res.size
   end
 
@@ -415,8 +412,8 @@ class Msftidy
     ]
 
     if @source =~ /Rank \= (\w+)/
-      if not available_ranks.include?($1)
-        error("Invalid ranking. You have '#{$1}'")
+      unless available_ranks.include?($1)
+        error("Invalid ranking. You have '#{Regexp.last_match(1)}'")
       end
     else
       info('No Rank specified. The default is NormalRanking. Please add an explicit Rank value.')
@@ -428,7 +425,7 @@ class Msftidy
 
     # Check disclosure date format
     if @source =~ /["']DisclosureDate["'].*\=\>[\x0d\x20]*['\"](.+)['\"]/
-      d = $1  #Captured date
+      d = Regexp.last_match(1) # Captured date
       # Flag if overall format is wrong
       if d =~ /^... \d{1,2}\,* \d{4}/
         # Flag if month format is wrong
@@ -449,7 +446,7 @@ class Msftidy
 
   def check_title_casing
     if @source =~ /["']Name["'][[:space:]]*=>[[:space:]]*['"](.+)['"],*$/
-      words = $1.split
+      words = Regexp.last_match(1).split
       words.each do |word|
         if TITLE_WHITELIST.include?(word)
           next
@@ -463,9 +460,9 @@ class Msftidy
   def check_bad_terms
     # "Stack overflow" vs "Stack buffer overflow" - See explanation:
     # http://blogs.technet.com/b/srd/archive/2009/01/28/stack-overflow-stack-exhaustion-not-the-same-as-stack-buffer-overflow.aspx
-    if @module_type == 'exploit' && @source.gsub("\n", "") =~ /stack[[:space:]]+overflow/i
+    if @module_type == 'exploit' && @source.delete("\n") =~ /stack[[:space:]]+overflow/i
       warn('Contains "stack overflow" You mean "stack buffer overflow"?')
-    elsif @module_type == 'auxiliary' && @source.gsub("\n", "") =~ /stack[[:space:]]+overflow/i
+    elsif @module_type == 'auxiliary' && @source.delete("\n") =~ /stack[[:space:]]+overflow/i
       warn('Contains "stack overflow" You mean "stack exhaustion"?')
     end
   end
@@ -545,39 +542,35 @@ class Msftidy
         error("Unicode detected: #{ln.inspect}", idx)
       end
 
-      if ln =~ /[ \t]$/
-        warn("Spaces at EOL", idx)
-      end
+      warn("Spaces at EOL", idx) if ln =~ /[ \t]$/
 
       # Check for mixed tab/spaces. Upgrade this to an error() soon.
-      if (ln.length > 1) and (ln =~ /^([\t ]*)/) and ($1.match(/\x20\x09|\x09\x20/))
+      if (ln.length > 1) && (ln =~ /^([\t ]*)/) && Regexp.last_match(1).match(/\x20\x09|\x09\x20/)
         warn("Space-Tab mixed indent: #{ln.inspect}", idx)
       end
 
       # Check for tabs. Upgrade this to an error() soon.
-      if (ln.length > 1) and (ln =~ /^\x09/)
+      if (ln.length > 1) && (ln =~ /^\x09/)
         warn("Tabbed indent: #{ln.inspect}", idx)
       end
 
-      if ln =~ /\r$/
-        warn("Carriage return EOL", idx)
-      end
+      warn("Carriage return EOL", idx) if ln =~ /\r$/
 
       url_ok = false if ln =~ /\.com\/projects\/Framework/
-      if ln =~ /File\.open/ and ln =~ /[\"\'][arw]/
-        if not ln =~ /[\"\'][wra]\+?b\+?[\"\']/
+      if ln =~ /File\.open/ && ln =~ /[\"\'][arw]/
+        unless ln =~ /[\"\'][wra]\+?b\+?[\"\']/
           warn("File.open without binary mode", idx)
         end
       end
 
-      if ln =~/^[ \t]*load[ \t]+[\x22\x27]/
+      if ln =~ /^[ \t]*load[ \t]+[\x22\x27]/
         error("Loading (not requiring) a file: #{ln.inspect}", idx)
       end
 
       # The rest of these only count if it's not a comment line
       next if ln =~ /^[[:space:]]*#/
 
-      if ln =~ /\$std(?:out|err)/i or ln =~ /[[:space:]]puts/
+      if ln =~ /\$std(?:out|err)/i || ln =~ /[[:space:]]puts/
         next if ln =~ /^[\s]*["][^"]+\$std(?:out|err)/
         no_stdio = false
         error("Writes to stdout", idx)
@@ -606,13 +599,12 @@ class Msftidy
       if ln =~ /['"]ExitFunction['"]\s*=>/
         warn("Please use EXITFUNC instead of ExitFunction #{ln}", idx)
       end
-
     end
   end
 
   def check_vuln_codes
     checkcode = @source.scan(/(Exploit::)?CheckCode::(\w+)/).flatten[1]
-    if checkcode and checkcode !~ /^Unknown|Safe|Detected|Appears|Vulnerable|Unsupported$/
+    if checkcode && checkcode !~ /^Unknown|Safe|Detected|Appears|Vulnerable|Unsupported$/
       error("Unrecognized checkcode: #{checkcode}")
     end
   end
@@ -620,9 +612,9 @@ class Msftidy
   def check_vars_get
     test = @source.scan(/send_request_cgi\s*\(\s*\{?\s*['"]uri['"]\s*=>\s*[^=})]*?\?[^,})]+/im)
     unless test.empty?
-      test.each { |item|
+      test.each do |item|
         info("Please use vars_get in send_request_cgi: #{item}")
-      }
+      end
     end
   end
 
@@ -651,9 +643,9 @@ class Msftidy
   def check_invalid_url_scheme
     test = @source.scan(/^#.+http\/\/(?:www\.)?metasploit.com/)
     unless test.empty?
-      test.each { |item|
+      test.each do |item|
         info("Invalid URL: #{item}")
-      }
+      end
     end
   end
 
@@ -736,7 +728,7 @@ class Msftidy
     @stat = f.stat
     buf = f.read(@stat.size)
     f.close
-    return buf
+    buf
   end
 
   def cleanup_text(txt)
@@ -758,7 +750,7 @@ if __FILE__ == $PROGRAM_NAME
 
   @exit_status = 0
 
-  if dirs.length < 1
+  if dirs.empty?
     $stderr.puts "Usage: #{File.basename(__FILE__)} <directory or file>"
     @exit_status = 1
     exit(@exit_status)
@@ -772,7 +764,7 @@ if __FILE__ == $PROGRAM_NAME
         next unless full_filepath =~ /\.rb$/
         msftidy = Msftidy.new(full_filepath)
         msftidy.run_checks
-        @exit_status = msftidy.status if (msftidy.status > @exit_status.to_i)
+        @exit_status = msftidy.status if msftidy.status > @exit_status.to_i
       end
     rescue Errno::ENOENT
       $stderr.puts "#{File.basename(__FILE__)}: #{dir}: No such file or directory"

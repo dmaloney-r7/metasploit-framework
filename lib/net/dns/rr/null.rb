@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 ##
 #
@@ -7,11 +8,9 @@
 #
 ##
 
-
 module Net
   module DNS
     class RR
-      
       #------------------------------------------------------------
       # RR type NULL
       #------------------------------------------------------------
@@ -19,7 +18,7 @@ module Net
         attr_reader :null
 
         private
-        
+
         def build_pack
           @null_pack = @null
           @rdlength = @null_pack.size
@@ -34,11 +33,11 @@ module Net
         end
 
         def get_inspect
-          "#@null"
+          @null.to_s
         end
-          
+
         def subclass_new_from_hash(args)
-          if args.has_key? :null
+          if args.key? :null
             @null = args[:null]
           else
             raise RRArgumentError, ":null field is mandatory but missing"
@@ -49,13 +48,11 @@ module Net
           @null = str.strip
         end
 
-        def subclass_new_from_binary(data,offset)
-          @null = data[offset..offset+@rdlength]
-          return offset + @rdlength
+        def subclass_new_from_binary(data, offset)
+          @null = data[offset..offset + @rdlength]
+          offset + @rdlength
         end
-        
       end # class NULL
-      
     end # class RR
   end # module DNS
 end # module Net

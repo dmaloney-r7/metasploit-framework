@@ -1,14 +1,12 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 
-
 class MetasploitModule < Msf::Auxiliary
-
   # Exploit mixins should be called first
   include Msf::Exploit::Remote::DCERPC
 
@@ -29,7 +27,8 @@ class MetasploitModule < Msf::Auxiliary
     register_options(
       [
         Opt::RPORT(135)
-      ], self.class)
+      ], self.class
+    )
   end
 
   @@target_uuids = [
@@ -249,16 +248,14 @@ class MetasploitModule < Msf::Auxiliary
     [ 'fdb3a030-065f-11d1-bb9b-00a024ea5525', '1.0' ],
     [ 'ffe561b8-bf15-11cf-8c5e-08002bb49649', '2.0' ]
 
-
-]
+  ]
 
   # Fingerprint a single host
   def run_host(ip)
-
     begin
 
       @@target_uuids.each do |uuid|
-        connect()
+        connect
         handle = dcerpc_handle(
           uuid[0], uuid[1],
           'ncacn_ip_tcp', ''
@@ -270,40 +267,38 @@ class MetasploitModule < Msf::Auxiliary
           res = dcerpc.call(0, NDR.long(0) * 128)
           begin
             call = true
-            if (dcerpc.last_response != nil and dcerpc.last_response.stub_data != nil)
+            if !dcerpc.last_response.nil? && !dcerpc.last_response.stub_data.nil?
               data = dcerpc.last_response.stub_data
             end
           rescue ::Interrupt
-            raise $!
+            raise $ERROR_INFO
           rescue ::Exception => e
             call = false
           end
           access = call ? "GRANTED" : "DENIED"
-          print_line("#{ip} - UUID #{uuid[0]} #{uuid[1]} OPEN VIA #{datastore['RPORT']} ACCESS #{access} #{data.unpack("H*")[0]}")
-          data_report="OPEN VIA #{datastore['RPORT']} ACCESS #{access} #{data.unpack("H*")[0]}"
+          print_line("#{ip} - UUID #{uuid[0]} #{uuid[1]} OPEN VIA #{datastore['RPORT']} ACCESS #{access} #{data.unpack('H*')[0]}")
+          data_report = "OPEN VIA #{datastore['RPORT']} ACCESS #{access} #{data.unpack('H*')[0]}"
 
           ## Add Report
           report_note(
-            :host   => ip,
-            :proto  => 'tcp',
-            :port   => datastore['RPORT'],
-            :type   => "DCERPC Service: UUID #{uuid[0]} #{uuid[1]}",
-            :data   => data_report
+            host: ip,
+            proto: 'tcp',
+            port: datastore['RPORT'],
+            type: "DCERPC Service: UUID #{uuid[0]} #{uuid[1]}",
+            data: data_report
           )
 
         rescue ::Interrupt
-          raise $!
+          raise $ERROR_INFO
         rescue ::Exception => e
-          #print_line("UUID #{uuid[0]} #{uuid[1]} ERROR #{$!}")
+          # print_line("UUID #{uuid[0]} #{uuid[1]} ERROR #{$!}")
         end
-        disconnect()
+        disconnect
       end
 
       return
     rescue ::Exception
-      print_line($!.to_s)
+      print_line($ERROR_INFO.to_s)
     end
   end
-
-
 end

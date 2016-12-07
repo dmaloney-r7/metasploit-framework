@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 module Rex
@@ -6,7 +7,6 @@ module Rex
       module Model
         # This class provides a representation of an RMI output stream header
         class OutputHeader < Element
-
           # @!attribute signature
           #   @return [String] the Java RMI header signature
           attr_accessor :signature

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,25 +8,22 @@ require 'msf/core'
 require 'rex'
 
 class MetasploitModule < Msf::Post
-
   include Msf::Post::File
   include Msf::Post::Linux::Priv
   include Msf::Post::Linux::System
 
-
-  def initialize(info={})
-    super( update_info( info,
-        'Name'          => 'Linux Gather Virtual Environment Detection',
-        'Description'   => %q{
-          This module attempts to determine whether the system is running
-          inside of a virtual environment and if so, which one. This
-          module supports detection of Hyper-V, VMWare, VirtualBox, Xen,
-          and QEMU/KVM.},
-        'License'       => MSF_LICENSE,
-        'Author'        => [ 'Carlos Perez <carlos_perez[at]darkoperator.com>'],
-        'Platform'      => [ 'linux' ],
-        'SessionTypes'  => [ 'shell', 'meterpreter' ]
-      ))
+  def initialize(info = {})
+    super(update_info(info,
+                      'Name'          => 'Linux Gather Virtual Environment Detection',
+                      'Description'   => %q(
+                        This module attempts to determine whether the system is running
+                        inside of a virtual environment and if so, which one. This
+                        module supports detection of Hyper-V, VMWare, VirtualBox, Xen,
+                        and QEMU/KVM.),
+                      'License'       => MSF_LICENSE,
+                      'Author'        => [ 'Carlos Perez <carlos_perez[at]darkoperator.com>'],
+                      'Platform'      => [ 'linux' ],
+                      'SessionTypes'  => [ 'shell', 'meterpreter' ]))
   end
 
   # Run Method for when run command is issued
@@ -35,9 +33,7 @@ class MetasploitModule < Msf::Post
     dmi_info = nil
     ls_pci_data = nil
 
-    if is_root?
-      dmi_info = cmd_exec("/usr/sbin/dmidecode")
-    end
+    dmi_info = cmd_exec("/usr/sbin/dmidecode") if is_root?
 
     # Check DMi Info
     if dmi_info
@@ -56,9 +52,9 @@ class MetasploitModule < Msf::Post
     end
 
     # Check Modules
-    if not vm
+    unless vm
       loaded_modules = cmd_exec("/sbin/lsmod")
-      case loaded_modules.to_s.gsub("\n", " ")
+      case loaded_modules.to_s.tr("\n", " ")
       when /vboxsf|vboxguest/i
         vm = "VirtualBox"
       when /vmw_ballon|vmxnet|vmw/i
@@ -73,9 +69,13 @@ class MetasploitModule < Msf::Post
     end
 
     # Check SCSI Driver
-    if not vm
-      proc_scsi = read_file("/proc/scsi/scsi") rescue ""
-      case proc_scsi.gsub("\n", " ")
+    unless vm
+      proc_scsi = begin
+                    read_file("/proc/scsi/scsi")
+                  rescue
+                    ""
+                  end
+      case proc_scsi.tr("\n", " ")
       when /vmware/i
         vm = "VMware"
       when /vbox/i
@@ -84,7 +84,7 @@ class MetasploitModule < Msf::Post
     end
 
     # Check IDE Devices
-    if not vm
+    unless vm
       case cmd_exec("cat /proc/ide/hd*/model")
       when /vbox/i
         vm = "VirtualBox"
@@ -98,17 +98,17 @@ class MetasploitModule < Msf::Post
     end
 
     # Check using lspci
-    if not vm
-      case get_sysinfo[:distro]
-      when /oracle|centos|suse|redhat|mandrake|slackware|fedora/i
-        lspci_data = cmd_exec("/sbin/lspci")
-      when /debian|ubuntu/
-        lspci_data = cmd_exec("/usr/bin/lspci")
-      else
-        lspci_data = cmd_exec("lspci")
-      end
+    unless vm
+      lspci_data = case get_sysinfo[:distro]
+                   when /oracle|centos|suse|redhat|mandrake|slackware|fedora/i
+                     cmd_exec("/sbin/lspci")
+                   when /debian|ubuntu/
+                     cmd_exec("/usr/bin/lspci")
+                   else
+                     cmd_exec("lspci")
+                   end
 
-      case lspci_data.to_s.gsub("\n", " ")
+      case lspci_data.to_s.tr("\n", " ")
       when /vmware/i
         vm = "VMware"
       when /virtualbox/i
@@ -117,14 +117,12 @@ class MetasploitModule < Msf::Post
     end
 
     # Xen bus check
-    if not vm
-      if cmd_exec("ls -1 /sys/bus").to_s.split("\n").include?("xen")
-        vm = "Xen"
-      end
+    unless vm
+      vm = "Xen" if cmd_exec("ls -1 /sys/bus").to_s.split("\n").include?("xen")
     end
 
     # Check using lscpu
-    if not vm
+    unless vm
       case cmd_exec("lscpu")
       when /Xen/i
         vm = "Xen"
@@ -136,7 +134,7 @@ class MetasploitModule < Msf::Post
     end
 
     # Check dmesg Output
-    if not vm
+    unless vm
       dmesg = cmd_exec("dmesg")
       case dmesg
       when /vboxbios|vboxcput|vboxfacp|vboxxsdt|vbox cd-rom|vbox harddisk/i
@@ -144,7 +142,7 @@ class MetasploitModule < Msf::Post
       when /vmware virtual ide|vmware pvscsi|vmware virtual platform/i
         vm = "VMware"
       when /xen_mem|xen-vbd/i
-        vm =  "Xen"
+        vm = "Xen"
       when /qemu virtual cpu version/i
         vm = "Qemu/KVM"
       when /\/dev\/vmnet/
@@ -158,7 +156,5 @@ class MetasploitModule < Msf::Post
     else
       print_status("This does not appear to be a virtual machine")
     end
-
   end
-
 end

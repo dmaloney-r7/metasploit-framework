@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'rex/parser/ip360_aspl_xml'
 
 module Msf::DBManager::Import::IP360

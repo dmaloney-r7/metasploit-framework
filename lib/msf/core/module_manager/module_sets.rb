@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 #
 # Gems
@@ -37,18 +38,18 @@ module Msf::ModuleManager::ModuleSets
   end
 
   def init_module_set(type)
-    self.enablement_by_type[type] = true
-    case type
-      when Msf::MODULE_PAYLOAD
-        instance = Msf::PayloadSet.new
-      else
-        instance = Msf::ModuleSet.new(type)
-    end
+    enablement_by_type[type] = true
+    instance = case type
+               when Msf::MODULE_PAYLOAD
+                 Msf::PayloadSet.new
+               else
+                 Msf::ModuleSet.new(type)
+               end
 
-    self.module_set_by_type[type] = instance
+    module_set_by_type[type] = instance
 
     # Set the module set's framework reference
-    instance.framework = self.framework
+    instance.framework = framework
   end
 
   #

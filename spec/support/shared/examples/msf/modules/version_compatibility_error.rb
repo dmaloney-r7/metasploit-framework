@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding:binary -*-
 RSpec.shared_examples_for 'Msf::Modules::VersionCompatibilityError' do
   let(:error) do
@@ -10,9 +11,9 @@ RSpec.shared_examples_for 'Msf::Modules::VersionCompatibilityError' do
   end
 
   it 'should be raised' do
-    expect {
+    expect do
       subject.version_compatible!(module_path, module_reference_name)
-    }.to raise_error(Msf::Modules::VersionCompatibilityError)
+    end.to raise_error(Msf::Modules::VersionCompatibilityError)
   end
 
   it 'should include minimum API version' do

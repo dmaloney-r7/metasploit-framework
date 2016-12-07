@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,24 +7,22 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'InfluxDB Enum Utility',
-      'Description'    => %q{
-        This module enumerates databases on InfluxDB using the REST API using the
-        default authentication of root:root.
-      },
-      'References'     =>
-        [
-          ['URL', 'http://influxdb.com/docs/v0.9/concepts/reading_and_writing_data.html']
-        ],
-      'Author'         => [ 'Roberto Soares Espreto <robertoespreto[at]gmail.com>' ],
-      'License'        => MSF_LICENSE
-    ))
+                      'Name'           => 'InfluxDB Enum Utility',
+                      'Description'    => %q(
+                        This module enumerates databases on InfluxDB using the REST API using the
+                        default authentication of root:root.
+                      ),
+                      'References'     =>
+                        [
+                          ['URL', 'http://influxdb.com/docs/v0.9/concepts/reading_and_writing_data.html']
+                        ],
+                      'Author'         => [ 'Roberto Soares Espreto <robertoespreto[at]gmail.com>' ],
+                      'License'        => MSF_LICENSE))
 
     register_options(
       [
@@ -31,7 +30,8 @@ class MetasploitModule < Msf::Auxiliary
         OptString.new('TARGETURI', [true, 'Path to list all the databases', '/db']),
         OptString.new('USERNAME', [true, 'The username to login as', 'root']),
         OptString.new('PASSWORD', [true, 'The password to login with', 'root'])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def run
@@ -53,7 +53,7 @@ class MetasploitModule < Msf::Auxiliary
     if res.code == 401 && res.body =~ /Invalid username\/password/
       print_error("Failed to authenticate. Invalid username/password.")
       return
-    elsif res.code == 200 && res.headers.include?('X-Influxdb-Version') && res.body.length > 0
+    elsif res.code == 200 && res.headers.include?('X-Influxdb-Version') && !res.body.empty?
       print_status("Enumerating...")
       begin
         temp = JSON.parse(res.body)

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 begin
   require 'tokyocabinet'
 rescue LoadError
@@ -16,7 +17,7 @@ module Anemone
 
       def initialize(file)
         raise "TokyoCabinet filename must have .tch extension" if File.extname(file) != '.tch'
-        @db = ::TokyoCabinet::HDB::new
+        @db = ::TokyoCabinet::HDB.new
         @db.open(file, ::TokyoCabinet::HDB::OWRITER | ::TokyoCabinet::HDB::OCREAT)
         @db.clear
       end
@@ -51,7 +52,6 @@ module Anemone
       def load_value(value)
         Marshal.load(value.unpack("m")[0])
       end
-
     end
   end
 end

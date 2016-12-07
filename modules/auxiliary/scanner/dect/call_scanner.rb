@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::DECT_COA
 
   def initialize
@@ -20,22 +20,19 @@ class MetasploitModule < Msf::Auxiliary
 
   def print_results
     print_line("Time\t\t\t\tRFPI\t\tChannel")
-    @calls.each do |rfpi, data|
+    @calls.each do |_rfpi, data|
       print_line("#{data['time']}\t#{data['rfpi']}\t#{data['channel']}")
     end
   end
 
-
-=begin
-  def record_call(data)
-    print_status("Synchronizing..")
-    pp_scan_mode(data['rfpi_raw'])
-    while(true)
-      data = poll_coa()
-      puts data
-    end
-  end
-=end
+  #   def record_call(data)
+  #     print_status("Synchronizing..")
+  #     pp_scan_mode(data['rfpi_raw'])
+  #     while(true)
+  #       data = poll_coa()
+  #       puts data
+  #     end
+  #   end
 
   def run
     @calls = {}
@@ -51,9 +48,9 @@ class MetasploitModule < Msf::Auxiliary
       call_scan_mode
       print_status("Scanning...")
 
-      while (true)
-        data = poll_coa()
-        if (data)
+      loop do
+        data = poll_coa
+        if data
           parsed_data = parse_call(data)
           parsed_data['time'] = Time.now
           print_status("Found active call on: #{parsed_data['rfpi']}")
@@ -63,12 +60,12 @@ class MetasploitModule < Msf::Auxiliary
         next_channel
 
         vprint_status("Switching to channel: #{channel}")
-        select(nil,nil,nil,1)
+        select(nil, nil, nil, 1)
       end
     ensure
       print_status("Closing interface")
-      stop_coa()
-      close_coa()
+      stop_coa
+      close_coa
     end
 
     print_results

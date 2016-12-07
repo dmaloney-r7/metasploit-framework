@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # Wraps {Msf::Framework} so that {Msf::Framework#threads} is only created on the first call to {#spawn} by
 # Rex::ThreadFactory#spawn, which allows the threads used by {Msf::ThreadManager} to be created lazily.
 #

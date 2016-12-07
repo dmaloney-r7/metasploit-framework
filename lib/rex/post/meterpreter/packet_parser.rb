@@ -1,103 +1,99 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 module Rex
-module Post
-module Meterpreter
+  module Post
+    module Meterpreter
+      ###
+      #
+      # This class is responsible for reading in and decrypting meterpreter
+      # packets that arrive on a socket
+      #
+      ###
+      class PacketParser
+        # 4 byte xor
+        # 4 byte length
+        # 4 byte type
+        HEADER_SIZE = 12
 
-###
-#
-# This class is responsible for reading in and decrypting meterpreter
-# packets that arrive on a socket
-#
-###
-class PacketParser
+        #
+        # Initializes the packet parser context with an optional cipher.
+        #
+        def initialize(cipher = nil)
+          self.cipher = cipher
 
-  # 4 byte xor
-  # 4 byte length
-  # 4 byte type
-  HEADER_SIZE = 12
+          reset
+        end
 
-  #
-  # Initializes the packet parser context with an optional cipher.
-  #
-  def initialize(cipher = nil)
-    self.cipher = cipher
+        #
+        # Resets the parser state so that a new packet can begin being parsed.
+        #
+        def reset
+          self.raw = ''
+          self.hdr_length_left = HEADER_SIZE
+          self.payload_length_left = 0
+        end
 
-    reset
-  end
+        #
+        # Reads data from the wire and parse as much of the packet as possible.
+        #
+        def recv(sock)
+          # Create a typeless packet
+          packet = Packet.new(0)
 
-  #
-  # Resets the parser state so that a new packet can begin being parsed.
-  #
-  def reset
-    self.raw = ''
-    self.hdr_length_left = HEADER_SIZE
-    self.payload_length_left = 0
-  end
+          if hdr_length_left > 0
+            buf = sock.read(hdr_length_left)
 
-  #
-  # Reads data from the wire and parse as much of the packet as possible.
-  #
-  def recv(sock)
-    # Create a typeless packet
-    packet = Packet.new(0)
+            if buf
+              raw << buf
 
-    if (self.hdr_length_left > 0)
-      buf = sock.read(self.hdr_length_left)
+              self.hdr_length_left -= buf.length
+            else
+              raise EOFError
+            end
 
-      if (buf)
-        self.raw << buf
+            # If we've finished reading the header, set the
+            # payload length left to the number of bytes
+            # specified in the length
+            if self.hdr_length_left == 0
+              xor_key = raw[0, 4].unpack('N')[0]
+              length_bytes = packet.xor_bytes(xor_key, raw[4, 4])
+              # header size doesn't include the xor key, which is always tacked on the front
+              self.payload_length_left = length_bytes.unpack("N")[0] - (HEADER_SIZE - 4)
+            end
+          end
+          if payload_length_left > 0
+            buf = sock.read(payload_length_left)
 
-        self.hdr_length_left -= buf.length
-      else
-        raise EOFError
+            if buf
+              raw << buf
+
+              self.payload_length_left -= buf.length
+            else
+              raise EOFError
+            end
+          end
+
+          # If we've finished reading the entire packet
+          if (self.hdr_length_left == 0) &&
+             (self.payload_length_left == 0)
+
+            # TODO: cipher decryption
+            if cipher
+            end
+
+            # Deserialize the packet from the raw buffer
+            packet.from_r(raw)
+
+            # Reset our state
+            reset
+
+            return packet
+          end
+        end
+
+        protected
+
+        attr_accessor :cipher, :raw, :hdr_length_left, :payload_length_left # :nodoc:
       end
-
-      # If we've finished reading the header, set the
-      # payload length left to the number of bytes
-      # specified in the length
-      if (self.hdr_length_left == 0)
-        xor_key = raw[0, 4].unpack('N')[0]
-        length_bytes = packet.xor_bytes(xor_key, raw[4, 4])
-        # header size doesn't include the xor key, which is always tacked on the front
-        self.payload_length_left = length_bytes.unpack("N")[0] - (HEADER_SIZE - 4)
-      end
-    end
-    if (self.payload_length_left > 0)
-      buf = sock.read(self.payload_length_left)
-
-      if (buf)
-        self.raw << buf
-
-        self.payload_length_left -= buf.length
-      else
-        raise EOFError
-      end
-    end
-
-    # If we've finished reading the entire packet
-    if ((self.hdr_length_left == 0) &&
-        (self.payload_length_left == 0))
-
-      # TODO: cipher decryption
-      if (cipher)
-      end
-
-      # Deserialize the packet from the raw buffer
-      packet.from_r(self.raw)
-
-      # Reset our state
-      reset
-
-      return packet
-    end
-  end
-
-protected
-  attr_accessor :cipher, :raw, :hdr_length_left, :payload_length_left  # :nodoc:
-
-end
-
-
-end; end; end
-
+      end; end; end

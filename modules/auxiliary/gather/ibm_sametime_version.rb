@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,22 +8,21 @@ require 'msf/core'
 require 'uri'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
 
   URLS = [
-      '/stmeetings/about.jsp',
-      '/stmeetings/serverversion.properties',
-      '/rtc/buildinfo.txt',
-      '/stmeetings/configuration?format=json&verbose=true'
-  ]
+    '/stmeetings/about.jsp',
+    '/stmeetings/serverversion.properties',
+    '/rtc/buildinfo.txt',
+    '/stmeetings/configuration?format=json&verbose=true'
+  ].freeze
 
   PROXY_URLS = [
-      '/stwebclient/i18nStrings.jsp',
-      '/stwebclient/communityserver',
-      '/stwebav/WebAVServlet?Name=WebPlayerVersion'
-  ]
+    '/stwebclient/i18nStrings.jsp',
+    '/stwebclient/communityserver',
+    '/stwebav/WebAVServlet?Name=WebPlayerVersion'
+  ].freeze
 
   JSON_KEYS = [
     'communityRef',
@@ -43,7 +43,7 @@ class MetasploitModule < Msf::Auxiliary
     'userInfoUrlTemplate',
     'meetingroomcenter.stProxyAddress',
     'meetingroomcenter.stProxySSLAddress'
-  ]
+  ].freeze
 
   INFO_REGEXS = [
     # section, key, regex
@@ -56,52 +56,50 @@ class MetasploitModule < Msf::Auxiliary
     [ 'api', 'recordings', /^recordings=(.*)$/i ],
     [ 'api', 'audio', /^audio=(.*)$/i ],
     [ 'api', 'video', /^video=(.*)$/i]
-  ]
-
+  ].freeze
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'IBM Lotus Sametime Version Enumeration',
-      'Description' => %q{
-        This module scans an IBM Lotus Sametime web interface to enumerate
-        the application's version and configuration information.
-      },
-      'Author'         =>
-        [
-          'kicks4kittens' # Metasploit module
-        ],
-      'References' =>
-        [
-          [ 'CVE', '2013-3982' ],
-          [ 'URL', 'http://www-01.ibm.com/support/docview.wss?uid=swg21671201']
-        ],
-      'DefaultOptions' =>
-        {
-          'SSL' => true
-        },
-      'License'        => MSF_LICENSE,
-      'DisclosureDate' => 'Dec 27 2013'
-    ))
+                      'Name' => 'IBM Lotus Sametime Version Enumeration',
+                      'Description' => %q(
+                        This module scans an IBM Lotus Sametime web interface to enumerate
+                        the application's version and configuration information.
+                      ),
+                      'Author' =>
+                        [
+                          'kicks4kittens' # Metasploit module
+                        ],
+                      'References' =>
+                        [
+                          [ 'CVE', '2013-3982' ],
+                          [ 'URL', 'http://www-01.ibm.com/support/docview.wss?uid=swg21671201']
+                        ],
+                      'DefaultOptions' =>
+                        {
+                          'SSL' => true
+                        },
+                      'License'        => MSF_LICENSE,
+                      'DisclosureDate' => 'Dec 27 2013'))
 
     register_options(
       [
         Opt::RPORT(443),
         OptString.new('TARGETURI', [ true,  "The path to the Sametime Server", '/']),
-        OptBool.new('QuerySametimeProxy', [ true,  "Automatically query Sametime proxy if found", true]),
-        OptBool.new('ShowVersions', [ true,  "Display Version information from server", true]),
-        OptBool.new('ShowConfig', [ true,  "Display Config information from server", true]),
-        OptBool.new('ShowAPIVersions', [ true,  "Display API Version information from server", false])
-      ], self.class)
+        OptBool.new('QuerySametimeProxy', [ true, "Automatically query Sametime proxy if found", true]),
+        OptBool.new('ShowVersions', [ true, "Display Version information from server", true]),
+        OptBool.new('ShowConfig', [ true, "Display Config information from server", true]),
+        OptBool.new('ShowAPIVersions', [ true, "Display API Version information from server", false])
+      ], self.class
+    )
 
     register_advanced_options(
       [
-        OptBool.new('StoreConfigs', [ true,  "Store JSON configs to loot", true])
-      ], self.class)
-
+        OptBool.new('StoreConfigs', [ true, "Store JSON configs to loot", true])
+      ], self.class
+    )
   end
 
-  def check_url(url, proxy='')
-
+  def check_url(url, proxy = '')
     cgi_options = {
       'uri' => normalize_uri(target_path, url),
       'method' => 'GET'
@@ -111,10 +109,8 @@ class MetasploitModule < Msf::Auxiliary
       checked_host = datastore['RHOST']
     else
       checked_host = proxy
-      cgi_options.merge!({
-        'rhost' => proxy, # connect to Sametime Proxy
-        'vhost' => proxy  # set appropriate VHOST
-      })
+      cgi_options['rhost'] = proxy
+      cgi_options['vhost'] = proxy
     end
 
     vprint_status("Requesting \"#{checked_host}:#{rport}#{normalize_uri(target_uri.path, url)}\"")
@@ -139,9 +135,9 @@ class MetasploitModule < Msf::Auxiliary
         print_error("#{checked_host}:#{rport} - Unable to parse JSON response")
       end
       extract_webavservlet_data(res_json)
-    elsif res['content-type'].include?("text/plain") or res['content-type'].include?("text/html")
+    elsif res['content-type'].include?("text/plain") || res['content-type'].include?("text/html")
       extract_data(res.body, url)
-    elsif res['content-type'].include?("text/json") or res['content-type'].include?("text/javaScript")
+    elsif res['content-type'].include?("text/json") || res['content-type'].include?("text/javaScript")
       begin
         res_json = JSON.parse(res.body)
       rescue JSON::ParserError
@@ -168,17 +164,15 @@ class MetasploitModule < Msf::Auxiliary
   def extract_data(data, url)
     # extract data from response
     INFO_REGEXS.each do |regex|
-      if data =~ regex[2]
-        @version_info[regex[0]][regex[1]] = $1.chomp
-      end
+      @version_info[regex[0]][regex[1]] = Regexp.last_match(1).chomp if data =~ regex[2]
     end
 
-    if url.include?('buildinfo.txt') and data =~ /^(\d{8}-\d+)$/
-      @version_info['version']['buildinfo'] = $1.chomp
+    if url.include?('buildinfo.txt') && data =~ /^(\d{8}-\d+)$/
+      @version_info['version']['buildinfo'] = Regexp.last_match(1).chomp
     end
 
     if data =~ /aboutBoxProductTitle":"(.*?)",/i
-      @version_info['version']['sametimeVersion'] = $1.chomp unless @version_info['version']['sametimeVersion']
+      @version_info['version']['sametimeVersion'] = Regexp.last_match(1).chomp unless @version_info['version']['sametimeVersion']
     end
   end
 
@@ -204,59 +198,62 @@ class MetasploitModule < Msf::Auxiliary
       'Header'  => "IBM Lotus Sametime Information [Version]",
       'Prefix'  => "",
       'Indent'  => 1,
-      'Columns'   =>
+      'Columns' =>
       [
         "Component",
         "Version"
-      ])
+      ]
+    )
 
     conf_tbl = Msf::Ui::Console::Table.new(
       Msf::Ui::Console::Table::Style::Default,
       'Header'  => "IBM Lotus Sametime Information [Config]",
       'Prefix'  => "",
       'Indent'  => 1,
-      'Columns'   =>
+      'Columns' =>
       [
         "Key",
         "Value"
-      ])
+      ]
+    )
 
     api_tbl = Msf::Ui::Console::Table.new(
       Msf::Ui::Console::Table::Style::Default,
       'Header'  => "IBM Lotus Sametime Information [API]",
       'Prefix'  => "",
       'Indent'  => 1,
-      'Columns'   =>
+      'Columns' =>
       [
         "API",
         "Version"
-      ])
+      ]
+    )
 
     # populate tables
-    @version_info['version'].each do | line |
+    @version_info['version'].each do |line|
       version_tbl << [ line[0], line[1] ]
     end
 
-    @version_info['conf'].each do | line |
+    @version_info['conf'].each do |line|
       conf_tbl << [ line[0], line[1] ]
     end
 
-    @version_info['api'].each do | line |
+    @version_info['api'].each do |line|
       api_tbl << [ line[0], line[1] ]
     end
 
     # display tables
-    print_good("#{version_tbl.to_s}") if not version_tbl.to_s.empty? and datastore['ShowVersions']
-    print_good("#{api_tbl.to_s}") if not api_tbl.to_s.empty? and datastore['ShowAPIVersions']
-    print_good("#{conf_tbl.to_s}") if not conf_tbl.to_s.empty? and datastore['ShowConfig']
+    print_good(version_tbl.to_s) if !version_tbl.to_s.empty? && datastore['ShowVersions']
+    print_good(api_tbl.to_s) if !api_tbl.to_s.empty? && datastore['ShowAPIVersions']
+    print_good(conf_tbl.to_s) if !conf_tbl.to_s.empty? && datastore['ShowConfig']
 
     # report_note
     report_note(
-      :host  => rhost,
-      :port  => rport,
-      :proto => 'http',
-      :ntype => 'ibm_lotus_sametime_version',
-      :data  => @version_info['version']['sametimeVersion']
+      host: rhost,
+      port: rport,
+      proto: 'http',
+      ntype: 'ibm_lotus_sametime_version',
+      data: @version_info['version']['sametimeVersion']
     ) if @version_info['version']['sametimeVersion']
   end
 
@@ -280,7 +277,7 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   def proxy?
-    @version_info['conf']['meetingroomcenter.stProxyAddress'] or @version_info['conf']['meetingroomcenter.stProxySSLAddress']
+    @version_info['conf']['meetingroomcenter.stProxyAddress'] || @version_info['conf']['meetingroomcenter.stProxySSLAddress']
   end
 
   def use_proxy?
@@ -299,22 +296,22 @@ class MetasploitModule < Msf::Auxiliary
     @version_info['api'] = {}
 
     print_status("Checking IBM Lotus Sametime Server")
-    URLS.each do | url |
+    URLS.each do |url|
       check_url(url)
     end
 
-    if proxy? and use_proxy?
+    if proxy? && use_proxy?
       # check Sametime proxy if configured to do so
-      if proxy_ssl? and ssl
-        # keep using SSL
-        proxy = URI(@version_info['conf']['meetingroomcenter.stProxySSLAddress']).host
-      else
-        proxy = URI(@version_info['conf']['meetingroomcenter.stProxyAddress']).host
-      end
+      proxy = if proxy_ssl? && ssl
+                # keep using SSL
+                URI(@version_info['conf']['meetingroomcenter.stProxySSLAddress']).host
+              else
+                URI(@version_info['conf']['meetingroomcenter.stProxyAddress']).host
+              end
 
       print_good("Sametime Proxy address discovered #{proxy}")
 
-      PROXY_URLS.each do | url |
+      PROXY_URLS.each do |url|
         check_url(url, proxy)
       end
     elsif proxy?
@@ -323,5 +320,4 @@ class MetasploitModule < Msf::Auxiliary
 
     report unless @version_info.empty?
   end
-
 end

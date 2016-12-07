@@ -1,40 +1,41 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 require 'msf/core/module/auxiliary_action'
 
 module Msf::Module::HasActions
-  def initialize(info={})
+  def initialize(info = {})
     super
     self.actions = Rex::Transformer.transform(
       info['Actions'], Array,
       [ Msf::Module::AuxiliaryAction ], 'AuxiliaryAction'
     )
 
-    self.passive = (info['Passive'] and info['Passive'] == true) || false
+    self.passive = (info['Passive'] && (info['Passive'] == true)) || false
     self.default_action = info['DefaultAction']
     self.passive_actions = info['PassiveActions'] || []
   end
 
   def action
     sa = datastore['ACTION']
-    return find_action(default_action) if not sa
-    return find_action(sa)
+    return find_action(default_action) unless sa
+    find_action(sa)
   end
 
   def find_action(name)
-    return nil if not name
+    return nil unless name
     actions.each do |a|
       return a if a.name == name
     end
-    return nil
+    nil
   end
 
   #
   # Returns a boolean indicating whether this module should be run passively
   #
   def passive?
-    act = action()
+    act = action
     return passive_action?(act.name) if act
-    return self.passive
+    passive
   end
 
   #
@@ -50,6 +51,7 @@ module Msf::Module::HasActions
   #
   attr_reader :actions, :default_action, :passive, :passive_actions
 
-protected
+  protected
+
   attr_writer :actions, :default_action, :passive, :passive_actions
 end

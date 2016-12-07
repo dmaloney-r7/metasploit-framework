@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 module Sqlmap
   class Session
     def initialize(host, port)

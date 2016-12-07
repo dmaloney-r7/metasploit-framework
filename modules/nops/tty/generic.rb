@@ -1,11 +1,10 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
-
 
 ###
 #
@@ -13,7 +12,6 @@ require 'msf/core'
 #
 ###
 class MetasploitModule < Msf::Nop
-
   def initialize
     super(
       'Name'        => 'TTY Nop Generator',
@@ -25,9 +23,8 @@ class MetasploitModule < Msf::Nop
   end
 
   # Generate valid PHP code up to the requested length
-  def generate_sled(length, opts = {})
+  def generate_sled(length, _opts = {})
     # Default to just spaces for now
     " " * length
   end
-
 end

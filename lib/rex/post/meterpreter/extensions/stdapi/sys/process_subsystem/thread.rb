@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 require 'rex/post/meterpreter/client'
@@ -5,137 +6,131 @@ require 'rex/post/meterpreter/extensions/stdapi/constants'
 require 'rex/post/meterpreter/extensions/stdapi/sys/thread'
 
 module Rex
-module Post
-module Meterpreter
-module Extensions
-module Stdapi
-module Sys
-module ProcessSubsystem
+  module Post
+    module Meterpreter
+      module Extensions
+        module Stdapi
+          module Sys
+            module ProcessSubsystem
+              ###
+              #
+              # Interfaces with a process' executing threads by enumerating,
+              # opening, and creating threads.
+              #
+              ###
+              class Thread
+                ##
+                #
+                # Constructor
+                #
+                ##
 
-###
-#
-# Interfaces with a process' executing threads by enumerating,
-# opening, and creating threads.
-#
-###
-class Thread
+                #
+                # Initializes a thread instance that operates in the context of the
+                # supplied process instance.
+                #
+                def initialize(process)
+                  self.process = process
+                end
 
-  ##
-  #
-  # Constructor
-  #
-  ##
+                ##
+                #
+                # Process thread interaction
+                #
+                ##
 
-  #
-  # Initializes a thread instance that operates in the context of the
-  # supplied process instance.
-  #
-  def initialize(process)
-    self.process = process
-  end
+                #
+                # Opens an existing thread that is running within the context
+                # of the process and returns a Sys::Thread instance.
+                #
+                def open(tid, access = THREAD_ALL)
+                  request = Packet.create_request('stdapi_sys_process_thread_open')
+                  real    = 0
 
-  ##
-  #
-  # Process thread interaction
-  #
-  ##
+                  # Translate access
+                  if access & THREAD_READ
+                    real |= THREAD_GET_CONTEXT | THREAD_QUERY_INFORMATION | SYNCHRONIZE
+                  end
 
-  #
-  # Opens an existing thread that is running within the context
-  # of the process and returns a Sys::Thread instance.
-  #
-  def open(tid, access = THREAD_ALL)
-    request = Packet.create_request('stdapi_sys_process_thread_open')
-    real    = 0
+                  if access & THREAD_WRITE
+                    real |= THREAD_SET_CONTEXT | THREAD_SET_INFORMATION | THREAD_SET_THREAD_TOKEN | THREAD_IMPERSONATE | THREAD_DIRECT_IMPERSONATION
+                  end
 
-    # Translate access
-    if (access & THREAD_READ)
-      real |= THREAD_GET_CONTEXT | THREAD_QUERY_INFORMATION | SYNCHRONIZE
-    end
+                  if access & THREAD_EXECUTE
+                    real |= THREAD_TERMINATE | THREAD_SUSPEND_RESUME | SYNCHRONIZE
+                  end
 
-    if (access & THREAD_WRITE)
-      real |= THREAD_SET_CONTEXT | THREAD_SET_INFORMATION | THREAD_SET_THREAD_TOKEN | THREAD_IMPERSONATE | THREAD_DIRECT_IMPERSONATION
-    end
+                  # Add the thread identifier and permissions
+                  request.add_tlv(TLV_TYPE_THREAD_ID, tid)
+                  request.add_tlv(TLV_TYPE_THREAD_PERMS, real)
 
-    if (access & THREAD_EXECUTE)
-      real |= THREAD_TERMINATE | THREAD_SUSPEND_RESUME | SYNCHRONIZE
-    end
+                  # Transmit the request
+                  response = process.client.send_request(request)
 
-    # Add the thread identifier and permissions
-    request.add_tlv(TLV_TYPE_THREAD_ID, tid)
-    request.add_tlv(TLV_TYPE_THREAD_PERMS, real)
+                  # Create a thread class instance
+                  Rex::Post::Meterpreter::Extensions::Stdapi::Sys::Thread.new(
+                    process, response.get_tlv_value(TLV_TYPE_THREAD_HANDLE), tid
+                  )
+                end
 
-    # Transmit the request
-    response = process.client.send_request(request)
+                #
+                # Creates a new thread in the context of the process and
+                # returns a Sys::Thread instance.
+                #
+                def create(entry, parameter = nil, suspended = false)
+                  request = Packet.create_request('stdapi_sys_process_thread_create')
+                  creation_flags = 0
 
-    # Create a thread class instance
-    return Rex::Post::Meterpreter::Extensions::Stdapi::Sys::Thread.new(
-        process, response.get_tlv_value(TLV_TYPE_THREAD_HANDLE), tid)
-  end
+                  request.add_tlv(TLV_TYPE_PROCESS_HANDLE, process.handle)
+                  request.add_tlv(TLV_TYPE_ENTRY_POINT, entry)
 
-  #
-  # Creates a new thread in the context of the process and
-  # returns a Sys::Thread instance.
-  #
-  def create(entry, parameter = nil, suspended = false)
-    request = Packet.create_request('stdapi_sys_process_thread_create')
-    creation_flags = 0
+                  # Are we passing a parameter to the entry point of the thread?
+                  request.add_tlv(TLV_TYPE_ENTRY_PARAMETER, parameter) unless parameter.nil?
 
-    request.add_tlv(TLV_TYPE_PROCESS_HANDLE, process.handle)
-    request.add_tlv(TLV_TYPE_ENTRY_POINT, entry)
+                  # Should we create the thread suspended?
+                  creation_flags |= CREATE_SUSPENDED if suspended
 
-    # Are we passing a parameter to the entry point of the thread?
-    if (parameter != nil)
-      request.add_tlv(TLV_TYPE_ENTRY_PARAMETER, parameter)
-    end
+                  request.add_tlv(TLV_TYPE_CREATION_FLAGS, creation_flags)
 
-    # Should we create the thread suspended?
-    if (suspended)
-      creation_flags |= CREATE_SUSPENDED
-    end
+                  # Transmit the request
+                  response = process.client.send_request(request)
 
-    request.add_tlv(TLV_TYPE_CREATION_FLAGS, creation_flags)
+                  thread_id     = response.get_tlv_value(TLV_TYPE_THREAD_ID)
+                  thread_handle = response.get_tlv_value(TLV_TYPE_THREAD_HANDLE)
 
-    # Transmit the request
-    response = process.client.send_request(request)
+                  # Create a thread class instance
+                  Rex::Post::Meterpreter::Extensions::Stdapi::Sys::Thread.new(
+                    process, thread_handle, thread_id
+                  )
+                end
 
+                #
+                # Enumerate through each thread identifier.
+                #
+                def each_thread(&block)
+                  get_threads.each(&block)
+                end
 
-    thread_id     = response.get_tlv_value(TLV_TYPE_THREAD_ID)
-    thread_handle = response.get_tlv_value(TLV_TYPE_THREAD_HANDLE)
+                #
+                # Returns an array of thread identifiers.
+                #
+                def get_threads
+                  request = Packet.create_request('stdapi_sys_process_thread_get_threads')
+                  threads = []
 
-    # Create a thread class instance
-    return Rex::Post::Meterpreter::Extensions::Stdapi::Sys::Thread.new(
-        process, thread_handle, thread_id)
-  end
+                  request.add_tlv(TLV_TYPE_PID, process.pid)
 
-  #
-  # Enumerate through each thread identifier.
-  #
-  def each_thread(&block)
-    get_threads.each(&block)
-  end
+                  response = process.client.send_request(request)
 
-  #
-  # Returns an array of thread identifiers.
-  #
-  def get_threads
-    request = Packet.create_request('stdapi_sys_process_thread_get_threads')
-    threads = []
+                  response.each(TLV_TYPE_THREAD_ID) do |thr|
+                    threads << thr.value
+                  end
 
-    request.add_tlv(TLV_TYPE_PID, process.pid)
+                  threads
+                end
 
-    response = process.client.send_request(request)
+                protected
 
-    response.each(TLV_TYPE_THREAD_ID) { |thr|
-      threads << thr.value
-    }
-
-    return threads
-  end
-
-protected
-  attr_accessor :process # :nodoc:
-
-end
-
-end; end; end; end; end; end; end
+                attr_accessor :process # :nodoc:
+              end
+            end; end; end; end; end; end; end

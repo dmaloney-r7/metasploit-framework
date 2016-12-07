@@ -1,13 +1,12 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::SNMPClient
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::Scanner
@@ -19,11 +18,10 @@ class MetasploitModule < Msf::Auxiliary
       'Author'      =>
         [
           'Ramon de C Valle',
-          'Adriano Lima <adriano[at]risesecurity.org>',
+          'Adriano Lima <adriano[at]risesecurity.org>'
         ],
       'License'     => MSF_LICENSE
     )
-
   end
 
   def run_host(ip)
@@ -48,12 +46,12 @@ class MetasploitModule < Msf::Auxiliary
         version = "#{value[0]}.#{value[1]}.#{value[2]}.#{value[3]}"
 
         report_note(
-            :host   => ip,
-            :proto => 'udp',
-            :sname  => 'snmp',
-            :port   => datastore['RPORT'],
-            :type   => 'AIX',
-            :data   => version
+          host: ip,
+          proto: 'udp',
+          sname: 'snmp',
+          port: datastore['RPORT'],
+          type: 'AIX',
+          data: version
         )
 
         status = "#{ip} (#{description}) is running: "
@@ -66,13 +64,11 @@ class MetasploitModule < Msf::Auxiliary
     # No need to make noise about timeouts
     rescue ::Rex::ConnectionError, ::SNMP::RequestTimeout, ::SNMP::UnsupportedVersion
     rescue ::Interrupt
-      raise $!
+      raise $ERROR_INFO
     rescue Exception => e
       print_error("#{ip} #{e.class}, #{e.message}")
     ensure
       disconnect_snmp
     end
-
   end
-
 end

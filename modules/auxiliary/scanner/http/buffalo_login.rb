@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -16,10 +17,10 @@ class MetasploitModule < Msf::Auxiliary
   def initialize
     super(
       'Name'           => 'Buffalo NAS Login Utility',
-      'Description'    => %q{
+      'Description'    => %q(
         This module simply attempts to login to a Buffalo NAS instance using a specific
         username and password. It has been confirmed to work on version 1.68
-      },
+      ),
       'Author'         => [ 'Nicholas Starke <starke.nicholas[at]gmail.com>' ],
       'License'        => MSF_LICENSE
     )
@@ -27,7 +28,8 @@ class MetasploitModule < Msf::Auxiliary
     register_options(
       [
         Opt::RPORT(80)
-      ], self.class)
+      ], self.class
+    )
   end
 
   def run_host(ip)
@@ -54,10 +56,8 @@ class MetasploitModule < Msf::Auxiliary
 
     scanner.scan! do |result|
       credential_data = result.to_h
-      credential_data.merge!(
-          module_fullname: fullname,
-          workspace_id: myworkspace_id
-      )
+      credential_data[:module_fullname] = fullname
+      credential_data[:workspace_id] = myworkspace_id
       if result.success?
         credential_core = create_credential(credential_data)
         credential_data[:core] = credential_core

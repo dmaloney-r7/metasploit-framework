@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'metasploit/framework/tcp/client'
 require 'rex/proto/acpp'
 require 'metasploit/framework/login_scanner/base'
@@ -18,37 +19,36 @@ module Metasploit
         # CONSTANTS
         #
         DEFAULT_PORT         = Rex::Proto::ACPP::DEFAULT_PORT
-        LIKELY_PORTS         = [ DEFAULT_PORT ]
-        LIKELY_SERVICE_NAMES = [ 'acpp' ]
-        PRIVATE_TYPES        = [ :password ]
+        LIKELY_PORTS         = [ DEFAULT_PORT ].freeze
+        LIKELY_SERVICE_NAMES = [ 'acpp' ].freeze
+        PRIVATE_TYPES        = [ :password ].freeze
         REALM_KEY            = nil
-
 
         # This method attempts a single login with a single credential against the target
         # @param credential [Credential] The credential object to attmpt to login with
         # @return [Metasploit::Framework::LoginScanner::Result] The LoginScanner Result object
         def attempt_login(credential)
           result_options = {
-              credential: credential,
-              host: host,
-              port: port,
-              protocol: 'tcp',
-              service_name: 'acpp'
+            credential: credential,
+            host: host,
+            port: port,
+            protocol: 'tcp',
+            service_name: 'acpp'
           }
 
           begin
             # Make our initial socket to the target
-            disconnect if self.sock
+            disconnect if sock
             connect
 
             client = Rex::Proto::ACPP::Client.new(sock)
 
             auth_response = client.authenticate(credential.private)
-            if auth_response.successful?
-              status = Metasploit::Model::Login::Status::SUCCESSFUL
-            else
-              status = Metasploit::Model::Login::Status::INCORRECT
-            end
+            status = if auth_response.successful?
+                       Metasploit::Model::Login::Status::SUCCESSFUL
+                     else
+                       Metasploit::Model::Login::Status::INCORRECT
+                     end
             result_options.merge!(
               proof: "Status code #{auth_response.status}",
               status: status

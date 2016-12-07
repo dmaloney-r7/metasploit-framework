@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -31,9 +32,10 @@ class MetasploitModule < Msf::Auxiliary
     )
 
     register_options(
-    [
-      Opt::RPORT(27015)
-    ], self.class)
+      [
+        Opt::RPORT(27015)
+      ], self.class
+    )
   end
 
   def build_probe

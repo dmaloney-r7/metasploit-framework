@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 # Copyright (C) 2003-2008 TOMITA Masahiro
 # mailto:tommy@tmtm.org
@@ -163,4 +164,3 @@ class RbMysql
     CURSOR_TYPE_READ_ONLY = 1
   end
 end
-

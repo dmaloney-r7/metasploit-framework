@@ -1,10 +1,10 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 #
 # A helper module for using and referencing comming user agent strings.
 #
 module Rex::UserAgent
-
   #
   # List from https://techblog.willshouse.com/2012/01/03/most-common-user-agents/
   # This article was updated on July 11th 2015. It's probably worth updating this
@@ -90,8 +90,8 @@ module Rex::UserAgent
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_5) AppleWebKit/600.7.12 (KHTML, like Gecko) Version/7.1.7 Safari/537.85.16',
     'Mozilla/5.0 (Windows NT 6.1; rv:31.0) Gecko/20100101 Firefox/31.0',
     'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/43.0.2357.130 Safari/537.36',
-    'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:37.0) Gecko/20100101 Firefox/37.0',
-  ]
+    'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:37.0) Gecko/20100101 Firefox/37.0'
+  ].freeze
 
   #
   # Pick a random agent from the common agent list.
@@ -113,6 +113,4 @@ module Rex::UserAgent
   def self.most_common
     COMMON_AGENTS[0]
   end
-
 end
-

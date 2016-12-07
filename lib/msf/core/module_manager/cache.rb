@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 #
 # Gems
@@ -34,7 +35,7 @@ module Msf::ModuleManager::Cache
   # @raise [KeyError] unless +:path+ is given.
   # @raise [KeyError] unless +:reference_name+ is given.
   # @raise [KeyError] unless +:type+ is given.
-  def cache_in_memory(class_or_module, options={})
+  def cache_in_memory(class_or_module, options = {})
     options.assert_valid_keys(:path, :reference_name, :type)
 
     path = options.fetch(:path)
@@ -57,10 +58,10 @@ module Msf::ModuleManager::Cache
       type = options.fetch(:type)
 
       module_info_by_path[path] = {
-          :modification_time => modification_time,
-          :parent_path => parent_path,
-          :reference_name => reference_name,
-          :type => type
+        modification_time: modification_time,
+        parent_path: parent_path,
+        reference_name: reference_name,
+        type: type
       }
     end
   end
@@ -74,22 +75,21 @@ module Msf::ModuleManager::Cache
   def load_cached_module(type, reference_name)
     loaded = false
 
-    module_info = self.module_info_by_path.values.find { |inner_info|
-      inner_info[:type] == type and inner_info[:reference_name] == reference_name
-    }
+    module_info = module_info_by_path.values.find do |inner_info|
+      (inner_info[:type] == type) && (inner_info[:reference_name] == reference_name)
+    end
 
     if module_info
       parent_path = module_info[:parent_path]
 
       loaders.each do |loader|
-        if loader.loadable?(parent_path)
-          type = module_info[:type]
-          reference_name = module_info[:reference_name]
+        next unless loader.loadable?(parent_path)
+        type = module_info[:type]
+        reference_name = module_info[:reference_name]
 
-          loaded = loader.load_module(parent_path, type, reference_name, :force => true)
+        loaded = loader.load_module(parent_path, type, reference_name, force: true)
 
-          break
-        end
+        break
       end
     end
 
@@ -112,15 +112,15 @@ module Msf::ModuleManager::Cache
       else
         framework.db.update_all_module_details
       end
-      refresh_cache_from_database(self.module_paths)
+      refresh_cache_from_database(module_paths)
     end
   end
 
   # Refreshes the in-memory cache from the database cache.
   #
   # @return [void]
-  def refresh_cache_from_database(allowed_paths=[""])
-    self.module_info_by_path_from_database!(allowed_paths)
+  def refresh_cache_from_database(allowed_paths = [""])
+    module_info_by_path_from_database!(allowed_paths)
   end
 
   protected
@@ -144,14 +144,14 @@ module Msf::ModuleManager::Cache
   # @return [Hash{String => Hash{Symbol => Object}}] Maps path (Mdm::Module::Detail#file) to module information.  Module
   #   information is a Hash derived from Mdm::Module::Detail.  It includes :modification_time, :parent_path, :type,
   #   :reference_name.
-  def module_info_by_path_from_database!(allowed_paths=[""])
+  def module_info_by_path_from_database!(allowed_paths = [""])
     self.module_info_by_path = {}
 
     if framework_migrated?
-      allowed_paths = allowed_paths.map{|x| x + "/"}
+      allowed_paths = allowed_paths.map { |x| x + "/" }
 
       ActiveRecord::Base.connection_pool.with_connection do
-        # TODO record module parent_path in Mdm::Module::Detail so it does not need to be derived from file.
+        # TODO: record module parent_path in Mdm::Module::Detail so it does not need to be derived from file.
         # Use find_each so Mdm::Module::Details are returned in batches, which will
         # handle the growing number of modules better than all.each.
         Mdm::Module::Detail.find_each do |module_detail|
@@ -160,7 +160,7 @@ module Msf::ModuleManager::Cache
           reference_name = module_detail.refname
 
           # Skip cached modules that are not in our allowed load paths
-          next if allowed_paths.select{|x| path.index(x) == 0}.empty?
+          next if allowed_paths.select { |x| path.index(x) == 0 }.empty?
 
           typed_path = Msf::Modules::Loader::Base.typed_path(type, reference_name)
           # join to '' so that typed_path_prefix starts with file separator
@@ -169,10 +169,10 @@ module Msf::ModuleManager::Cache
           parent_path = path.gsub(/#{escaped_typed_path}$/, '')
 
           module_info_by_path[path] = {
-              :reference_name => reference_name,
-              :type => type,
-              :parent_path => parent_path,
-              :modification_time => module_detail.mtime
+            reference_name: reference_name,
+            type: type,
+            parent_path: parent_path,
+            modification_time: module_detail.mtime
           }
 
           typed_module_set = module_set(type)
@@ -180,13 +180,13 @@ module Msf::ModuleManager::Cache
           # Don't want to trigger as {Msf::ModuleSet#create} so check for
           # key instead of using ||= which would call {Msf::ModuleSet#[]}
           # which would potentially call {Msf::ModuleSet#create}.
-          unless typed_module_set.has_key? reference_name
+          unless typed_module_set.key? reference_name
             typed_module_set[reference_name] = Msf::SymbolicModule
           end
         end
       end
     end
 
-    self.module_info_by_path
+    module_info_by_path
   end
 end

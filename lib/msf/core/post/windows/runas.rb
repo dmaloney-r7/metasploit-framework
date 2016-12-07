@@ -1,10 +1,10 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 require 'msf/core/exploit/powershell'
 require 'msf/core/exploit/exe'
 
 module Msf::Post::Windows::Runas
-
   include Msf::Post::File
   include Msf::Exploit::EXE
   include Msf::Exploit::Powershell
@@ -22,7 +22,8 @@ module Msf::Post::Windows::Runas
     cmd_location = "#{payload_path}\\#{payload_filename}"
     print_status("Uploading #{payload_filename} - #{exe_payload.length} bytes to the filesystem...")
     write_file(cmd_location, exe_payload)
-    command, args = cmd_location, nil
+    command = cmd_location
+    args = nil
     shell_exec(command, args)
   end
 
@@ -66,8 +67,7 @@ module Msf::Post::Windows::Runas
      0, # lpReserved2
      0, # hStdInput
      0, # hStdOutput
-     0  # hStdError
-    ].pack('VVVVVVVVVVVVvvVVVV')
+     0] # hStdError.pack('VVVVVVVVVVVVvvVVVV')
   end
 
   #
@@ -152,16 +152,16 @@ module Msf::Post::Windows::Runas
         ph_token = logon_user['phToken']
         vprint_status("Executing CreateProcessAsUserA...")
         create_process = session.railgun.advapi32.CreateProcessAsUserA(ph_token,
-                                                                      application_name,
-                                                                      command_line,
-                                                                      nil,
-                                                                      nil,
-                                                                      false,
-                                                                      'CREATE_NEW_CONSOLE',
-                                                                      nil,
-                                                                      nil,
-                                                                      startup_info,
-                                                                      16)
+                                                                       application_name,
+                                                                       command_line,
+                                                                       nil,
+                                                                       nil,
+                                                                       false,
+                                                                       'CREATE_NEW_CONSOLE',
+                                                                       nil,
+                                                                       nil,
+                                                                       startup_info,
+                                                                       16)
 
         if create_process['return']
           begin
@@ -195,11 +195,11 @@ module Msf::Post::Windows::Runas
   # @return [Hash] The values from the process_information struct
   #
   def parse_process_information(process_information)
-    fail ArgumentError, 'process_information is nil' if process_information.nil?
-    fail ArgumentError, 'process_information is empty string' if process_information.empty?
+    raise ArgumentError, 'process_information is nil' if process_information.nil?
+    raise ArgumentError, 'process_information is empty string' if process_information.empty?
 
     pi = process_information.unpack('VVVV')
-    { :process_handle => pi[0], :thread_handle => pi[1], :process_id => pi[2], :thread_id => pi[3] }
+    { process_handle: pi[0], thread_handle: pi[1], process_id: pi[2], thread_id: pi[3] }
   end
 
   #
@@ -214,7 +214,7 @@ module Msf::Post::Windows::Runas
   # @return [True] True if username is in the correct format
   #
   def check_user_format(username, domain)
-    fail ArgumentError, 'username is nil' if username.nil?
+    raise ArgumentError, 'username is nil' if username.nil?
 
     if domain && username.include?('@')
       raise ArgumentError, 'Username is in UPN format (user@domain) so the domain parameter must be nil'
@@ -238,7 +238,7 @@ module Msf::Post::Windows::Runas
   # @return [True] True if the command_line is within the correct bounds
   #
   def check_command_length(application_name, command_line, max_length)
-    fail ArgumentError, 'max_length is nil' if max_length.nil?
+    raise ArgumentError, 'max_length is nil' if max_length.nil?
 
     if application_name.nil? && command_line.nil?
       raise ArgumentError, 'Both application_name and command_line are nil'

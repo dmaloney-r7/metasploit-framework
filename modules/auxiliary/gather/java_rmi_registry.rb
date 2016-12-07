@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,18 +8,17 @@ require 'msf/core'
 require 'rex/java/serialization'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Auxiliary::Report
   include Msf::Exploit::Remote::Java::Rmi::Client
 
   def initialize
     super(
-      'Name'        => 'Java RMI Registry Interfaces Enumeration',
-      'Description'    => %q{
+      'Name' => 'Java RMI Registry Interfaces Enumeration',
+      'Description' => %q(
         This module gathers information from an RMI endpoint running an RMI registry
         interface. It enumerates the names bound in a registry and looks up each
         remote reference.
-      },
+      ),
       'Author'      => ['juan vazquez'],
       'License'     => MSF_LICENSE,
       'References'  =>
@@ -30,7 +30,8 @@ class MetasploitModule < Msf::Auxiliary
     register_options(
       [
         Opt::RPORT(1099)
-      ], self.class)
+      ], self.class
+    )
   end
 
   def run
@@ -67,7 +68,6 @@ class MetasploitModule < Msf::Auxiliary
     print_good("#{names.length} names found in the Registry")
 
     names.each do |name|
-
       begin
         remote_reference = send_registry_lookup(name: name)
       rescue ::Rex::Proto::Rmi::Exception => e
@@ -82,10 +82,10 @@ class MetasploitModule < Msf::Auxiliary
 
       print_good("Name #{name} (#{remote_reference[:object]}) found on #{remote_reference[:address]}:#{remote_reference[:port]}")
       report_service(
-        :host => remote_reference[:address],
-        :port => remote_reference[:port],
-        :name => 'java-rmi',
-        :info => "Name: #{name}, Stub: #{remote_reference[:object]}"
+        host: remote_reference[:address],
+        port: remote_reference[:port],
+        name: 'java-rmi',
+        info: "Name: #{name}, Stub: #{remote_reference[:object]}"
       )
     end
   end

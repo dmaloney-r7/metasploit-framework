@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,35 +8,33 @@ require "msf/core"
 require "rex/proto/pjl"
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::Tcp
   include Msf::Auxiliary::Scanner
   include Msf::Auxiliary::Report
 
   def initialize(info = {})
     super(update_info(info,
-      "Name" => "Printer Directory Listing Scanner",
-      "Description" => %q{
-        This module lists a directory on a set of printers using the
-        Printer Job Language (PJL) protocol.
-      },
-      "Author" => [
-        "wvu", # Rex::Proto::PJL and modules
-        "sinn3r", # RSpec tests
-        "MC", # Independent mixin and modules
-        "Myo Soe", # Independent modules
-        "Matteo Cantoni <goony[at]nothink.org>" # Independent modules
-      ],
-      "References" => [
-        ["URL", "https://en.wikipedia.org/wiki/Printer_Job_Language"]
-      ],
-      "License" => MSF_LICENSE
-    ))
+                      "Name" => "Printer Directory Listing Scanner",
+                      "Description" => %q{
+                        This module lists a directory on a set of printers using the
+                        Printer Job Language (PJL) protocol.
+                      },
+                      "Author" => [
+                        "wvu", # Rex::Proto::PJL and modules
+                        "sinn3r", # RSpec tests
+                        "MC", # Independent mixin and modules
+                        "Myo Soe", # Independent modules
+                        "Matteo Cantoni <goony[at]nothink.org>" # Independent modules
+                      ],
+                      "References" => [
+                        ["URL", "https://en.wikipedia.org/wiki/Printer_Job_Language"]
+                      ],
+                      "License" => MSF_LICENSE))
 
     register_options([
-      Opt::RPORT(Rex::Proto::PJL::DEFAULT_PORT),
-      OptString.new("PATH", [true, "Remote path", '0:\..\..\..'])
-    ], self.class)
+                       Opt::RPORT(Rex::Proto::PJL::DEFAULT_PORT),
+                       OptString.new("PATH", [true, "Remote path", '0:\..\..\..'])
+                     ], self.class)
   end
 
   def run_host(ip)
@@ -54,13 +53,12 @@ class MetasploitModule < Msf::Auxiliary
     if listing
       print_good("#{ip}:#{rport} - #{listing}")
       report_note(
-        :host => ip,
-        :port => rport,
-        :proto => "tcp",
-        :type => "printer.dir.listing",
-        :data => listing
+        host: ip,
+        port: rport,
+        proto: "tcp",
+        type: "printer.dir.listing",
+        data: listing
       )
     end
   end
-
 end

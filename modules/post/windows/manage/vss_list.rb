@@ -1,37 +1,34 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 require 'rex'
 
 class MetasploitModule < Msf::Post
-
   include Msf::Post::Windows::Priv
   include Msf::Post::Windows::ShadowCopy
 
-  def initialize(info={})
+  def initialize(info = {})
     super(update_info(info,
-      'Name'                 => "Windows Manage List Shadow Copies",
-      'Description'          => %q{
-        This module will attempt to list any Volume Shadow Copies
-        on the system. This is based on the VSSOwn Script
-        originally posted by Tim Tomes and Mark Baggett.
+                      'Name'                 => "Windows Manage List Shadow Copies",
+                      'Description'          => %q(
+                        This module will attempt to list any Volume Shadow Copies
+                        on the system. This is based on the VSSOwn Script
+                        originally posted by Tim Tomes and Mark Baggett.
 
-        Works on win2k3 and later.
-        },
-      'License'              => MSF_LICENSE,
-      'Platform'             => ['win'],
-      'SessionTypes'         => ['meterpreter'],
-      'Author'               => ['theLightCosine'],
-      'References'    => [
-        [ 'URL', 'http://pauldotcom.com/2011/11/safely-dumping-hashes-from-liv.html' ]
-      ]
-    ))
+                        Works on win2k3 and later.
+                        ),
+                      'License'              => MSF_LICENSE,
+                      'Platform'             => ['win'],
+                      'SessionTypes'         => ['meterpreter'],
+                      'Author'               => ['theLightCosine'],
+                      'References' => [
+                        [ 'URL', 'http://pauldotcom.com/2011/11/safely-dumping-hashes-from-liv.html' ]
+                      ]))
   end
-
 
   def run
     unless is_admin?
@@ -42,9 +39,7 @@ class MetasploitModule < Msf::Post
       print_error("This module requires UAC to be bypassed first")
       return
     end
-    unless start_vss
-      return
-    end
+    return unless start_vss
 
     list = ""
     shadow_copies = vss_list
@@ -55,19 +50,18 @@ class MetasploitModule < Msf::Post
           'Indent'  => 1,
           'Columns' => ['Field', 'Value']
         )
-        copy.each_pair{|k,v| tbl << [k,v]}
-        list << " #{tbl.to_s} \n\n"
+        copy.each_pair { |k, v| tbl << [k, v] }
+        list << " #{tbl} \n\n"
         print_good tbl.to_s
       end
       store_loot(
-          'host.shadowcopies',
-          'text/plain',
-          session,
-          list,
-          'shadowcopies.txt',
-          'Shadow Copy Info'
+        'host.shadowcopies',
+        'text/plain',
+        session,
+        list,
+        'shadowcopies.txt',
+        'Shadow Copy Info'
       )
     end
   end
-
 end

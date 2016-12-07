@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   # Watch out, dos all the things
   include Msf::Auxiliary::Scanner
   include Msf::Exploit::Remote::HttpClient
@@ -14,36 +14,36 @@ class MetasploitModule < Msf::Auxiliary
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'MS15-034 HTTP Protocol Stack Request Handling Denial-of-Service',
-      'Description'    => %q{
-        This module will check if scanned hosts are vulnerable to CVE-2015-1635 (MS15-034), a
-        vulnerability in the HTTP protocol stack (HTTP.sys) that could result in arbitrary code
-        execution. This module will try to cause a denial-of-service.
-      },
-      'Author'         =>
-        [
-          # Bill did all the work (see the pastebin code), twitter: @hectorh56193716
-          'Bill Finlayson',
-          # MSF. But really, these people made it happen:
-          # https://github.com/rapid7/metasploit-framework/pull/5150
-          'sinn3r'
-        ],
-      'References'     =>
-        [
-          ['CVE', '2015-1635'],
-          ['MSB', 'MS15-034'],
-          ['URL', 'http://pastebin.com/ypURDPc4'],
-          ['URL', 'https://github.com/rapid7/metasploit-framework/pull/5150'],
-          ['URL', 'https://community.qualys.com/blogs/securitylabs/2015/04/20/ms15-034-analyze-and-remote-detection'],
-          ['URL', 'http://www.securitysift.com/an-analysis-of-ms15-034/']
-        ],
-      'License'        => MSF_LICENSE
-    ))
+                      'Name'           => 'MS15-034 HTTP Protocol Stack Request Handling Denial-of-Service',
+                      'Description'    => %q{
+                        This module will check if scanned hosts are vulnerable to CVE-2015-1635 (MS15-034), a
+                        vulnerability in the HTTP protocol stack (HTTP.sys) that could result in arbitrary code
+                        execution. This module will try to cause a denial-of-service.
+                      },
+                      'Author'         =>
+                        [
+                          # Bill did all the work (see the pastebin code), twitter: @hectorh56193716
+                          'Bill Finlayson',
+                          # MSF. But really, these people made it happen:
+                          # https://github.com/rapid7/metasploit-framework/pull/5150
+                          'sinn3r'
+                        ],
+                      'References'     =>
+                        [
+                          ['CVE', '2015-1635'],
+                          ['MSB', 'MS15-034'],
+                          ['URL', 'http://pastebin.com/ypURDPc4'],
+                          ['URL', 'https://github.com/rapid7/metasploit-framework/pull/5150'],
+                          ['URL', 'https://community.qualys.com/blogs/securitylabs/2015/04/20/ms15-034-analyze-and-remote-detection'],
+                          ['URL', 'http://www.securitysift.com/an-analysis-of-ms15-034/']
+                        ],
+                      'License'        => MSF_LICENSE))
 
     register_options(
       [
         OptString.new('TARGETURI', [false, 'URI to the site (e.g /site/) or a valid file resource (e.g /welcome.png)', '/'])
-      ], self.class)
+      ], self.class
+    )
 
     deregister_options('RHOST')
   end
@@ -65,8 +65,8 @@ class MetasploitModule < Msf::Auxiliary
     @target_uri ||= super
   end
 
-  def get_file_size(ip)
-    @file_size ||= lambda {
+  def get_file_size(_ip)
+    @file_size ||= lambda do
       file_size = -1
       uri = normalize_uri(target_uri.path)
       res = send_request_raw('uri' => uri)
@@ -85,7 +85,7 @@ class MetasploitModule < Msf::Auxiliary
       vprint_status("File length: #{file_size} bytes")
 
       return file_size
-    }.call
+    end.call
   end
 
   def dos_host(ip)
@@ -141,7 +141,7 @@ class MetasploitModule < Msf::Auxiliary
     uris.uniq
   end
 
-  def check_host(ip)
+  def check_host(_ip)
     potential_static_files_uris.each do |potential_uri|
       uri = normalize_uri(potential_uri)
 

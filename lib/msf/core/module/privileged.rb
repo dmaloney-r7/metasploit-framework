@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 module Msf::Module::Privileged
   #
   # Attributes
@@ -5,7 +6,7 @@ module Msf::Module::Privileged
 
   # @!attribute [r] privileged
   #   Whether or not this module requires privileged access.
-  attr_reader   :privileged
+  attr_reader :privileged
 
   #
   # Instance Methods

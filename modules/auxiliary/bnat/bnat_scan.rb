@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -20,7 +21,7 @@ class MetasploitModule < Msf::Auxiliary
       'Author'       =>
         [
           'bannedit',
-          'Jonathan Claudius <jclaudius[at]trustwave.com>',
+          'Jonathan Claudius <jclaudius[at]trustwave.com>'
         ],
       'License'      => MSF_LICENSE,
       'References'   =>
@@ -31,14 +32,14 @@ class MetasploitModule < Msf::Auxiliary
     )
 
     register_options(
-        [
-          OptString.new('PORTS', [true, "Ports to scan (e.g. 22-25,80,110-900)", "21,22,23,80,443"]),
-          OptString.new('INTERFACE', [true, "The name of the interface", "eth0"]),
-          OptInt.new('TIMEOUT', [true, "The reply read timeout in milliseconds", 500])
-        ],self.class)
+      [
+        OptString.new('PORTS', [true, "Ports to scan (e.g. 22-25,80,110-900)", "21,22,23,80,443"]),
+        OptString.new('INTERFACE', [true, "The name of the interface", "eth0"]),
+        OptInt.new('TIMEOUT', [true, "The reply read timeout in milliseconds", 500])
+      ], self.class
+    )
 
-    deregister_options('FILTER','PCAPFILE','RHOST','SNAPLEN')
-
+    deregister_options('FILTER', 'PCAPFILE', 'RHOST', 'SNAPLEN')
   end
 
   def probe_reply(pcap, to)
@@ -52,19 +53,19 @@ class MetasploitModule < Msf::Auxiliary
           break
         end
       end
-      rescue Timeout::Error
+    rescue Timeout::Error
     end
-    return reply
+    reply
   end
 
   def generate_probe(ip)
-    ftypes = %w{windows, linux, freebsd}
+    ftypes = %w(windows linux freebsd)
     @flavor = ftypes[rand(ftypes.length)]
-    config = PacketFu::Utils.whoami?(:iface => datastore['INTERFACE'])
-    p = PacketFu::TCPPacket.new(:config => config)
+    config = PacketFu::Utils.whoami?(iface: datastore['INTERFACE'])
+    p = PacketFu::TCPPacket.new(config: config)
     p.ip_daddr = ip
     p.tcp_flags.syn = 1
-    return p
+    p
   end
 
   def run_host(ip)
@@ -73,18 +74,16 @@ class MetasploitModule < Msf::Auxiliary
     to = (datastore['TIMEOUT'] || 500).to_f / 1000.0
 
     p = generate_probe(ip)
-    pcap = self.capture
+    pcap = capture
 
     ports = Rex::Socket.portspec_crack(datastore['PORTS'])
 
-    if ports.empty?
-      raise Msf::OptionValidateError.new(['PORTS'])
-    end
+    raise Msf::OptionValidateError, ['PORTS'] if ports.empty?
 
-    ports.each_with_index do |port,i|
+    ports.each_with_index do |port, _i|
       p.tcp_dst = port
-      p.tcp_src = rand(64511)+1024
-      p.tcp_seq = rand(64511)+1024
+      p.tcp_src = rand(64511) + 1024
+      p.tcp_seq = rand(64511) + 1024
       p.recalc
 
       ackbpf = "tcp [8:4] == 0x#{(p.tcp_seq + 1).to_s(16)}"
@@ -98,5 +97,4 @@ class MetasploitModule < Msf::Auxiliary
 
     close_pcap
   end
-
 end

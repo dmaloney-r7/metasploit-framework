@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -21,21 +22,22 @@ class MetasploitModule < Msf::Auxiliary
         This module attempts to authenticate to an Apple Airport using its
         proprietary and largely undocumented protocol known only as ACPP.
       ),
-      'Author'      =>
+      'Author' =>
         [
           'Jon Hart <jon_hart[at]rapid7.com>'
         ],
-      'References'     =>
+      'References' =>
         [
           %w(CVE 2003-0270) # Fixed XOR key used to encrypt password
         ],
-      'License'     => MSF_LICENSE
+      'License' => MSF_LICENSE
     )
 
     register_options(
       [
         Opt::RPORT(Rex::Proto::ACPP::DEFAULT_PORT)
-      ], self.class)
+      ], self.class
+    )
 
     deregister_options(
       # there is no username, so remove all of these options
@@ -84,10 +86,8 @@ class MetasploitModule < Msf::Auxiliary
 
     scanner.scan! do |result|
       credential_data = result.to_h
-      credential_data.merge!(
-        module_fullname: fullname,
-        workspace_id: myworkspace_id
-      )
+      credential_data[:module_fullname] = fullname
+      credential_data[:workspace_id] = myworkspace_id
       password = result.credential.private
       if result.success?
         credential_core = create_credential(credential_data)

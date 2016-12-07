@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 require 'msf/core'
 require 'msf/core/option_container'
@@ -9,10 +10,9 @@ require 'msf/core/payload/transport_config'
 #
 ###
 module Msf::Payload::Stager
-
   include Msf::Payload::TransportConfig
 
-  def initialize(info={})
+  def initialize(info = {})
     super
 
     register_advanced_options(
@@ -21,8 +21,8 @@ module Msf::Payload::Stager
         Msf::OptString.new("StageEncoder", [ false, "Encoder to use if EnableStageEncoding is set", nil ]),
         Msf::OptString.new("StageEncoderSaveRegisters", [ false, "Additional registers to preserve in the staged payload if EnableStageEncoding is set", "" ]),
         Msf::OptBool.new("StageEncodingFallback", [ false, "Fallback to no encoding if the selected StageEncoder is not compatible", true ])
-      ], Msf::Payload::Stager)
-
+      ], Msf::Payload::Stager
+    )
   end
 
   #
@@ -30,20 +30,20 @@ module Msf::Payload::Stager
   # Call the determined config with passed options.
   # Override this in stages/stagers to use specific transports
   #
-  def transport_config(opts={})
-    if self.refname =~ /reverse_/
-        direction = 'reverse'
-    else
-        direction = 'bind'
-    end
+  def transport_config(opts = {})
+    direction = if refname =~ /reverse_/
+                  'reverse'
+                else
+                  'bind'
+                end
 
-    if self.refname =~ /_tcp/
-        proto = 'tcp'
-    elsif self.refname =~ /_https/
-        proto = 'https'
-    else
-        proto = 'http'
-    end
+    proto = if refname =~ /_tcp/
+              'tcp'
+            elsif refname =~ /_https/
+              'https'
+            else
+              'http'
+            end
     send("transport_config_#{direction}_#{proto}", opts)
   end
 
@@ -51,7 +51,7 @@ module Msf::Payload::Stager
   # Sets the payload type to a stager.
   #
   def payload_type
-    return Msf::Payload::Type::Stager
+    Msf::Payload::Type::Stager
   end
 
   #
@@ -61,7 +61,7 @@ module Msf::Payload::Stager
   #
   # @return [String,nil]
   def payload
-    return module_info['Stager']['Payload']
+    module_info['Stager']['Payload']
   end
 
   #
@@ -69,7 +69,7 @@ module Msf::Payload::Stager
   #
   # @return [String,nil]
   def assembly
-    return module_info['Stager']['Assembly']
+    module_info['Stager']['Assembly']
   end
 
   #
@@ -79,7 +79,7 @@ module Msf::Payload::Stager
   #
   # @return [Hash]
   def offsets
-    return module_info['Stager']['Offsets']
+    module_info['Stager']['Offsets']
   end
 
   #
@@ -88,8 +88,8 @@ module Msf::Payload::Stager
   # Can be nil if the final stage is not pre-assembled.
   #
   # @return [String,nil]
-  def stage_payload(opts = {})
-    return module_info['Stage']['Payload']
+  def stage_payload(_opts = {})
+    module_info['Stage']['Payload']
   end
 
   #
@@ -97,7 +97,7 @@ module Msf::Payload::Stager
   #
   # @return [String]
   def stage_assembly
-    return module_info['Stage']['Assembly']
+    module_info['Stage']['Assembly']
   end
 
   #
@@ -108,7 +108,7 @@ module Msf::Payload::Stager
   #
   # @return [Hash]
   def stage_offsets
-    return module_info['Stage']['Offsets']
+    module_info['Stage']['Offsets']
   end
 
   #
@@ -124,27 +124,27 @@ module Msf::Payload::Stager
   #
   # @return [Boolean]
   def encode_stage?
-    !!(datastore['EnableStageEncoding'])
+    !!datastore['EnableStageEncoding']
   end
 
   #
   # Generates the stage payload and substitutes all offsets.
   #
   # @return [String] The generated payload stage, as a string.
-  def generate_stage(opts={})
+  def generate_stage(opts = {})
     # XXX: This is nearly identical to Payload#internal_generate
 
     # Compile the stage as necessary
-    if stage_assembly and !stage_assembly.empty?
-      raw = build(stage_assembly, stage_offsets)
-    else
-      raw = stage_payload(opts)
-    end
+    raw = if stage_assembly && !stage_assembly.empty?
+            build(stage_assembly, stage_offsets)
+          else
+            stage_payload(opts)
+          end
 
     # Substitute variables in the stage
-    substitute_vars(raw, stage_offsets) if (stage_offsets)
+    substitute_vars(raw, stage_offsets) if stage_offsets
 
-    return raw
+    raw
   end
 
   #
@@ -152,18 +152,16 @@ module Msf::Payload::Stager
   #
   # @param (see handle_connection_stage)
   # @return (see handle_connection_stage)
-  def handle_connection(conn, opts={})
+  def handle_connection(conn, opts = {})
     # If the stage should be sent over the client connection that is
     # established (which is the default), then go ahead and transmit it.
-    if (stage_over_connection?)
+    if stage_over_connection?
       opts = {}
 
       if respond_to? :include_send_uuid
         if include_send_uuid
           uuid_raw = conn.get_once(16, 1)
-          if uuid_raw
-            opts[:uuid] = Msf::Payload::UUID.new({raw: uuid_raw})
-          end
+          opts[:uuid] = Msf::Payload::UUID.new(raw: uuid_raw) if uuid_raw
         end
       end
 
@@ -174,12 +172,10 @@ module Msf::Payload::Stager
         p = encode_stage(p)
       rescue ::RuntimeError
         warning_msg = "Failed to stage"
-        warning_msg << " (#{conn.peerhost})"  if conn.respond_to? :peerhost
-        warning_msg << ": #{$!}"
+        warning_msg << " (#{conn.peerhost})" if conn.respond_to? :peerhost
+        warning_msg << ": #{$ERROR_INFO}"
         print_warning warning_msg
-        if conn.respond_to? :close && !conn.closed?
-          conn.close
-        end
+        conn.close if conn.respond_to? :close && !conn.closed?
         return
       end
 
@@ -191,17 +187,15 @@ module Msf::Payload::Stager
       # If we don't use an intermediate stage, then we need to prepend the
       # stage prefix, such as a tag
       if handle_intermediate_stage(conn, p) == false
-        p = (self.stage_prefix || '') + p
+        p = (stage_prefix || '') + p
       end
 
-      sending_msg = "Sending #{encode_stage? ? "encoded ":""}stage"
+      sending_msg = "Sending #{encode_stage? ? 'encoded ' : ''}stage"
       sending_msg << " (#{p.length} bytes)"
       # The connection should always have a peerhost (even if it's a
       # tunnel), but if it doesn't, erroring out here means losing the
       # session, so make sure it does, just to be safe.
-      if conn.respond_to? :peerhost
-        sending_msg << " to #{conn.peerhost}"
-      end
+      sending_msg << " to #{conn.peerhost}" if conn.respond_to? :peerhost
       print_status(sending_msg)
 
       # Send the stage
@@ -210,7 +204,7 @@ module Msf::Payload::Stager
 
     # If the stage implements the handle connection method, sleep before
     # handling it.
-    if (derived_implementor?(Msf::Payload::Stager, 'handle_connection_stage'))
+    if derived_implementor?(Msf::Payload::Stager, 'handle_connection_stage')
       print_status("Sleeping before handling stage...")
 
       # Sleep before processing the stage
@@ -231,7 +225,7 @@ module Msf::Payload::Stager
   #
   # @param (see Handler#create_session)
   # @return (see Handler#create_session)
-  def handle_connection_stage(conn, opts={})
+  def handle_connection_stage(conn, opts = {})
     create_session(conn, opts)
   end
 
@@ -239,7 +233,7 @@ module Msf::Payload::Stager
   # Gives derived classes an opportunity to alter the stage and/or
   # encapsulate its transmission.
   #
-  def handle_intermediate_stage(conn, payload)
+  def handle_intermediate_stage(_conn, _payload)
     false
   end
 
@@ -248,9 +242,9 @@ module Msf::Payload::Stager
   # would need to preserve based on the Convention
   #
   def encode_stage_preserved_registers
-    module_info['Convention'].to_s.scan(/\bsock([a-z]{3,}+)\b/).
-      map {|reg| reg.first }.
-      join(" ")
+    module_info['Convention'].to_s.scan(/\bsock([a-z]{3,}+)\b/)
+                             .map(&:first)
+                             .join(" ")
   end
 
   # Encodes the stage prior to transmission
@@ -260,7 +254,7 @@ module Msf::Payload::Stager
     stage_enc_mod = nil
 
     # Handle StageEncoder if specified by the user
-    if datastore['StageEncoder'].to_s.length > 0
+    unless datastore['StageEncoder'].to_s.empty?
       stage_enc_mod = datastore["StageEncoder"]
     end
 
@@ -281,7 +275,8 @@ module Msf::Payload::Stager
         'Encoder'            => stage_enc_mod,
         'EncoderOptions'     => { 'SaveRegisters' => saved_registers },
         'ForceSaveRegisters' => true,
-        'ForceEncode'        => true)
+        'ForceEncode'        => true
+      )
 
       if encp.encoder
         if stage_enc_mod
@@ -296,7 +291,7 @@ module Msf::Payload::Stager
         print_warning("StageEncoder failed, falling back to no encoding")
         estg = stg
       else
-        raise RuntimeError, "Stage encoding failed and StageEncodingFallback is disabled"
+        raise "Stage encoding failed and StageEncodingFallback is disabled"
       end
     end
 
@@ -311,6 +306,4 @@ module Msf::Payload::Stager
   # A value that should be prefixed to a stage, such as a tag.
   #
   attr_accessor :stage_prefix
-
 end
-

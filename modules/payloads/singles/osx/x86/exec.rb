@@ -1,8 +1,8 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
-
 
 require 'msf/core'
 
@@ -15,7 +15,6 @@ require 'msf/core'
 #
 ###
 module MetasploitModule
-
   CachedSize = 24
 
   include Msf::Payload::Single
@@ -24,27 +23,26 @@ module MetasploitModule
 
   def initialize(info = {})
     super(merge_info(info,
-      'Name'        => 'OS X Execute Command',
-      'Description' => 'Execute an arbitrary command',
-      'Author'      => [
-        'snagg <snagg[at]openssl.it>',
-        'argp <argp[at]census-labs.com>',
-        'joev'
-      ],
-      'License'     => BSD_LICENSE,
-      'Platform'    => 'osx',
-      'Arch'        => ARCH_X86
-    ))
+                     'Name'        => 'OS X Execute Command',
+                     'Description' => 'Execute an arbitrary command',
+                     'Author'      => [
+                       'snagg <snagg[at]openssl.it>',
+                       'argp <argp[at]census-labs.com>',
+                       'joev'
+                     ],
+                     'License'     => BSD_LICENSE,
+                     'Platform'    => 'osx',
+                     'Arch'        => ARCH_X86))
 
     register_options([
-      OptString.new('CMD',  [ true,  "The command string to execute" ]),
-    ], self.class)
+                       OptString.new('CMD', [ true, "The command string to execute" ])
+                     ], self.class)
   end
 
   #
   # Dynamically builds the exec payload based on the user's options.
   #
-  def generate_stage(opts={})
+  def generate_stage(_opts = {})
     bsd_x86_exec_payload
   end
 end

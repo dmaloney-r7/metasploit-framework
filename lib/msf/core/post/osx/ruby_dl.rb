@@ -1,10 +1,11 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 module Msf
-class Post
-module OSX
-module RubyDL
-  def osx_ruby_dl_header
-    <<-EOS
+  class Post
+    module OSX
+      module RubyDL
+        def osx_ruby_dl_header
+          <<-EOS
   require 'dl'
   require 'dl/import'
 
@@ -42,10 +43,10 @@ module RubyDL
     end
   end
   EOS
-  end
+        end
 
-  def osx_capture_media(opts)
-    capture_code = <<-EOS
+        def osx_capture_media(opts)
+          capture_code = <<-EOS
 #{osx_ruby_dl_header}
 
 options = {
@@ -66,11 +67,11 @@ options = {
 
 RUN_LOOP_STEP = 0.1 # "tick" duration for spinning NSRunLoop
 
-# NSTIFFFileType  0 
+# NSTIFFFileType  0
 # NSBMPFileType   1
 # NSGIFFileType   2
 # NSJPEGFileType  3
-# NSPNGFileType   4 
+# NSPNGFileType   4
 SNAP_FILETYPES = %w(tiff bmp gif jpg png)
 
 snap_filetype_index = SNAP_FILETYPES.index(options[:snap_filetype].to_s)
@@ -139,7 +140,7 @@ end
 def nsstring(str)
   objc_call(objc_call(objc_call_class(
     'NSString', 'alloc'),
-    'initWithCString:', str), 
+    'initWithCString:', str),
     'autorelease')
 end
 
@@ -283,11 +284,11 @@ while (connection = objc_call(connection_enum, 'nextObject')).to_i > 0
   media_type = objc_call(connection, 'mediaType')
 
   compress_opts = if objc_call(media_type, 'isEqualToString:', vid_type).to_i > 0 ||
-                     objc_call(media_type, 'isEqualToString:', mux_type).to_i > 0 
-    objc_call_class('QTCompressionOptions', 'compressionOptionsWithIdentifier:', 
+                     objc_call(media_type, 'isEqualToString:', mux_type).to_i > 0
+    objc_call_class('QTCompressionOptions', 'compressionOptionsWithIdentifier:',
       nsstring(options[:video_compression]))
   elsif use_audio?(options) and objc_call(media_type, 'isEqualToString:', aud_type).to_i > 0
-    objc_call_class('QTCompressionOptions', 'compressionOptionsWithIdentifier:', 
+    objc_call_class('QTCompressionOptions', 'compressionOptionsWithIdentifier:',
       nsstring(options[:audio_compression]))
   end
 
@@ -365,19 +366,18 @@ end
 objc_call(autorelease_pool, 'drain')
 
 EOS
-    if opts[:action] == 'record'
-      capture_code = %Q|
-        cpid = fork do
-          #{capture_code}
+          if opts[:action] == 'record'
+            capture_code = %|
+              cpid = fork do
+                #{capture_code}
+              end
+              Process.detach(cpid)
+              puts cpid
+      |
+          end
+          capture_code
         end
-        Process.detach(cpid)
-        puts cpid
-|
-    end
-    capture_code
+      end
+      end
   end
-end
-
-end
-end
 end

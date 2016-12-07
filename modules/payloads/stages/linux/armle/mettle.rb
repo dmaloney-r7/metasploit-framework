@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -81,7 +82,7 @@ module MetasploitModule
 
   def generate_stage(opts = {})
     opts[:uuid] ||= generate_payload_uuid
-    MetasploitPayloads::Mettle.new('armv5l-linux-musleabi', opts.slice(:uuid, :url, :debug, :log_file)).
-      to_binary :process_image
+    MetasploitPayloads::Mettle.new('armv5l-linux-musleabi', opts.slice(:uuid, :url, :debug, :log_file))
+                              .to_binary :process_image
   end
 end

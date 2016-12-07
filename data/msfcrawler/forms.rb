@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # $Id$
 ##
@@ -17,12 +18,8 @@ require 'nokogiri'
 require 'uri'
 
 class CrawlerForms < BaseParser
-
-  def parse(request,result)
-
-    if !result['Content-Type'].include? "text/html"
-      return
-    end
+  def parse(request, result)
+    return unless result['Content-Type'].include? "text/html"
 
     hr = ''
     m = ''
@@ -55,4 +52,3 @@ class CrawlerForms < BaseParser
     end
   end
 end
-

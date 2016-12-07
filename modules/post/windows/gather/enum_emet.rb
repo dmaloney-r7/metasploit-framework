@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -13,20 +14,19 @@ class MetasploitModule < Msf::Post
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'          => 'Windows Gather EMET Protected Paths',
-      'Description'   => %q( This module will enumerate the EMET protected paths on the target host.),
-      'License'       => MSF_LICENSE,
-      'Author'        => [ 'vysec <vincent.yiu[at]mwrinfosecurity.com>' ],
-      'Platform'      => [ 'win' ],
-      'SessionTypes'  => [ 'meterpreter' ]
-    ))
+                      'Name'          => 'Windows Gather EMET Protected Paths',
+                      'Description'   => %q( This module will enumerate the EMET protected paths on the target host.),
+                      'License'       => MSF_LICENSE,
+                      'Author'        => [ 'vysec <vincent.yiu[at]mwrinfosecurity.com>' ],
+                      'Platform'      => [ 'win' ],
+                      'SessionTypes'  => [ 'meterpreter' ]))
   end
 
-  def print_status(msg='')
+  def print_status(msg = '')
     super("#{peer} - #{msg}")
   end
 
-  def print_good(msg='')
+  def print_good(msg = '')
     super("#{peer} - #{msg}")
   end
 

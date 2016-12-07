@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 module Rex
@@ -7,7 +8,6 @@ module Rex
         # This class is a representation of a KERB-PA-PAC-REQUEST, pre authenticated data to
         # explicitly request to include or exclude a PAC in the ticket.
         class PreAuthPacRequest < Element
-
           # @!attribute value
           #   @return [Boolean]
           attr_accessor :value

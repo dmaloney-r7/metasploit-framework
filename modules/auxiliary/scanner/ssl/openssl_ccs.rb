@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::Tcp
   include Msf::Auxiliary::Scanner
   include Msf::Auxiliary::Report
@@ -63,7 +63,7 @@ class MetasploitModule < Msf::Auxiliary
     0x0006, # TLS_RSA_EXPORT_WITH_RC2_CBC_40_MD5
     0x0003, # TLS_RSA_EXPORT_WITH_RC4_40_MD5
     0x00ff  # Unknown
-  ]
+  ].freeze
 
   HANDSHAKE_RECORD_TYPE = 0x16
   CCS_RECORD_TYPE       = 0x14
@@ -73,7 +73,7 @@ class MetasploitModule < Msf::Auxiliary
     '1.0'   => 0x0301,
     '1.1'   => 0x0302,
     '1.2'   => 0x0303
-  }
+  }.freeze
 
   def initialize
     super(
@@ -86,7 +86,7 @@ class MetasploitModule < Msf::Auxiliary
         vulnerability to perform a man-in-the-middle (MITM) attack by downgrading the cipher spec
         between a client and server. This issue was first reported in early June, 2014.
       },
-      'Author'         => [
+      'Author' => [
         'Masashi Kikuchi', # Vulnerability discovery
         'Craig Young <CYoung[at]tripwire.com>', # Original Scanner. This module is based on it.
         'juan vazquez' # Metasploit module
@@ -106,16 +106,17 @@ class MetasploitModule < Msf::Auxiliary
     register_options(
       [
         Opt::RPORT(443),
-        OptEnum.new('TLS_VERSION', [true, 'TLS/SSL version to use', '1.0', ['SSLv3','1.0', '1.1', '1.2']]),
+        OptEnum.new('TLS_VERSION', [true, 'TLS/SSL version to use', '1.0', ['SSLv3', '1.0', '1.1', '1.2']]),
         OptInt.new('RESPONSE_TIMEOUT', [true, 'Number of seconds to wait for a server response', 10])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def response_timeout
     datastore['RESPONSE_TIMEOUT']
   end
 
-  def run_host(ip)
+  def run_host(_ip)
     ccs_injection
   end
 
@@ -137,13 +138,11 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   def report
-    report_vuln({
-      :host => rhost,
-      :port => rport,
-      :name => self.name,
-      :refs => self.references,
-      :info => "Module #{self.fullname} successfully detected CCS injection"
-    })
+    report_vuln(host: rhost,
+                port: rport,
+                name: name,
+                refs: references,
+                info: "Module #{fullname} successfully detected CCS injection")
   end
 
   def ccs
@@ -198,6 +197,4 @@ class MetasploitModule < Msf::Auxiliary
 
     true
   end
-
 end
-

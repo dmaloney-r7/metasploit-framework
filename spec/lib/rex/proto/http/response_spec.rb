@@ -1,8 +1,8 @@
+# frozen_string_literal: true
 require 'rex/proto/http/response'
 require 'nokogiri'
 
 RSpec.describe Rex::Proto::Http::Response do
-
   let(:get_cookies_test_no_cookies) do
     <<-HEREDOC.gsub(/^ {6}/, '')
       HTTP/1.1 200 OK
@@ -142,7 +142,7 @@ RSpec.describe Rex::Proto::Http::Response do
   end
 
   let (:get_html_body) do
-    %Q|
+    %|
     <html>
     <head>
       <title>TEST</title>
@@ -168,7 +168,7 @@ RSpec.describe Rex::Proto::Http::Response do
   end
 
   let (:get_xml_body) do
-    %Q|<?xml version="1.0"?>
+    %(<?xml version="1.0"?>
 <catalog>
    <book id="bk101">
       <author>Gambardella, Matthew</author>
@@ -176,20 +176,20 @@ RSpec.describe Rex::Proto::Http::Response do
       <genre>Computer</genre>
       <price>44.95</price>
       <publish_date>2000-10-01</publish_date>
-      <description>An in-depth look at creating applications 
+      <description>An in-depth look at creating applications
       with XML.</description>
    </book>
 </catalog>
-    |
+    )
   end
 
   let (:get_json_body) do
-    %Q|{ "firstName": "John" }|
+    %({ "firstName": "John" })
   end
 
   def cookie_sanity_check(meth)
-    resp = described_class.new()
-    resp.parse(self.send meth)
+    resp = described_class.new
+    resp.parse(send(meth))
     cookies = resp.get_cookies
     expect(cookies).not_to be_nil
     expect(cookies).not_to be ''
@@ -206,7 +206,7 @@ RSpec.describe Rex::Proto::Http::Response do
     subject do
       cli = Rex::Proto::Http::Client.new('127.0.0.1')
       cli.connect
-      req = cli.request_cgi({'uri'=>'/'})
+      req = cli.request_cgi('uri' => '/')
       res = cli.send_recv(req)
       res
     end
@@ -323,11 +323,9 @@ RSpec.describe Rex::Proto::Http::Response do
     end
   end
 
-
   context "#get_cookies" do
-
     it 'returns empty string for no Set-Cookies' do
-      resp = described_class.new()
+      resp = described_class.new
       resp.parse(get_cookies_test_no_cookies)
       expect(resp.get_cookies).to eq('')
     end
@@ -336,24 +334,24 @@ RSpec.describe Rex::Proto::Http::Response do
       cookies_array = cookie_sanity_check(:get_cookies_test_five_cookies)
       expect(cookies_array.count).to eq(5)
       expect(cookies_array).to match_array %w(
-      pma_lang=en
-      pma_collation_connection=utf8_general_ci
-      pma_mcrypt_iv=mF1NmTE64IY%3D
-      phpMyAdmin=fmilioji5cn4m8bo5vjrrr6q9cada954
-      phpMyAdmin=gpjif0gtpqbvfion91ddtrq8p8vgjtue
+        pma_lang=en
+        pma_collation_connection=utf8_general_ci
+        pma_mcrypt_iv=mF1NmTE64IY%3D
+        phpMyAdmin=fmilioji5cn4m8bo5vjrrr6q9cada954
+        phpMyAdmin=gpjif0gtpqbvfion91ddtrq8p8vgjtue
       )
     end
 
     it 'returns and parses 5 cookies when given 5 ordered cookies' do
       cookies_array = cookie_sanity_check(:get_cookies_test_five_ordered_cookies)
       expect(cookies_array.count).to eq(5)
-      expected_cookies = %w{
-      pma_lang=en
-      pma_collation_connection=utf8_general_ci
-      pma_mcrypt_iv=mF1NmTE64IY%3D
-      phpMyAdmin=fmilioji5cn4m8bo5vjrrr6q9cada954
-      superC00kie!=stupidcookie
-      }
+      expected_cookies = %w(
+        pma_lang=en
+        pma_collation_connection=utf8_general_ci
+        pma_mcrypt_iv=mF1NmTE64IY%3D
+        phpMyAdmin=fmilioji5cn4m8bo5vjrrr6q9cada954
+        superC00kie!=stupidcookie
+      )
       expected_cookies.shuffle!
       expect(cookies_array).to include(*expected_cookies)
     end
@@ -361,25 +359,24 @@ RSpec.describe Rex::Proto::Http::Response do
     it 'parses an empty cookie value' do
       cookies_array = cookie_sanity_check(:get_cookies_test_with_empty_cookie)
       expect(cookies_array.count).to eq(5)
-      expected_cookies = %w{
-      pma_lang=en
-      pma_collation_connection=utf8_general_ci
-      pma_mcrypt_iv=mF1NmTE64IY%3D
-      phpMyAdmin=
-      phpMyAdmin=gpjif0gtpqbvfion91ddtrq8p8vgjtue
-      }
+      expected_cookies = %w(
+        pma_lang=en
+        pma_collation_connection=utf8_general_ci
+        pma_mcrypt_iv=mF1NmTE64IY%3D
+        phpMyAdmin=
+        phpMyAdmin=gpjif0gtpqbvfion91ddtrq8p8vgjtue
+      )
       expected_cookies.shuffle!
       expect(cookies_array).to include(*expected_cookies)
-
     end
 
     it 'parses multiple cookies in one Set-Cookie header' do
       cookies_array = cookie_sanity_check(:get_cookies_test_one_set_cookie_header)
       expect(cookies_array.count).to eq(2)
-      expected_cookies = %w{
-      wordpressuser_a97c5267613d6de70e821ff82dd1ab94=admin
-      wordpresspass_a97c5267613d6de70e821ff82dd1ab94=c3284d0f94606de1fd2af172aba15bf3
-      }
+      expected_cookies = %w(
+        wordpressuser_a97c5267613d6de70e821ff82dd1ab94=admin
+        wordpresspass_a97c5267613d6de70e821ff82dd1ab94=c3284d0f94606de1fd2af172aba15bf3
+      )
       expected_cookies.shuffle!
       expect(cookies_array).to include(*expected_cookies)
     end
@@ -387,16 +384,13 @@ RSpec.describe Rex::Proto::Http::Response do
     it 'parses comma separated cookies' do
       cookies_array = cookie_sanity_check(:get_cookies_comma_separated)
       expect(cookies_array.count).to eq(3)
-      expected_cookies = %w{
-      cval=880350187
-      session_id_8000=83466b1a1a7a27ce13d35f78155d40ca3a1e7a28
-      uid=348637C4-9B10-485A-BFA9-5E892432FCFD
-      }
+      expected_cookies = %w(
+        cval=880350187
+        session_id_8000=83466b1a1a7a27ce13d35f78155d40ca3a1e7a28
+        uid=348637C4-9B10-485A-BFA9-5E892432FCFD
+      )
       expected_cookies.shuffle!
       expect(cookies_array).to include(*expected_cookies)
     end
-
   end
-
 end
-

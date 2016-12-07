@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 module Msf::DBManager::Import::MetasploitFramework::Credential
   # Import credentials given a path to a valid manifest file
   #
@@ -25,11 +26,11 @@ module Msf::DBManager::Import::MetasploitFramework::Credential
   end
 
   # Perform in an import of an msfpwdump file
-  def import_msf_pwdump(args={}, &block)
+  def import_msf_pwdump(args = {})
     filename = File.basename(args[:data].path)
     wspace   = args[:wspace] || workspace
     origin   = Metasploit::Credential::Origin::Import.create!(filename: filename)
-    importer = Metasploit::Credential::Importer::Pwdump.new(input: args[:data], workspace: wspace, filename: filename, origin:origin)
+    importer = Metasploit::Credential::Importer::Pwdump.new(input: args[:data], workspace: wspace, filename: filename, origin: origin)
     importer.import!
     importer.input.close unless importer.input.closed?
   end

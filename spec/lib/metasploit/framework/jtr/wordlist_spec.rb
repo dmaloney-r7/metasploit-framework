@@ -1,19 +1,20 @@
+# frozen_string_literal: true
 require 'spec_helper'
 require 'metasploit/framework/jtr/wordlist'
 
 RSpec.describe Metasploit::Framework::JtR::Wordlist do
-
   subject(:wordlist) { described_class.new }
 
-  let(:custom_wordlist) { File.expand_path('string_list.txt',FILE_FIXTURES_PATH) }
+  let(:custom_wordlist) { File.expand_path('string_list.txt', FILE_FIXTURES_PATH) }
   let(:expansion_word) { 'Foo bar_baz-bat.bam\\foo//bar' }
-  let(:common_root_path) { File.expand_path('fake_common_roots.txt',FILE_FIXTURES_PATH) }
-  let(:default_wordlist_path) { File.expand_path('fake_default_wordlist.txt',FILE_FIXTURES_PATH) }
+  let(:common_root_path) { File.expand_path('fake_common_roots.txt', FILE_FIXTURES_PATH) }
+  let(:default_wordlist_path) { File.expand_path('fake_default_wordlist.txt', FILE_FIXTURES_PATH) }
   let(:password) { FactoryGirl.create(:metasploit_credential_password) }
   let(:public) { FactoryGirl.create(:metasploit_credential_public) }
   let(:realm) { FactoryGirl.create(:metasploit_credential_realm) }
   let(:mutate_me) { 'password' }
-  let(:mutants) {  [
+  let(:mutants) do
+    [
       "pa55word",
       "password",
       "pa$$word",
@@ -26,7 +27,8 @@ RSpec.describe Metasploit::Framework::JtR::Wordlist do
       "p@ssw0rd",
       "p@55w0rd",
       "p@$$w0rd"
-  ] }
+    ]
+  end
 
   it { is_expected.to respond_to :appenders }
   it { is_expected.to respond_to :custom_wordlist }
@@ -39,7 +41,6 @@ RSpec.describe Metasploit::Framework::JtR::Wordlist do
   it { is_expected.to respond_to :use_hostnames }
 
   describe 'validations' do
-
     it 'raises an error if the custom_wordlist does not exist on the filesystem' do
       expect(File).to receive(:file?).and_return false
       wordlist.custom_wordlist = custom_wordlist
@@ -80,20 +81,20 @@ RSpec.describe Metasploit::Framework::JtR::Wordlist do
 
   describe '#valid!' do
     it 'raises an InvalidWordlist exception if not valid?' do
-      expect{ wordlist.valid! }.to raise_error Metasploit::Framework::JtR::InvalidWordlist
+      expect { wordlist.valid! }.to raise_error Metasploit::Framework::JtR::InvalidWordlist
     end
   end
 
   describe '#expanded_words' do
     it 'yields all the possible component words in the string' do
-      expect { |b| wordlist.expanded_words(expansion_word,&b) }.to yield_successive_args('Foo','bar','baz','bat','bam','foo','bar')
+      expect { |b| wordlist.expanded_words(expansion_word, &b) }.to yield_successive_args('Foo', 'bar', 'baz', 'bat', 'bam', 'foo', 'bar')
     end
   end
 
   describe '#each_custom_word' do
     it 'yields each word in that wordlist' do
       wordlist.custom_wordlist = custom_wordlist
-      expect{ |b| wordlist.each_custom_word(&b) }.to yield_successive_args('foo', 'bar','baz')
+      expect { |b| wordlist.each_custom_word(&b) }.to yield_successive_args('foo', 'bar', 'baz')
     end
   end
 
@@ -113,7 +114,7 @@ RSpec.describe Metasploit::Framework::JtR::Wordlist do
 
   define '#each_cred_word' do
     it 'yields each username,password,and realm in the database' do
-      expect{ |b| wordlist.each_cred_word(&b) }.to yield_successive_args(password.data, public,username, realm,value)
+      expect { |b| wordlist.each_cred_word(&b) }.to yield_successive_args(password.data, public, username, realm, value)
     end
   end
 
@@ -126,13 +127,12 @@ RSpec.describe Metasploit::Framework::JtR::Wordlist do
   describe '#each_mutated_word' do
     it 'yields each unique mutated word if mutate set to true' do
       wordlist.mutate = true
-      expect { |b| wordlist.each_mutated_word(mutate_me,&b)}.to yield_successive_args(*mutants)
+      expect { |b| wordlist.each_mutated_word(mutate_me, &b) }.to yield_successive_args(*mutants)
     end
 
     it 'yields the original word if mutate set to true' do
       wordlist.mutate = false
-      expect { |b| wordlist.each_mutated_word(mutate_me,&b)}.to yield_with_args(mutate_me)
+      expect { |b| wordlist.each_mutated_word(mutate_me, &b) }.to yield_with_args(mutate_me)
     end
   end
-
 end

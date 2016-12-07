@@ -1,160 +1,157 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 require 'rex/post/meterpreter/channel'
 
 module Rex
-module Post
-module Meterpreter
-module Channels
+  module Post
+    module Meterpreter
+      module Channels
+        ###
+        #
+        # This class acts as a base class for all channels that are classified
+        # as 'pools'.  This means that only one side of the channel, typically
+        # the client half, acts on the other half of the channel.  Examples
+        # of pools come in the form of files where the remote side never sends
+        # any unrequested data.
+        #
+        # Another key distinction of Pools is that they, in general, support
+        # the DIO mode 'seek' which allows for changing the position, or offset,
+        # into the channel.
+        #
+        ###
+        class Pool < Rex::Post::Meterpreter::Channel
+          class << self
+            def cls
+              CHANNEL_CLASS_POOL
+            end
+          end
 
-###
-#
-# This class acts as a base class for all channels that are classified
-# as 'pools'.  This means that only one side of the channel, typically
-# the client half, acts on the other half of the channel.  Examples
-# of pools come in the form of files where the remote side never sends
-# any unrequested data.
-#
-# Another key distinction of Pools is that they, in general, support
-# the DIO mode 'seek' which allows for changing the position, or offset,
-# into the channel.
-#
-###
-class Pool < Rex::Post::Meterpreter::Channel
+          ##
+          #
+          # Constructor
+          #
+          ##
 
-  class << self
-    def cls
-      return CHANNEL_CLASS_POOL
-    end
-  end
+          #
+          # Passes the initialization information up to the base class
+          #
+          def initialize(client, cid, type, flags)
+            super(client, cid, type, flags)
+          end
 
-  ##
-  #
-  # Constructor
-  #
-  ##
+          ##
+          #
+          # Channel interaction
+          #
+          ##
 
-  #
-  # Passes the initialization information up to the base class
-  #
-  def initialize(client, cid, type, flags)
-    super(client, cid, type, flags)
-  end
+          #
+          # Checks to see if the EOF flag has been set on the pool.
+          #
+          def eof
+            request = Packet.create_request('core_channel_eof')
 
-  ##
-  #
-  # Channel interaction
-  #
-  ##
+            request.add_tlv(TLV_TYPE_CHANNEL_ID, cid)
 
-  #
-  # Checks to see if the EOF flag has been set on the pool.
-  #
-  def eof
-    request = Packet.create_request('core_channel_eof')
+            begin
+              response = client.send_request(request)
+            rescue
+              return true
+            end
 
-    request.add_tlv(TLV_TYPE_CHANNEL_ID, self.cid)
+            if response.has_tlv?(TLV_TYPE_BOOL)
+              return response.get_tlv_value(TLV_TYPE_BOOL)
+            end
 
-    begin
-      response = self.client.send_request(request)
-    rescue
-      return true
-    end
+            false
+          end
 
-    if (response.has_tlv?(TLV_TYPE_BOOL))
-      return response.get_tlv_value(TLV_TYPE_BOOL)
-    end
+          #
+          # Reads data from the remote side of the pool and raises EOFError if the
+          # pool has been reached EOF.
+          #
+          def read(length = nil)
+            begin
+              data = super(length)
+            rescue
+              data = nil
+            end
 
-    return false
-  end
+            if (data.nil? || data.empty?) &&
+               eof
+              raise EOFError
+            end
 
-  #
-  # Reads data from the remote side of the pool and raises EOFError if the
-  # pool has been reached EOF.
-  #
-  def read(length = nil)
-    begin
-      data = super(length)
-    rescue
-      data = nil
-    end
+            data
+          end
 
-    if (((data == nil) || (data.length == 0)) &&
-        (self.eof))
-      raise EOFError
-    end
+          #
+          # This method seeks to an offset within the remote side of the pool using
+          # the standard seek whence clauses.
+          #
+          def seek(offset, whence = SEEK_SET)
+            sane = 0
 
-    return data
-  end
+            # Just in case...
+            case whence
+            when ::IO::SEEK_SET
+              sane = 0
+            when ::IO::SEEK_CUR
+              sane = 1
+            when ::IO::SEEK_END
+              sane = 2
+            else
+              raise RuntimeError, "Invalid seek whence #{whence}.", caller
+            end
 
-  #
-  # This method seeks to an offset within the remote side of the pool using
-  # the standard seek whence clauses.
-  #
-  def seek(offset, whence = SEEK_SET)
-    sane = 0
+            request = Packet.create_request('core_channel_seek')
 
-    # Just in case...
-    case whence
-      when ::IO::SEEK_SET
-        sane = 0
-      when ::IO::SEEK_CUR
-        sane = 1
-      when ::IO::SEEK_END
-        sane = 2
-      else
-        raise RuntimeError, "Invalid seek whence #{whence}.", caller
-    end
+            request.add_tlv(TLV_TYPE_CHANNEL_ID, cid)
+            request.add_tlv(TLV_TYPE_SEEK_OFFSET, offset)
+            request.add_tlv(TLV_TYPE_SEEK_WHENCE, sane)
 
-    request = Packet.create_request('core_channel_seek')
+            begin
+              response = client.send_request(request)
+            rescue
+              return -1
+            end
 
-    request.add_tlv(TLV_TYPE_CHANNEL_ID, self.cid)
-    request.add_tlv(TLV_TYPE_SEEK_OFFSET, offset)
-    request.add_tlv(TLV_TYPE_SEEK_WHENCE, sane)
+            tell
+          end
 
-    begin
-      response = self.client.send_request(request)
-    rescue
-      return -1
-    end
+          #
+          # Synonym for tell.
+          #
+          def pos
+            tell
+          end
 
-    return tell
-  end
+          #
+          # This method returns the current file pointer position to the caller.
+          #
+          def tell
+            request = Packet.create_request('core_channel_tell')
+            pos     = -1
 
-  #
-  # Synonym for tell.
-  #
-  def pos
-    return tell
-  end
+            request.add_tlv(TLV_TYPE_CHANNEL_ID, cid)
 
-  #
-  # This method returns the current file pointer position to the caller.
-  #
-  def tell
-    request = Packet.create_request('core_channel_tell')
-    pos     = -1
+            begin
+              response = client.send_request(request)
+            rescue
+              return pos
+            end
 
-    request.add_tlv(TLV_TYPE_CHANNEL_ID, self.cid)
+            # Set the return value to the position that we're at
+            if response.has_tlv?(TLV_TYPE_SEEK_POS)
+              pos = response.get_tlv_value(TLV_TYPE_SEEK_POS)
+            end
 
-    begin
-      response = self.client.send_request(request)
-    rescue
-      return pos
-    end
+            pos
+          end
 
-    # Set the return value to the position that we're at
-    if (response.has_tlv?(TLV_TYPE_SEEK_POS))
-      pos = response.get_tlv_value(TLV_TYPE_SEEK_POS)
-    end
+          protected
 
-    return pos
-  end
-
-protected
-  attr_accessor :_eof # :nodoc:
-
-end
-
-end; end; end; end
-
+          attr_accessor :_eof # :nodoc:
+        end
+      end; end; end; end

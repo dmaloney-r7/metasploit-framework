@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 #
 # Standard library
 #
@@ -32,7 +33,11 @@ module Msf::DBManager::ModuleCache
     res  = {}
     bits = []
 
-    res[:mtime]    = ::File.mtime(m.file_path) rescue Time.now
+    res[:mtime]    = begin
+                       ::File.mtime(m.file_path)
+                     rescue
+                       Time.now
+                     end
     res[:file]     = m.file_path
     res[:mtype]    = m.type
     res[:name]     = m.name.to_s
@@ -43,24 +48,23 @@ module Msf::DBManager::ModuleCache
 
     res[:description] = m.description.to_s.strip
 
-    m.arch.map{ |x|
-      bits << [ :arch, { :name => x.to_s } ]
-    }
+    m.arch.map do |x|
+      bits << [ :arch, { name: x.to_s } ]
+    end
 
-    m.platform.platforms.map{ |x|
-      bits << [ :platform, { :name => x.to_s.split('::').last.downcase } ]
-    }
+    m.platform.platforms.map do |x|
+      bits << [ :platform, { name: x.to_s.split('::').last.downcase } ]
+    end
 
-    m.author.map{|x|
-      bits << [ :author, { :name => x.to_s } ]
-    }
+    m.author.map do |x|
+      bits << [ :author, { name: x.to_s } ]
+    end
 
     m.references.map do |r|
-      bits << [ :ref, { :name => [r.ctx_id.to_s, r.ctx_val.to_s].join("-") } ]
+      bits << [ :ref, { name: [r.ctx_id.to_s, r.ctx_val.to_s].join("-") } ]
     end
 
     res[:privileged] = m.privileged?
-
 
     if m.disclosure_date
       begin
@@ -70,42 +74,35 @@ module Msf::DBManager::ModuleCache
       end
     end
 
-    if(m.type == "exploit")
+    if m.type == "exploit"
 
       m.targets.each_index do |i|
-        bits << [ :target, { :index => i, :name => m.targets[i].name.to_s } ]
+        bits << [ :target, { index: i, name: m.targets[i].name.to_s } ]
         if m.targets[i].platform
           m.targets[i].platform.platforms.each do |name|
-            bits << [ :platform, { :name => name.to_s.split('::').last.downcase } ]
+            bits << [ :platform, { name: name.to_s.split('::').last.downcase } ]
           end
         end
-        if m.targets[i].arch
-          bits << [ :arch, { :name => m.targets[i].arch.to_s } ]
-        end
+        bits << [ :arch, { name: m.targets[i].arch.to_s } ] if m.targets[i].arch
       end
 
-      if (m.default_target)
-        res[:default_target] = m.default_target
-      end
+      res[:default_target] = m.default_target if m.default_target
 
       # Some modules are a combination, which means they are actually aggressive
       res[:stance] = m.stance.to_s.index("aggressive") ? "aggressive" : "passive"
 
-
       m.class.mixins.each do |x|
-         bits << [ :mixin, { :name => x.to_s } ]
+        bits << [ :mixin, { name: x.to_s } ]
       end
     end
 
-    if(m.type == "auxiliary")
+    if m.type == "auxiliary"
 
       m.actions.each_index do |i|
-        bits << [ :action, { :name => m.actions[i].name.to_s } ]
+        bits << [ :action, { name: m.actions[i].name.to_s } ]
       end
 
-      if (m.default_action)
-        res[:default_action] = m.default_action.to_s
-      end
+      res[:default_action] = m.default_action.to_s if m.default_action
 
       res[:stance] = m.passive? ? "passive" : "aggressive"
     end
@@ -122,8 +119,8 @@ module Msf::DBManager::ModuleCache
   #
   # @return [void]
   def purge_all_module_details
-    return if not self.migrated
-    return if self.modules_caching
+    return unless migrated
+    return if modules_caching
 
     ::ActiveRecord::Base.connection_pool.with_connection do
       Mdm::Module::Detail.destroy_all
@@ -137,10 +134,10 @@ module Msf::DBManager::ModuleCache
   # @param refname [String] module reference name.
   # @return [void]
   def remove_module_details(mtype, refname)
-    return if not self.migrated
+    return unless migrated
 
     ActiveRecord::Base.connection_pool.with_connection do
-      Mdm::Module::Detail.where(:mtype => mtype, :refname => refname).destroy_all
+      Mdm::Module::Detail.where(mtype: mtype, refname: refname).destroy_all
     end
   end
 
@@ -176,9 +173,9 @@ module Msf::DBManager::ModuleCache
     terms.delete('')
 
     # All terms are either included or excluded
-    value_set_by_keyword = Hash.new { |hash, keyword|
+    value_set_by_keyword = Hash.new do |hash, keyword|
       hash[keyword] = Set.new
-    }
+    end
 
     terms.each do |term|
       keyword, value = term.split(':', 2)
@@ -188,17 +185,16 @@ module Msf::DBManager::ModuleCache
         keyword = 'text'
       end
 
-      unless value.empty?
-        keyword.downcase!
+      next if value.empty?
+      keyword.downcase!
 
-        value_set = value_set_by_keyword[keyword]
-        value_set.add value
-      end
+      value_set = value_set_by_keyword[keyword]
+      value_set.add value
     end
 
     ActiveRecord::Base.connection_pool.with_connection do
       @query = Mdm::Module::Detail.all
-      
+
       @archs    = Set.new
       @authors  = Set.new
       @names    = Set.new
@@ -207,53 +203,51 @@ module Msf::DBManager::ModuleCache
       @stances  = Set.new
       @text     = Set.new
       @types    = Set.new
-            
+
       value_set_by_keyword.each do |keyword, value_set|
         formatted_values = match_values(value_set)
-        
+
         case keyword
-          when 'app'
-            formatted_values = value_set.collect { |value|
-              formatted_value = 'aggressive'
-              if value == 'client'
-                formatted_value = 'passive'
-              end
-              formatted_value
-            }
-            @stances << formatted_values
-          when 'arch'
-            @archs << formatted_values
-          when 'author'
-            @authors << formatted_values
-          when 'name'
-            @names << formatted_values
-          when 'os', 'platform'
-            @os << formatted_values
-          when 'ref'
-            @refs << formatted_values
-          when 'cve', 'bid', 'edb'
-            formatted_values = value_set.collect { |value|
-              prefix = keyword.upcase
-              "#{prefix}-%#{value}%"
-            }
-            @refs << formatted_values
-          when 'text'
-            @text << formatted_values
-          when 'type'
-            @types << formatted_values
+        when 'app'
+          formatted_values = value_set.collect do |value|
+            formatted_value = 'aggressive'
+            formatted_value = 'passive' if value == 'client'
+            formatted_value
+          end
+          @stances << formatted_values
+        when 'arch'
+          @archs << formatted_values
+        when 'author'
+          @authors << formatted_values
+        when 'name'
+          @names << formatted_values
+        when 'os', 'platform'
+          @os << formatted_values
+        when 'ref'
+          @refs << formatted_values
+        when 'cve', 'bid', 'edb'
+          formatted_values = value_set.collect do |value|
+            prefix = keyword.upcase
+            "#{prefix}-%#{value}%"
+          end
+          @refs << formatted_values
+        when 'text'
+          @text << formatted_values
+        when 'type'
+          @types << formatted_values
         end
       end
     end
-        
-    @query = @query.module_arch(            @archs.to_a.flatten   ) if @archs.any?
-    @query = @query.module_author(          @authors.to_a.flatten ) if @authors.any?
-    @query = @query.module_name(            @names.to_a.flatten   ) if @names.any?
-    @query = @query.module_os_or_platform(  @os.to_a.flatten      ) if @os.any?
-    @query = @query.module_text(            @text.to_a.flatten    ) if @text.any?
-    @query = @query.module_type(            @types.to_a.flatten   ) if @types.any?
-    @query = @query.module_stance(          @stances.to_a.flatten ) if @stances.any?
-    @query = @query.module_ref(             @refs.to_a.flatten    ) if @refs.any?
-    
+
+    @query = @query.module_arch(@archs.to_a.flatten) if @archs.any?
+    @query = @query.module_author(@authors.to_a.flatten) if @authors.any?
+    @query = @query.module_name(@names.to_a.flatten) if @names.any?
+    @query = @query.module_os_or_platform(@os.to_a.flatten) if @os.any?
+    @query = @query.module_text(@text.to_a.flatten) if @text.any?
+    @query = @query.module_type(@types.to_a.flatten) if @types.any?
+    @query = @query.module_stance(@stances.to_a.flatten) if @stances.any?
+    @query = @query.module_ref(@refs.to_a.flatten) if @refs.any?
+
     @query.uniq
   end
 
@@ -265,29 +259,27 @@ module Msf::DBManager::ModuleCache
   #
   # @return [void]
   def update_all_module_details
-    return if not self.migrated
-    return if self.modules_caching
+    return unless migrated
+    return if modules_caching
 
-    self.framework.cache_thread = Thread.current
+    framework.cache_thread = Thread.current
 
     self.modules_cached  = false
     self.modules_caching = true
 
     ActiveRecord::Base.connection_pool.with_connection do
-
       refresh = []
-      skip_reference_name_set_by_module_type = Hash.new { |hash, module_type|
+      skip_reference_name_set_by_module_type = Hash.new do |hash, module_type|
         hash[module_type] = Set.new
-      }
+      end
 
       Mdm::Module::Detail.find_each do |md|
-
         unless md.ready
           refresh << md
           next
         end
 
-        unless md.file and ::File.exist?(md.file)
+        unless md.file && ::File.exist?(md.file)
           refresh << md
           next
         end
@@ -301,37 +293,37 @@ module Msf::DBManager::ModuleCache
         skip_reference_name_set.add(md.refname)
       end
 
-      refresh.each { |md| md.destroy }
+      refresh.each(&:destroy)
 
       [
-          ['exploit', framework.exploits],
-          ['auxiliary', framework.auxiliary],
-          ['post', framework.post],
-          ['payload', framework.payloads],
-          ['encoder', framework.encoders],
-          ['nop', framework.nops]
+        ['exploit', framework.exploits],
+        ['auxiliary', framework.auxiliary],
+        ['post', framework.post],
+        ['payload', framework.payloads],
+        ['encoder', framework.encoders],
+        ['nop', framework.nops]
       ].each do |mt|
         skip_reference_name_set = skip_reference_name_set_by_module_type[mt[0]]
 
         mt[1].keys.sort.each do |mn|
           next if skip_reference_name_set.include? mn
           obj = mt[1].create(mn)
-          next if not obj
+          next unless obj
           begin
             update_module_details(obj)
           rescue ::Exception
-            elog("Error updating module details for #{obj.fullname}: #{$!.class} #{$!}")
+            elog("Error updating module details for #{obj.fullname}: #{$ERROR_INFO.class} #{$ERROR_INFO}")
           end
         end
       end
 
-      self.framework.cache_initialized = true
+      framework.cache_initialized = true
     end
 
     # in reverse order of section before with_connection block
     self.modules_caching = false
     self.modules_cached  = true
-    self.framework.cache_thread = nil
+    framework.cache_thread = nil
   end
 
   # Creates an Mdm::Module::Detail from a module instance.
@@ -341,7 +333,7 @@ module Msf::DBManager::ModuleCache
   #   Mdm::Module::Detail.
   # @return [void]
   def update_module_details(module_instance)
-    return if not self.migrated
+    return unless migrated
 
     ActiveRecord::Base.connection_pool.with_connection do
       info = module_to_details_hash(module_instance)
@@ -352,18 +344,18 @@ module Msf::DBManager::ModuleCache
         otype, vals = args
 
         case otype
-          when :action
-            module_detail.add_action(vals[:name])
-          when :arch
-            module_detail.add_arch(vals[:name])
-          when :author
-            module_detail.add_author(vals[:name], vals[:email])
-          when :platform
-            module_detail.add_platform(vals[:name])
-          when :ref
-            module_detail.add_ref(vals[:name])
-          when :target
-            module_detail.add_target(vals[:index], vals[:name])
+        when :action
+          module_detail.add_action(vals[:name])
+        when :arch
+          module_detail.add_arch(vals[:name])
+        when :author
+          module_detail.add_author(vals[:name], vals[:email])
+        when :platform
+          module_detail.add_platform(vals[:name])
+        when :ref
+          module_detail.add_ref(vals[:name])
+        when :target
+          module_detail.add_target(vals[:index], vals[:name])
         end
       end
 

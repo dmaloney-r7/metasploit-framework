@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 module Rex
@@ -6,7 +7,6 @@ module Rex
       module Model
         # This class provides a representation of an RMI return value
         class ReturnValue < Element
-
           # @!attribute code
           #   @return [Fixnum] the return code
           attr_accessor :code
@@ -47,7 +47,7 @@ module Rex
             self.value = []
 
             stream.contents[1..stream.contents.length - 1].each do |content|
-              self.value << content
+              value << content
             end
 
             self

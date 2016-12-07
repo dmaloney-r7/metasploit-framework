@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -5,34 +6,31 @@
 
 require 'msf/core'
 
-
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::Tcp
   include Msf::Auxiliary::Fuzzer
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'SSH Version Corruption',
-      'Description'    => %q{
-        This module sends a series of SSH requests with a corrupted version string
-      },
-      'Author'         => [ 'hdm' ],
-      'License'        => MSF_LICENSE
-    ))
+                      'Name'           => 'SSH Version Corruption',
+                      'Description'    => %q(
+                        This module sends a series of SSH requests with a corrupted version string
+                      ),
+                      'Author'         => [ 'hdm' ],
+                      'License'        => MSF_LICENSE))
     register_options([
-      Opt::RPORT(22),
-      OptInt.new('MAXDEPTH', [false, 'Specify a maximum byte depth to test'])
-    ], self.class)
+                       Opt::RPORT(22),
+                       OptInt.new('MAXDEPTH', [false, 'Specify a maximum byte depth to test'])
+                     ], self.class)
   end
 
-  def do_ssh_version(pkt,opts={})
+  def do_ssh_version(pkt, opts = {})
     @connected = false
     connect
     @connected = true
 
-    @banner = sock.get_once(-1,opts[:banner_timeout])
-    return if not @banner
+    @banner = sock.get_once(-1, opts[:banner_timeout])
+    return unless @banner
     sock.put("#{pkt}\r\n")
   end
 
@@ -46,38 +44,38 @@ class MetasploitModule < Msf::Auxiliary
 
     max = datastore['MAXDEPTH'].to_i
     max = nil if max == 0
-    tot = ( max ? [max,pkt.length].min : pkt.length) * 256
+    tot = (max ? [max, pkt.length].min : pkt.length) * 256
 
     print_status("Fuzzing SSH version string with #{tot} requests")
-    fuzz_string_corrupt_byte_reverse(pkt,max) do |str|
+    fuzz_string_corrupt_byte_reverse(pkt, max) do |str|
       cnt += 1
 
-      if(cnt % 100 == 0)
+      if cnt % 100 == 0
         print_status("Fuzzing with iteration #{cnt}/#{tot} using #{@last_fuzzer_input}")
       end
 
       begin
-        r = do_ssh_version(str,:banner_timeout => 5)
+        r = do_ssh_version(str, banner_timeout: 5)
       rescue ::Interrupt
         print_status("Exiting on interrupt: iteration #{cnt} using #{@last_fuzzer_input}")
-        raise $!
+        raise $ERROR_INFO
       rescue ::Exception => e
         last_err = e
       ensure
         disconnect
       end
 
-      if(not @connected)
-        if(last_str)
-          print_status("The service may have crashed: iteration:#{cnt-1} method=#{last_inp} string=#{last_str.unpack("H*")[0]} error=#{last_err}")
+      unless @connected
+        if last_str
+          print_status("The service may have crashed: iteration:#{cnt - 1} method=#{last_inp} string=#{last_str.unpack('H*')[0]} error=#{last_err}")
         else
           print_status("Could not connect to the service: #{last_err}")
         end
         return
       end
 
-      if(not @banner)
-        print_status("The service may have crashed (no banner): iteration:#{cnt-1} method=#{last_inp} string=#{last_str.unpack("H*")[0]} ")
+      unless @banner
+        print_status("The service may have crashed (no banner): iteration:#{cnt - 1} method=#{last_inp} string=#{last_str.unpack('H*')[0]} ")
         return
       end
 

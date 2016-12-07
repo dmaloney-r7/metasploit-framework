@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 require 'openssl/ccm'
@@ -20,12 +21,12 @@ module Rex
       BLOCK_HEADER_SIZE = 64
       METADATA_HEADER_SIZE = 48
 
-      ENTRY_TYPE_NONE  = 0x0000
-      ENTRY_TYPE_VMK  = 0x0002
-      ENTRY_TYPE_FVEK  = 0x0003
-      ENTRY_TYPE_STARTUP_KEY  = 0x0006
-      ENTRY_TYPE_DESC  = 0x0007
-      ENTRY_TYPE_HEADER  = 0x000f
+      ENTRY_TYPE_NONE = 0x0000
+      ENTRY_TYPE_VMK = 0x0002
+      ENTRY_TYPE_FVEK = 0x0003
+      ENTRY_TYPE_STARTUP_KEY = 0x0006
+      ENTRY_TYPE_DESC = 0x0007
+      ENTRY_TYPE_HEADER = 0x000f
 
       VALUE_TYPE_ERASED = 0x0000
       VALUE_TYPE_KEY = 0x0001
@@ -50,7 +51,7 @@ module Rex
         volume_header = @file_handler.read(512)
         @fs_sign = volume_header[3, 8]
         unless @fs_sign == '-FVE-FS-'
-          fail ArgumentError, 'File system signature does not match Bitlocker :
+          raise ArgumentError, 'File system signature does not match Bitlocker :
            #@fs_sign}, bitlocker not used', caller
         end
         @fve_offset = volume_header[176, 8].unpack('Q')[0]
@@ -85,13 +86,14 @@ module Rex
           vmk_encrypted = vmk[ENTRY_TYPE_NONE][VALUE_TYPE_ENCRYPTED_KEY][0]
           recovery_keys_stretched.each do |recovery_key|
             vmk_recovery_password = decrypt_aes_ccm_key(
-            vmk_encrypted, recovery_key)
+              vmk_encrypted, recovery_key
+            )
             break if vmk_recovery_password != ''
           end
           break if vmk_recovery_password != ''
         end
         if vmk_recovery_password == ''
-          fail ArgumentError, 'Wrong decryption, bad recovery key?'
+          raise ArgumentError, 'Wrong decryption, bad recovery key?'
         end
         vmk_recovery_password
       end
@@ -108,7 +110,7 @@ module Rex
         nonce = fve_entry[0, 12]
         mac = fve_entry[12, 16]
         encrypted_data = fve_entry[28..-1]
-        ccm = OpenSSL::CCM.new('AES',  key, 16)
+        ccm = OpenSSL::CCM.new('AES', key, 16)
         decrypted_data = ccm.decrypt(encrypted_data + mac, nonce)
         decrypted_data[12..-1]
       end
@@ -128,22 +130,25 @@ module Rex
           metadata_entry = metadata_entries[offset_entry + 8, entry_size - 8]
           if result[metadata_entry_type] == {}
             result[metadata_entry_type] = { metadata_value_type => [
-              metadata_entry] }
+              metadata_entry
+            ] }
           else
             if result[metadata_entry_type][metadata_value_type].nil?
               result[metadata_entry_type][metadata_value_type] = [
-                metadata_entry]
+                metadata_entry
+              ]
             else
               result[metadata_entry_type][metadata_value_type] += [
-                metadata_entry]
+                metadata_entry
+              ]
             end
           end
           offset_entry += entry_size
-          if metadata_entries[offset_entry, 2] != ''
-            entry_size = metadata_entries[offset_entry, 2].unpack('v')[0]
-          else
-            entry_size = 0
-          end
+          entry_size = if metadata_entries[offset_entry, 2] != ''
+                         metadata_entries[offset_entry, 2].unpack('v')[0]
+                       else
+                         0
+                       end
         end
         result
       end
@@ -160,10 +165,10 @@ module Rex
         # recovery key stretching phase 1
         recovery_intermediate = recoverykey.split('-').map(&:to_i)
         recovery_intermediate.each do |n|
-          n % 11 != 0 && (fail ArgumentError, 'Invalid recovery key')
+          n % 11 != 0 && (raise ArgumentError, 'Invalid recovery key')
         end
         recovery_intermediate =
-                           recovery_intermediate.map { |a| (a / 11) }.pack('v*')
+          recovery_intermediate.map { |a| (a / 11) }.pack('v*')
 
         # recovery key stretching phase 2
         recovery_keys = []
@@ -180,11 +185,12 @@ module Rex
         EOS
         cp.parse bitlocker_struct_src
         btl_struct = Metasm::C::AllocCStruct.new(cp, cp.find_c_struct(
-                                                     'bitlocker_chain_hash_t'))
+                                                       'bitlocker_chain_hash_t'
+        ))
         vmk_protected_by_recovery_key = @vmk_entries_hash[
                                         PROTECTION_RECOVERY_PASSWORD]
         if vmk_protected_by_recovery_key.nil?
-          fail ArgumentError, 'No recovery key on disk'
+          raise ArgumentError, 'No recovery key on disk'
         end
         vmk_protected_by_recovery_key.each do |vmk_encrypted|
           vmk_encrypted_raw = vmk_encrypted[ENTRY_TYPE_NONE][
@@ -206,7 +212,7 @@ module Rex
             sha256.reset
           end
           recovery_keys += [btl_struct_raw[btl_struct.updated_hash.stroff,
-                           btl_struct.updated_hash.sizeof]]
+                                           btl_struct.updated_hash.sizeof]]
         end
         recovery_keys
       end

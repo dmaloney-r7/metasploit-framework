@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 require 'msf/core'
 
@@ -9,7 +10,6 @@ require 'msf/core'
 #
 ###
 module Msf::Payload::Aix
-
   #
   # This mixin is chained within payloads that target the AIX platform.
   # It provides special prepends, to support things like chroot and setuid
@@ -20,30 +20,28 @@ module Msf::Payload::Aix
 
     register_options(
       [
-        Msf::OptString.new('AIX', [ true, 'IBM AIX Version', '6.1.4' ]),
-      ], Msf::Payload::Aix)
+        Msf::OptString.new('AIX', [ true, 'IBM AIX Version', '6.1.4' ])
+      ], Msf::Payload::Aix
+    )
 
     ret
   end
 
-
   #
   # Overload the generate() call to prefix our stubs and detect AIX version
   #
-  def generate(*args)
+  def generate(*_args)
     @aix = datastore['AIX']
 
-    #if not assoc_exploit.nil?
+    # if not assoc_exploit.nil?
     #	note = find_note(assoc_exploit.rhost, 'AIX')
 
     #	if not note.nil?
     #		@aix = note['data']
     #	end
-    #end
+    # end
 
-    if (not @aix)
-      raise RuntimeError, 'AIX version is not set!'
-    end
+    raise 'AIX version is not set!' unless @aix
 
     #
     # NOTE:
@@ -53,87 +51,87 @@ module Msf::Payload::Aix
     #
 
     aix_614_syscalls = {
-      :__NR_execve      => 7,
-      :__NR_getpeername => 211,
-      :__NR_accept      => 237,
-      :__NR_listen      => 240,
-      :__NR_bind        => 242,
-      :__NR_socket      => 243,
-      :__NR_connect     => 244,
-      :__NR_close       => 278,
-      :__NR_kfcntl      => 658
+      __NR_execve: 7,
+      __NR_getpeername: 211,
+      __NR_accept: 237,
+      __NR_listen: 240,
+      __NR_bind: 242,
+      __NR_socket: 243,
+      __NR_connect: 244,
+      __NR_close: 278,
+      __NR_kfcntl: 658
     }
 
     aix_613_syscalls = {
-      :__NR_execve      => 7,
-      :__NR_getpeername => 205,
-      :__NR_accept      => 232,
-      :__NR_listen      => 235,
-      :__NR_bind        => 237,
-      :__NR_socket      => 238,
-      :__NR_connect     => 239,
-      :__NR_close       => 272,
-      :__NR_kfcntl      => 644
+      __NR_execve: 7,
+      __NR_getpeername: 205,
+      __NR_accept: 232,
+      __NR_listen: 235,
+      __NR_bind: 237,
+      __NR_socket: 238,
+      __NR_connect: 239,
+      __NR_close: 272,
+      __NR_kfcntl: 644
     }
 
     aix_612_syscalls = {
-      :__NR_execve      => 7,
-      :__NR_getpeername => 205,
-      :__NR_accept      => 232,
-      :__NR_listen      => 235,
-      :__NR_bind        => 237,
-      :__NR_socket      => 238,
-      :__NR_connect     => 239,
-      :__NR_close       => 272,
-      :__NR_kfcntl      => 635
+      __NR_execve: 7,
+      __NR_getpeername: 205,
+      __NR_accept: 232,
+      __NR_listen: 235,
+      __NR_bind: 237,
+      __NR_socket: 238,
+      __NR_connect: 239,
+      __NR_close: 272,
+      __NR_kfcntl: 635
     }
 
     aix_611_syscalls = {
-      :__NR_execve      => 7,
-      :__NR_getpeername => 202,
-      :__NR_accept      => 229,
-      :__NR_listen      => 232,
-      :__NR_bind        => 234,
-      :__NR_socket      => 235,
-      :__NR_connect     => 236,
-      :__NR_close       => 269,
-      :__NR_kfcntl      => 614
+      __NR_execve: 7,
+      __NR_getpeername: 202,
+      __NR_accept: 229,
+      __NR_listen: 232,
+      __NR_bind: 234,
+      __NR_socket: 235,
+      __NR_connect: 236,
+      __NR_close: 269,
+      __NR_kfcntl: 614
     }
 
     aix_610_syscalls = {
-      :__NR_execve      => 6,
-      :__NR_getpeername => 203,
-      :__NR_accept      => 229,
-      :__NR_listen      => 232,
-      :__NR_bind        => 234,
-      :__NR_socket      => 235,
-      :__NR_connect     => 236,
-      :__NR_close       => 269,
-      :__NR_kfcntl      => 617
+      __NR_execve: 6,
+      __NR_getpeername: 203,
+      __NR_accept: 229,
+      __NR_listen: 232,
+      __NR_bind: 234,
+      __NR_socket: 235,
+      __NR_connect: 236,
+      __NR_close: 269,
+      __NR_kfcntl: 617
     }
 
     aix_53x_syscalls = {
-      :__NR_execve      => 6,
-      :__NR_getpeername => 198,
-      :__NR_accept      => 214,
-      :__NR_listen      => 215,
-      :__NR_bind        => 216,
-      :__NR_socket      => 217,
-      :__NR_connect     => 218,
-      :__NR_close       => 245,
-      :__NR_kfcntl      => 493
+      __NR_execve: 6,
+      __NR_getpeername: 198,
+      __NR_accept: 214,
+      __NR_listen: 215,
+      __NR_bind: 216,
+      __NR_socket: 217,
+      __NR_connect: 218,
+      __NR_close: 245,
+      __NR_kfcntl: 493
     }
 
     aix_51_syscalls = {
-      :__NR_execve      => 5,
-      :__NR_getpeername => 122,
-      :__NR_accept      => 138,
-      :__NR_listen      => 139,
-      :__NR_bind        => 140,
-      :__NR_socket      => 141,
-      :__NR_connect     => 142,
-      :__NR_close       => 160,
-      :__NR_kfcntl      => 322
+      __NR_execve: 5,
+      __NR_getpeername: 122,
+      __NR_accept: 138,
+      __NR_listen: 139,
+      __NR_bind: 140,
+      __NR_socket: 141,
+      __NR_connect: 142,
+      __NR_close: 160,
+      __NR_kfcntl: 322
     }
 
     versions = {
@@ -149,10 +147,10 @@ module Msf::Payload::Aix
       '5.1'    => aix_51_syscalls
     }
 
-    if (not versions[@aix])
+    if !(versions[@aix])
       # Dynamically build the support version array :)
-      supported = versions.sort.reverse.map { |k,v| k.to_s }.join(', ')
-      raise RuntimeError, "Invalid AIX version: \"#{@aix}\".  Supported versions: #{supported}"
+      supported = versions.sort.reverse.map { |k, _v| k.to_s }.join(', ')
+      raise "Invalid AIX version: \"#{@aix}\".  Supported versions: #{supported}"
     else
       syscalls = versions[@aix]
     end
@@ -179,10 +177,11 @@ module Msf::Payload::Aix
     @cal_close       = cal + [__NC_close].pack('n')
     @cal_kfcntl      = cal + [__NC_kfcntl].pack('n')
 
-    return ''
+    ''
   end
 
-protected
+  protected
+
   attr_accessor :aix
   attr_accessor :cal_execve
   attr_accessor :cal_getpeername
@@ -192,5 +191,4 @@ protected
   attr_accessor :cal_connect
   attr_accessor :cal_close
   attr_accessor :cal_kfcntl
-
 end

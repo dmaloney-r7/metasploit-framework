@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -35,9 +36,10 @@ class MetasploitModule < Msf::Auxiliary
     )
 
     register_options(
-    [
-      Opt::RPORT(27960)
-    ], self.class)
+      [
+        Opt::RPORT(27960)
+      ], self.class
+    )
   end
 
   def build_probe
@@ -50,14 +52,14 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   def decode_stuff(response)
-    case action.name
-    when 'info'
-      stuff = decode_info(response)
-    when 'status'
-      stuff = decode_status(response)
-    else
-      stuff = {}
-    end
+    stuff = case action.name
+            when 'info'
+              decode_info(response)
+            when 'status'
+              decode_status(response)
+            else
+              {}
+            end
 
     if datastore['VERBOSE']
       # get everything

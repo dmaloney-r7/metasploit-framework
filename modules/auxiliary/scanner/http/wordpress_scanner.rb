@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -26,14 +27,13 @@ class MetasploitModule < Msf::Auxiliary
       version_string = version ? version : '(no version detected)'
       print_good("#{target_host} running Wordpress #{version_string}")
       report_note(
-          {
-              :host   => target_host,
-              :proto  => 'tcp',
-              :sname => (ssl ? 'https' : 'http'),
-              :port   => rport,
-              :type   => "Wordpress #{version_string}",
-              :data   => target_uri
-          })
+        host: target_host,
+        proto: 'tcp',
+        sname: (ssl ? 'https' : 'http'),
+        port: rport,
+        type: "Wordpress #{version_string}",
+        data: target_uri
+      )
     end
   end
 end

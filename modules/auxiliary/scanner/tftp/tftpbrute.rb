@@ -1,13 +1,12 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Auxiliary::Scanner
   include Msf::Auxiliary::Report
 
@@ -24,8 +23,9 @@ class MetasploitModule < Msf::Auxiliary
         Opt::RPORT(69),
         Opt::CHOST,
         OptPath.new('DICTIONARY', [ true, 'The list of filenames',
-          File.join(Msf::Config.data_directory, "wordlists", "tftp.txt") ])
-      ], self.class)
+                                    File.join(Msf::Config.data_directory, "wordlists", "tftp.txt") ])
+      ], self.class
+    )
   end
 
   def run_host(ip)
@@ -34,14 +34,12 @@ class MetasploitModule < Msf::Auxiliary
       # Create an unbound UDP socket if no CHOST is specified, otherwise
       # create a UDP socket bound to CHOST (in order to avail of pivoting)
       udp_sock = Rex::Socket::Udp.create(
-        {
-          'LocalHost' => datastore['CHOST'] || nil,
-          'Context'   =>
-            {
-              'Msf'        => framework,
-              'MsfExploit' => self,
-            }
-        }
+        'LocalHost' => datastore['CHOST'] || nil,
+        'Context' =>
+  {
+    'Msf'        => framework,
+    'MsfExploit' => self
+  }
       )
       add_socket(udp_sock)
 
@@ -51,18 +49,17 @@ class MetasploitModule < Msf::Auxiliary
         pkt = "\x00\x01" + filename + "\x00" + "netascii" + "\x00"
         udp_sock.sendto(pkt, ip, datastore['RPORT'])
         resp = udp_sock.get(3)
-        if resp and resp.length >= 2 and resp[0, 2] == "\x00\x03"
-          print_status("Found #{filename} on #{ip}")
-          #Add Report
-          report_note(
-            :host	=> ip,
-            :proto => 'udp',
-            :sname	=> 'tftp',
-            :port	=> datastore['RPORT'],
-            :type	=> "Found #{filename}",
-            :data	=> "Found #{filename}"
-          )
-        end
+        next unless resp && (resp.length >= 2) && (resp[0, 2] == "\x00\x03")
+        print_status("Found #{filename} on #{ip}")
+        # Add Report
+        report_note(
+          host: ip,
+          proto: 'udp',
+          sname: 'tftp',
+          port: datastore['RPORT'],
+          type: "Found #{filename}",
+          data: "Found #{filename}"
+        )
       end
       fd.close
     rescue
@@ -70,5 +67,4 @@ class MetasploitModule < Msf::Auxiliary
       udp_sock.close
     end
   end
-
 end

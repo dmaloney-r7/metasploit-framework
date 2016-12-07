@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -26,12 +27,12 @@ class MetasploitModule < Msf::Auxiliary
           'Nixawk', # original metasploit module
           'Jon Hart <jon_hart[at]rapid7.com>' # improved metasploit module
         ],
-        'References'    => [
+        'References' => [
           ['URL', 'http://antirez.com/news/96'],
           ['URL', 'http://blog.knownsec.com/2015/11/analysis-of-redis-unauthorized-of-expolit/'],
           ['URL', 'http://redis.io/topics/protocol']
         ],
-        'Privileged'    => true,
+        'Privileged' => true,
         'DisclosureDate' => 'Nov 11 2015'
       )
     )
@@ -74,7 +75,7 @@ class MetasploitModule < Msf::Auxiliary
     # If you want to save some CPU in the saving child set it to 'no' but
     # the dataset will likely be bigger if you have compressible values or
     # keys.
-    if datastore['DISABLE_RDBCOMPRESSION'] && original_rdbcompression.upcase == 'YES'
+    if datastore['DISABLE_RDBCOMPRESSION'] && original_rdbcompression.casecmp('YES').zero?
       data = redis_command('CONFIG', 'SET', 'rdbcompression', 'no')
       if data.include?('+OK')
         reset_rdbcompression = true

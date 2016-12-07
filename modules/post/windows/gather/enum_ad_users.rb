@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -43,22 +44,22 @@ class MetasploitModule < Msf::Post
     ))
 
     register_options([
-      OptBool.new('STORE_LOOT', [true, 'Store file in loot.', false]),
-      OptBool.new('EXCLUDE_LOCKED', [true, 'Exclude in search locked accounts..', false]),
-      OptBool.new('EXCLUDE_DISABLED', [true, 'Exclude from search disabled accounts.', false]),
-      OptString.new('ADDITIONAL_FIELDS', [false, 'Additional fields to retrieve, comma separated', nil]),
-      OptString.new('FILTER', [false, 'Customised LDAP filter', nil]),
-      OptString.new('GROUP_MEMBER', [false, 'Recursively list users that are effectve members of the group DN specified.', nil]),
-      OptEnum.new('UAC', [true, 'Filter on User Account Control Setting.', 'ANY',
-                          [
-                            'ANY',
-                            'NO_PASSWORD',
-                            'CHANGE_PASSWORD',
-                            'NEVER_EXPIRES',
-                            'SMARTCARD_REQUIRED',
-                            'NEVER_LOGGEDON'
-                          ]])
-    ], self.class)
+                       OptBool.new('STORE_LOOT', [true, 'Store file in loot.', false]),
+                       OptBool.new('EXCLUDE_LOCKED', [true, 'Exclude in search locked accounts..', false]),
+                       OptBool.new('EXCLUDE_DISABLED', [true, 'Exclude from search disabled accounts.', false]),
+                       OptString.new('ADDITIONAL_FIELDS', [false, 'Additional fields to retrieve, comma separated', nil]),
+                       OptString.new('FILTER', [false, 'Customised LDAP filter', nil]),
+                       OptString.new('GROUP_MEMBER', [false, 'Recursively list users that are effectve members of the group DN specified.', nil]),
+                       OptEnum.new('UAC', [true, 'Filter on User Account Control Setting.', 'ANY',
+                                           [
+                                             'ANY',
+                                             'NO_PASSWORD',
+                                             'CHANGE_PASSWORD',
+                                             'NEVER_EXPIRES',
+                                             'SMARTCARD_REQUIRED',
+                                             'NEVER_LOGGEDON'
+                                           ]])
+                     ], self.class)
   end
 
   def run
@@ -121,11 +122,11 @@ class MetasploitModule < Msf::Post
       row = []
 
       result.each do |field|
-        if field.nil?
-          row << ""
-        else
-          row << field[:value]
-        end
+        row << if field.nil?
+                 ""
+               else
+                 field[:value]
+               end
       end
 
       username = result[@user_fields.index('sAMAccountName')][:value]
@@ -149,17 +150,17 @@ class MetasploitModule < Msf::Post
     inner_filter << "(memberof:1.2.840.113556.1.4.1941:=#{datastore['GROUP_MEMBER']})" if datastore['GROUP_MEMBER']
     inner_filter << "(#{datastore['FILTER']})" if datastore['FILTER'] != ""
     case datastore['UAC']
-      when 'ANY'
-      when 'NO_PASSWORD'
-        inner_filter << '(userAccountControl:1.2.840.113556.1.4.803:=32)'
-      when 'CHANGE_PASSWORD'
-        inner_filter << '(!sAMAccountType=805306370)(pwdlastset=0)'
-      when 'NEVER_EXPIRES'
-        inner_filter << '(userAccountControl:1.2.840.113556.1.4.803:=65536)'
-      when 'SMARTCARD_REQUIRED'
-        inner_filter << '(userAccountControl:1.2.840.113556.1.4.803:=262144)'
-      when 'NEVER_LOGGEDON'
-        inner_filter << '(|(lastlogon=0)(!lastlogon=*))'
+    when 'ANY'
+    when 'NO_PASSWORD'
+      inner_filter << '(userAccountControl:1.2.840.113556.1.4.803:=32)'
+    when 'CHANGE_PASSWORD'
+      inner_filter << '(!sAMAccountType=805306370)(pwdlastset=0)'
+    when 'NEVER_EXPIRES'
+      inner_filter << '(userAccountControl:1.2.840.113556.1.4.803:=65536)'
+    when 'SMARTCARD_REQUIRED'
+      inner_filter << '(userAccountControl:1.2.840.113556.1.4.803:=262144)'
+    when 'NEVER_LOGGEDON'
+      inner_filter << '(|(lastlogon=0)(!lastlogon=*))'
     end
     "(&#{inner_filter})"
   end
@@ -187,13 +188,13 @@ class MetasploitModule < Msf::Post
     # Create the Metasploit::Credential::Core object
     credential_core = create_credential(credential_data)
 
-    if account_disabled?(uac.to_i)
-      status = Metasploit::Model::Login::Status::DISABLED
-    elsif account_locked?(lockout_time.to_i)
-      status = Metasploit::Model::Login::Status::LOCKED_OUT
-    else
-      status = Metasploit::Model::Login::Status::UNTRIED
-    end
+    status = if account_disabled?(uac.to_i)
+               Metasploit::Model::Login::Status::DISABLED
+             elsif account_locked?(lockout_time.to_i)
+               Metasploit::Model::Login::Status::LOCKED_OUT
+             else
+               Metasploit::Model::Login::Status::UNTRIED
+             end
 
     # Assemble the options hash for creating the Metasploit::Credential::Login object
     login_data = {
@@ -201,7 +202,7 @@ class MetasploitModule < Msf::Post
       status: status
     }
 
-    login_data[:last_attempted_at] = DateTime.now unless (status == Metasploit::Model::Login::Status::UNTRIED)
+    login_data[:last_attempted_at] = DateTime.now unless status == Metasploit::Model::Login::Status::UNTRIED
 
     # Merge in the service data and create our Login
     login_data.merge!(service_data)

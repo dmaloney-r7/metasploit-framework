@@ -1,9 +1,9 @@
+# frozen_string_literal: true
 require 'spec_helper'
 require 'rex/post/meterpreter/extension'
 require 'rex/post/meterpreter/extensions/priv/priv'
 
 RSpec.describe Rex::Post::Meterpreter::Extensions::Priv::Priv do
-
   it "should be available" do
     expect(described_class).to eq(Rex::Post::Meterpreter::Extensions::Priv::Priv)
   end
@@ -14,7 +14,7 @@ RSpec.describe Rex::Post::Meterpreter::Extensions::Priv::Priv do
       allow(@client).to receive(:register_extension_aliases) { [] }
     end
 
-    let(:priv) {described_class.new(@client)}
+    let(:priv) { described_class.new(@client) }
     it 'should respond to #getsystem' do
       expect(priv).to respond_to(:getsystem)
     end
@@ -36,6 +36,5 @@ RSpec.describe Rex::Post::Meterpreter::Extensions::Priv::Priv do
     it 'should have a name of priv' do
       expect(priv.name).to eq("priv")
     end
-
   end
 end

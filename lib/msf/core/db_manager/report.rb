@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 #
 # Standard library
 #
@@ -5,7 +6,7 @@
 require 'fileutils'
 
 module Msf::DBManager::Report
-  # TODO This method does not attempt to find. It just creates
+  # TODO: This method does not attempt to find. It just creates
   # a report based on the passed params.
   def find_or_create_report(opts)
     report_report(opts)
@@ -14,7 +15,7 @@ module Msf::DBManager::Report
   # Creates a ReportArtifact based on passed parameters.
   # @param opts [Hash] of ReportArtifact attributes
   def report_artifact(opts)
-    return if not active
+    return unless active
 
     artifacts_dir = Report::ARTIFACT_DIR
     tmp_path = opts[:file_path]
@@ -27,12 +28,12 @@ module Msf::DBManager::Report
       raise Msf::DBImportError 'Report artifact file to be imported does not exist.'
     end
 
-    unless (File.directory?(artifacts_dir) && File.writable?(artifacts_dir))
+    unless File.directory?(artifacts_dir) && File.writable?(artifacts_dir)
       raise Msf::DBImportError "Could not move report artifact file to #{artifacts_dir}."
     end
 
     if File.exist? new_path
-      unique_basename = "#{(Time.now.to_f*1000).to_i}_#{artifact_name}"
+      unique_basename = "#{(Time.now.to_f * 1000).to_i}_#{artifact_name}"
       new_path = File.join(artifacts_dir, unique_basename)
     end
 
@@ -54,33 +55,33 @@ module Msf::DBManager::Report
   # @param opts [Hash]
   # @return [Integer] ID of created report
   def report_report(opts)
-    return if not active
+    return unless active
     created = opts.delete(:created_at)
     updated = opts.delete(:updated_at)
     state   = opts.delete(:state)
 
-  ::ActiveRecord::Base.connection_pool.with_connection {
-    report = Report.new(opts)
-    report.created_at = created
-    report.updated_at = updated
+    ::ActiveRecord::Base.connection_pool.with_connection do
+      report = Report.new(opts)
+      report.created_at = created
+      report.updated_at = updated
 
-    unless report.valid?
-      errors = report.errors.full_messages.join('; ')
-      raise RuntimeError "Report to be imported is not valid: #{errors}"
+      unless report.valid?
+        errors = report.errors.full_messages.join('; ')
+        raise RuntimeError "Report to be imported is not valid: #{errors}"
+      end
+      report.state = :complete # Presume complete since it was exported
+      report.save
+
+      report.id
     end
-    report.state = :complete # Presume complete since it was exported
-    report.save
-
-    report.id
-  }
   end
 
   #
   # This methods returns a list of all reports in the database
   #
-  def reports(wspace=workspace)
-  ::ActiveRecord::Base.connection_pool.with_connection {
-    wspace.reports
-  }
+  def reports(wspace = workspace)
+    ::ActiveRecord::Base.connection_pool.with_connection do
+      wspace.reports
+    end
   end
 end

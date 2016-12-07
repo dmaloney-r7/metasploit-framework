@@ -1,7 +1,7 @@
+# frozen_string_literal: true
 require 'stringio'
 
 RSpec.shared_context 'Msf::StringIO' do
-
   #
   # lets
   #
@@ -33,11 +33,11 @@ RSpec.shared_context 'Msf::StringIO' do
     def msf_io.put(_data)
       seek(0)
 
-      if msf_data.nil? || msf_data.empty?
-        length = write(_data)
-      else
-        length = write(msf_data)
-      end
+      length = if msf_data.nil? || msf_data.empty?
+                 write(_data)
+               else
+                 write(msf_data)
+               end
 
       seek(0)
 

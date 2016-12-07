@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -16,18 +17,16 @@ require 'msf/base/sessions/vncinject_options'
 #
 ###
 module MetasploitModule
-
   include Msf::Payload::Windows::ReflectiveDllInject
   include Msf::Sessions::VncInjectOptions
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'          => 'VNC Server (Reflective Injection)',
-      'Description'   => 'Inject a VNC Dll via a reflective loader (staged)',
-      'Author'        => [ 'sf' ],
-      'Session'       => Msf::Sessions::VncInject,
-      'Convention'    => 'sockedi -http -https'))
-
+                      'Name'          => 'VNC Server (Reflective Injection)',
+                      'Description'   => 'Inject a VNC Dll via a reflective loader (staged)',
+                      'Author'        => [ 'sf' ],
+                      'Session'       => Msf::Sessions::VncInject,
+                      'Convention'    => 'sockedi -http -https'))
   end
 
   def library_path

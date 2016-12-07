@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 require 'msf/base/sessions/command_shell'
 
@@ -6,12 +7,11 @@ class Msf::Sessions::PowerShell < Msf::Sessions::CommandShell
   # Execute any specified auto-run scripts for this session
   #
   def process_autoruns(datastore)
-
     # Read the username and hostname from the initial banner
     initial_output = shell_read(-1, 0.01)
     if initial_output =~ /running as user ([^\s]+) on ([^\s]+)/
-      username = $1
-      hostname = $2
+      username = Regexp.last_match(1)
+      hostname = Regexp.last_match(2)
       self.info = "#{username} @ #{hostname}"
     else
       self.info = initial_output.gsub(/[\r\n]/, ' ')
@@ -20,6 +20,7 @@ class Msf::Sessions::PowerShell < Msf::Sessions::CommandShell
     # Call our parent class's autoruns processing method
     super
   end
+
   #
   # Returns the type of session.
   #
@@ -56,19 +57,18 @@ class Msf::Sessions::PowerShell < Msf::Sessions::CommandShell
 
     buff = ""
     # Keep reading data until the marker has been received or the 30 minture timeout has occured
-    while (::Time.now.to_f < etime)
+    while ::Time.now.to_f < etime
       res = shell_read(-1, timeout)
       break unless res
       timeout = etime - ::Time.now.to_f
 
       buff << res
-      if buff.match(/#{endm}/)
-        # if you see the end marker, read the buffer from the start marker to the end and then display back to screen
-        buff = buff.split(/#{strm}\r\n/)[-1]
-        buff.gsub!(/\nPS .*>/, '')
-        buff.gsub!(/#{endm}/, '')
-        return buff
-      end
+      next unless buff =~ /#{endm}/
+      # if you see the end marker, read the buffer from the start marker to the end and then display back to screen
+      buff = buff.split(/#{strm}\r\n/)[-1]
+      buff.gsub!(/\nPS .*>/, '')
+      buff.gsub!(/#{endm}/, '')
+      return buff
     end
     buff
   end

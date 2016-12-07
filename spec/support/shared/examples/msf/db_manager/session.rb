@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 RSpec.shared_examples_for 'Msf::DBManager::Session' do
   it { is_expected.to respond_to :get_session }
 
@@ -27,24 +28,24 @@ RSpec.shared_examples_for 'Msf::DBManager::Session' do
             Msf::ModuleDataStore.new(module_instance).tap do |datastore|
               datastore['ParentModule'] = parent_module_fullname
 
-              remote_port = rand(2 ** 16 - 1)
+              remote_port = rand(2**16 - 1)
               datastore['RPORT'] = remote_port
             end
           end
 
           let(:host) do
-            FactoryGirl.create(:mdm_host, :workspace => session_workspace)
+            FactoryGirl.create(:mdm_host, workspace: session_workspace)
           end
 
           let(:module_instance) do
             name = 'multi/handler'
 
             d = double(
-                'Msf::Exploit',
-                user_data: user_data,
-                fullname: "exploit/#{name}",
-                framework: framework,
-                name: name
+              'Msf::Exploit',
+              user_data: user_data,
+              fullname: "exploit/#{name}",
+              framework: framework,
+              name: name
             )
             d
           end
@@ -104,21 +105,19 @@ RSpec.shared_examples_for 'Msf::DBManager::Session' do
 
             # fake cache data for exploit/multi/handler so it can be loaded
             framework.modules.send(
-                :module_info_by_path=,
-                {
-                    path =>
-                        {
-                            :parent_path => parent_path,
-                            :reference_name => reference_name,
-                            :type => 'exploit',
-                        }
-                }
+              :module_info_by_path=,
+              path =>
+  {
+    parent_path: parent_path,
+    reference_name: reference_name,
+    type: 'exploit'
+  }
             )
 
             FactoryGirl.create(
-                :mdm_module_detail,
-                :fullname => parent_module_fullname,
-                :name => parent_module_name
+              :mdm_module_detail,
+              fullname: parent_module_fullname,
+              name: parent_module_name
             )
           end
 
@@ -128,7 +127,7 @@ RSpec.shared_examples_for 'Msf::DBManager::Session' do
             end
 
             let(:match_set) do
-              FactoryGirl.create(:automatic_exploitation_match_set, user: session_workspace.owner,workspace:session_workspace)
+              FactoryGirl.create(:automatic_exploitation_match_set, user: session_workspace.owner, workspace: session_workspace)
             end
 
             let(:run) do
@@ -163,7 +162,7 @@ RSpec.shared_examples_for 'Msf::DBManager::Session' do
               it 'should pass session.workspace to #find_or_create_host' do
                 expect(db_manager).to receive(:find_or_create_host).with(
                   hash_including(
-                    :workspace => session_workspace
+                    workspace: session_workspace
                   )
                 ).and_return(host)
 
@@ -180,7 +179,7 @@ RSpec.shared_examples_for 'Msf::DBManager::Session' do
 
                 expect(db_manager).to receive(:find_or_create_host).with(
                   hash_including(
-                    :host => normalized_host
+                    host: normalized_host
                   )
                 ).and_return(host)
 
@@ -199,7 +198,7 @@ RSpec.shared_examples_for 'Msf::DBManager::Session' do
                 it 'should pass :arch to #find_or_create_host' do
                   expect(db_manager).to receive(:find_or_create_host).with(
                     hash_including(
-                      :arch => arch
+                      arch: arch
                     )
                   ).and_call_original
 
@@ -220,9 +219,9 @@ RSpec.shared_examples_for 'Msf::DBManager::Session' do
               end
 
               it 'should create an Mdm::Session' do
-                expect {
+                expect do
                   report_session
-                }.to change(Mdm::Session, :count).by(1)
+                end.to change(Mdm::Session, :count).by(1)
               end
 
               it { is_expected.to be_an Mdm::Session }
@@ -234,11 +233,10 @@ RSpec.shared_examples_for 'Msf::DBManager::Session' do
               end
 
               context 'with session.via_exploit' do
-
                 it 'should create Mdm::Vuln' do
-                  expect {
+                  expect do
                     report_session
-                  }.to change(Mdm::Vuln, :count).by(1)
+                  end.to change(Mdm::Vuln, :count).by(1)
                 end
 
                 context 'created Mdm::Vuln' do
@@ -293,14 +291,12 @@ RSpec.shared_examples_for 'Msf::DBManager::Session' do
                       # fake cache data for ParentModule so it can be loaded
                       framework.modules.send(
                         :module_info_by_path=,
-                        {
-                          path =>
-                            {
-                              :parent_path => parent_path,
-                              :reference_name => reference_name,
-                              :type => type,
-                            }
-                        }
+                        path =>
+  {
+    parent_path: parent_path,
+    reference_name: reference_name,
+    type: type
+  }
                       )
 
                       session.via_exploit = "#{type}/#{reference_name}"
@@ -322,7 +318,7 @@ RSpec.shared_examples_for 'Msf::DBManager::Session' do
                     let(:service) do
                       FactoryGirl.create(
                         :mdm_service,
-                        :host => host
+                        host: host
                       )
                     end
 
@@ -458,14 +454,12 @@ RSpec.shared_examples_for 'Msf::DBManager::Session' do
                     # fake cache data for ParentModule so it can be loaded
                     framework.modules.send(
                       :module_info_by_path=,
-                      {
-                        path =>
-                          {
-                            :parent_path => parent_path,
-                            :reference_name => reference_name,
-                            :type => type,
-                          }
-                      }
+                      path =>
+  {
+    parent_path: parent_path,
+    reference_name: reference_name,
+    type: type
+  }
                     )
 
                     session.via_exploit = "#{type}/#{reference_name}"
@@ -505,9 +499,9 @@ RSpec.shared_examples_for 'Msf::DBManager::Session' do
 
               it 'should pass session.workspace to #find_or_create_host' do
                 expect(db_manager).to receive(:find_or_create_host).with(
-                    hash_including(
-                        :workspace => session_workspace
-                    )
+                  hash_including(
+                    workspace: session_workspace
+                  )
                 ).and_return(host)
 
                 expect { report_session }.to change(Mdm::Vuln, :count).by(1)
@@ -522,9 +516,9 @@ RSpec.shared_examples_for 'Msf::DBManager::Session' do
                 allow(db_manager).to receive(:report_vuln)
 
                 expect(db_manager).to receive(:find_or_create_host).with(
-                    hash_including(
-                        :host => normalized_host
-                    )
+                  hash_including(
+                    host: normalized_host
+                  )
                 ).and_return(host)
 
                 report_session
@@ -541,9 +535,9 @@ RSpec.shared_examples_for 'Msf::DBManager::Session' do
 
                 it 'should pass :arch to #find_or_create_host' do
                   expect(db_manager).to receive(:find_or_create_host).with(
-                      hash_including(
-                          :arch => arch
-                      )
+                    hash_including(
+                      arch: arch
+                    )
                   ).and_call_original
 
                   expect { report_session }.to change(Mdm::Vuln, :count).by(1)
@@ -553,9 +547,9 @@ RSpec.shared_examples_for 'Msf::DBManager::Session' do
               context 'without session responds to arch' do
                 it 'should not pass :arch to #find_or_create_host' do
                   expect(db_manager).to receive(:find_or_create_host).with(
-                      hash_excluding(
-                          :arch
-                      )
+                    hash_excluding(
+                      :arch
+                    )
                   ).and_call_original
 
                   expect { report_session }.to change(Mdm::Vuln, :count).by(1)
@@ -563,9 +557,9 @@ RSpec.shared_examples_for 'Msf::DBManager::Session' do
               end
 
               it 'should create an Mdm::Session' do
-                expect {
+                expect do
                   report_session
-                }.to change(Mdm::Session, :count).by(1)
+                end.to change(Mdm::Session, :count).by(1)
               end
 
               it { is_expected.to be_an Mdm::Session }
@@ -577,11 +571,10 @@ RSpec.shared_examples_for 'Msf::DBManager::Session' do
               end
 
               context 'with session.via_exploit' do
-
                 it 'should create Mdm::Vuln' do
-                  expect {
+                  expect do
                     report_session
-                  }.to change(Mdm::Vuln, :count).by(1)
+                  end.to change(Mdm::Vuln, :count).by(1)
                 end
 
                 context 'created Mdm::Vuln' do
@@ -627,23 +620,21 @@ RSpec.shared_examples_for 'Msf::DBManager::Session' do
 
                     before(:example) do
                       path = File.join(
-                          parent_path,
-                          'exploits',
-                          "#{reference_name}.rb"
+                        parent_path,
+                        'exploits',
+                        "#{reference_name}.rb"
                       )
                       type = 'exploit'
 
                       # fake cache data for ParentModule so it can be loaded
                       framework.modules.send(
-                          :module_info_by_path=,
-                          {
-                              path =>
-                                  {
-                                      :parent_path => parent_path,
-                                      :reference_name => reference_name,
-                                      :type => type,
-                                  }
-                          }
+                        :module_info_by_path=,
+                        path =>
+  {
+    parent_path: parent_path,
+    reference_name: reference_name,
+    type: type
+  }
                       )
 
                       session.via_exploit = "#{type}/#{reference_name}"
@@ -664,8 +655,8 @@ RSpec.shared_examples_for 'Msf::DBManager::Session' do
 
                     let(:service) do
                       FactoryGirl.create(
-                          :mdm_service,
-                          :host => host
+                        :mdm_service,
+                        host: host
                       )
                     end
 
@@ -792,23 +783,21 @@ RSpec.shared_examples_for 'Msf::DBManager::Session' do
                   before(:example) do
                     reference_name = 'windows/smb/ms08_067_netapi'
                     path = File.join(
-                        parent_path,
-                        'exploits',
-                        "#{reference_name}.rb"
+                      parent_path,
+                      'exploits',
+                      "#{reference_name}.rb"
                     )
                     type = 'exploit'
 
                     # fake cache data for ParentModule so it can be loaded
                     framework.modules.send(
-                        :module_info_by_path=,
-                        {
-                            path =>
-                                {
-                                    :parent_path => parent_path,
-                                    :reference_name => reference_name,
-                                    :type => type,
-                                }
-                        }
+                      :module_info_by_path=,
+                      path =>
+  {
+    parent_path: parent_path,
+    reference_name: reference_name,
+    type: type
+  }
                     )
 
                     session.via_exploit = "#{type}/#{reference_name}"
@@ -831,9 +820,9 @@ RSpec.shared_examples_for 'Msf::DBManager::Session' do
           end
 
           it 'should raise ArgumentError' do
-            expect {
+            expect do
               report_session
-            }.to raise_error(ArgumentError, "Invalid :session, expected Msf::Session")
+            end.to raise_error(ArgumentError, "Invalid :session, expected Msf::Session")
           end
         end
       end
@@ -952,9 +941,9 @@ RSpec.shared_examples_for 'Msf::DBManager::Session' do
               context 'with :routes' do
                 let(:routes) do
                   FactoryGirl.build_list(
-                      :mdm_route,
-                      1,
-                      :session => nil
+                    :mdm_route,
+                    1,
+                    session: nil
                   )
                 end
 
@@ -973,18 +962,18 @@ RSpec.shared_examples_for 'Msf::DBManager::Session' do
             end
 
             it 'should raise ArgumentError' do
-              expect {
+              expect do
                 report_session
-              }.to raise_error(ArgumentError, "Invalid :host, expected Host object")
+              end.to raise_error(ArgumentError, "Invalid :host, expected Host object")
             end
           end
         end
 
         context 'without :host' do
           it 'should raise ArgumentError' do
-            expect {
+            expect do
               report_session
-            }.to raise_error(ArgumentError)
+            end.to raise_error(ArgumentError)
           end
         end
       end

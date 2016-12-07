@@ -1,13 +1,14 @@
+# frozen_string_literal: true
 # -*- coding:binary -*-
 require 'rex/post/meterpreter/packet'
 
 RSpec.describe Rex::Post::Meterpreter::Tlv do
-  subject(:tlv) {
+  subject(:tlv) do
     Rex::Post::Meterpreter::Tlv.new(
       Rex::Post::Meterpreter::TLV_TYPE_STRING,
       "test"
     )
-  }
+  end
 
   it "should respond to type" do
     expect(tlv).to respond_to :type
@@ -97,12 +98,12 @@ RSpec.describe Rex::Post::Meterpreter::Tlv do
   end
 
   context "A Method TLV" do
-    subject(:tlv) {
+    subject(:tlv) do
       Rex::Post::Meterpreter::Tlv.new(
         Rex::Post::Meterpreter::TLV_TYPE_METHOD,
         "test"
       )
-    }
+    end
     it "should have a meta type of String" do
       expect(tlv.meta_type?(Rex::Post::Meterpreter::TLV_META_TYPE_STRING)).to eq true
     end
@@ -114,22 +115,21 @@ RSpec.describe Rex::Post::Meterpreter::Tlv do
   end
 
   context "A String TLV with a number value" do
-    subject(:tlv) {
-      Rex::Post::Meterpreter::Tlv.new(Rex::Post::Meterpreter::TLV_TYPE_STRING,5)
-    }
+    subject(:tlv) do
+      Rex::Post::Meterpreter::Tlv.new(Rex::Post::Meterpreter::TLV_TYPE_STRING, 5)
+    end
     it "should return the string version of the number" do
       expect(tlv.value).to eq "5"
     end
   end
-
 end
 
 RSpec.describe Rex::Post::Meterpreter::GroupTlv do
-  subject(:group_tlv) {
+  subject(:group_tlv) do
     Rex::Post::Meterpreter::GroupTlv.new(
       Rex::Post::Meterpreter::TLV_TYPE_CHANNEL_DATA_GROUP
     )
-  }
+  end
 
   it "should respond to tlvs" do
     expect(group_tlv).to respond_to :tlvs
@@ -197,21 +197,21 @@ RSpec.describe Rex::Post::Meterpreter::GroupTlv do
 
   context "#add_tlv" do
     it "should add to the tlvs array when given basic tlv paramaters" do
-      group_tlv.add_tlv(Rex::Post::Meterpreter::TLV_TYPE_STRING,"test")
+      group_tlv.add_tlv(Rex::Post::Meterpreter::TLV_TYPE_STRING, "test")
       expect(group_tlv.tlvs.first.type).to eq Rex::Post::Meterpreter::TLV_TYPE_STRING
       expect(group_tlv.tlvs.first.value).to eq "test"
     end
 
-    it  "should replace any existing TLV of the same type when the replace flag is set to true" do
-      group_tlv.add_tlv(Rex::Post::Meterpreter::TLV_TYPE_STRING,"test")
-      group_tlv.add_tlv(Rex::Post::Meterpreter::TLV_TYPE_STRING,"test2", true)
+    it "should replace any existing TLV of the same type when the replace flag is set to true" do
+      group_tlv.add_tlv(Rex::Post::Meterpreter::TLV_TYPE_STRING, "test")
+      group_tlv.add_tlv(Rex::Post::Meterpreter::TLV_TYPE_STRING, "test2", true)
       expect(group_tlv.tlvs.count).to eq 1
       expect(group_tlv.tlvs.first.value).to eq "test2"
     end
 
     it "should add both if replace is set to false" do
-      group_tlv.add_tlv(Rex::Post::Meterpreter::TLV_TYPE_STRING,"test")
-      group_tlv.add_tlv(Rex::Post::Meterpreter::TLV_TYPE_STRING,"test2", false)
+      group_tlv.add_tlv(Rex::Post::Meterpreter::TLV_TYPE_STRING, "test")
+      group_tlv.add_tlv(Rex::Post::Meterpreter::TLV_TYPE_STRING, "test2", false)
       expect(group_tlv.tlvs.first.value).to eq "test"
       expect(group_tlv.tlvs.last.value).to eq "test2"
     end
@@ -220,8 +220,8 @@ RSpec.describe Rex::Post::Meterpreter::GroupTlv do
   context "#add_tlvs" do
     it "should be able to add an array of type-value hashes" do
       tlv_array = [
-        {'type' => Rex::Post::Meterpreter::TLV_TYPE_STRING, 'value' => "test"},
-        {'type' => Rex::Post::Meterpreter::TLV_TYPE_STRING, 'value' => "test2"}
+        { 'type' => Rex::Post::Meterpreter::TLV_TYPE_STRING, 'value' => "test" },
+        { 'type' => Rex::Post::Meterpreter::TLV_TYPE_STRING, 'value' => "test2" }
       ]
       group_tlv.add_tlvs(tlv_array)
       expect(group_tlv.tlvs.count).to eq 2
@@ -236,14 +236,14 @@ RSpec.describe Rex::Post::Meterpreter::GroupTlv do
 
     it "should raise an error when given an array of objects other than hashes" do
       skip "RM #7598"
-      expect(group_tlv.add_tlvs([1,2,3])).to raise_error
+      expect(group_tlv.add_tlvs([1, 2, 3])).to raise_error
     end
 
     it "should raise an error when any of the hashes are missing a key" do
       skip "RM #7598"
       tlv_array = [
-        {:type => Rex::Post::Meterpreter::TLV_TYPE_STRING, :value => "test"},
-        {:type => Rex::Post::Meterpreter::TLV_TYPE_STRING}
+        { type: Rex::Post::Meterpreter::TLV_TYPE_STRING, value: "test" },
+        { type: Rex::Post::Meterpreter::TLV_TYPE_STRING }
       ]
       expect(group_tlv.add_tlvs(tlv_array)).to raise_error
     end
@@ -253,12 +253,12 @@ RSpec.describe Rex::Post::Meterpreter::GroupTlv do
     before(:example) do
       group_tlv.reset
       tlv_array = [
-        {'type' => Rex::Post::Meterpreter::TLV_TYPE_STRING, 'value' => "test"},
-        {'type' => Rex::Post::Meterpreter::TLV_TYPE_STRING, 'value' => "test2"},
-        {'type' => Rex::Post::Meterpreter::TLV_TYPE_UINT, 'value' => 5}
+        { 'type' => Rex::Post::Meterpreter::TLV_TYPE_STRING, 'value' => "test" },
+        { 'type' => Rex::Post::Meterpreter::TLV_TYPE_STRING, 'value' => "test2" },
+        { 'type' => Rex::Post::Meterpreter::TLV_TYPE_UINT, 'value' => 5 }
       ]
       group_tlv.add_tlvs(tlv_array)
-      @raw_group =  "\x00\x00\x00/@\x00\x005\x00\x00\x00\r\x00\x01\x00\ntest\x00\x00\x00\x00\x0E\x00\x01\x00\ntest2\x00\x00\x00\x00\f\x00\x02\x00\v\x00\x00\x00\x05"
+      @raw_group = "\x00\x00\x00/@\x00\x005\x00\x00\x00\r\x00\x01\x00\ntest\x00\x00\x00\x00\x0E\x00\x01\x00\ntest2\x00\x00\x00\x00\f\x00\x02\x00\v\x00\x00\x00\x05"
     end
 
     it "should empty the array of TLV when reset is called" do
@@ -270,17 +270,15 @@ RSpec.describe Rex::Post::Meterpreter::GroupTlv do
       expect(group_tlv.to_r).to eq @raw_group
     end
 
-
     context "#from_r" do
       it "should build the TLV group when given the propper raw bytes" do
         group_tlv.reset
-        group_tlv.from_r( @raw_group)
+        group_tlv.from_r(@raw_group)
         expect(group_tlv.tlvs[0].inspect).to eq "#<Rex::Post::Meterpreter::Tlv type=STRING          meta=STRING     value=\"test\">"
         expect(group_tlv.tlvs[1].inspect).to eq "#<Rex::Post::Meterpreter::Tlv type=STRING          meta=STRING     value=\"test2\">"
         expect(group_tlv.tlvs[2].inspect).to eq "#<Rex::Post::Meterpreter::Tlv type=UINT            meta=INT        value=5>"
       end
     end
-
 
     context "#get_tlvs" do
       it "should return all TLVs of the supplied type" do
@@ -311,11 +309,11 @@ RSpec.describe Rex::Post::Meterpreter::GroupTlv do
       end
 
       it "should return the correct TLV of the specified type for the given index" do
-        expect(group_tlv.get_tlv(Rex::Post::Meterpreter::TLV_TYPE_STRING,1)).to eq group_tlv.tlvs[1]
+        expect(group_tlv.get_tlv(Rex::Post::Meterpreter::TLV_TYPE_STRING, 1)).to eq group_tlv.tlvs[1]
       end
 
       it "should return nil if given an out of bounds index" do
-        expect(group_tlv.get_tlv(Rex::Post::Meterpreter::TLV_TYPE_STRING,5)).to eq nil
+        expect(group_tlv.get_tlv(Rex::Post::Meterpreter::TLV_TYPE_STRING, 5)).to eq nil
       end
 
       it "should return nil if given a non-present TLV type" do
@@ -329,11 +327,11 @@ RSpec.describe Rex::Post::Meterpreter::GroupTlv do
       end
 
       it "should return the correct TLV value of the specified type for the given index" do
-        expect(group_tlv.get_tlv_value(Rex::Post::Meterpreter::TLV_TYPE_STRING,1)).to eq group_tlv.tlvs[1].value
+        expect(group_tlv.get_tlv_value(Rex::Post::Meterpreter::TLV_TYPE_STRING, 1)).to eq group_tlv.tlvs[1].value
       end
 
       it "should return nil if given an out of bounds index" do
-        expect(group_tlv.get_tlv_value(Rex::Post::Meterpreter::TLV_TYPE_STRING,5)).to eq nil
+        expect(group_tlv.get_tlv_value(Rex::Post::Meterpreter::TLV_TYPE_STRING, 5)).to eq nil
       end
 
       it "should return nil if given a non-present TLV type" do
@@ -365,12 +363,12 @@ end
 
 RSpec.describe Rex::Post::Meterpreter::Packet do
   context "Request Packet" do
-    subject(:packet) {
+    subject(:packet) do
       Rex::Post::Meterpreter::Packet.new(
         Rex::Post::Meterpreter::PACKET_TYPE_REQUEST,
         "test_method"
       )
-    }
+    end
 
     it "should respond to created_at" do
       expect(packet).to respond_to :created_at
@@ -414,7 +412,7 @@ RSpec.describe Rex::Post::Meterpreter::Packet do
     end
 
     it "should accept new methods" do
-      packet.method= "test_method2"
+      packet.method = "test_method2"
       expect(packet.method?("test_method2")).to eq true
     end
 
@@ -448,12 +446,12 @@ RSpec.describe Rex::Post::Meterpreter::Packet do
   end
 
   context "a response packet" do
-    subject(:packet) {
+    subject(:packet) do
       Rex::Post::Meterpreter::Packet.new(
         Rex::Post::Meterpreter::PACKET_TYPE_RESPONSE,
         "test_method"
       )
-    }
+    end
     before(:example) do
       packet.add_tlv(Rex::Post::Meterpreter::TLV_TYPE_RESULT, "a-ok")
     end
@@ -477,6 +475,5 @@ RSpec.describe Rex::Post::Meterpreter::Packet do
       expect(resp.class).to eq Rex::Post::Meterpreter::Packet
       expect(resp.response?).to eq true
     end
-
   end
 end

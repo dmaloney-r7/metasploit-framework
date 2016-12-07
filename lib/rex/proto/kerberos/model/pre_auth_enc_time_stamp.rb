@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 module Rex
@@ -7,7 +8,6 @@ module Rex
         # This class is a representation of a PA-ENC-TIMESTAMP, an encrypted timestamp sent
         # as pre authenticated data
         class PreAuthEncTimeStamp < Element
-
           CRYPTO_MSG_TYPE = 1
 
           # @!attribute pa_time_stamp
@@ -54,7 +54,7 @@ module Rex
           # @return [String] the encrypted result
           # @raise [NotImplementedError] if encryption schema isn't supported
           def encrypt(etype, key)
-            data = self.encode
+            data = encode
 
             res = ''
             case etype

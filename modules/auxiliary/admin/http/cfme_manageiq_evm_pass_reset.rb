@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -9,7 +10,6 @@ require 'digest'
 require 'openssl'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
 
   def initialize
@@ -86,7 +86,7 @@ class MetasploitModule < Msf::Auxiliary
     end
 
     if res.body =~ /"Error: (.*)"/
-      print_error($1)
+      print_error(Regexp.last_match(1))
       false
     else
       true
@@ -110,10 +110,10 @@ class MetasploitModule < Msf::Auxiliary
     end
 
     if res.body =~ /"Error: (.*)"/
-      print_error($1)
+      print_error(Regexp.last_match(1))
       return
     else
-      session = $1 if res.get_cookies =~ /_vmdb_session=(\h*)/
+      session = Regexp.last_match(1) if res.get_cookies =~ /_vmdb_session=(\h*)/
 
       if session.nil?
         print_error('Failed to retrieve the current session id')

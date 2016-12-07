@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 require 'rex/proto/kademlia/bootstrap_request'

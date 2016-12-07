@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 RSpec.shared_examples_for 'Msf::Module::Network' do
   it { is_expected.to respond_to :comm }
   it { is_expected.to respond_to :support_ipv6? }

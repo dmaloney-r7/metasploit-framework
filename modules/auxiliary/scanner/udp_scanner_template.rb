@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -28,16 +29,18 @@ class MetasploitModule < Msf::Auxiliary
     )
 
     register_options(
-    [
-      # TODO: change to the port you need to scan
-      Opt::RPORT(12345)
-    ], self.class)
+      [
+        # TODO: change to the port you need to scan
+        Opt::RPORT(12345)
+      ], self.class
+    )
 
     # TODO: add any advanced, special options here, otherwise remove
     register_advanced_options(
-    [
-      OptBool.new('SPECIAL', [true, 'Try this special thing', false])
-    ], self.class)
+      [
+        OptBool.new('SPECIAL', [true, 'Try this special thing', false])
+      ], self.class
+    )
   end
 
   def setup

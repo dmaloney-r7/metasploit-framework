@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -11,23 +12,22 @@ class MetasploitModule < Msf::Post
   include Msf::Post::Windows::Priv
   include Msf::Post::Windows::Registry
 
-  def initialize(info={})
+  def initialize(info = {})
     super(update_info(info,
-      'Name'          => 'Windows Gather Prefetch File Information',
-      'Description'   => %q{
-        This module gathers prefetch file information from WinXP, Win2k3 and Win7 systems
-        and current values of related registry keys. From each prefetch file we'll collect
-        filetime (converted to utc) of the last execution, file path hash, run count, filename
-        and the execution path.
-      },
-      'License'       => MSF_LICENSE,
-      'Author'        => ['TJ Glad <tjglad[at]cmail.nu>'],
-      'Platform'      => ['win'],
-      'SessionType'   => ['meterpreter']
-    ))
+                      'Name'          => 'Windows Gather Prefetch File Information',
+                      'Description'   => %q{
+                        This module gathers prefetch file information from WinXP, Win2k3 and Win7 systems
+                        and current values of related registry keys. From each prefetch file we'll collect
+                        filetime (converted to utc) of the last execution, file path hash, run count, filename
+                        and the execution path.
+                      },
+                      'License'       => MSF_LICENSE,
+                      'Author'        => ['TJ Glad <tjglad[at]cmail.nu>'],
+                      'Platform'      => ['win'],
+                      'SessionType'   => ['meterpreter']))
   end
 
-  def print_prefetch_key_value()
+  def print_prefetch_key_value
     # Checks if Prefetch registry key exists and what value it has.
     prefetch_key_value = registry_getvaldata("HKLM\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management\\PrefetchParameters", "EnablePrefetcher")
     if prefetch_key_value == 0
@@ -47,7 +47,7 @@ class MetasploitModule < Msf::Post
     # Looks for timezone information from registry.
     timezone = registry_getvaldata("HKLM\\SYSTEM\\CurrentControlSet\\Control\\TimeZoneInformation", key_value)
     tz_bias = registry_getvaldata("HKLM\\SYSTEM\\CurrentControlSet\\Control\\TimeZoneInformation", "Bias")
-    if timezone.nil? or tz_bias.nil?
+    if timezone.nil? || tz_bias.nil?
       print_line("Couldn't find key/value for timezone from registry.")
     else
       print_good("Remote: Timezone is %s." % timezone)
@@ -107,18 +107,14 @@ class MetasploitModule < Msf::Post
         fpath_data_array.each do |path|
           unless path.blank?
             fpath_name = path.split("\\").last.gsub(/\0/, '')
-            if fpath_name == name
-              filepath << path
-            end
+            filepath << path if fpath_name == name
           end
         end
       end
     end
-    if filepath.blank?
-      filepath << "*** Filepath not found ***"
-    end
+    filepath << "*** Filepath not found ***" if filepath.blank?
 
-    return [last_exec, path_hash, run_count, name, filepath[0]]
+    [last_exec, path_hash, run_count, name, filepath[0]]
   end
 
   def run
@@ -133,9 +129,9 @@ class MetasploitModule < Msf::Post
     sysnfo = client.sys.config.sysinfo['OS']
     error_msg = "You don't have enough privileges. Try getsystem."
 
-    if sysnfo =~/(Windows XP|2003|.NET)/
+    if sysnfo =~ /(Windows XP|2003|.NET)/
 
-      if not is_admin?
+      unless is_admin?
         print_error(error_msg)
         return nil
       end
@@ -149,8 +145,8 @@ class MetasploitModule < Msf::Post
       # Registry key for timezone
       key_value = "StandardName"
 
-    elsif sysnfo =~/(Windows 7)/
-      if not is_admin?
+    elsif sysnfo =~ /(Windows 7)/
+      unless is_admin?
         print_error(error_msg)
         return nil
       end
@@ -178,7 +174,8 @@ class MetasploitModule < Msf::Post
         "Hash",
         "Filename",
         "Filepath"
-      ])
+      ]
+    )
 
     print_prefetch_key_value
     print_timezone_key_values(key_value)
@@ -192,19 +189,17 @@ class MetasploitModule < Msf::Post
     # gather_pf_info function that enumerates all the pf info
 
     getfile_prefetch_filenames = client.fs.file.search(full_path, file_type)
-    if getfile_prefetch_filenames.empty? or getfile_prefetch_filenames.nil?
+    if getfile_prefetch_filenames.empty? || getfile_prefetch_filenames.nil?
       print_error("Could not find/access any .pf files. Can't continue. (Might be temporary error..)")
       return nil
     else
       getfile_prefetch_filenames.each do |file|
-        if file.empty? or file.nil?
+        if file.empty? || file.nil?
           next
         else
           filename = ::File.join(file['path'], file['name'])
           pf_entry = gather_pf_info(name_offset, hash_offset, runcount_offset, filetime_offset, filename)
-          if not pf_entry.nil?
-            table << pf_entry
-          end
+          table << pf_entry unless pf_entry.nil?
         end
       end
     end

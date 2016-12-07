@@ -1,10 +1,11 @@
+# frozen_string_literal: true
 require 'pathname'
 require 'rubygems'
 
 GEMFILE_EXTENSIONS = [
-    '.local',
-    ''
-]
+  '.local',
+  ''
+].freeze
 
 msfenv_real_pathname = Pathname.new(__FILE__).realpath
 root = msfenv_real_pathname.parent.parent
@@ -32,6 +33,4 @@ end
 
 lib_path = root.join('lib').to_path
 
-unless $LOAD_PATH.include? lib_path
-  $LOAD_PATH.unshift lib_path
-end
+$LOAD_PATH.unshift lib_path unless $LOAD_PATH.include? lib_path

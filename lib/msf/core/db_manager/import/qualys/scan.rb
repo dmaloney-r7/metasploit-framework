@@ -1,33 +1,33 @@
+# frozen_string_literal: true
 module Msf::DBManager::Import::Qualys::Scan
-  def import_qualys_scan_xml(args={}, &block)
+  def import_qualys_scan_xml(args = {}, &block)
     data = args[:data]
     wspace = args[:wspace] || workspace
     bl = validate_ips(args[:blacklist]) ? args[:blacklist].split : []
 
-
     doc = rexmlify(data)
     doc.elements.each('/SCAN/IP') do |host|
       hobj = nil
-      addr  = host.attributes['value']
+      addr = host.attributes['value']
       if bl.include? addr
         next
       else
-        yield(:address,addr) if block
+        yield(:address, addr) if block
       end
       hname = host.attributes['name'] || ''
 
-      hobj = report_host(:workspace => wspace, :host => addr, :name => hname, :state => Msf::HostState::Alive, :task => args[:task])
-      report_import_note(wspace,hobj)
+      hobj = report_host(workspace: wspace, host: addr, name: hname, state: Msf::HostState::Alive, task: args[:task])
+      report_import_note(wspace, hobj)
 
       if host.elements["OS"]
         hos = host.elements["OS"].text
         report_note(
-          :workspace => wspace,
-          :task => args[:task],
-          :host => hobj,
-          :type => 'host.os.qualys_fingerprint',
-          :data => {
-            :os => hos
+          workspace: wspace,
+          task: args[:task],
+          host: hobj,
+          type: 'host.os.qualys_fingerprint',
+          data: {
+            os: hos
           }
         )
       end
@@ -36,11 +36,11 @@ module Msf::DBManager::Import::Qualys::Scan
       services_tcp = host.elements["SERVICES/CAT/SERVICE[@number='82023']/RESULT"]
       if services_tcp
         services_tcp.text.scan(/([0-9]+)\t(.*?)\t.*?\t([^\t\n]*)/) do |match|
-          if match[2] == nil or match[2].strip == 'unknown'
-            name = match[1].strip
-          else
-            name = match[2].strip
-          end
+          name = if match[2].nil? || (match[2].strip == 'unknown')
+                   match[1].strip
+                 else
+                   match[2].strip
+                 end
           handle_qualys(wspace, hobj, match[0].to_s, 'tcp', 0, nil, nil, name, nil, args[:task])
         end
       end
@@ -48,11 +48,11 @@ module Msf::DBManager::Import::Qualys::Scan
       services_udp = host.elements["SERVICES/CAT/SERVICE[@number='82004']/RESULT"]
       if services_udp
         services_udp.text.scan(/([0-9]+)\t(.*?)\t.*?\t([^\t\n]*)/) do |match|
-          if match[2] == nil or match[2].strip == 'unknown'
-            name = match[1].strip
-          else
-            name = match[2].strip
-          end
+          name = if match[2].nil? || (match[2].strip == 'unknown')
+                   match[1].strip
+                 else
+                   match[2].strip
+                 end
           handle_qualys(wspace, hobj, match[0].to_s, 'udp', 0, nil, nil, name, nil, args[:task])
         end
       end
@@ -76,7 +76,7 @@ module Msf::DBManager::Import::Qualys::Scan
             refs.push('BID-' + ref.elements['ID'].text.to_s)
           end
 
-          handle_qualys(wspace, hobj, port, protocol, qid, severity, refs, nil,title, args[:task])
+          handle_qualys(wspace, hobj, port, protocol, qid, severity, refs, nil, title, args[:task])
         end
       end
     end
@@ -85,7 +85,7 @@ module Msf::DBManager::Import::Qualys::Scan
   #
   # Import Qualys' Scan xml output
   #
-  def import_qualys_scan_xml_file(args={})
+  def import_qualys_scan_xml_file(args = {})
     filename = args[:filename]
     wspace = args[:wspace] || workspace
 
@@ -93,6 +93,6 @@ module Msf::DBManager::Import::Qualys::Scan
     ::File.open(filename, 'rb') do |f|
       data = f.read(f.stat.size)
     end
-    import_qualys_scan_xml(args.merge(:data => data))
+    import_qualys_scan_xml(args.merge(data: data))
   end
 end

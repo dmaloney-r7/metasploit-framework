@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 #
 # framework-base
@@ -36,4 +37,3 @@ require 'msf/base/persistent_storage'
 
 # Utilities
 require 'msf/util'
-

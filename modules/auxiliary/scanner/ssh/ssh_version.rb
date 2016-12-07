@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -41,15 +42,14 @@ class MetasploitModule < Msf::Auxiliary
     datastore['TIMEOUT'] <= 0 ? DEFAULT_TIMEOUT : datastore['TIMEOUT']
   end
 
-
-  def run_host(target_host)
+  def run_host(_target_host)
     begin
       ::Timeout.timeout(timeout) do
         connect
 
         resp = sock.get_once(-1, timeout)
 
-        if ! resp
+        unless resp
           vprint_warning("No response")
           return
         end
@@ -62,13 +62,13 @@ class MetasploitModule < Msf::Auxiliary
           return
         end
 
-        banner = $1
+        banner = Regexp.last_match(1)
 
         # Try to match with Recog and show the relevant fields to the user
         recog_match = Recog::Nizer.match('ssh.banner', banner)
         if recog_match
           info << " ( "
-          recog_match.each_pair do |k,v|
+          recog_match.each_pair do |k, v|
             next if k == 'matched'
             info << "#{k}=#{v} "
           end

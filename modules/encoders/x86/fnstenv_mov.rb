@@ -1,28 +1,26 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 
-
 class MetasploitModule < Msf::Encoder::Xor
-
   def initialize
     super(
       'Name'             => 'Variable-length Fnstenv/mov Dword XOR Encoder',
-      'Description'      => %q{
+      'Description'      => %q(
         This encoder uses a variable-length mov equivalent instruction
         with fnstenv for getip.
-      },
+      ),
       'Author'           => 'spoonm',
       'Arch'             => ARCH_X86,
       'License'          => MSF_LICENSE,
       'Decoder'          =>
         {
           'KeySize'   => 4,
-          'BlockSize' => 4,
+          'BlockSize' => 4
         })
   end
 
@@ -31,17 +29,15 @@ class MetasploitModule < Msf::Encoder::Xor
   # being encoded.
   #
   def decoder_stub(state)
-
     # Sanity check that saved_registers doesn't overlap with modified_registers
-    if (modified_registers & saved_registers).length > 0
-      raise BadGenerateError
-    end
+    raise BadGenerateError unless (modified_registers & saved_registers).empty?
 
     decoder =
       Rex::Arch::X86.set(
         Rex::Arch::X86::ECX,
         (((state.buf.length - 1) / 4) + 1),
-        state.badchars) +
+        state.badchars
+      ) +
       "\xd9\xee" +              # fldz
       "\xd9\x74\x24\xf4" +      # fnstenv [esp - 12]
       "\x5b" +                  # pop ebx
@@ -51,7 +47,7 @@ class MetasploitModule < Msf::Encoder::Xor
 
     state.decoder_key_offset = decoder.index('XORK')
 
-    return decoder
+    decoder
   end
 
   # Indicate that this module can preserve some registers

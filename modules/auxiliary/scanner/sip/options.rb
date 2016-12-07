@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -20,10 +21,11 @@ class MetasploitModule < Msf::Auxiliary
     )
 
     register_options(
-    [
-      OptString.new('TO',   [false, 'The destination username to probe at each host', 'nobody']),
-      Opt::RPORT(5060)
-    ], self.class)
+      [
+        OptString.new('TO', [false, 'The destination username to probe at each host', 'nobody']),
+        Opt::RPORT(5060)
+      ], self.class
+    )
   end
 
   def scanner_prescan(batch)

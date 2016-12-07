@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 #
 # $Id$
 #
@@ -16,14 +17,14 @@
 #
 
 infile = ARGV[0]
-unless(infile && File.readable?(infile))
-  puts "Usage: #{$0} /path/to/module.rb"
+unless infile && File.readable?(infile)
+  puts "Usage: #{$PROGRAM_NAME} /path/to/module.rb"
   exit(1)
 end
 
 verbose = false
 
-mod = File.open(infile, "rb") {|f| f.read(f.stat.size)}
+mod = File.open(infile, "rb") { |f| f.read(f.stat.size) }
 
 regex = {}
 regex[:datastore] = /[^\x2e](datastore\x5b[\x22\x27]([^\x22\x27]+))/
@@ -44,7 +45,7 @@ unused_datastores = []
 mod.each_line do |line|
   next if line.match regex[:comment]
   datastores = line.scan regex[:datastore]
-  datastores.each {|ds| referenced_datastores << ds[1]}
+  datastores.each { |ds| referenced_datastores << ds[1] }
 end
 
 # Referenced datastore finder
@@ -55,7 +56,7 @@ mod.each_line do |line|
   next unless in_opts
   if line.match regex[:is_opt]
     # Assumes only one!
-    declared_datastores[$2] ||= $1
+    declared_datastores[Regexp.last_match(2)] ||= Regexp.last_match(1)
   end
 end
 
@@ -66,9 +67,9 @@ require 'msf/core' # Make sure this is in your path, or else all is for naught.
 
 mod.each_line do |line|
   if line.match regex[:class]
-    $class = ObjectSpace.class_eval($1)
+    $class = ObjectSpace.class_eval(Regexp.last_match(1))
   elsif line.match regex[:mixin]
-    mixin = $1
+    mixin = Regexp.last_match(1)
     begin
       $mixins << ObjectSpace.module_eval(mixin)
     rescue
@@ -79,7 +80,7 @@ mod.each_line do |line|
 end
 
 class Fakemod < $class
-  $mixins.each {|m| include m}
+  $mixins.each { |m| include m }
 end
 fakemod = Fakemod.new
 inhereted_datastores = fakemod.options.keys
@@ -91,24 +92,23 @@ unused_datastores = declared_datastores.keys - referenced_datastores
 
 if verbose
   puts "[+] --- Referenced datastore keys for #{infile}"
-  referenced_datastores.uniq.sort.each {|ds| puts ds}
+  referenced_datastores.uniq.sort.each { |ds| puts ds }
   puts "[+] --- Declared datastore keys for #{infile}"
-  declared_datastores.keys.sort.each {|opt| puts "%-30s%s" % [opt, declared_datastores[opt]] }
+  declared_datastores.keys.sort.each { |opt| puts "%-30s%s" % [opt, declared_datastores[opt]] }
 end
 
 unless undeclared_datastores.empty?
   puts "[-] %-60s : fail (undeclared)" % [infile]
   puts "[-] The following datastore elements are undeclared" if verbose
-  undeclared_datastores.uniq.sort.each {|opt| puts "    \e[31m#{opt}\e[0m" }
+  undeclared_datastores.uniq.sort.each { |opt| puts "    \e[31m#{opt}\e[0m" }
 end
 
 unless unused_datastores.empty?
   puts "[*] %-60s : warn (unused)" % [infile]
   puts "[*] The following datastore elements are unused" if verbose
-  unused_datastores.uniq.sort.each {|opt| puts "    \e[33m#{opt}\e[0m" }
+  unused_datastores.uniq.sort.each { |opt| puts "    \e[33m#{opt}\e[0m" }
 end
 
 if undeclared_datastores.empty? && unused_datastores.empty?
   puts "[+] %-60s : okay" % [infile]
 end
-

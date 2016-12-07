@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 module Msf::Module::DataStore
   #
   # Attributes
@@ -7,7 +8,7 @@ module Msf::Module::DataStore
   #   The module-specific datastore instance.
   #
   #   @return [Hash{String => String}]
-  attr_reader   :datastore
+  attr_reader :datastore
 
   #
   # Imports default options into the module's datastore, optionally clearing
@@ -15,13 +16,13 @@ module Msf::Module::DataStore
   #
   def import_defaults(clear_datastore = true)
     # Clear the datastore if the caller asked us to
-    self.datastore.clear if clear_datastore
+    datastore.clear if clear_datastore
 
-    self.datastore.import_options(self.options, 'self', true)
+    datastore.import_options(options, 'self', true)
 
     # If there are default options, import their values into the datastore
-    if (module_info['DefaultOptions'])
-      self.datastore.import_options_from_hash(module_info['DefaultOptions'], true, 'self')
+    if module_info['DefaultOptions']
+      datastore.import_options_from_hash(module_info['DefaultOptions'], true, 'self')
     end
   end
 
@@ -32,7 +33,7 @@ module Msf::Module::DataStore
   #
   def share_datastore(ds)
     self.datastore = ds
-    self.datastore.import_options(self.options)
+    datastore.import_options(options)
   end
 
   protected

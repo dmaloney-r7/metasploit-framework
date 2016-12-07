@@ -1,12 +1,11 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 require 'rex/nop/opty2'
-
 
 ###
 #
@@ -18,7 +17,6 @@ require 'rex/nop/opty2'
 #
 ###
 class MetasploitModule < Msf::Nop
-
   def initialize
     super(
       'Name'        => 'Opty2',
@@ -31,9 +29,9 @@ class MetasploitModule < Msf::Nop
   def generate_sled(length, opts = {})
     opty = Rex::Nop::Opty2.new(
       opts['BadChars'] || '',
-      opts['SaveRegisters'])
+      opts['SaveRegisters']
+    )
 
     opty.generate_sled(length)
   end
-
 end

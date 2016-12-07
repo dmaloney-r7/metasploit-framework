@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,22 +8,20 @@ require 'msf/core'
 require 'rex'
 require 'rex/parser/ini'
 
-
 class MetasploitModule < Msf::Post
   include Msf::Post::Windows::Registry
 
-  def initialize(info={})
-    super( update_info( info,
-        'Name'          => 'Windows Gather Avira Password Extraction',
-        'Description'   => %q{
-          This module extracts the weakly hashed password
-          which is used to protect a Avira Antivirus (<= 15.0.17.273) installation.
-        },
-        'License'       => MSF_LICENSE,
-        'Author'        => [ 'Robert Kugler / robertchrk'],
-        'Platform'      => [ 'win' ],
-        'SessionTypes'  => [ 'meterpreter' ]
-      ))
+  def initialize(info = {})
+    super(update_info(info,
+                      'Name'          => 'Windows Gather Avira Password Extraction',
+                      'Description'   => %q{
+                        This module extracts the weakly hashed password
+                        which is used to protect a Avira Antivirus (<= 15.0.17.273) installation.
+                      },
+                      'License'       => MSF_LICENSE,
+                      'Author'        => [ 'Robert Kugler / robertchrk'],
+                      'Platform'      => [ 'win' ],
+                      'SessionTypes'  => [ 'meterpreter' ]))
   end
 
   def run
@@ -56,5 +55,4 @@ class MetasploitModule < Msf::Post
     print_good("MD5(Unicode) hash found: #{passwd}")
     print_good("Info: Password length is limited to 20 characters.")
   end
-
 end

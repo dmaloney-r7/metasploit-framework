@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 #
 # $Id$
 #
@@ -12,19 +13,17 @@ while File.symlink?(msfbase)
   msfbase = File.expand_path(File.readlink(msfbase), File.dirname(msfbase))
 end
 
-$:.unshift(File.expand_path(File.join(File.dirname(msfbase), '..', '..', 'lib')))
+$LOAD_PATH.unshift(File.expand_path(File.join(File.dirname(msfbase), '..', '..', 'lib')))
 require 'msfenv'
 
-$:.unshift(ENV['MSF_LOCAL_LIB']) if ENV['MSF_LOCAL_LIB']
+$LOAD_PATH.unshift(ENV['MSF_LOCAL_LIB']) if ENV['MSF_LOCAL_LIB']
 
 require 'rex'
 require 'msf/ui'
 require 'msf/base'
 
 def lic_short(l)
-  if (l.class == Array)
-    l = l[0]
-  end
+  l = l[0] if l.class == Array
 
   case l
   when MSF_LICENSE
@@ -40,22 +39,21 @@ def lic_short(l)
   end
 end
 
-
-sort=0
-filter= 'All'
-filters = ['all','exploit','payload','post','nop','encoder','auxiliary']
-reg=0
-regex= ''
+sort = 0
+filter = 'All'
+filters = ['all', 'exploit', 'payload', 'post', 'nop', 'encoder', 'auxiliary']
+reg = 0
+regex = ''
 
 opts = Rex::Parser::Arguments.new(
   "-h" => [ false, "Help menu." ],
   "-s" => [ false, "Sort by License instead of Module Type."],
   "-r" => [ false, "Reverse Sort"],
-  "-f" => [ true, "Filter based on Module Type [#{filters.map{|f|f.capitalize}.join(", ")}] (Default = All)."],
+  "-f" => [ true, "Filter based on Module Type [#{filters.map(&:capitalize).join(', ')}] (Default = All)."],
   "-x" => [ true, "String or RegEx to try and match against the License Field"]
 )
 
-opts.parse(ARGV) { |opt, idx, val|
+opts.parse(ARGV) do |opt, _idx, val|
   case opt
   when "-h"
     puts "\nMetasploit Script for Displaying Module License information."
@@ -71,21 +69,17 @@ opts.parse(ARGV) { |opt, idx, val|
   when "-f"
     unless filters.include?(val.downcase)
       puts "Invalid Filter Supplied: #{val}"
-      puts "Please use one of these: #{filters.map{|f|f.capitalize}.join(", ")}"
+      puts "Please use one of these: #{filters.map(&:capitalize).join(', ')}"
       exit
     end
     puts "Module Filter: #{val}"
     filter = val
   when "-x"
     puts "Regex: #{val}"
-    reg=1
+    reg = 1
     regex = val
   end
-
-}
-
-
-
+end
 
 Indent = '    '
 
@@ -94,35 +88,30 @@ Indent = '    '
 framework_opts = { 'DisableDatabase' => true }
 
 # If the user only wants a particular module type, no need to load the others
-if filter.downcase != 'all'
+unless filter.casecmp('all').zero?
   framework_opts[:module_types] = [ filter.downcase ]
 end
 
 # Initialize the simplified framework instance.
 $framework = Msf::Simple::Framework.create(framework_opts)
 
-
 tbl = Rex::Text::Table.new(
   'Header'  => 'Licensed Modules',
   'Indent'  => Indent.length,
-  'Columns' => [ 'License','Type', 'Name' ]
+  'Columns' => [ 'License', 'Type', 'Name' ]
 )
 
 licenses = {}
 
-$framework.modules.each { |name, mod|
+$framework.modules.each do |name, mod|
   x = mod.new
   lictype = lic_short(x.license)
-  if reg==0 or lictype=~/#{regex}/
+  if (reg == 0) || lictype =~ /#{regex}/
     tbl << [ lictype, mod.type.capitalize, name ]
   end
-}
-
-
-if sort == 1
-  tbl.sort_rows(0)
 end
 
+tbl.sort_rows(0) if sort == 1
 
 if sort == 2
   tbl.sort_rows(1)

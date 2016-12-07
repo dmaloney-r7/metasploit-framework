@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,16 +8,15 @@ require 'msf/core'
 require 'rex/proto/dhcp'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::DHCPServer
   include Msf::Auxiliary::Report
 
   def initialize
     super(
-      'Name'        => 'DHCP Server',
-      'Description'    => %q{
+      'Name' => 'DHCP Server',
+      'Description' => %q(
         This module provides a DHCP service
-      },
+      ),
       'Author'      => [ 'scriptjunkie', 'apconole@yahoo.com' ],
       'License'     => MSF_LICENSE,
       'Actions'     =>
@@ -29,7 +29,6 @@ class MetasploitModule < Msf::Auxiliary
         ],
       'DefaultAction'  => 'Service'
     )
-
   end
 
   def run
@@ -40,12 +39,9 @@ class MetasploitModule < Msf::Auxiliary
     add_socket(@dhcp.sock)
 
     # Wait for finish..
-    while @dhcp.thread.alive?
-      select(nil, nil, nil, 2)
-    end
+    select(nil, nil, nil, 2) while @dhcp.thread.alive?
 
     print_status("Stopping DHCP server...")
     @dhcp.stop
   end
-
 end

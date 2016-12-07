@@ -1,7 +1,7 @@
+# frozen_string_literal: true
 module Metasploit
   module Framework
     module JtR
-
       class JohnNotFoundError < StandardError
       end
 
@@ -48,24 +48,24 @@ module Metasploit
         #   @return [String] The file path to the wordlist to use
         attr_accessor :wordlist
 
-        validates :config, :'Metasploit::Framework::File_path' => true, if: 'config.present?'
+        validates :config, 'Metasploit::Framework::File_path': true, if: 'config.present?'
 
-        validates :hash_path, :'Metasploit::Framework::File_path' => true, if: 'hash_path.present?'
+        validates :hash_path, 'Metasploit::Framework::File_path': true, if: 'hash_path.present?'
 
-        validates :john_path, :'Metasploit::Framework::Executable_path' => true, if: 'john_path.present?'
+        validates :john_path, 'Metasploit::Framework::Executable_path': true, if: 'john_path.present?'
 
-        validates :pot, :'Metasploit::Framework::File_path' => true, if: 'pot.present?'
+        validates :pot, 'Metasploit::Framework::File_path': true, if: 'pot.present?'
 
         validates :max_runtime,
                   numericality: {
-                      only_integer:             true,
-                      greater_than_or_equal_to: 0
+                    only_integer:             true,
+                    greater_than_or_equal_to: 0
                   }, if: 'max_runtime.present?'
 
-        validates :wordlist, :'Metasploit::Framework::File_path' => true, if: 'wordlist.present?'
+        validates :wordlist, 'Metasploit::Framework::File_path': true, if: 'wordlist.present?'
 
         # @param attributes [Hash{Symbol => String,nil}]
-        def initialize(attributes={})
+        def initialize(attributes = {})
           attributes.each do |attribute, value|
             public_send("#{attribute}=", value)
           end
@@ -83,11 +83,9 @@ module Metasploit
           else
             # Look in the Environment PATH for the john binary
             path = Rex::FileUtils.find_full_path("john") ||
-                Rex::FileUtils.find_full_path("john.exe")
+                   Rex::FileUtils.find_full_path("john.exe")
 
-            if path && ::File.file?(path)
-              bin_path = path
-            end
+            bin_path = path if path && ::File.file?(path)
           end
           raise JohnNotFoundError, 'No suitable John binary was found on the system' if bin_path.blank?
           bin_path
@@ -112,39 +110,29 @@ module Metasploit
         # @return [Array] An array set up for {::IO.popen} to use
         def crack_command
           cmd_string = binary_path
-          cmd = [ cmd_string,  '--session=' + john_session_id, '--nolog' ]
+          cmd = [ cmd_string, '--session=' + john_session_id, '--nolog' ]
 
-          if config.present?
-            cmd << ( "--config=" + config )
-          else
-            cmd << ( "--config=" + john_config_file )
-          end
+          cmd << if config.present?
+                   ("--config=" + config)
+                 else
+                   ("--config=" + john_config_file)
+                 end
 
-          if pot.present?
-            cmd << ( "--pot=" + pot )
-          else
-            cmd << ( "--pot=" + john_pot_file)
-          end
+          cmd << if pot.present?
+                   ("--pot=" + pot)
+                 else
+                   ("--pot=" + john_pot_file)
+                 end
 
-          if format.present?
-            cmd << ( "--format=" + format )
-          end
+          cmd << ("--format=" + format) if format.present?
 
-          if wordlist.present?
-            cmd << ( "--wordlist=" + wordlist )
-          end
+          cmd << ("--wordlist=" + wordlist) if wordlist.present?
 
-          if incremental.present?
-            cmd << ( "--incremental=" + incremental )
-          end
+          cmd << ("--incremental=" + incremental) if incremental.present?
 
-          if rules.present?
-            cmd << ( "--rules=" + rules )
-          end
+          cmd << ("--rules=" + rules) if rules.present?
 
-          if max_runtime.present?
-            cmd << ( "--max-run-time=" + max_runtime.to_s)
-          end
+          cmd << ("--max-run-time=" + max_runtime.to_s) if max_runtime.present?
 
           cmd << hash_path
         end
@@ -165,14 +153,14 @@ module Metasploit
         #
         # @return [String] the path to the default john.conf file
         def john_config_file
-          ::File.join( ::Msf::Config.data_directory, "john.conf" )
+          ::File.join(::Msf::Config.data_directory, "john.conf")
         end
 
         # This method returns the path to a default john.pot file.
         #
         # @return [String] the path to the default john.pot file
         def john_pot_file
-          ::File.join( ::Msf::Config.config_directory, "john.pot" )
+          ::File.join(::Msf::Config.config_directory, "john.pot")
         end
 
         # This method is a getter for a random Session ID for John.
@@ -193,22 +181,17 @@ module Metasploit
           pot_file = pot || john_pot_file
           cmd = [cmd_string, "--show", "--pot=#{pot_file}", "--format=#{format}" ]
 
-          if config
-            cmd << "--config=#{config}"
-          else
-            cmd << ( "--config=" + john_config_file )
-          end
+          cmd << if config
+                   "--config=#{config}"
+                 else
+                   ("--config=" + john_config_file)
+                 end
 
           cmd << hash_path
         end
 
         private
-
-
-
-
       end
-
     end
   end
 end

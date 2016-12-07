@@ -1,83 +1,78 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 module Rex
-module Post
-module Meterpreter
+  module Post
+    module Meterpreter
+      ###
+      #
+      # Mixin for classes that wish to have object aliases but do not
+      # really need to inherit from the ObjectAliases class.
+      #
+      ###
+      module ObjectAliasesContainer
+        #
+        # Initialize the instance's aliases.
+        #
+        def initialize_aliases(aliases = {})
+          self.aliases = aliases
+        end
 
-###
-#
-# Mixin for classes that wish to have object aliases but do not
-# really need to inherit from the ObjectAliases class.
-#
-###
-module ObjectAliasesContainer
+        #
+        # Pass-thru aliases.
+        #
+        def method_missing(symbol, *_args)
+          aliases[symbol.to_s]
+        end
 
-  #
-  # Initialize the instance's aliases.
-  #
-  def initialize_aliases(aliases = {})
-    self.aliases = aliases
-  end
+        #
+        # Recursively dumps all of the aliases registered with a class that
+        # is kind_of? ObjectAliases.
+        #
+        def dump_alias_tree(parent_path, current = nil)
+          items = []
 
-  #
-  # Pass-thru aliases.
-  #
-  def method_missing(symbol, *args)
-    self.aliases[symbol.to_s]
-  end
+          current = self if current.nil?
 
-  #
-  # Recursively dumps all of the aliases registered with a class that
-  # is kind_of? ObjectAliases.
-  #
-  def dump_alias_tree(parent_path, current = nil)
-    items = []
+          # If the current object may have object aliases...
+          if current.is_a?(Rex::Post::Meterpreter::ObjectAliases)
+            current.aliases.each_key do |x|
+              current_path = parent_path + '.' + x
 
-    if (current == nil)
-      current = self
-    end
+              items << current_path
 
-    # If the current object may have object aliases...
-    if (current.kind_of?(Rex::Post::Meterpreter::ObjectAliases))
-      current.aliases.each_key { |x|
-        current_path = parent_path + '.' + x
+              items.concat(dump_alias_tree(current_path,
+                                           current.aliases[x]))
+            end
+          end
 
-        items << current_path
+          items
+        end
 
-        items.concat(dump_alias_tree(current_path,
-          current.aliases[x]))
-      }
-    end
+        #
+        # The hash of aliases.
+        #
+        attr_accessor :aliases
+      end
 
-    return items
-  end
+      ###
+      #
+      # Generic object aliases from a class instance referenced symbol to an
+      # associated object of an arbitrary type
+      #
+      ###
+      class ObjectAliases
+        include Rex::Post::Meterpreter::ObjectAliasesContainer
 
-  #
-  # The hash of aliases.
-  #
-  attr_accessor :aliases
-end
+        ##
+        #
+        # Constructor
+        #
+        ##
 
-###
-#
-# Generic object aliases from a class instance referenced symbol to an
-# associated object of an arbitrary type
-#
-###
-class ObjectAliases
-  include Rex::Post::Meterpreter::ObjectAliasesContainer
-
-  ##
-  #
-  # Constructor
-  #
-  ##
-
-  # An instance
-  def initialize(aliases = {})
-    initialize_aliases(aliases)
-  end
-end
-
-
-end; end; end
+        # An instance
+        def initialize(aliases = {})
+          initialize_aliases(aliases)
+        end
+      end
+      end; end; end

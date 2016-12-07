@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 ##
 #
@@ -9,9 +10,7 @@
 
 module Net
   module DNS
-
     class RR
-      
       #------------------------------------------------------------
       # RR type MR
       #------------------------------------------------------------
@@ -19,7 +18,7 @@ module Net
         attr_reader :newname
 
         private
-        
+
         def check_name(name)
           unless name =~ /(\w\.?)+\s*$/
             raise RRArgumentError, "Name not valid: #{name.inspect}"
@@ -41,11 +40,11 @@ module Net
         end
 
         def get_inspect
-          "#@newname"
+          @newname.to_s
         end
-          
+
         def subclass_new_from_hash(args)
-          if args.has_key? :newname
+          if args.key? :newname
             @newname = check_name args[:newname]
           else
             raise RRArgumentError, ":newname field is mandatory but missing"
@@ -56,13 +55,11 @@ module Net
           @newname = check_name(str)
         end
 
-        def subclass_new_from_array(data,offset)
-          @newname = dn_expand(data,offset)
-          return offset
+        def subclass_new_from_array(data, offset)
+          @newname = dn_expand(data, offset)
+          offset
         end
-        
       end # class MR
-
     end # class RR
   end # module DNS
 end # module Net

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 require 'msf/core'
 
@@ -8,12 +9,11 @@ require 'msf/core'
 #
 ###
 class Msf::Module::Reference
-
   #
   # Serialize a reference from a string.
   #
   def self.from_s(str)
-    return self.new(str)
+    new(str)
   end
 
   #
@@ -27,14 +27,14 @@ class Msf::Module::Reference
   # Compares references to see if their equal.
   #
   def ==(tgt)
-    return (tgt.to_s == to_s)
+    (tgt.to_s == to_s)
   end
 
   #
   # Returns the reference as a string.
   #
   def to_s
-    return self.str
+    str
   end
 
   #
@@ -49,10 +49,9 @@ class Msf::Module::Reference
   #
   attr_reader :str
 
-protected
+  protected
 
   attr_writer :str # :nodoc:
-
 end
 
 ###
@@ -61,18 +60,15 @@ end
 #
 ###
 class Msf::Module::SiteReference < Msf::Module::Reference
-
   #
   # Class method that translates a URL into a site reference instance.
   #
   def self.from_s(str)
-    instance = self.new
+    instance = new
 
-    if (instance.from_s(str) == false)
-      return nil
-    end
+    return nil if instance.from_s(str) == false
 
-    return instance
+    instance
   end
 
   #
@@ -80,9 +76,9 @@ class Msf::Module::SiteReference < Msf::Module::Reference
   # ary[1] is the site context identifier, such as CVE.
   #
   def self.from_a(ary)
-    return nil if (ary.length < 2)
+    return nil if ary.length < 2
 
-    self.new(ary[0], ary[1])
+    new(ary[0], ary[1])
   end
 
   #
@@ -95,29 +91,29 @@ class Msf::Module::SiteReference < Msf::Module::Reference
     self.ctx_id  = in_ctx_id
     self.ctx_val = in_ctx_val
 
-    if (in_ctx_id == 'CVE')
+    if in_ctx_id == 'CVE'
       self.site = "http://cvedetails.com/cve/#{in_ctx_val}/"
-    elsif (in_ctx_id == 'CWE')
+    elsif in_ctx_id == 'CWE'
       self.site = "https://cwe.mitre.org/data/definitions/#{in_ctx_val}.html"
-    elsif (in_ctx_id == 'BID')
+    elsif in_ctx_id == 'BID'
       self.site = "http://www.securityfocus.com/bid/#{in_ctx_val}"
-    elsif (in_ctx_id == 'MSB')
+    elsif in_ctx_id == 'MSB'
       self.site = "http://technet.microsoft.com/en-us/security/bulletin/#{in_ctx_val}"
-    elsif (in_ctx_id == 'EDB')
+    elsif in_ctx_id == 'EDB'
       self.site = "https://www.exploit-db.com/exploits/#{in_ctx_val}"
-    elsif (in_ctx_id == 'US-CERT-VU')
+    elsif in_ctx_id == 'US-CERT-VU'
       self.site = "http://www.kb.cert.org/vuls/id/#{in_ctx_val}"
-    elsif (in_ctx_id == 'ZDI')
+    elsif in_ctx_id == 'ZDI'
       self.site = "http://www.zerodayinitiative.com/advisories/ZDI-#{in_ctx_val}"
-    elsif (in_ctx_id == 'WPVDB')
+    elsif in_ctx_id == 'WPVDB'
       self.site = "https://wpvulndb.com/vulnerabilities/#{in_ctx_val}"
-    elsif (in_ctx_id == 'PACKETSTORM')
+    elsif in_ctx_id == 'PACKETSTORM'
       self.site = "https://packetstormsecurity.com/files/#{in_ctx_val}"
-    elsif (in_ctx_id == 'URL')
+    elsif in_ctx_id == 'URL'
       self.site = in_ctx_val.to_s
     else
       self.site  = in_ctx_id
-      self.site += " (#{in_ctx_val})" if (in_ctx_val)
+      self.site += " (#{in_ctx_val})" if in_ctx_val
     end
   end
 
@@ -125,14 +121,14 @@ class Msf::Module::SiteReference < Msf::Module::Reference
   # Returns the absolute site URL.
   #
   def to_s
-    return site || ''
+    site || ''
   end
 
   #
   # Serializes a site URL string.
   #
   def from_s(str)
-    if (/(http:\/\/|https:\/\/|ftp:\/\/)/.match(str))
+    if /(http:\/\/|https:\/\/|ftp:\/\/)/.match(str)
       self.site = str
       self.ctx_id  = 'URL'
       self.ctx_val = self.site
@@ -140,7 +136,7 @@ class Msf::Module::SiteReference < Msf::Module::Reference
       return false
     end
 
-    return true
+    true
   end
 
   #
@@ -156,8 +152,7 @@ class Msf::Module::SiteReference < Msf::Module::Reference
   #
   attr_reader :ctx_val
 
-protected
+  protected
 
   attr_writer :site, :ctx_id, :ctx_val
-
 end

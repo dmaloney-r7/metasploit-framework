@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 module Rex
@@ -7,7 +8,6 @@ module Rex
         # This class provides a representation of a principal, an asset (e.g., a
         # workstation user or a network server) on a network.
         class Element
-
           include Rex::Proto::Kerberos::Crypto
           include Rex::Proto::Kerberos::Model
 
@@ -20,20 +20,20 @@ module Rex
           # Retrieves the element class fields
           #
           # @return [Array]
-          def self.attributes
-            @attributes
+          class << self
+            attr_reader :attributes
           end
 
           def self.decode(input)
-            elem = self.new
+            elem = new
             elem.decode(input)
           end
 
           def initialize(options = {})
             self.class.attributes.each do |attr|
-              if options.has_key?(attr)
+              if options.key?(attr)
                 m = (attr.to_s + '=').to_sym
-                self.send(m, options[attr])
+                send(m, options[attr])
               end
             end
           end
@@ -49,7 +49,7 @@ module Rex
           # method has been designed to be overridden by subclasses.
           #
           # @raise [NoMethodError]
-          def decode(input)
+          def decode(_input)
             raise ::NoMethodError, 'Method designed to be overridden'
           end
 

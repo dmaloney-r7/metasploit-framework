@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 RSpec.shared_examples_for 'Msf::DBManager::Service' do
   it { is_expected.to respond_to :del_service }
   it { is_expected.to respond_to :each_service }

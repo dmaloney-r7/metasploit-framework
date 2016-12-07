@@ -1,14 +1,12 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 
-
 class MetasploitModule < Msf::Auxiliary
-
   # Exploit mixins should be called first
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::WmapScanServer
@@ -26,64 +24,58 @@ class MetasploitModule < Msf::Auxiliary
 
     register_options(
       [
-        OptString.new('PATH', [ true,  "The test path to the page to analize", '/']),
-        OptRegexp.new('PATTERN', [ true,  "The regex to use (default regex is a sample to grab page title)", '<title>(.*)</title>'])
+        OptString.new('PATH', [ true, "The test path to the page to analize", '/']),
+        OptRegexp.new('PATTERN', [ true, "The regex to use (default regex is a sample to grab page title)", '<title>(.*)</title>'])
 
-      ], self.class)
-
+      ], self.class
+    )
   end
 
   def run_host(target_host)
-
     tpath = normalize_uri(datastore['PATH'])
-    if tpath[-1,1] != '/'
-      tpath += '/'
-    end
+    tpath += '/' if tpath[-1, 1] != '/'
 
     begin
 
-
       res = send_request_raw({
-        'uri'     => tpath,
-        'method'  => 'GET',
-        'version' => '1.0',
-      }, 10)
+                               'uri' => tpath,
+                               'method'  => 'GET',
+                               'version' => '1.0'
+                             }, 10)
 
-
-      if not res
+      unless res
         print_error("[#{target_host}] #{tpath} - No response")
         return
       end
 
-      result = res.body.scan(datastore['PATTERN']).flatten.map{ |s| s.strip }.uniq
+      result = res.body.scan(datastore['PATTERN']).flatten.map(&:strip).uniq
 
       result.each do |u|
         print_status("[#{target_host}] #{tpath} [#{u}]")
 
         report_note(
-          :host    => target_host,
-          :port    => rport,
-          :proto   => 'tcp',
-          :type    => "http.scraper.#{rport}",
-          :data    => u
+          host: target_host,
+          port: rport,
+          proto: 'tcp',
+          type: "http.scraper.#{rport}",
+          data: u
         )
 
         report_web_vuln(
-          :host	=> target_host,
-          :port	=> rport,
-          :vhost  => vhost,
-          :ssl    => ssl,
-          :path	=> tpath,
-          :method => 'GET',
-          :pname  => "",
-          :proof  => u,
-          :risk   => 0,
-          :confidence   => 100,
-          :category     => 'scraper',
-          :description  => 'Scraper',
-          :name   => 'scraper'
+          host: target_host,
+          port: rport,
+          vhost: vhost,
+          ssl: ssl,
+          path: tpath,
+          method: 'GET',
+          pname: "",
+          proof: u,
+          risk: 0,
+          confidence: 100,
+          category: 'scraper',
+          description: 'Scraper',
+          name: 'scraper'
         )
-
       end
 
     rescue ::Rex::ConnectionRefused, ::Rex::HostUnreachable, ::Rex::ConnectionTimeout

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -33,12 +34,10 @@ class MetasploitModule < Msf::Auxiliary
       uri = api_path + name
       cli = Rex::Proto::Http::Client.new(api_host, api_port, {}, true, 'TLS')
       cli.connect
-      req = cli.request_cgi({
-          'uri' => uri,
-          'agent' => user_agent,
-          'method' => 'GET',
-          'vars_get' => params
-      })
+      req = cli.request_cgi('uri' => uri,
+                            'agent' => user_agent,
+                            'method' => 'GET',
+                            'vars_get' => params)
       res = cli.send_recv(req)
       cli.close
 
@@ -46,23 +45,23 @@ class MetasploitModule < Msf::Auxiliary
         @max_assessments = res.headers['X-Max-Assessments']
         @current_assessments = res.headers['X-Current-Assessments']
         r = JSON.load(res.body)
-        fail InvocationError, "API returned: #{r['errors']}" if r.key?('errors')
+        raise InvocationError, "API returned: #{r['errors']}" if r.key?('errors')
         return r
       end
 
       case res.code.to_i
       when 400
-        fail InvocationError
+        raise InvocationError
       when 429
-        fail RequestRateTooHigh
+        raise RequestRateTooHigh
       when 500
-        fail InternalError
+        raise InternalError
       when 503
-        fail ServiceNotAvailable
+        raise ServiceNotAvailable
       when 529
-        fail ServiceOverloaded
+        raise ServiceOverloaded
       else
-        fail StandardError, "HTTP error code #{r.code}", caller
+        raise StandardError, "HTTP error code #{r.code}", caller
       end
     end
 
@@ -84,8 +83,7 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   class ApiObject
-
-    class << self;
+    class << self
       attr_accessor :all_attributes
       attr_accessor :fields
       attr_accessor :lists
@@ -142,7 +140,7 @@ class MetasploitModule < Msf::Auxiliary
     end
 
     def self.load(attributes = {})
-      obj = self.new
+      obj = new
       attributes.each do |name, value|
         if @fields.include?(name)
           obj.instance_variable_set("@#{name}", value)
@@ -151,13 +149,13 @@ class MetasploitModule < Msf::Auxiliary
         elsif @refs.key?(name)
           obj.instance_variable_set("@#{name}", @refs[name].load(value)) unless value.nil?
         else
-          fail ArgumentError, "#{name} is not an attribute of object #{self.name}"
+          raise ArgumentError, "#{name} is not an attribute of object #{self.name}"
         end
       end
       obj
     end
 
-    def to_json(opts = {})
+    def to_json(_opts = {})
       obj = {}
       self.class.all_attributes.each do |api_name|
         v = instance_variable_get("@#{api_name}")
@@ -265,7 +263,6 @@ class MetasploitModule < Msf::Auxiliary
     def secure?
       !insecure?
     end
-
   end
 
   class Info < ApiObject
@@ -415,23 +412,22 @@ class MetasploitModule < Msf::Auxiliary
 
   def initialize(info = {})
     super(update_info(info,
-        'Name'          => 'SSL Labs API Client',
-        'Description'   => %q{
-          This module is a simple client for the SSL Labs APIs, designed for
-          SSL/TLS assessment during a penetration test.
-        },
-        'License'       => MSF_LICENSE,
-        'Author'        =>
-          [
-            'Denis Kolegov <dnkolegov[at]gmail.com>',
-            'Francois Chagnon' # ssllab.rb author (https://github.com/Shopify/ssllabs.rb)
-           ],
-        'DefaultOptions' =>
-          {
-            'RPORT'      => 443,
-            'SSL'        => true,
-          }
-    ))
+                      'Name'          => 'SSL Labs API Client',
+                      'Description'   => %q(
+                        This module is a simple client for the SSL Labs APIs, designed for
+                        SSL/TLS assessment during a penetration test.
+                      ),
+                      'License'       => MSF_LICENSE,
+                      'Author'        =>
+                        [
+                          'Denis Kolegov <dnkolegov[at]gmail.com>',
+                          'Francois Chagnon' # ssllab.rb author (https://github.com/Shopify/ssllabs.rb)
+                        ],
+                      'DefaultOptions' =>
+                        {
+                          'RPORT'      => 443,
+                          'SSL'        => true
+                        }))
     register_options(
       [
         OptString.new('HOSTNAME', [true, 'The target hostname']),
@@ -439,7 +435,8 @@ class MetasploitModule < Msf::Auxiliary
         OptBool.new('USECACHE', [true, 'Use cached results (if available), else force live scan', true]),
         OptBool.new('GRADE', [true, 'Output only the hostname: grade', false]),
         OptBool.new('IGNOREMISMATCH', [true, 'Proceed with assessments even when the server certificate doesn\'t match the assessment hostname', true])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def report_good(line)
@@ -489,7 +486,7 @@ class MetasploitModule < Msf::Auxiliary
     # Supported protocols
     r.details.protocols.each do |i|
       p = ssl_protocols.detect { |x| x[:id] == i.id }
-      p.store(:active, true) if p
+      p&.store(:active, true)
     end
 
     ssl_protocols.each do |proto|
@@ -505,16 +502,15 @@ class MetasploitModule < Msf::Auxiliary
     end
 
     # Renegotioation
-    case
-    when r.details.reneg_support == 0
+    if r.details.reneg_support == 0
       report_warning "Secure renegotiation is not supported"
-    when r.details.reneg_support[0] == 1
+    elsif r.details.reneg_support[0] == 1
       report_bad "Insecure client-initiated renegotiation is supported"
-    when r.details.reneg_support[1] == 1
+    elsif r.details.reneg_support[1] == 1
       report_good "Secure renegotiation is supported"
-    when r.details.reneg_support[2] == 1
+    elsif r.details.reneg_support[2] == 1
       report_warning "Secure client-initiated renegotiation is supported"
-    when r.details.reneg_support[3] == 1
+    elsif r.details.reneg_support[3] == 1
       report_warning "Server requires secure renegotiation support"
     end
 
@@ -597,14 +593,13 @@ class MetasploitModule < Msf::Auxiliary
     end
 
     # Forward Secrecy
-    case
-    when r.details.forward_secrecy == 0
+    if r.details.forward_secrecy == 0
       report_bad "Forward Secrecy - No"
-    when r.details.forward_secrecy[0] == 1
+    elsif r.details.forward_secrecy[0] == 1
       report_bad "Forward Secrecy - With some browsers"
-    when r.details.forward_secrecy[1] == 1
+    elsif r.details.forward_secrecy[1] == 1
       report_good "Forward Secrecy - With modern browsers"
-    when r.details.forward_secrecy[2] == 1
+    elsif r.details.forward_secrecy[2] == 1
       report_good "Forward Secrecy - Yes (with most browsers)"
     end
 
@@ -645,14 +640,13 @@ class MetasploitModule < Msf::Auxiliary
     end
 
     # Session Tickets
-    case
-    when r.details.session_tickets == 0
+    if r.details.session_tickets == 0
       print_status "Session tickets - No"
-    when r.details.session_tickets[0] == 1
+    elsif r.details.session_tickets[0] == 1
       print_status "Session tickets - Yes"
-    when r.details.session_tickets[1] == 1
+    elsif r.details.session_tickets[1] == 1
       report_good "Session tickets - Implementation is faulty"
-    when r.details.session_tickets[2] == 1
+    elsif r.details.session_tickets[2] == 1
       report_warning "Session tickets - Server is intolerant to the extension"
     end
 
@@ -703,7 +697,7 @@ class MetasploitModule < Msf::Auxiliary
         if e.status_message == "Ready"
           output_endpoint_data(e)
         else
-          print_status "#{e.status_message}"
+          print_status e.status_message.to_s
         end
       end
     end
@@ -774,11 +768,11 @@ class MetasploitModule < Msf::Auxiliary
       return
     end
 
-    if usecache
-      r = api.analyse(host: hostname, fromCache: from_cache, ignoreMismatch: ignore_mismatch, all: 'done')
-    else
-      r = api.analyse(host: hostname, startNew: start_new, ignoreMismatch: ignore_mismatch, all: 'done')
-    end
+    r = if usecache
+          api.analyse(host: hostname, fromCache: from_cache, ignoreMismatch: ignore_mismatch, all: 'done')
+        else
+          api.analyse(host: hostname, startNew: start_new, ignoreMismatch: ignore_mismatch, all: 'done')
+        end
 
     loop do
       case r.status
@@ -790,7 +784,7 @@ class MetasploitModule < Msf::Auxiliary
         output_result(r, grade)
         return
       when "ERROR"
-        print_error "#{r.status_message}"
+        print_error r.status_message.to_s
         return
       else
         print_error "Unknown assessment status"
@@ -800,15 +794,15 @@ class MetasploitModule < Msf::Auxiliary
       r = api.analyse(host: hostname, all: 'done')
     end
 
-    rescue
-      print_error "Invalid parameters"
-    rescue RequestRateTooHigh
-      print_error "Request rate is too high, please slow down"
-    rescue InternalError
-      print_error "Service encountered an error, sleep 5 minutes"
-    rescue ServiceNotAvailable
-      print_error "Service is not available, sleep 15 minutes"
-    rescue ServiceOverloaded
-      print_error "Service is overloaded, sleep 30 minutes"
+  rescue
+    print_error "Invalid parameters"
+  rescue RequestRateTooHigh
+    print_error "Request rate is too high, please slow down"
+  rescue InternalError
+    print_error "Service encountered an error, sleep 5 minutes"
+  rescue ServiceNotAvailable
+    print_error "Service is not available, sleep 15 minutes"
+  rescue ServiceOverloaded
+    print_error "Service is overloaded, sleep 30 minutes"
   end
 end

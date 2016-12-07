@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 
 # Check that modules actually pass msftidy checks before committing
 # or after merging.
@@ -31,22 +32,22 @@ files_to_check = []
 
 # Who called us? If it's a post-merge check things operate a little
 # differently.
-puts "[*] Running msftidy.rb in #{$0} mode"
+puts "[*] Running msftidy.rb in #{$PROGRAM_NAME} mode"
 
-case $0
-when /post-merge/
-  base_caller = :post_merge
-when /pre-commit/
-  base_caller = :pre_commit
-else
-  base_caller = :msftidy
-end
+base_caller = case $PROGRAM_NAME
+              when /post-merge/
+                :post_merge
+              when /pre-commit/
+                :pre_commit
+              else
+                :msftidy
+              end
 
-if base_caller == :post_merge
-  changed_files = %x[git diff --name-only HEAD^ HEAD]
-else
-  changed_files = %x[git diff --cached --name-only]
-end
+changed_files = if base_caller == :post_merge
+                  `git diff --name-only HEAD^ HEAD`
+                else
+                  `git diff --cached --name-only`
+                end
 
 changed_files.each_line do |fname|
   fname.strip!
@@ -62,7 +63,7 @@ else
   puts "--- Checking new and changed module syntax with tools/dev/msftidy.rb ---"
   files_to_check.each do |fname|
     cmd = "ruby ./tools/dev/msftidy.rb  #{fname}"
-    msftidy_output= %x[ #{cmd} ]
+    msftidy_output = `#{cmd}`
     puts "#{fname} - msftidy check passed" if msftidy_output.empty?
     msftidy_output.each_line do |line|
       valid = false unless line['INFO']

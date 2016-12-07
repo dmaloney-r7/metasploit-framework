@@ -1,14 +1,15 @@
 # coding: utf-8
+# frozen_string_literal: true
 
 # During build, the Gemfile is temporarily moved and
 # we must manually define the project root
-if ENV['MSF_ROOT']
-  lib = File.realpath(File.expand_path('lib', ENV['MSF_ROOT']))
-else
-  # have to use realpath as metasploit-framework is often loaded through a symlink and tools like Coverage and debuggers
-  # require realpaths.
-  lib = File.realpath(File.expand_path('../lib', __FILE__))
-end
+lib = if ENV['MSF_ROOT']
+        File.realpath(File.expand_path('lib', ENV['MSF_ROOT']))
+      else
+        # have to use realpath as metasploit-framework is often loaded through a symlink and tools like Coverage and debuggers
+        # require realpaths.
+        File.realpath(File.expand_path('../lib', __FILE__))
+      end
 
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require 'metasploit/framework/version'
@@ -24,12 +25,12 @@ Gem::Specification.new do |spec|
   spec.homepage      = 'https://www.metasploit.com'
   spec.license       = 'BSD-3-clause'
 
-  spec.files         = `git ls-files`.split($/).reject { |file|
+  spec.files         = `git ls-files`.split($INPUT_RECORD_SEPARATOR).reject { |file|
     file =~ /^documentation|^data\/gui|^external/
   }
   spec.bindir = '.'
   if ENV['CREATE_BINSTUBS']
-    spec.executables   = [
+    spec.executables = [
       'msfconsole',
       'msfd',
       'msfrpc',

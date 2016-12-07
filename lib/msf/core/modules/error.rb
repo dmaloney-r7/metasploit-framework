@@ -1,23 +1,20 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 # Base error class for all error under {Msf::Modules}
 class Msf::Modules::Error < StandardError
-  def initialize(attributes={})
+  def initialize(attributes = {})
     @module_path = attributes[:module_path]
     @module_reference_name = attributes[:module_reference_name]
 
     message_parts = []
     message_parts << "Failed to load module"
 
-    if module_reference_name or module_path
+    if module_reference_name || module_path
       clause_parts = []
 
-      if module_reference_name
-        clause_parts << module_reference_name
-      end
+      clause_parts << module_reference_name if module_reference_name
 
-      if module_path
-        clause_parts << "from #{module_path}"
-      end
+      clause_parts << "from #{module_path}" if module_path
 
       clause = clause_parts.join(' ')
       message_parts << "(#{clause})"
@@ -25,9 +22,7 @@ class Msf::Modules::Error < StandardError
 
     causal_message = attributes[:causal_message]
 
-    if causal_message
-      message_parts << "due to #{causal_message}"
-    end
+    message_parts << "due to #{causal_message}" if causal_message
 
     message = message_parts.join(' ')
 

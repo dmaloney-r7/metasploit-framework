@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -8,7 +9,6 @@ require 'metasploit/framework/login_scanner/redis'
 require 'metasploit/framework/credential_collection'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::Tcp
   include Msf::Auxiliary::Scanner
   include Msf::Auxiliary::Report
@@ -25,17 +25,19 @@ class MetasploitModule < Msf::Auxiliary
         'References'   => [
           ['URL', 'http://redis.io/topics/protocol']
         ],
-        'License'      => MSF_LICENSE))
+        'License' => MSF_LICENSE
+      ))
 
     register_options(
       [
         OptPath.new('PASS_FILE',
-          [
-            false,
-            'The file that contains a list of of probable passwords.',
-            File.join(Msf::Config.install_root, 'data', 'wordlists', 'unix_passwords.txt')
-          ])
-      ], self.class)
+                    [
+                      false,
+                      'The file that contains a list of of probable passwords.',
+                      File.join(Msf::Config.install_root, 'data', 'wordlists', 'unix_passwords.txt')
+                    ])
+      ], self.class
+    )
 
     # redis does not have an username, there's only password
     deregister_options('USERNAME', 'USER_AS_PASS', 'USERPASS_FILE', 'USER_FILE', 'DB_ALL_USERS', 'DB_ALL_CREDS')
@@ -64,10 +66,8 @@ class MetasploitModule < Msf::Auxiliary
 
     scanner.scan! do |result|
       credential_data = result.to_h
-      credential_data.merge!(
-        module_fullname: self.fullname,
-        workspace_id: myworkspace_id
-      )
+      credential_data[:module_fullname] = fullname
+      credential_data[:workspace_id] = myworkspace_id
 
       case result.status
       when Metasploit::Model::Login::Status::SUCCESSFUL

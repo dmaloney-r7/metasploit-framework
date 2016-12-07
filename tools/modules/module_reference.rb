@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 #
 # This script lists each module with its references
 #
@@ -8,16 +9,15 @@ while File.symlink?(msfbase)
   msfbase = File.expand_path(File.readlink(msfbase), File.dirname(msfbase))
 end
 
-$:.unshift(File.expand_path(File.join(File.dirname(msfbase), '..', '..', 'lib')))
+$LOAD_PATH.unshift(File.expand_path(File.join(File.dirname(msfbase), '..', '..', 'lib')))
 require 'msfenv'
 
-$:.unshift(ENV['MSF_LOCAL_LIB']) if ENV['MSF_LOCAL_LIB']
+$LOAD_PATH.unshift(ENV['MSF_LOCAL_LIB']) if ENV['MSF_LOCAL_LIB']
 
 require 'rex'
 require 'msf/ui'
 require 'msf/base'
 require 'uri'
-
 
 # See lib/msf/core/module/reference.rb
 # We gsub '#{in_ctx_val}' with the actual value
@@ -43,8 +43,8 @@ STATUS_UNSUPPORTED = 'Unsupported'
 
 sort         = 0
 filter       = 'All'
-filters      = ['all','exploit','payload','post','nop','encoder','auxiliary']
-type         ='ALL'
+filters      = ['all', 'exploit', 'payload', 'post', 'nop', 'encoder', 'auxiliary']
+type = 'ALL'
 match        = nil
 check        = false
 save         = nil
@@ -66,7 +66,7 @@ opts = Rex::Parser::Arguments.new(
 
 flags = []
 
-opts.parse(ARGV) { |opt, idx, val|
+opts.parse(ARGV) do |opt, _idx, val|
   case opt
   when "-h"
     puts "\nMetasploit Script for Displaying Module Reference information."
@@ -85,14 +85,14 @@ opts.parse(ARGV) { |opt, idx, val|
   when "-f"
     unless filters.include?(val.downcase)
       puts "Invalid Filter Supplied: #{val}"
-      puts "Please use one of these: #{filters.map{|f|f.capitalize}.join(", ")}"
+      puts "Please use one of these: #{filters.map(&:capitalize).join(', ')}"
       exit
     end
     flags << "Module Filter: #{val}"
     filter = val
   when "-t"
     val = (val || '').upcase
-    unless types.has_key?(val)
+    unless types.key?(val)
       puts "Invalid Type Supplied: #{val}"
       puts "Please use one of these: #{types.keys.inspect}"
       exit
@@ -109,21 +109,21 @@ opts.parse(ARGV) { |opt, idx, val|
     flags << "Output to file: Yes"
     save = val
   end
-}
+end
 
 flags << "Type: #{type}"
 
 puts flags * " | "
 
 def get_ipv4_addr(hostname)
-  Rex::Socket::getaddresses(hostname, false)[0]
+  Rex::Socket.getaddresses(hostname, false)[0]
 end
 
-def vprint_debug(msg='')
+def vprint_debug(msg = '')
   print_debug(msg) if $verbose
 end
 
-def print_debug(msg='')
+def print_debug(msg = '')
   $stderr.puts "[*] #{msg}"
 end
 
@@ -141,15 +141,15 @@ def is_url_alive?(uri, http_timeout)
   rport = uri.port || 80
   path  = uri.path.blank? ? '/' : uri.path
   vhost = rport == 80 ? uri.host : "#{uri.host}:#{rport}"
-  if uri.scheme == 'https'
-    cli = ::Rex::Proto::Http::Client.new(rhost, 443, {}, true, 'TLS1')
-  else
-    cli = ::Rex::Proto::Http::Client.new(rhost, rport)
-  end
+  cli = if uri.scheme == 'https'
+          ::Rex::Proto::Http::Client.new(rhost, 443, {}, true, 'TLS1')
+        else
+          ::Rex::Proto::Http::Client.new(rhost, rport)
+        end
 
   begin
     cli.connect(http_timeout)
-    req = cli.request_raw('uri'=>path, 'vhost'=>vhost)
+    req = cli.request_raw('uri' => path, 'vhost' => vhost)
     res = cli.send_recv(req, http_timeout)
   rescue Errno::ECONNRESET, Rex::ConnectionError, Rex::ConnectionRefused, Rex::HostUnreachable, Rex::ConnectionTimeout, Rex::UnsupportedProtocol, ::Timeout::Error, Errno::ETIMEDOUT => e
     vprint_debug("#{e.message} for #{uri}")
@@ -169,14 +169,12 @@ def is_url_alive?(uri, http_timeout)
 end
 
 def save_results(path, results)
-  begin
-    File.open(path, 'wb') do |f|
-      f.write(results)
-    end
-    puts "Results saved to: #{path}"
-  rescue Exception => e
-    puts "Failed to save the file: #{e.message}"
+  File.open(path, 'wb') do |f|
+    f.write(results)
   end
+  puts "Results saved to: #{path}"
+rescue Exception => e
+  puts "Failed to save the file: #{e.message}"
 end
 
 # Always disable the database (we never need it just to list module
@@ -184,18 +182,18 @@ end
 framework_opts = { 'DisableDatabase' => true }
 
 # If the user only wants a particular module type, no need to load the others
-if filter.downcase != 'all'
+unless filter.casecmp('all').zero?
   framework_opts[:module_types] = [ filter.downcase ]
 end
 
 # Initialize the simplified framework instance.
 $framework = Msf::Simple::Framework.create(framework_opts)
 
-if check
-  columns = [ 'Module', 'Status', 'Reference' ]
-else
-  columns = [ 'Module', 'Reference' ]
-end
+columns = if check
+            [ 'Module', 'Status', 'Reference' ]
+          else
+            [ 'Module', 'Reference' ]
+          end
 
 tbl = Rex::Text::Table.new(
   'Header'  => 'Module References',
@@ -203,46 +201,42 @@ tbl = Rex::Text::Table.new(
   'Columns' => columns
 )
 
-bad_refs_count  = 0
+bad_refs_count = 0
 
-$framework.modules.each { |name, mod|
-  next if match and not name =~ match
+$framework.modules.each do |name, mod|
+  next if match && !(name =~ match)
 
   x = mod.new
   x.references.each do |r|
     ctx_id = r.ctx_id.upcase
-    if type == 'ALL' || type == ctx_id
+    next unless type == 'ALL' || type == ctx_id
 
-      if check
-        if types.has_key?(ctx_id)
-          uri = types[r.ctx_id.upcase].gsub(/\#{in_ctx_val}/, r.ctx_val)
-          if is_url_alive?(uri, http_timeout)
-            status = STATUS_ALIVE
-          else
-            bad_refs_count += 1
-            status = STATUS_DOWN
-          end
+    if check
+      if types.key?(ctx_id)
+        uri = types[r.ctx_id.upcase].gsub(/\#{in_ctx_val}/, r.ctx_val)
+        if is_url_alive?(uri, http_timeout)
+          status = STATUS_ALIVE
         else
-          # The reference ID isn't supported so we don't know how to check this
           bad_refs_count += 1
-          status = STATUS_UNSUPPORTED
+          status = STATUS_DOWN
         end
+      else
+        # The reference ID isn't supported so we don't know how to check this
+        bad_refs_count += 1
+        status = STATUS_UNSUPPORTED
       end
-
-      ref = "#{r.ctx_id}-#{r.ctx_val}"
-      new_column = []
-      new_column << x.fullname
-      new_column << status if check
-      new_column << ref
-      tbl << new_column
     end
-  end
-}
 
-if sort == 1
-  tbl.sort_rows(1)
+    ref = "#{r.ctx_id}-#{r.ctx_val}"
+    new_column = []
+    new_column << x.fullname
+    new_column << status if check
+    new_column << ref
+    tbl << new_column
+  end
 end
 
+tbl.sort_rows(1) if sort == 1
 
 if sort == 2
   tbl.sort_rows(1)

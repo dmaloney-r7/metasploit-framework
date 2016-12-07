@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,18 +7,16 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Post
-
-  def initialize(info={})
+  def initialize(info = {})
     super(update_info(info,
-      'Name'          => 'Windows Gather Windows Host File Enumeration',
-      'Description'   => %q{
-        This module returns a list of entries in the target system's hosts file.
-      },
-      'License'       => BSD_LICENSE,
-      'Author'        => [ 'vt <nick.freeman[at]security-assessment.com>'],
-      'Platform'      => [ 'win' ],
-      'SessionTypes'  => [ 'meterpreter', 'shell' ]
-    ))
+                      'Name'          => 'Windows Gather Windows Host File Enumeration',
+                      'Description'   => %q(
+                        This module returns a list of entries in the target system's hosts file.
+                      ),
+                      'License'       => BSD_LICENSE,
+                      'Author'        => [ 'vt <nick.freeman[at]security-assessment.com>'],
+                      'Platform'      => [ 'win' ],
+                      'SessionTypes'  => [ 'meterpreter', 'shell' ]))
   end
 
   def run
@@ -26,9 +25,7 @@ class MetasploitModule < Msf::Post
 
     # Load up the original hosts file
     buf = ''
-    until fd.eof?
-      buf << fd.read
-    end
+    buf << fd.read until fd.eof?
 
     # Finished loading the hosts file, close fd
     fd.close
@@ -54,13 +51,13 @@ class MetasploitModule < Msf::Post
     end
 
     # Show results
-    if not entries.empty?
+    unless entries.empty?
       print_line("Found entries:")
       entries.each do |e|
         print_good(e.to_s)
       end
     end
 
-    print_status("Hosts file saved: #{p.to_s}")
+    print_status("Hosts file saved: #{p}")
   end
 end

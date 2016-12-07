@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 require 'msf/core'
 require 'pathname'
@@ -23,9 +24,7 @@ class Msf::ModuleSet < Hash
   # @param [String] name the module reference name
   # @return [Msf::Module] instance of the of the Msf::Module subclass with the given reference name
   def [](name)
-    if (super == Msf::SymbolicModule)
-      create(name)
-    end
+    create(name) if super == Msf::SymbolicModule
 
     super
   end
@@ -41,7 +40,7 @@ class Msf::ModuleSet < Hash
 
     # If there is no module associated with this class, then try to demand
     # load it.
-    if klass.nil? or klass == Msf::SymbolicModule
+    if klass.nil? || (klass == Msf::SymbolicModule)
       framework.modules.load_cached_module(module_type, reference_name)
 
       recalculate
@@ -50,18 +49,16 @@ class Msf::ModuleSet < Hash
     end
 
     # If the klass is valid for this reference_name, try to create it
-    unless klass.nil? or klass == Msf::SymbolicModule
-      instance = klass.new
-    end
+    instance = klass.new unless klass.nil? || (klass == Msf::SymbolicModule)
 
     # Notify any general subscribers of the creation event
     if instance
-      self.framework.events.on_module_created(instance)
+      framework.events.on_module_created(instance)
     else
-      self.delete(reference_name)
+      delete(reference_name)
     end
 
-    return instance
+    instance
   end
 
   # Overrides the builtin 'each' operator to avoid the following exception on Ruby 1.9.2+
@@ -73,7 +70,7 @@ class Msf::ModuleSet < Hash
   # @return [void]
   def each(&block)
     list = []
-    self.keys.sort.each do |sidx|
+    keys.sort.each do |sidx|
       list << [sidx, self[sidx]]
     end
     list.each(&block)
@@ -88,7 +85,7 @@ class Msf::ModuleSet < Hash
   def each_module(opts = {}, &block)
     demand_load_modules
 
-    self.mod_sorted = self.sort
+    self.mod_sorted = sort
 
     each_module_list(mod_sorted, opts, &block)
   end
@@ -100,8 +97,8 @@ class Msf::ModuleSet < Hash
   # @param [Array<String, Class>] entry pair of the module reference name and the module class.
   # @return [false] if the module should not be filtered; it should be yielded by {#each_module_list}.
   # @return [true] if the module should be filtered; it should not be yielded by {#each_module_list}.
-  def each_module_filter(opts, name, entry)
-    return false
+  def each_module_filter(_opts, _name, _entry)
+    false
   end
 
   # Enumerates each module class in the set based on their relative ranking to one another.  Modules that are ranked
@@ -135,7 +132,7 @@ class Msf::ModuleSet < Hash
     self.ambiguous_module_reference_name_set = Set.new
     # Hashes that convey the supported architectures and platforms for a
     # given module
-    self.architectures_by_module     = {}
+    self.architectures_by_module = {}
     self.platforms_by_module = {}
     self.mod_sorted        = nil
     self.mod_extensions    = []
@@ -150,7 +147,7 @@ class Msf::ModuleSet < Hash
   #   The type of modules stored by this {Msf::ModuleSet}.
   #
   #   @return [String] type of modules
-  attr_reader   :module_type
+  attr_reader :module_type
 
   # Gives the module set an opportunity to handle a module reload event
   #
@@ -172,7 +169,7 @@ class Msf::ModuleSet < Hash
   # @return [false] otherwise
   def valid?(reference_name)
     create(reference_name)
-    (self[reference_name]) ? true : false
+    self[reference_name] ? true : false
   end
 
   # Adds a module with a the supplied reference_name.
@@ -190,16 +187,16 @@ class Msf::ModuleSet < Hash
     # instances are created.
     klass.framework = framework
     klass.refname   = reference_name
-    klass.file_path = ((info and info['files']) ? info['files'][0] : nil)
+    klass.file_path = (info && info['files'] ? info['files'][0] : nil)
     klass.orig_cls  = klass
 
     # don't want to trigger a create, so use fetch
-    cached_module = self.fetch(reference_name, nil)
+    cached_module = fetch(reference_name, nil)
 
-    if (cached_module and cached_module != Msf::SymbolicModule)
+    if cached_module && (cached_module != Msf::SymbolicModule)
       ambiguous_module_reference_name_set.add(reference_name)
 
-      # TODO this isn't terribly helpful since the refnames will always match, that's why they are ambiguous.
+      # TODO: this isn't terribly helpful since the refnames will always match, that's why they are ambiguous.
       wlog("The module #{klass.refname} is ambiguous with #{self[reference_name].refname}.")
     end
 
@@ -216,18 +213,15 @@ class Msf::ModuleSet < Hash
   def demand_load_modules
     found_symbolics = false
     # Pre-scan the module list for any symbolic modules
-    self.each_pair { |name, mod|
-      if (mod == Msf::SymbolicModule)
-        found_symbolics = true
-        mod = create(name)
-        next if (mod.nil?)
-      end
-    }
+    each_pair do |name, mod|
+      next unless mod == Msf::SymbolicModule
+      found_symbolics = true
+      mod = create(name)
+      next if mod.nil?
+    end
 
     # If we found any symbolic modules, then recalculate.
-    if (found_symbolics)
-      recalculate
-    end
+    recalculate if found_symbolics
   end
 
   # Enumerates the modules in the supplied array with possible limiting factors.
@@ -242,36 +236,36 @@ class Msf::ModuleSet < Hash
   # @yieldparam [String] module_reference_name the name of module
   # @yieldparam [Class] module The module class: a subclass of {Msf::Module}.
   # @return [void]
-  def each_module_list(ary, opts, &block)
-    ary.each { |entry|
+  def each_module_list(ary, opts)
+    ary.each do |entry|
       name, mod = entry
 
       # Skip any lingering symbolic modules.
-      next if (mod == Msf::SymbolicModule)
+      next if mod == Msf::SymbolicModule
 
       # Filter out incompatible architectures
-      if (opts['Arch'])
-        if (!architectures_by_module[mod])
+      if opts['Arch']
+        unless architectures_by_module[mod]
           architectures_by_module[mod] = mod.new.arch
         end
 
-        next if ((architectures_by_module[mod] & opts['Arch']).empty? == true)
+        next if (architectures_by_module[mod] & opts['Arch']).empty? == true
       end
 
       # Filter out incompatible platforms
-      if (opts['Platform'])
-        if (!platforms_by_module[mod])
+      if opts['Platform']
+        unless platforms_by_module[mod]
           platforms_by_module[mod] = mod.new.platform
         end
 
-        next if ((platforms_by_module[mod] & opts['Platform']).empty? == true)
+        next if (platforms_by_module[mod] & opts['Platform']).empty? == true
       end
 
       # Custom filtering
-      next if (each_module_filter(opts, name, entry) == true)
+      next if each_module_filter(opts, name, entry) == true
 
-      block.call(name, mod)
-    }
+      yield(name, mod)
+    end
   end
 
   # @!attribute [rw] ambiguous_module_reference_name_set
@@ -309,7 +303,7 @@ class Msf::ModuleSet < Hash
   # @return [Array<Array<String, Class>>] Array of arrays where the inner array is a pair of the module reference name
   #   and the module class.
   def rank_modules
-    self.sort_by { |pair| module_rank(*pair) }.reverse!
+    sort_by { |pair| module_rank(*pair) }.reverse!
   end
 
   # Retrieves the rank from a loaded, not-yet-loaded, or unloadable Metasploit Module.
@@ -324,7 +318,7 @@ class Msf::ModuleSet < Hash
     if metasploit_module_class.nil?
       Msf::ManualRanking
     elsif metasploit_module_class == Msf::SymbolicModule
-      # TODO don't create an instance just to get the Class.
+      # TODO: don't create an instance just to get the Class.
       created_metasploit_module_instance = create(reference_name)
 
       if created_metasploit_module_instance.nil?

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,37 +7,34 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::SNMPClient
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::Scanner
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'        => 'SNMP Set Module',
-      'Description' => %q{
-          This module, similar to snmpset tool, uses the SNMP SET request
-          to set information on a network entity. A OID (numeric notation)
-          and a value are required. Target device must permit write access.
-      },
-      'References'  =>
-        [
-          [ 'URL', 'http://en.wikipedia.org/wiki/Simple_Network_Management_Protocol' ],
-          [ 'URL', 'http://www.net-snmp.org/docs/man/snmpset.html' ],
-          [ 'URL', 'http://www.oid-info.com/' ],
-        ],
-      'Author'      => 'Matteo Cantoni <goony[at]nothink.org>',
-      'License'     => MSF_LICENSE
-    ))
+                      'Name'        => 'SNMP Set Module',
+                      'Description' => %q{
+                          This module, similar to snmpset tool, uses the SNMP SET request
+                          to set information on a network entity. A OID (numeric notation)
+                          and a value are required. Target device must permit write access.
+                      },
+                      'References'  =>
+                        [
+                          [ 'URL', 'http://en.wikipedia.org/wiki/Simple_Network_Management_Protocol' ],
+                          [ 'URL', 'http://www.net-snmp.org/docs/man/snmpset.html' ],
+                          [ 'URL', 'http://www.oid-info.com/' ]
+                        ],
+                      'Author'      => 'Matteo Cantoni <goony[at]nothink.org>',
+                      'License'     => MSF_LICENSE))
 
     register_options([
-      OptString.new('OID', [ true, "The object identifier (numeric notation)"]),
-      OptString.new('OIDVALUE', [ true, "The value to set"]),
-    ], self.class)
+                       OptString.new('OID', [ true, "The object identifier (numeric notation)"]),
+                       OptString.new('OIDVALUE', [ true, "The value to set"])
+                     ], self.class)
   end
 
   def run_host(ip)
-
     begin
 
       oid      = datastore['OID'].to_s
@@ -50,14 +48,12 @@ class MetasploitModule < Msf::Auxiliary
       # get request
       check = snmp.get_value(oid)
 
-      if check.to_s =~ /Null/
-        check = '\'\''
-      end
+      check = '\'\'' if check.to_s =~ /Null/
 
       print_status("Check initial value : OID #{oid} => #{check}")
 
       # set request
-      varbind = SNMP::VarBind.new(oid,SNMP::OctetString.new(oidvalue))
+      varbind = SNMP::VarBind.new(oid, SNMP::OctetString.new(oidvalue))
       resp = snmp.set(varbind)
 
       if resp.error_status == :noError
@@ -67,9 +63,7 @@ class MetasploitModule < Msf::Auxiliary
         # get request
         check = snmp.get_value(oid)
 
-        if check.to_s =~ /Null/
-          check = '\'\''
-        end
+        check = '\'\'' if check.to_s =~ /Null/
 
         print_status("Check new value : OID #{oid} => #{check}")
 
@@ -84,12 +78,11 @@ class MetasploitModule < Msf::Auxiliary
     rescue SNMP::UnsupportedVersion
       print_error("#{ip} - Unsupported SNMP version specified. Select from '1' or '2c'.")
     rescue ::Interrupt
-      raise $!
+      raise $ERROR_INFO
     rescue ::Exception => e
       print_error("#{ip} Error: #{e.class} #{e} #{e.backtrace}")
     ensure
       disconnect_snmp
     end
   end
-
 end

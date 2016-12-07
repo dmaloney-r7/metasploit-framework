@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 require 'timeout'
 
@@ -9,39 +10,38 @@ module SecondsHandle #:nodoc: all
     when 1..59
       "#{secs} seconds"
     when 60..3559
-      "#{secs/60} minutes and #{secs%60} seconds"
+      "#{secs / 60} minutes and #{secs % 60} seconds"
     else
-      hours = secs/3600
-      secs -= (hours*3600)
-      "#{hours} hours, #{secs/60} minutes and #{secs%60} seconds"
+      hours = secs / 3600
+      secs -= (hours * 3600)
+      "#{hours} hours, #{secs / 60} minutes and #{secs % 60} seconds"
     end
   end
 end
 
 class DnsTimeout # :nodoc: all
-
   include SecondsHandle
-  
+
   def initialize(seconds)
-    if seconds.is_a? Numeric and seconds >= 0
+    if seconds.is_a?(Numeric) && (seconds >= 0)
       @timeout = seconds
     else
       raise DnsTimeoutArgumentError, "Invalid value for tcp timeout"
-    end    
+    end
   end
-  
+
   def to_s
-    if @timeout == 0 
+    if @timeout == 0
       @output
     else
       @timeout.to_s
     end
   end
-  
+
   def pretty_to_s
     transform(@timeout)
   end
-  
+
   def timeout
     unless block_given?
       raise DnsTimeoutArgumentError, "Block required but missing"

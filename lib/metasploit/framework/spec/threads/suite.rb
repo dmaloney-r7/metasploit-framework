@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'pathname'
 
 # @note needs to use explicit nesting. so this file can be loaded directly without loading 'metasploit/framework' which
@@ -37,13 +38,12 @@ module Metasploit
                   if thread_count > EXPECTED_THREAD_COUNT_AROUND_SUITE
                     # LOG_PATHNAME may not exist if suite run without `rake spec`
                     if LOG_PATHNAME.exist?
-                      log = LOG_PATHNAME.read()
+                      log = LOG_PATHNAME.read
                     else
                       log "Run `rake spec` to log where Thread.new is called."
                     end
 
-                    raise RuntimeError,
-                          "#{thread_count} #{'thread'.pluralize(thread_count)} exist(s) when " \
+                    raise "#{thread_count} #{'thread'.pluralize(thread_count)} exist(s) when " \
                           "only #{EXPECTED_THREAD_COUNT_AROUND_SUITE} " \
                           "#{'thread'.pluralize(EXPECTED_THREAD_COUNT_AROUND_SUITE)} expected before suite runs:\n" \
                           "#{log}"
@@ -81,9 +81,7 @@ module Metasploit
                         thread_uuid = thread[Metasploit::Framework::Spec::Threads::Suite::UUID_THREAD_LOCAL_VARIABLE]
 
                         # unmanaged thread, such as the main VM thread
-                        unless thread_uuid
-                          next
-                        end
+                        next unless thread_uuid
 
                         caller = caller_by_thread_uuid[thread_uuid]
 
@@ -96,8 +94,7 @@ module Metasploit
                       error_lines << "Run `rake spec` to log where Thread.new is called."
                     end
 
-                    raise RuntimeError,
-                          "#{thread_count} #{'thread'.pluralize(thread_count)} exist(s) when only " \
+                    raise "#{thread_count} #{'thread'.pluralize(thread_count)} exist(s) when only " \
                           "#{EXPECTED_THREAD_COUNT_AROUND_SUITE} " \
                           "#{'thread'.pluralize(EXPECTED_THREAD_COUNT_AROUND_SUITE)} expected after suite runs:\n" \
                           "#{error_lines.join}"
@@ -146,9 +143,7 @@ module Metasploit
                   yield line
                 end
               else
-                if line.start_with?('before(:suite)')
-                  in_suite = true
-                end
+                in_suite = true if line.start_with?('before(:suite)')
               end
             end
           end
@@ -188,9 +183,9 @@ module Metasploit
           #
           # @return [Hash{String => Array<String>}]
           def self.caller_by_thread_uuid
-            lines_by_thread_uuid = Hash.new { |hash, uuid|
+            lines_by_thread_uuid = Hash.new do |hash, uuid|
               hash[uuid] = []
-            }
+            end
 
             each_thread_line do |uuid, line|
               lines_by_thread_uuid[uuid] << line
@@ -201,12 +196,12 @@ module Metasploit
 
           # @return
           def self.non_debugger_thread_list
-            Thread.list.reject { |thread|
+            Thread.list.reject do |thread|
               # don't do `is_a? Debugger::DebugThread` because it requires Debugger::DebugThread to be loaded, which it
               # won't when not debugging.
               thread.class.name == 'Debugger::DebugThread' ||
                 thread.class.name == 'Debase::DebugThread'
-            }
+            end
           end
         end
       end

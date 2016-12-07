@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Auxiliary::Report
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Scanner
@@ -14,13 +14,13 @@ class MetasploitModule < Msf::Auxiliary
   def initialize
     super(
       'Name'        => 'Oracle Application Server Spy Servlet SID Enumeration',
-      'Description' => %q{
+      'Description' => %q(
           This module makes a request to the Oracle Application Server
         in an attempt to discover the SID.
-      },
+      ),
       'References'  =>
         [
-          [ 'URL', 'http://dsecrg.com/files/pub/pdf/Different_ways_to_guess_Oracle_database_SID_(eng).pdf' ],
+          [ 'URL', 'http://dsecrg.com/files/pub/pdf/Different_ways_to_guess_Oracle_database_SID_(eng).pdf' ]
         ],
       'Author'      => [ 'MC' ],
       'License'     => MSF_LICENSE
@@ -29,28 +29,29 @@ class MetasploitModule < Msf::Auxiliary
     register_options(
       [
         Opt::RPORT(1158)
-      ], self.class)
+      ], self.class
+    )
   end
 
   def run_host(ip)
     begin
       res = send_request_raw({
-        'uri'     => '/servlet/Spy?format=raw&loginfo=true',
-        'method'  => 'GET',
-        'version' => '1.1',
-      }, 5)
+                               'uri' => '/servlet/Spy?format=raw&loginfo=true',
+                               'method'  => 'GET',
+                               'version' => '1.1'
+                             }, 5)
 
-      if res and res.body =~ /SERVICE_NAME=/
-        select(nil,nil,nil,2)
+      if res && res.body =~ /SERVICE_NAME=/
+        select(nil, nil, nil, 2)
         sid = res.body.scan(/SERVICE_NAME=([^\)]+)/)
-          report_note(
-              :host	=> ip,
-              :port	=> datastore['RPORT'],
-              :proto	=> 'tcp',
-              :type	=> 'oracle_sid',
-              :data	=> "#{sid.uniq}",
-              :update	=> :unique_data
-          )
+        report_note(
+          host: ip,
+          port: datastore['RPORT'],
+          proto: 'tcp',
+          type: 'oracle_sid',
+          data: sid.uniq.to_s,
+          update: :unique_data
+        )
         print_good("#{rhost}:#{rport} Discovered SID: '#{sid.uniq}'")
       else
         print_error("Unable to retrieve SID for #{ip}...")

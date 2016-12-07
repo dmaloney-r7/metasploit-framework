@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 
 # $Id$
 
@@ -13,26 +14,26 @@
 #
 
 def usage
-  $stderr.puts "usage: #{$0} [dump-file] <master password list>"
+  $stderr.puts "usage: #{$PROGRAM_NAME} [dump-file] <master password list>"
   exit
 end
 
 # Force binary encoding for Ruby versions that support it
-if(Object.const_defined?('Encoding') and Encoding.respond_to?('default_external='))
+if Object.const_defined?('Encoding') && Encoding.respond_to?('default_external=')
   Encoding.default_external = Encoding.default_internal = "binary"
 end
 
-dump = ARGV.shift || usage()
+dump = ARGV.shift || usage
 list = ARGV.shift || File.join(File.dirname(__FILE__), "..", "data", "wordlists", "vxworks_collide_20.txt")
 
 $stderr.puts "[*] Loading master password list..."
 ohashes = []
 hashes  = []
 File.read(list).split("\n").each do |x|
-  xid,enc,raw = x.split("|", 3)
+  xid, enc, raw = x.split("|", 3)
   xid = xid.to_i
   next if raw =~ /invalid/
-  raw,tmp = raw.split("\x00")
+  raw, tmp = raw.split("\x00")
   ohashes << [xid, enc, raw]
 end
 
@@ -46,19 +47,18 @@ hashes = ohashes
 tot = hashes.length
 cur = 0
 hashes.each do |r|
-  x,k,h = r
+  x, k, h = r
 
   cur += 1
-  pct = cur/tot.to_f
+  pct = cur / tot.to_f
   pct = (pct * 100).to_i
   $stdout.write("                                      \r[*] Progress: #{pct}% (#{cur}/#{tot})")
   $stdout.flush
 
-  next if not data.index(k)
+  next unless data.index(k)
   $stdout.write("\n")
   $stdout.flush
   puts "[+]"
-  puts "[+] Password hash '#{k}' (##{x}) can be accessed with #{h.unpack("C*").map{|i| "\\x%.2x" % i}} [ '#{h}' ]"
+  puts "[+] Password hash '#{k}' (##{x}) can be accessed with #{h.unpack('C*').map { |i| '\\x%.2x' % i }} [ '#{h}' ]"
   puts "[+]"
 end
-

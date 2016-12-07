@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding => binary -*-
 
 require 'msf/core'
@@ -8,7 +9,6 @@ require 'rex/payloads/meterpreter/uri_checksum'
 # This module provides datastore option definitions and helper methods for payload modules that support UUIDs
 #
 module Msf::Payload::UUID::Options
-
   include Rex::Payloads::Meterpreter::UriChecksum
 
   def initialize(info = {})
@@ -18,8 +18,9 @@ module Msf::Payload::UUID::Options
         Msf::OptString.new('PayloadUUIDSeed', [ false, 'A string to use when generating the payload UUID (deterministic)']),
         Msf::OptString.new('PayloadUUIDRaw', [ false, 'A hex string representing the raw 8-byte PUID value for the UUID']),
         Msf::OptString.new('PayloadUUIDName', [ false, 'A human-friendly name to reference this unique payload (requires tracking)']),
-        Msf::OptBool.new('PayloadUUIDTracking', [ true, 'Whether or not to automatically register generated UUIDs', false]),
-      ], self.class)
+        Msf::OptBool.new('PayloadUUIDTracking', [ true, 'Whether or not to automatically register generated UUIDs', false])
+      ], self.class
+    )
   end
 
   #
@@ -30,16 +31,16 @@ module Msf::Payload::UUID::Options
   # @param len [Fixnum] The length of the URI not including the leading slash, optionally nil for random
   # @return [String] A URI with a leading slash that hashes to the checksum, with an optional UUID
   #
-  def generate_uri_uuid_mode(mode,len=nil)
+  def generate_uri_uuid_mode(mode, len = nil)
     sum = uri_checksum_lookup(mode)
 
     # The URI length may not have room for an embedded UUID
     if len && len < URI_CHECKSUM_UUID_MIN_LEN
       # Throw an error if the user set a seed, but there is no room for it
-      if datastore['PayloadUUIDSeed'].to_s.length > 0 || datastore['PayloadUUIDRaw'].to_s.length > 0
+      if !datastore['PayloadUUIDSeed'].to_s.empty? || !datastore['PayloadUUIDRaw'].to_s.empty?
         raise ArgumentError, "A PayloadUUIDSeed or PayloadUUIDRaw value was specified, but this payload doesn't have enough room for a UUID"
       end
-      return "/" + generate_uri_checksum(sum, len, prefix="")
+      return "/" + generate_uri_checksum(sum, len, prefix = "")
     end
 
     uuid = generate_payload_uuid
@@ -51,19 +52,18 @@ module Msf::Payload::UUID::Options
 
   # Generate a Payload UUID
   def generate_payload_uuid
-
     conf = {
-      arch:     self.arch,
-      platform: self.platform
+      arch:     arch,
+      platform: platform
     }
 
     # Handle user-specified seed values
-    if datastore['PayloadUUIDSeed'].to_s.length > 0
+    unless datastore['PayloadUUIDSeed'].to_s.empty?
       conf[:seed] = datastore['PayloadUUIDSeed'].to_s
     end
 
     # Handle user-specified raw payload UID values
-    if datastore['PayloadUUIDRaw'].to_s.length > 0
+    unless datastore['PayloadUUIDRaw'].to_s.empty?
       puid_raw = [datastore['PayloadUUIDRaw'].to_s].pack("H*")
       if puid_raw.length != 8
         raise ArgumentError, "The PayloadUUIDRaw value must be exactly 16 bytes of hex"
@@ -72,7 +72,7 @@ module Msf::Payload::UUID::Options
       conf[:puid] = puid_raw
     end
 
-    if datastore['PayloadUUIDName'].to_s.length > 0 && ! datastore['PayloadUUIDTracking']
+    if !datastore['PayloadUUIDName'].to_s.empty? && !datastore['PayloadUUIDTracking']
       raise ArgumentError, "The PayloadUUIDName value is ignored unless PayloadUUIDTracking is enabled"
     end
 
@@ -84,22 +84,20 @@ module Msf::Payload::UUID::Options
   end
 
   # Store a UUID in the JSON database if tracking is enabled
-  def record_payload_uuid(uuid, info={})
+  def record_payload_uuid(uuid, info = {})
     return unless datastore['PayloadUUIDTracking']
 
-    uuid_info = info.merge({
-      arch: uuid.arch,
-      platform: uuid.platform,
-      timestamp: uuid.timestamp,
-      payload: self.fullname,
-      datastore: self.datastore
-    })
+    uuid_info = info.merge(arch: uuid.arch,
+                           platform: uuid.platform,
+                           timestamp: uuid.timestamp,
+                           payload: fullname,
+                           datastore: datastore)
 
-    if datastore['PayloadUUIDSeed'].to_s.length > 0
+    unless datastore['PayloadUUIDSeed'].to_s.empty?
       uuid_info[:seed] = datastore['PayloadUUIDSeed']
     end
 
-    if datastore['PayloadUUIDName'].to_s.length > 0
+    unless datastore['PayloadUUIDName'].to_s.empty?
       uuid_info[:name] = datastore['PayloadUUIDName']
     end
 
@@ -115,6 +113,4 @@ module Msf::Payload::UUID::Options
     uuid_info['urls'].uniq!
     framework.uuid_db[uuid.puid_hex] = uuid_info
   end
-
 end
-

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -14,7 +15,7 @@ class MetasploitModule < Msf::Auxiliary
   HANDLED_EXCEPTIONS = [
     Rex::AddressInUse, Rex::HostUnreachable, Rex::ConnectionTimeout, Rex::ConnectionRefused,
     ::Errno::ETIMEDOUT, ::Timeout::Error, ::EOFError
-  ]
+  ].freeze
 
   def initialize
     super(
@@ -25,7 +26,7 @@ class MetasploitModule < Msf::Auxiliary
         negotiates with an rsync server, lists the available modules and,
         optionally, determines if the module requires a password to access.
       ),
-      'Author'      => [
+      'Author' => [
         'ikkini', # original metasploit module
         'Jon Hart <jon_hart[at]rapid7.com>', # improved metasploit module
         'Nixawk' # improved metasploit module

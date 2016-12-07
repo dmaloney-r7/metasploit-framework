@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 module Rex
@@ -6,7 +7,6 @@ module Rex
       module CredentialCache
         # This class provides a representation of a Kerberos Credential Cache.
         class Cache < Element
-
           # @!attribute version
           #   @return [Fixnum] The file format version
           attr_accessor :version

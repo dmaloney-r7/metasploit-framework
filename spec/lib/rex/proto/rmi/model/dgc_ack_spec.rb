@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding:binary -*-
 require 'spec_helper'
 
@@ -5,7 +6,6 @@ require 'stringio'
 require 'rex/proto/rmi'
 
 RSpec.describe Rex::Proto::Rmi::Model::DgcAck do
-
   subject(:dgc_ack) do
     described_class.new
   end

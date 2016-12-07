@@ -1,40 +1,39 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 require 'rexml/document'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Auxiliary::Report
   include Msf::Exploit::Remote::HttpClient
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'CorpWatch Company Name Information Search',
-      'Description'    => %q{
-          This module interfaces with the CorpWatch API to get publicly available
-        info for a given company name.  Please note that by using CorpWatch API, you
-        acknolwdge the limitations of the data CorpWatch provides, and should always
-        verify the information with the official SEC filings before taking any action.
-      },
-      'Author'         => [ 'Brandon Perry <bperry.volatile[at]gmail.com>' ],
-      'References'     =>
-        [
-          [ 'URL', 'http://api.corpwatch.org/' ]
-        ]
-    ))
+                      'Name'           => 'CorpWatch Company Name Information Search',
+                      'Description'    => %q(
+                          This module interfaces with the CorpWatch API to get publicly available
+                        info for a given company name.  Please note that by using CorpWatch API, you
+                        acknolwdge the limitations of the data CorpWatch provides, and should always
+                        verify the information with the official SEC filings before taking any action.
+                      ),
+                      'Author'         => [ 'Brandon Perry <bperry.volatile[at]gmail.com>' ],
+                      'References'     =>
+                        [
+                          [ 'URL', 'http://api.corpwatch.org/' ]
+                        ]))
 
     register_options(
       [
         OptString.new('COMPANY_NAME', [ true, "Search for companies with this name", ""]),
-        OptInt.new('YEAR', [ false, "Year to look up", Time.now.year-1]),
+        OptInt.new('YEAR', [ false, "Year to look up", Time.now.year - 1]),
         OptString.new('LIMIT', [ true, "Limit the number of results returned", "5"]),
-        OptString.new('CORPWATCH_APIKEY', [ false, "Use this API key when getting the data", ""]),
-      ], self.class)
+        OptString.new('CORPWATCH_APIKEY', [ false, "Use this API key when getting the data", ""])
+      ], self.class
+    )
 
     deregister_options('RHOST', 'RPORT', 'Proxies', 'VHOST')
   end
@@ -48,26 +47,26 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   def run
-
     uri = "/"
     uri << (datastore['YEAR'].to_s + "/") if datastore['YEAR'].to_s != ""
     uri << "companies.xml"
 
     res = send_request_cgi(
-    {
-      'rhost'    => rhost_corpwatch,
-      'rport'    => rport_corpwatch,
-      'uri'      => uri,
-      'method'   => 'GET',
-      'vars_get' =>
       {
-        'company_name' => datastore['COMPANY_NAME'],
-        'limit'        => datastore['LIMIT'],
-        'key'          => datastore['CORPWATCH_APIKEY']
-      }
-    }, 25)
+        'rhost'    => rhost_corpwatch,
+        'rport'    => rport_corpwatch,
+        'uri'      => uri,
+        'method'   => 'GET',
+        'vars_get' =>
+        {
+          'company_name' => datastore['COMPANY_NAME'],
+          'limit'        => datastore['LIMIT'],
+          'key'          => datastore['CORPWATCH_APIKEY']
+        }
+      }, 25
+    )
 
-    if not res
+    unless res
       print_error("Server down, bad response")
       return
     end
@@ -81,21 +80,21 @@ class MetasploitModule < Msf::Auxiliary
 
     root = doc.root
 
-    if not root
+    unless root
       print_error("document root nil")
       return
     end
 
     elements = root.get_elements("result")
 
-    if not elements
+    unless elements
       print_error("Document root has no results")
       return
     end
 
     results = elements[0]
 
-    if not results
+    unless results
       print_error("No results returned, try another search")
       return
     end
@@ -109,9 +108,9 @@ class MetasploitModule < Msf::Auxiliary
 
     results = elements[0]
 
-    return if not results.elements || results.elements.length == 0
+    return unless results.elements || results.elements.empty?
 
-    results.elements.each { |e|
+    results.elements.each do |e|
       cwid = grab_text(e, "cw_id")
       company_name = grab_text(e, "company_name")
       address = grab_text(e, "raw_address")
@@ -124,13 +123,12 @@ class MetasploitModule < Msf::Auxiliary
       print_status("Address: " + address)
       print_status("Sector: " + sector)
       print_status("Industry: " + industry)
-    }
+    end
   end
 
   def grab_text(e, name)
-    (e.get_elements(name) && e.get_elements(name)[0] &&
-    e.get_elements(name)[0].get_text ) ?
-    e.get_elements(name)[0].get_text.to_s  : ""
+    e.get_elements(name) && e.get_elements(name)[0] &&
+      e.get_elements(name)[0].get_text ?
+    e.get_elements(name)[0].get_text.to_s : ""
   end
-
 end

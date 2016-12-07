@@ -1,8 +1,9 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 #
 # $Id$
 #
-# This script cracks HMAC SHA1 hashes. It is strangely necessary as existing tools 
+# This script cracks HMAC SHA1 hashes. It is strangely necessary as existing tools
 # have issues with binary salt values and extremely large salt values. The primary
 # goal of this tool is to handle IPMI 2.0 HMAC SHA1 hashes.
 #
@@ -15,53 +16,49 @@ while File.symlink?(msfbase)
   msfbase = File.expand_path(File.readlink(msfbase), File.dirname(msfbase))
 end
 
-$:.unshift(File.expand_path(File.join(File.dirname(msfbase), '..', '..', 'lib')))
+$LOAD_PATH.unshift(File.expand_path(File.join(File.dirname(msfbase), '..', '..', 'lib')))
 require 'msfenv'
 
-$:.unshift(ENV['MSF_LOCAL_LIB']) if ENV['MSF_LOCAL_LIB']
+$LOAD_PATH.unshift(ENV['MSF_LOCAL_LIB']) if ENV['MSF_LOCAL_LIB']
 
 require 'rex'
 require 'openssl'
 
 def usage
-  $stderr.puts("\nUsage: #{$0} hashes.txt <wordlist | - >\n")
+  $stderr.puts("\nUsage: #{$PROGRAM_NAME} hashes.txt <wordlist | - >\n")
   $stderr.puts("The format of hash file is <identifier>:<hex-salt>:<hash>\n\n")
   exit
 end
 
+hash_inp  = ARGV.shift || usage
+word_inp  = ARGV.shift || usage
 
-hash_inp  = ARGV.shift || usage()
-word_inp  = ARGV.shift || usage()
-
-usage if [hash_inp, word_inp].include?("-h") or [hash_inp, word_inp].include?("--help")
+usage if [hash_inp, word_inp].include?("-h") || [hash_inp, word_inp].include?("--help")
 
 hash_fd = ::File.open(hash_inp, "rb")
 word_fd = $stdin
 
-if word_inp != "-"
-  word_fd = ::File.open(word_inp, "rb")
-end
+word_fd = ::File.open(word_inp, "rb") if word_inp != "-"
 
 hashes = []
 hash_fd.each_line do |line|
-  next unless line.strip.length > 0
+  next if line.strip.empty?
   h_id, h_salt, h_hash = line.unpack("C*").pack("C*").strip.split(':', 3)
 
-  unless h_id and h_salt and h_hash
+  unless h_id && h_salt && h_hash
     $stderr.puts "[-] Invalid hash entry, missing field: #{line}"
     next
   end
-  unless h_salt =~ /^[a-f0-9]+$/i 
+  unless h_salt =~ /^[a-f0-9]+$/i
     $stderr.puts "[-] Invalid hash entry, salt must be in hex: #{line}"
     next
   end
   hashes << [h_id, [h_salt].pack("H*"), [h_hash].pack("H*") ]
 end
-hash_fd.close 
-
+hash_fd.close
 
 stime = Time.now.to_f
-count = 0 
+count = 0
 cracked = 0
 
 word_fd.each_line do |line|
@@ -75,14 +72,13 @@ word_fd.each_line do |line|
       cracked += 1
     end
     count += 1
-    
+
     if count % 2500000 == 0
       $stderr.puts "[*] Found #{cracked} passwords with #{hashes.length} left (#{(count / (Time.now.to_f - stime)).to_i}/s)"
-    end		
+    end
   end
-  hashes.delete_if {|e| e[3] }
-  break if hashes.length == 0
-
+  hashes.delete_if { |e| e[3] }
+  break if hashes.empty?
 end
 word_fd.close
 

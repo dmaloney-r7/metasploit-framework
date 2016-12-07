@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,41 +8,39 @@
 #
 ##
 
-
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Exploit::Remote::TcpServer
 
-  def initialize()
+  def initialize
     super(
       'Name'           => 'Simple FTP Client Fuzzer',
-      'Description'    => %q{
+      'Description'    => %q(
         This module will serve an FTP server and perform FTP client interaction fuzzing
-      },
+      ),
       'Author'         => [ 'corelanc0d3r <peter.ve[at]corelan.be>' ],
       'License'        => MSF_LICENSE,
       'References'     =>
         [
-          [ 'URL', 'http://www.corelan.be:8800/index.php/2010/10/12/death-of-an-ftp-client/' ],
+          [ 'URL', 'http://www.corelan.be:8800/index.php/2010/10/12/death-of-an-ftp-client/' ]
         ]
       )
     register_options(
       [
-      OptPort.new('SRVPORT', [ true, "The local port to listen on.", 21 ]),
-      OptString.new('FUZZCMDS', [ true, "Comma separated list of commands to fuzz (Uppercase).", "LIST,NLST,LS,RETR", nil, /(?:[A-Z]+,?)+/ ]),
-      OptInt.new('STARTSIZE', [ true, "Fuzzing string startsize.",1000]),
-      OptInt.new('ENDSIZE', [ true, "Max Fuzzing string size.",200000]),
-      OptInt.new('STEPSIZE', [ true, "Increment fuzzing string each attempt.",1000]),
-      OptBool.new('RESET', [ true, "Reset fuzzing values after client disconnects with QUIT cmd.",true]),
-      OptString.new('WELCOME', [ true, "FTP Server welcome message.","Evil FTP Server Ready"]),
-      OptBool.new('CYCLIC', [ true, "Use Cyclic pattern instead of A's (fuzzing payload).",true]),
-      OptBool.new('ERROR', [ true, "Reply with error codes only",false]),
-      OptBool.new('EXTRALINE', [ true, "Add extra CRLF's in response to LIST",true])
-      ], self.class)
+        OptPort.new('SRVPORT', [ true, "The local port to listen on.", 21 ]),
+        OptString.new('FUZZCMDS', [ true, "Comma separated list of commands to fuzz (Uppercase).", "LIST,NLST,LS,RETR", nil, /(?:[A-Z]+,?)+/ ]),
+        OptInt.new('STARTSIZE', [ true, "Fuzzing string startsize.", 1000]),
+        OptInt.new('ENDSIZE', [ true, "Max Fuzzing string size.", 200000]),
+        OptInt.new('STEPSIZE', [ true, "Increment fuzzing string each attempt.", 1000]),
+        OptBool.new('RESET', [ true, "Reset fuzzing values after client disconnects with QUIT cmd.", true]),
+        OptString.new('WELCOME', [ true, "FTP Server welcome message.", "Evil FTP Server Ready"]),
+        OptBool.new('CYCLIC', [ true, "Use Cyclic pattern instead of A's (fuzzing payload).", true]),
+        OptBool.new('ERROR', [ true, "Reply with error codes only", false]),
+        OptBool.new('EXTRALINE', [ true, "Add extra CRLF's in response to LIST", true])
+      ], self.class
+    )
   end
-
 
   # Not compatible today
   def support_ipv6?
@@ -54,23 +53,23 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   def run
-    @fuzzsize=datastore['STARTSIZE'].to_i
-    exploit()
+    @fuzzsize = datastore['STARTSIZE'].to_i
+    exploit
   end
 
   # Handler for new FTP client connections
   def on_client_connect(c)
     @state[c] = {
-      :name => "#{c.peerhost}:#{c.peerport}",
-      :ip   => c.peerhost,
-      :port => c.peerport,
-      :user => nil,
-      :pass => nil
+      name: "#{c.peerhost}:#{c.peerport}",
+      ip: c.peerhost,
+      port: c.peerport,
+      user: nil,
+      pass: nil
     }
     # set up an active data port on port 20
     print_status("Client connected : " + c.peerhost)
     active_data_port_for_client(c, 20)
-    send_response(c,"","WELCOME",220," "+datastore['WELCOME'])
+    send_response(c, "", "WELCOME", 220, " " + datastore['WELCOME'])
     # from this point forward, on_client_data() will take over
   end
 
@@ -81,7 +80,7 @@ class MetasploitModule < Msf::Auxiliary
   # Active and Passive data connections
   def passive_data_port_for_client(c)
     @state[c][:mode] = :passive
-    if(not @state[c][:passive_sock])
+    unless @state[c][:passive_sock]
       s = Rex::Socket::TcpServer.create(
         'LocalHost' => '0.0.0.0',
         'LocalPort' => 0,
@@ -95,35 +94,29 @@ class MetasploitModule < Msf::Auxiliary
     @state[c][:passive_port]
   end
 
-
-  def active_data_port_for_client(c,port)
+  def active_data_port_for_client(c, port)
     @state[c][:mode] = :active
-    connector = Proc.new {
+    connector = proc do
       host = c.peerhost.dup
       sock = Rex::Socket::Tcp.create(
         'PeerHost' => host,
         'PeerPort' => port,
-        'Context'   => { 'Msf' => framework, 'MsfExploit' => self }
+        'Context' => { 'Msf' => framework, 'MsfExploit' => self }
       )
-    }
+    end
     @state[c][:active_connector] = connector
     @state[c][:active_port]      = port
     print_status(" - Set up active data port #{port}")
   end
 
-
   def establish_data_connection(c)
     print_status(" - Establishing #{@state[c][:mode]} data connection")
     begin
-    Timeout.timeout(20) do
-      if(@state[c][:mode] == :active)
-        return @state[c][:active_connector].call()
+      Timeout.timeout(20) do
+        return @state[c][:active_connector].call if @state[c][:mode] == :active
+        return @state[c][:passive_sock].accept if @state[c][:mode] == :passive
       end
-      if(@state[c][:mode] == :passive)
-        return @state[c][:passive_sock].accept
-      end
-    end
-    print_status(" - Data connection active")
+      print_status(" - Data connection active")
     rescue ::Exception => e
       print_error("Failed to establish data connection: #{e.class} #{e}")
     end
@@ -134,80 +127,80 @@ class MetasploitModule < Msf::Auxiliary
   def on_client_data(c)
     # get the client data
     data = c.get_once
-    return if not data
+    return unless data
     # split data into command and arguments
-    cmd,arg = data.strip.split(/\s+/, 2)
+    cmd, arg = data.strip.split(/\s+/, 2)
     arg ||= ""
 
-    return if not cmd
+    return unless cmd
     # convert commands to uppercase and strip spaces
     case cmd.upcase.strip
 
     when 'USER'
       @state[c][:user] = arg
-      send_response(c,arg,"USER",331," User name okay, need password")
+      send_response(c, arg, "USER", 331, " User name okay, need password")
       return
 
     when 'PASS'
       @state[c][:pass] = arg
-      send_response(c,arg,"PASS",230,"-Password accepted.\r\n230 User logged in.")
+      send_response(c, arg, "PASS", 230, "-Password accepted.\r\n230 User logged in.")
       return
 
     when 'QUIT'
-      if (datastore['RESET'])
+      if datastore['RESET']
         print_status("Resetting fuzz settings")
         @fuzzsize = datastore['STARTSIZE']
         @stepsize = datastore['STEPSIZE']
       end
       print_status("** Client disconnected **")
-      send_response(c,arg,"QUIT",221," User logged out")
+      send_response(c, arg, "QUIT", 221, " User logged out")
       return
 
     when 'SYST'
-      send_response(c,arg,"SYST",215," UNIX Type: L8")
+      send_response(c, arg, "SYST", 215, " UNIX Type: L8")
       return
 
     when 'TYPE'
-      send_response(c,arg,"TYPE",200," Type set to #{arg}")
+      send_response(c, arg, "TYPE", 200, " Type set to #{arg}")
       return
 
     when 'CWD'
-      send_response(c,arg,"CWD",250," CWD Command successful")
+      send_response(c, arg, "CWD", 250, " CWD Command successful")
       return
 
     when 'PWD'
-      send_response(c,arg,"PWD",257," \"/\" is current directory.")
+      send_response(c, arg, "PWD", 257, " \"/\" is current directory.")
       return
 
     when 'REST'
-      send_response(c,arg,"REST",200," OK")
+      send_response(c, arg, "REST", 200, " OK")
       return
 
     when 'XPWD'
-      send_response(c,arg,"PWD",257," \"/\" is current directory")
+      send_response(c, arg, "PWD", 257, " \"/\" is current directory")
       return
 
     when 'SIZE'
-      send_response(c,arg,"SIZE",213," 1")
+      send_response(c, arg, "SIZE", 213, " 1")
       return
 
     when 'MDTM'
-      send_response(c,arg,"MDTM",213," #{Time.now.strftime("%Y%m%d%H%M%S")}")
+      send_response(c, arg, "MDTM", 213, " #{Time.now.strftime('%Y%m%d%H%M%S')}")
       return
 
     when 'CDUP'
-      send_response(c,arg,"CDUP",257," \"/\" is current directory")
+      send_response(c, arg, "CDUP", 257, " \"/\" is current directory")
       return
 
     when 'PORT'
-      port = arg.split(',')[4,2]
-      if(not port and port.length == 2)
+      port = arg.split(',')[4, 2]
+      if !port && (port.length == 2)
         c.put("500 Illegal PORT command.\r\n")
         return
       end
-      port = port.map{|x| x.to_i}.pack('C*').unpack('n')[0]
+      port = port.map(&:to_i).pack('C*').unpack('n')[0]
       active_data_port_for_client(c, port)
-      send_response(c,arg,"PORT",200," PORT command successful")
+      send_response(c, arg, "PORT", 200, " PORT command successful")
       return
 
     when 'PASV'
@@ -216,18 +209,16 @@ class MetasploitModule < Msf::Auxiliary
       dport = passive_data_port_for_client(c)
       @state[c][:daddr] = daddr
       @state[c][:dport] = dport
-      pasv  = (daddr.split('.') + [dport].pack('n').unpack('CC')).join(',')
+      pasv = (daddr.split('.') + [dport].pack('n').unpack('CC')).join(',')
       dofuzz = fuzz_this_cmd("PASV")
       code = 227
-      if datastore['ERROR']
-        code = 557
-      end
-      if (dofuzz==1)
+      code = 557 if datastore['ERROR']
+      if dofuzz == 1
         print_status(" * Fuzzing response for PASV, payload length #{@fuzzdata.length}")
-        send_response(c,arg,"PASV",code," Entering Passive Mode (#{@fuzzdata},1,1,1,1,1)\r\n")
-        incr_fuzzsize()
+        send_response(c, arg, "PASV", code, " Entering Passive Mode (#{@fuzzdata},1,1,1,1,1)\r\n")
+        incr_fuzzsize
       else
-        send_response(c,arg,"PASV",code," Entering Passive Mode (#{pasv})")
+        send_response(c, arg, "PASV", code, " Entering Passive Mode (#{pasv})")
       end
       return
 
@@ -235,41 +226,37 @@ class MetasploitModule < Msf::Auxiliary
       # special case - requires active/passive connection
       print_status("Handling #{cmd.upcase} command")
       conn = establish_data_connection(c)
-      if(not conn)
+      unless conn
         c.put("425 Can't build data connection\r\n")
         return
       end
       print_status(" - Data connection set up")
       code = 150
-      if datastore['ERROR']
-        code = 550
-      end
+      code = 550 if datastore['ERROR']
       c.put("#{code} Here comes the directory listing.\r\n")
       code = 226
-      if datastore['ERROR']
-        code = 550
-      end
+      code = 550 if datastore['ERROR']
       c.put("#{code} Directory send ok.\r\n")
       strfile = "passwords.txt"
       strfolder = "Secret files"
       dofuzz = fuzz_this_cmd("LIST")
-      if (dofuzz==1)
+      if dofuzz == 1
         strfile = @fuzzdata + ".txt"
         strfolder = @fuzzdata
         paylen = @fuzzdata.length
         print_status("* Fuzzing response for LIST, payload length #{paylen}")
-        incr_fuzzsize()
+        incr_fuzzsize
       end
       print_status(" - Sending directory list via data connection")
       dirlist = ""
-      if datastore['EXTRALINE']
-        extra = "\r\n"
-      else
-        extra = ""
-      end
+      extra = if datastore['EXTRALINE']
+                "\r\n"
+              else
+                ""
+              end
       dirlist = "drwxrwxrwx    1 100      0           11111 Jun 11 21:10 #{strfolder}\r\n" + extra
       dirlist << "-rw-rw-r--    1 1176     1176         1060 Aug 16 22:22 #{strfile}\r\n" + extra
-      conn.put("total 2\r\n"+dirlist)
+      conn.put("total 2\r\n" + dirlist)
       conn.close
       return
 
@@ -277,18 +264,18 @@ class MetasploitModule < Msf::Auxiliary
       # special case - requires active/passive connection
       print_status("Handling #{cmd.upcase} command")
       conn = establish_data_connection(c)
-      if(not conn)
+      unless conn
         c.put("425 Can't build data connection\r\n")
         return
       end
       print_status(" - Data connection set up")
       strcontent = "blahblahblah"
       dofuzz = fuzz_this_cmd("LIST")
-      if (dofuzz==1)
+      if dofuzz == 1
         strcontent = @fuzzdata
         paylen = @fuzzdata.length
         print_status("* Fuzzing response for RETR, payload length #{paylen}")
-        incr_fuzzsize()
+        incr_fuzzsize
       end
       c.put("150 Opening BINARY mode data connection #{strcontent}\r\n")
       print_status(" - Sending data via data connection")
@@ -298,44 +285,44 @@ class MetasploitModule < Msf::Auxiliary
       return
 
     when /^(STOR|MKD|REM|DEL|RMD)$/
-      send_response(c,arg,cmd.upcase,500," Access denied")
+      send_response(c, arg, cmd.upcase, 500, " Access denied")
       return
 
     when 'FEAT'
-      send_response(c,arg,"FEAT","","211-Features:\r\n211 End")
+      send_response(c, arg, "FEAT", "", "211-Features:\r\n211 End")
       return
 
     when 'HELP'
-      send_response(c,arg,"HELP",214," Syntax: #{arg} - (#{arg}-specific commands)")
+      send_response(c, arg, "HELP", 214, " Syntax: #{arg} - (#{arg}-specific commands)")
 
     when 'SITE'
-      send_response(c,arg,"SITE",200," OK")
+      send_response(c, arg, "SITE", 200, " OK")
       return
 
     when 'NOOP'
-      send_response(c,arg,"NOOP",200," OK")
+      send_response(c, arg, "NOOP", 200, " OK")
       return
 
     when 'ABOR'
-      send_response(c,arg,"ABOR",225," Abor command successful")
+      send_response(c, arg, "ABOR", 225, " Abor command successful")
       return
 
     when 'ACCT'
-      send_response(c,arg,"ACCT",200," OK")
+      send_response(c, arg, "ACCT", 200, " OK")
       return
 
     when 'RNFR'
-      send_response(c,arg,"RNRF",350," File.exist")
+      send_response(c, arg, "RNRF", 350, " File.exist")
       return
 
     when 'RNTO'
-      send_response(c,arg,"RNTO",350," File.exist")
+      send_response(c, arg, "RNTO", 350, " File.exist")
       return
     else
-      send_response(c,arg,cmd.upcase,200," Command not understood")
+      send_response(c, arg, cmd.upcase, 200, " Command not understood")
       return
     end
-    return
+    nil
   end
 
   # Fuzzer functions
@@ -345,68 +332,61 @@ class MetasploitModule < Msf::Auxiliary
     @fuzzcommands = datastore['FUZZCMDS'].split(",")
     fuzzme = 0
     @fuzzcommands.each do |thiscmd|
-      if ((cmd.upcase == thiscmd.upcase) || (thiscmd=="*")) && (fuzzme==0)
+      if (cmd.casecmp(thiscmd.upcase).zero? || (thiscmd == "*")) && (fuzzme == 0)
         fuzzme = 1
       end
     end
-    if fuzzme==1
+    if fuzzme == 1
       # should we use a cyclic pattern, or just A's ?
-      if datastore['CYCLIC']
-        @fuzzdata = Rex::Text.pattern_create(@fuzzsize)
-      else
-        @fuzzdata = "A" * @fuzzsize
-      end
+      @fuzzdata = if datastore['CYCLIC']
+                    Rex::Text.pattern_create(@fuzzsize)
+                  else
+                    "A" * @fuzzsize
+                  end
     end
-    return fuzzme
+    fuzzme
   end
 
   def incr_fuzzsize
     @stepsize = datastore['STEPSIZE'].to_i
-    @fuzzsize = @fuzzsize + @stepsize
+    @fuzzsize += @stepsize
     print_status("(i) Setting next payload size to #{@fuzzsize}")
-    if (@fuzzsize > datastore['ENDSIZE'].to_i)
+    if @fuzzsize > datastore['ENDSIZE'].to_i
       @fuzzsize = datastore['ENDSIZE'].to_i
     end
   end
 
-
   # Send data back to the server
-  def send_response(c,arg,cmd,code,msg)
-    if arg.length > 40
-      showarg = arg[0,40] + "..."
-    else
-      showarg = arg
-    end
-    if cmd.length > 40
-      showcmd = cmd[0,40] + "..."
-    else
-      showcmd = cmd
-    end
+  def send_response(c, arg, cmd, code, msg)
+    showarg = if arg.length > 40
+                arg[0, 40] + "..."
+              else
+                arg
+              end
+    showcmd = if cmd.length > 40
+                cmd[0, 40] + "..."
+              else
+                cmd
+              end
     print_status("Sending response for '#{showcmd}' command, arg #{showarg}")
     dofuzz = fuzz_this_cmd(cmd)
     ## Fuzz this command ?  (excluding PASV, which is handled in the command handler)
-    if (dofuzz==1) && (cmd.upcase != "PASV")
+    if (dofuzz == 1) && !cmd.casecmp("PASV").zero?
       paylen = @fuzzdata.length
       print_status("* Fuzzing response for #{cmd.upcase}, payload length #{paylen}")
-      if datastore['ERROR']
-        code = "550 "
-      end
-      if cmd=="FEAT"
-        @fuzzdata = "211-Features:\r\n "+@fuzzdata+"\r\n211 End"
-      end
-      if cmd=="PWD"
-        @fuzzdata = "  \"/"+@fuzzdata+"\" is current directory"
-      end
+      code = "550 " if datastore['ERROR']
+      @fuzzdata = "211-Features:\r\n " + @fuzzdata + "\r\n211 End" if cmd == "FEAT"
+      @fuzzdata = "  \"/" + @fuzzdata + "\" is current directory" if cmd == "PWD"
       cmsg = code.to_s + " " + @fuzzdata
       c.put("#{cmsg}\r\n")
       print_status("* Fuzz data sent")
-      incr_fuzzsize()
+      incr_fuzzsize
     else
       # Do not fuzz
       cmsg = code.to_s + msg
       cmsg = cmsg.strip
       c.put("#{cmsg}\r\n")
     end
-    return
+    nil
   end
 end

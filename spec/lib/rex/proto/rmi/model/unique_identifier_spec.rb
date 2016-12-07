@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding:binary -*-
 require 'spec_helper'
 
@@ -6,7 +7,6 @@ require 'rex/proto/rmi'
 require 'rex/java'
 
 RSpec.describe Rex::Proto::Rmi::Model::UniqueIdentifier do
-
   subject(:uid) do
     described_class.new
   end

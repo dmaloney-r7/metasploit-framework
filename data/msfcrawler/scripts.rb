@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # $Id$
 ##
@@ -17,8 +18,7 @@ require 'nokogiri'
 require 'uri'
 
 class CrawlerScripts < BaseParser
-
-  def parse(request,result)
+  def parse(request, result)
     return unless result['Content-Type'].include? "text/html"
 
     hr = ''
@@ -32,8 +32,5 @@ class CrawlerScripts < BaseParser
       rescue URI::InvalidURIError
       end
     end
-
   end
-
 end
-

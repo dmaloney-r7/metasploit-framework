@@ -1,25 +1,24 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 require 'rex/proto/ipmi'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::UDPScanner
 
   def initialize
     super(
       'Name'        => 'IPMI 2.0 Cipher Zero Authentication Bypass Scanner',
-      'Description' => %q|
+      'Description' => %q(
         This module identifies IPMI 2.0 compatible systems that are vulnerable
         to an authentication bypass vulnerability through the use of cipher
         zero.
-        |,
+        ),
       'Author'      => [ 'Dan Farmer <zen[at]fish2.com>', 'hdm' ],
       'License'     => MSF_LICENSE,
       'References'  =>
@@ -27,17 +26,17 @@ class MetasploitModule < Msf::Auxiliary
           ['URL', 'http://fish2.com/ipmi/cipherzero.html'],
           ['OSVDB', '93038'],
           ['OSVDB', '93039'],
-          ['OSVDB', '93040'],
+          ['OSVDB', '93040']
 
         ],
       'DisclosureDate' => 'Jun 20 2013'
     )
 
     register_options(
-    [
-      Opt::RPORT(623)
-    ], self.class)
-
+      [
+        Opt::RPORT(623)
+      ], self.class
+    )
   end
 
   def scanner_prescan(batch)
@@ -54,9 +53,13 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   def scanner_process(data, shost, sport)
-    info = Rex::Proto::IPMI::Open_Session_Reply.new(data) rescue nil
-    return if not info
-    return if not info.session_payload_type == Rex::Proto::IPMI::PAYLOAD_RMCPPLUSOPEN_REP
+    info = begin
+             Rex::Proto::IPMI::Open_Session_Reply.new(data)
+           rescue
+             nil
+           end
+    return unless info
+    return unless info.session_payload_type == Rex::Proto::IPMI::PAYLOAD_RMCPPLUSOPEN_REP
 
     # Ignore duplicate replies
     return if @res[shost]
@@ -66,13 +69,13 @@ class MetasploitModule < Msf::Auxiliary
     if info.error_code == 0
       print_good("#{shost}:#{sport} - IPMI - VULNERABLE: Accepted a session open request for cipher zero")
       report_vuln(
-        :host  => shost,
-        :port  => datastore['RPORT'].to_i,
-        :proto => 'udp',
-        :sname => 'ipmi',
-        :name  => 'IPMI 2.0 RAKP Cipher Zero Authentication Bypass',
-        :info  => "Accepted a session open request for cipher zero",
-        :refs  => self.references
+        host: shost,
+        port: datastore['RPORT'].to_i,
+        proto: 'udp',
+        sname: 'ipmi',
+        name: 'IPMI 2.0 RAKP Cipher Zero Authentication Bypass',
+        info: "Accepted a session open request for cipher zero",
+        refs: references
       )
     else
       vprint_status("#{shost}:#{sport} - IPMI - NOT VULNERABLE: Rejected cipher zero with error code #{info.error_code}")

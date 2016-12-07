@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'mkmf'
 
 printf("checking for OS... ")
@@ -6,8 +7,8 @@ os = /-([a-z]+)/.match(RUBY_PLATFORM)[1]
 puts(os)
 $CFLAGS += " -D#{os}"
 
-if !(os == 'mswin' or os == 'bccwin')
-  exit(1) if not have_header("termios.h") or not have_header("unistd.h")
+unless (os == 'mswin') || (os == 'bccwin')
+  exit(1) if !have_header("termios.h") || !have_header("unistd.h")
 end
 
 create_makefile("serialport")

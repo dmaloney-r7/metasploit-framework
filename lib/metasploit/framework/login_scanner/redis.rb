@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'metasploit/framework/login_scanner/base'
 require 'metasploit/framework/login_scanner/rex_socket'
 require 'metasploit/framework/tcp/client'
@@ -5,7 +6,6 @@ require 'metasploit/framework/tcp/client'
 module Metasploit
   module Framework
     module LoginScanner
-
       # This is the LoginScanner class for dealing with REDIS.
       # It is responsible for taking a single target, and a list of credentials
       # and attempting them. It then saves the results.
@@ -16,9 +16,9 @@ module Metasploit
         include Metasploit::Framework::Tcp::Client
 
         DEFAULT_PORT         = 6379
-        LIKELY_PORTS         = [ DEFAULT_PORT ]
-        LIKELY_SERVICE_NAMES = [ 'redis' ]
-        PRIVATE_TYPES        = [ :password ]
+        LIKELY_PORTS         = [ DEFAULT_PORT ].freeze
+        LIKELY_SERVICE_NAMES = [ 'redis' ].freeze
+        PRIVATE_TYPES        = [ :password ].freeze
         REALM_KEY            = nil
 
         # This method can create redis command which can be read by redis server
@@ -44,13 +44,13 @@ module Metasploit
             service_name: 'redis'
           }
 
-          disconnect if self.sock
+          disconnect if sock
 
           begin
             connect
             select([sock], nil, nil, 0.4)
 
-            command = redis_proto(['AUTH', "#{credential.private}"])
+            command = redis_proto(['AUTH', credential.private.to_s])
             sock.put(command)
             result_options[:proof] = sock.get_once
 
@@ -72,7 +72,7 @@ module Metasploit
               status: Metasploit::Model::Login::Status::UNABLE_TO_CONNECT
             )
           end
-          disconnect if self.sock
+          disconnect if sock
           ::Metasploit::Framework::LoginScanner::Result.new(result_options)
         end
 

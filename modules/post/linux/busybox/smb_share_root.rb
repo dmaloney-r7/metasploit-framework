@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,18 +7,17 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Post
-
   include Msf::Post::File
   include Msf::Post::Linux::BusyBox
 
   def initialize
     super(
       'Name'         => 'BusyBox SMB Sharing',
-      'Description'  => %q{
+      'Description'  => %q(
         This module will be applied on a session connected to a BusyBox shell. It will modify
         the SMB configuration of the device executing BusyBox to share the root directory of
         the device.
-      },
+      ),
       'Author'       => 'Javier Vicente Vallejo',
       'License'      => MSF_LICENSE,
       'Platform'     => ['linux'],
@@ -55,5 +55,4 @@ class MetasploitModule < Msf::Post
     vprint_status(res)
     Rex.sleep(0.1)
   end
-
 end

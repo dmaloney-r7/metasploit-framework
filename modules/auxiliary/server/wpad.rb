@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,42 +7,41 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpServer::HTML
   include Msf::Auxiliary::Report
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'        => 'WPAD.dat File Server',
-      'Description' => %q{
-          This module generates a valid wpad.dat file for WPAD mitm
-        attacks. Usually this module is used in combination with DNS attacks
-        or the 'NetBIOS Name Service Spoofer' module. Please remember as the
-        server will be running by default on TCP port 80 you will need the
-        required privileges to open that port.
-      },
-      'Author'      =>
-        [
-          'et'            # Metasploit module
-        ],
-      'License'     => MSF_LICENSE,
-      'DefaultOptions' =>
-        {
-          'SRVPORT' => 80
-        },
-      'Passive' => true))
+                      'Name'        => 'WPAD.dat File Server',
+                      'Description' => %q(
+                          This module generates a valid wpad.dat file for WPAD mitm
+                        attacks. Usually this module is used in combination with DNS attacks
+                        or the 'NetBIOS Name Service Spoofer' module. Please remember as the
+                        server will be running by default on TCP port 80 you will need the
+                        required privileges to open that port.
+                      ),
+                      'Author'      =>
+                        [
+                          'et' # Metasploit module
+                        ],
+                      'License'     => MSF_LICENSE,
+                      'DefaultOptions' =>
+                        {
+                          'SRVPORT' => 80
+                        },
+                      'Passive' => true))
 
     register_options(
       [
-        OptAddress.new('EXCLUDENETWORK', [ true, "Network to exclude",'127.0.0.1' ]),
-        OptAddress.new('EXCLUDENETMASK', [ true, "Netmask to exclude",'255.255.255.0' ]),
+        OptAddress.new('EXCLUDENETWORK', [ true, "Network to exclude", '127.0.0.1' ]),
+        OptAddress.new('EXCLUDENETMASK', [ true, "Netmask to exclude", '255.255.255.0' ]),
         OptAddress.new('PROXY', [ true, "Proxy to redirect traffic to", '0.0.0.0' ]),
-        OptPort.new('PROXYPORT',[ true, "Proxy port", 8080 ])
-      ], self.class)
+        OptPort.new('PROXYPORT', [ true, "Proxy port", 8080 ])
+      ], self.class
+    )
 
     deregister_options('URIPATH')
   end
-
 
   def on_request_uri(cli, request)
     vprint_status("Request '#{request.method} #{request.headers['user-agent']}")
@@ -61,9 +61,7 @@ EOS
 
     print_status("Sending WPAD config")
     send_response_html(cli, html,
-      {
-        'Content-Type' => 'application/x-ns-proxy-autoconfig'
-      })
+                       'Content-Type' => 'application/x-ns-proxy-autoconfig')
   end
 
   def resource_uri
@@ -86,6 +84,4 @@ EOS
       end
     end
   end
-
 end
-

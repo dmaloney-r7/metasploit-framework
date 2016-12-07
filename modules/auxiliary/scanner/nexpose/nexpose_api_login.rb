@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # nexpose_api_login.rb
 ##
@@ -10,7 +11,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::AuthBrute
@@ -19,10 +19,10 @@ class MetasploitModule < Msf::Auxiliary
   def initialize
     super(
       'Name'           => 'NeXpose API Interface Login Utility',
-      'Description'    => %q{
+      'Description'    => %q(
         This module simply attempts to login to a NeXpose API interface using a
         specific user/pass.
-      },
+      ),
       'Author'         => [ 'Vlatko Kosturjak <kost[at]linux.hr>' ],
       'License'        => MSF_LICENSE,
       'DefaultOptions' => { 'SSL' => true }
@@ -33,22 +33,23 @@ class MetasploitModule < Msf::Auxiliary
         Opt::RPORT(3780),
         OptString.new('URI', [true, "URI for NeXpose API. Default is /api/1.1/xml", "/api/1.1/xml"]),
         OptBool.new('BLANK_PASSWORDS', [false, "Try blank passwords for all users", false])
-      ], self.class)
+      ], self.class
+    )
   end
 
-  def run_host(ip)
+  def run_host(_ip)
     begin
       res = send_request_cgi({
-        'uri'     => datastore['URI'],
-        'method'  => 'GET'
-        }, 25)
-      http_fingerprint({ :response => res })
+                               'uri' => datastore['URI'],
+                               'method' => 'GET'
+                             }, 25)
+      http_fingerprint(response: res)
     rescue ::Rex::ConnectionError => e
-      vprint_error("#{datastore['URI']} - #{e.to_s}")
+      vprint_error("#{datastore['URI']} - #{e}")
       return
     end
 
-    if not res
+    unless res
       vprint_error("#{datastore['URI']} - No response")
       return
     end
@@ -89,27 +90,27 @@ class MetasploitModule < Msf::Auxiliary
     create_credential_login(login_data)
   end
 
-  def do_login(user='nxadmin', pass='nxadmin')
+  def do_login(user = 'nxadmin', pass = 'nxadmin')
     vprint_status("Trying username:'#{user}' with password:'#{pass}'")
     headers = {
       'Content-Type' => 'text/xml'
     }
-    data = '<?xml version="1.0" encoding="UTF-8"?><LoginRequest sync-id="1" user-id="' << user << '" password="' << pass  << '"></LoginRequest>'
+    data = '<?xml version="1.0" encoding="UTF-8"?><LoginRequest sync-id="1" user-id="' << user << '" password="' << pass << '"></LoginRequest>'
     begin
       res = send_request_cgi({
-        'encode'   => true,
-        'uri'      => datastore['URI'],
-        'method'   => 'POST',
-        'headers'  => headers,
-        'data'     => data
-      }, 25)
+                               'encode' => true,
+                               'uri'      => datastore['URI'],
+                               'method'   => 'POST',
+                               'headers'  => headers,
+                               'data'     => data
+                             }, 25)
 
     rescue ::Rex::ConnectionError, Errno::ECONNREFUSED, Errno::ETIMEDOUT
       print_error("HTTP Connection Failed, Aborting")
       return :abort
     end
 
-    if not res
+    unless res
       print_error("HTTP Connection Error - res, Aborting")
       return :abort
     end
@@ -135,6 +136,6 @@ class MetasploitModule < Msf::Auxiliary
       end
     end
     vprint_error("FAILED LOGIN. '#{user}' : '#{pass}'")
-    return :skip_pass
+    :skip_pass
   end
 end

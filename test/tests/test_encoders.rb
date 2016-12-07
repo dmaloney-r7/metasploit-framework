@@ -1,5 +1,6 @@
+# frozen_string_literal: true
 #
-# Simple script to test a group of encoders against every exploit in the framework, 
+# Simple script to test a group of encoders against every exploit in the framework,
 # specifically for the exploits badchars, to see if a payload can be encoded. We ignore
 # the target arch/platform of the exploit as we just want to pull out real world bad chars.
 #
@@ -9,7 +10,7 @@ while File.symlink?(msfbase)
   msfbase = File.expand_path(File.readlink(msfbase), File.dirname(msfbase))
 end
 
-$:.unshift(File.expand_path(File.join(File.dirname(msfbase), '..', '..', 'lib')))
+$LOAD_PATH.unshift(File.expand_path(File.join(File.dirname(msfbase), '..', '..', 'lib')))
 
 require 'msfenv'
 require 'msf/base'
@@ -18,43 +19,39 @@ $msf = Msf::Simple::Framework.create
 
 EXPLOITS = $msf.exploits
 
-def print_line( message )
-  $stdout.puts( message )
+def print_line(message)
+  $stdout.puts(message)
 end
 
-def format_badchars( badchars )
+def format_badchars(badchars)
   str = ''
-  if( badchars )
-    badchars.each_byte do | b |
-      str << "\\x%02X" % [ b ]
-    end
+  badchars&.each_byte do |b|
+    str << "\\x%02X" % [ b ]
   end
   str
 end
 
-def encoder_v_payload( encoder_name, payload, verbose=false )
+def encoder_v_payload(encoder_name, payload, verbose = false)
   success = 0
   fail    = 0
-  EXPLOITS.each_module do | name, mod |
-  
+  EXPLOITS.each_module do |name, mod|
     exploit = mod.new
-    print_line( "\n#{encoder_name} v #{name} (#{ format_badchars( exploit.payload_badchars ) })" ) if verbose
+    print_line("\n#{encoder_name} v #{name} (#{format_badchars(exploit.payload_badchars)})") if verbose
     begin
-      encoder = $msf.encoders.create( encoder_name )
-      raw = encoder.encode( payload, exploit.payload_badchars, nil, nil )
+      encoder = $msf.encoders.create(encoder_name)
+      raw = encoder.encode(payload, exploit.payload_badchars, nil, nil)
       success += 1
     rescue
-      print_line( "    FAILED! badchars=#{ format_badchars( exploit.payload_badchars ) }\n" ) if verbose
+      print_line("    FAILED! badchars=#{format_badchars(exploit.payload_badchars)}\n") if verbose
       fail += 1
     end
   end
-  return [ success, fail ]
+  [ success, fail ]
 end
 
-def generate_payload( name )
+def generate_payload(name)
+  payload = $msf.payloads.create(name)
 
-  payload = $msf.payloads.create( name )
-  
   # set options for a reverse_tcp payload
   payload.datastore['LHOST']    = '192.168.2.1'
   payload.datastore['RHOST']    = '192.168.2.254'
@@ -65,54 +62,47 @@ def generate_payload( name )
   # set generic options
   payload.datastore['EXITFUNC'] = 'thread'
 
-  return payload.generate
+  payload.generate
 end
 
-def run( encoders, payload_name, verbose=false )
-
-  payload = generate_payload( payload_name )
+def run(encoders, payload_name, verbose = false)
+  payload = generate_payload(payload_name)
 
   table = Rex::Text::Table.new(
-    'Header'  => 'Encoder v Payload Test - ' + ::Time.new.strftime( "%d-%b-%Y %H:%M:%S" ),
+    'Header'  => 'Encoder v Payload Test - ' + ::Time.new.strftime("%d-%b-%Y %H:%M:%S"),
     'Indent'  => 4,
     'Columns' => [ 'Encoder Name', 'Success', 'Fail' ]
   )
 
-  encoders.each do | encoder_name |
-
-    success, fail = encoder_v_payload( encoder_name, payload, verbose )
+  encoders.each do |encoder_name|
+    success, fail = encoder_v_payload(encoder_name, payload, verbose)
 
     table << [ encoder_name, success, fail ]
-    
   end
 
-  return table	
+  table
 end
 
-if( $0 == __FILE__ )
+if $PROGRAM_NAME == __FILE__
 
-  print_line( "[+] Starting.\n" )
+  print_line("[+] Starting.\n")
 
-  encoders = [ 
-    'x86/bloxor', 
-    'x86/shikata_ga_nai', 
-    'x86/jmp_call_additive', 
-    'x86/fnstenv_mov', 
-    'x86/countdown', 
+  encoders = [
+    'x86/bloxor',
+    'x86/shikata_ga_nai',
+    'x86/jmp_call_additive',
+    'x86/fnstenv_mov',
+    'x86/countdown',
     'x86/call4_dword_xor'
   ]
 
   payload_name = 'windows/shell/reverse_tcp'
-  
+
   verbose = false
-  
-  result_table = run( encoders, payload_name, verbose )
 
-  print_line( "\n\n#{result_table.to_s}\n\n" )
+  result_table = run(encoders, payload_name, verbose)
 
-  print_line( "[+] Finished.\n" )
+  print_line("\n\n#{result_table}\n\n")
+
+  print_line("[+] Finished.\n")
 end
-
-
-
-  

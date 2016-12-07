@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Auxiliary::Report
   include Msf::Exploit::Remote::Udp
   include Msf::Auxiliary::UDPScanner
@@ -35,27 +35,27 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   # Called for each response packet
-  def scanner_process(data, shost, sport)
+  def scanner_process(data, shost, _sport)
     @results[shost] ||= []
     @results[shost] << Rex::Proto::NTP::NTPPrivate.new(data)
   end
 
   # Called before the scan block
-  def scanner_prescan(batch)
+  def scanner_prescan(_batch)
     @results = {}
     @probe = Rex::Proto::NTP.ntp_private(datastore['VERSION'], datastore['IMPLEMENTATION'], 1)
   end
 
   # Called after the scan block
-  def scanner_postscan(batch)
+  def scanner_postscan(_batch)
     @results.keys.each do |k|
       response_map = { @probe => @results[k] }
       # TODO: check to see if any of the responses are actually NTP before reporting
       report_service(
-        :host  => k,
-        :proto => 'udp',
-        :port  => rport,
-        :name  => 'ntp'
+        host: k,
+        proto: 'udp',
+        port: rport,
+        name: 'ntp'
       )
 
       peer = "#{k}:#{rport}"
@@ -63,13 +63,11 @@ class MetasploitModule < Msf::Auxiliary
       what = 'R7-2014-12 NTP Mode 7 PEER_LIST_SUM DRDoS'
       if vulnerable
         print_good("#{peer} - Vulnerable to #{what}: #{proof}")
-        report_vuln({
-          :host  => k,
-          :port  => rport,
-          :proto => 'udp',
-          :name  => what,
-          :refs  => self.references
-        })
+        report_vuln(host: k,
+                    port: rport,
+                    proto: 'udp',
+                    name: what,
+                    refs: references)
       else
         vprint_status("#{peer} - Not vulnerable to #{what}: #{proof}")
       end

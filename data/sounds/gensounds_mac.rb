@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 sounds = {
   'num0' => '0',
   'num1' => '1',
@@ -24,11 +25,10 @@ sounds = {
 
 voice_name = 'Zarvox'
 
-def create_aiff(voice, file,text)
+def create_aiff(voice, file, text)
   system("say -v #{voice} -o #{file}.aiff #{text}")
 end
 
 sounds.keys.each do |k|
   create_aiff(voice_name, k, sounds[k])
 end
-

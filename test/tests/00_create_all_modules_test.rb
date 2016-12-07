@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'testbase'
 
 describe Msf::Simple::Framework do
@@ -6,7 +7,7 @@ describe Msf::Simple::Framework do
     klass = mod
     it "should be able create #{ref}" do
       e = $msf.modules.create(ref)
-    		e.should_not == nil
+      e.should_not.nil?
     end
   end
 end

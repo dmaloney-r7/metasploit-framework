@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -8,7 +9,6 @@ require 'metasploit/framework/login_scanner/smb'
 require 'metasploit/framework/credential_collection'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::DCERPC
   include Msf::Exploit::Remote::SMB::Client
   include Msf::Exploit::Remote::SMB::Client::Authenticated
@@ -20,15 +20,16 @@ class MetasploitModule < Msf::Auxiliary
   def proto
     'smb'
   end
+
   def initialize
     super(
       'Name'           => 'SMB Login Check Scanner',
-      'Description'    => %q{
+      'Description'    => %q(
         This module will test a SMB login on a range of machines and
         report successful logins.  If you have loaded a database plugin
         and connected to a database this module will record successful
         logins and hosts so you can track your access.
-      },
+      ),
       'Author'         =>
         [
           'tebo <tebo[at]attackresearch.com>', # Original
@@ -40,7 +41,7 @@ class MetasploitModule < Msf::Auxiliary
         [
           [ 'CVE', '1999-0506'], # Weak password
         ],
-      'License'     => MSF_LICENSE,
+      'License' => MSF_LICENSE,
       'DefaultOptions' =>
         {
           'DB_ALL_CREDS'    => false,
@@ -48,7 +49,7 @@ class MetasploitModule < Msf::Auxiliary
           'USER_AS_PASS'    => false
         }
     )
-    deregister_options('RHOST','USERNAME','PASSWORD')
+    deregister_options('RHOST', 'USERNAME', 'PASSWORD')
 
     # These are normally advanced options, but for this module they have a
     # more active role, so make them regular options.
@@ -58,12 +59,12 @@ class MetasploitModule < Msf::Auxiliary
         OptBool.new('PRESERVE_DOMAINS', [ false, "Respect a username that contains a domain name.", true ]),
         OptBool.new('RECORD_GUEST', [ false, "Record guest-privileged random logins to the database", false ]),
         OptBool.new('DETECT_ANY_AUTH', [false, 'Enable detection of systems accepting any authentication', true])
-      ], self.class)
-
+      ], self.class
+    )
   end
 
   def run_host(ip)
-    print_brute(:level => :vstatus, :ip => ip, :msg => "Starting SMB login bruteforce")
+    print_brute(level: :vstatus, ip: ip, msg: "Starting SMB login bruteforce")
 
     domain = datastore['SMBDomain'] || ""
 
@@ -86,7 +87,7 @@ class MetasploitModule < Msf::Auxiliary
       send_ntlm: datastore['NTLM::SendNTLM'],
       smb_native_os: datastore['SMB::Native_OS'],
       smb_native_lm: datastore['SMB::Native_LM'],
-      send_spn: datastore['NTLM::SendSPN'],
+      send_spn: datastore['NTLM::SendSPN']
     )
 
     if datastore['DETECT_ANY_AUTH']
@@ -111,7 +112,7 @@ class MetasploitModule < Msf::Auxiliary
       userpass_file: datastore['USERPASS_FILE'],
       username: datastore['SMBUser'],
       user_as_pass: datastore['USER_AS_PASS'],
-      realm: domain,
+      realm: domain
     )
 
     cred_collection = prepend_db_passwords(cred_collection)
@@ -122,31 +123,31 @@ class MetasploitModule < Msf::Auxiliary
     @scanner.scan! do |result|
       case result.status
       when Metasploit::Model::Login::Status::DENIED_ACCESS
-        print_brute :level => :status, :ip => ip, :msg => "Correct credentials, but unable to login: '#{result.credential}', #{result.proof}"
+        print_brute level: :status, ip: ip, msg: "Correct credentials, but unable to login: '#{result.credential}', #{result.proof}"
         report_creds(ip, rport, result)
         :next_user
       when Metasploit::Model::Login::Status::SUCCESSFUL
-        print_brute :level => :good, :ip => ip, :msg => "Success: '#{result.credential}' #{result.access_level}"
+        print_brute level: :good, ip: ip, msg: "Success: '#{result.credential}' #{result.access_level}"
         report_creds(ip, rport, result)
         :next_user
       when Metasploit::Model::Login::Status::UNABLE_TO_CONNECT
         if datastore['VERBOSE']
-          print_brute :level => :verror, :ip => ip, :msg => "Could not connect"
+          print_brute level: :verror, ip: ip, msg: "Could not connect"
         end
         invalidate_login(
-            address: ip,
-            port: rport,
-            protocol: 'tcp',
-            public: result.credential.public,
-            private: result.credential.private,
-            realm_key: Metasploit::Model::Realm::Key::ACTIVE_DIRECTORY_DOMAIN,
-            realm_value: result.credential.realm,
-            status: result.status
+          address: ip,
+          port: rport,
+          protocol: 'tcp',
+          public: result.credential.public,
+          private: result.credential.private,
+          realm_key: Metasploit::Model::Realm::Key::ACTIVE_DIRECTORY_DOMAIN,
+          realm_value: result.credential.realm,
+          status: result.status
         )
         :abort
       when Metasploit::Model::Login::Status::INCORRECT
         if datastore['VERBOSE']
-          print_brute :level => :verror, :ip => ip, :msg => "Failed: '#{result.credential}', #{result.proof}"
+          print_brute level: :verror, ip: ip, msg: "Failed: '#{result.credential}', #{result.proof}"
         end
         invalidate_login(
           address: ip,
@@ -160,9 +161,7 @@ class MetasploitModule < Msf::Auxiliary
         )
       end
     end
-
   end
-
 
   # This logic is not universal ie a local account will not care about workgroup
   # but remote domain authentication will so check each instance
@@ -175,11 +174,11 @@ class MetasploitModule < Msf::Auxiliary
       )
     )
 
-    return bogus_domain.success?
+    bogus_domain.success?
   end
 
   def report_creds(ip, port, result)
-    if !datastore['RECORD_GUEST']
+    unless datastore['RECORD_GUEST']
       if result.access_level == Metasploit::Framework::LoginScanner::SMB::AccessLevels::GUEST
         return
       end
@@ -194,23 +193,21 @@ class MetasploitModule < Msf::Auxiliary
     }
 
     credential_data = {
-      module_fullname: self.fullname,
+      module_fullname: fullname,
       origin_type: :service,
       private_data: result.credential.private,
       private_type: (
         Rex::Proto::NTLM::Utils.is_pass_ntlm_hash?(result.credential.private) ? :ntlm_hash : :password
       ),
-      username: result.credential.public,
+      username: result.credential.public
     }.merge(service_data)
 
     if domain.present?
       if accepts_bogus_domains?(result.credential.public, result.credential.private)
-        print_brute(:level => :vstatus, :ip => ip, :msg => "Domain is ignored for user #{result.credential.public}")
+        print_brute(level: :vstatus, ip: ip, msg: "Domain is ignored for user #{result.credential.public}")
       else
-        credential_data.merge!(
-          realm_key: Metasploit::Model::Realm::Key::ACTIVE_DIRECTORY_DOMAIN,
-          realm_value: result.credential.realm
-        )
+        credential_data[:realm_key] = Metasploit::Model::Realm::Key::ACTIVE_DIRECTORY_DOMAIN
+        credential_data[:realm_value] = result.credential.realm
       end
     end
 

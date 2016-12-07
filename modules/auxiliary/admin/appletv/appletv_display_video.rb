@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,42 +8,40 @@ require 'msf/core'
 require 'uri'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Apple TV Video Remote Control',
-      'Description'    => %q(
-        This module plays a video on an AppleTV device. Note that
-        AppleTV can be somewhat picky about the server that hosts the video.
-        Tested servers include default IIS, default Apache, and Ruby's WEBrick.
-        For WEBrick, the default MIME list may need to be updated, depending on
-        what media file is to be played. Python SimpleHTTPServer is not
-        recommended. Also, if you're playing a video, the URL must be an IP
-        address. Some AppleTV devices are actually password-protected; in that
-        case please set the PASSWORD datastore option. For password
-        bruteforcing, please see the module auxiliary/scanner/http/appletv_login.
-      ),
-      'Author'         =>
-        [
-          '0a29406d9794e4f9b30b3c5d6702c708', # Original work
-          'sinn3r'                            # Make myself liable to mistakes since I made significant changes
-        ],
-      'References'     =>
-        [
-          ['URL', 'http://nto.github.io/AirPlay.html']
-        ],
-      'DefaultOptions' => { 'HttpUsername' => 'AirPlay' },
-      'License'        => MSF_LICENSE
-    ))
+                      'Name'           => 'Apple TV Video Remote Control',
+                      'Description'    => %q(
+                        This module plays a video on an AppleTV device. Note that
+                        AppleTV can be somewhat picky about the server that hosts the video.
+                        Tested servers include default IIS, default Apache, and Ruby's WEBrick.
+                        For WEBrick, the default MIME list may need to be updated, depending on
+                        what media file is to be played. Python SimpleHTTPServer is not
+                        recommended. Also, if you're playing a video, the URL must be an IP
+                        address. Some AppleTV devices are actually password-protected; in that
+                        case please set the PASSWORD datastore option. For password
+                        bruteforcing, please see the module auxiliary/scanner/http/appletv_login.
+                      ),
+                      'Author'         =>
+                        [
+                          '0a29406d9794e4f9b30b3c5d6702c708', # Original work
+                          'sinn3r'                            # Make myself liable to mistakes since I made significant changes
+                        ],
+                      'References'     =>
+                        [
+                          ['URL', 'http://nto.github.io/AirPlay.html']
+                        ],
+                      'DefaultOptions' => { 'HttpUsername' => 'AirPlay' },
+                      'License'        => MSF_LICENSE))
 
     register_options([
-      Opt::RPORT(7000),
-      OptInt.new('TIME', [true, 'Time in seconds to show the video', 60]),
-      OptString.new('URL', [true, 'URL of video to show. Must use an IP address']),
-      OptString.new('HttpPassword', [false, 'The password for AppleTV AirPlay'])
-    ], self.class)
+                       Opt::RPORT(7000),
+                       OptInt.new('TIME', [true, 'Time in seconds to show the video', 60]),
+                       OptString.new('URL', [true, 'URL of video to show. Must use an IP address']),
+                       OptString.new('HttpPassword', [false, 'The password for AppleTV AirPlay'])
+                     ], self.class)
 
     # We're not actually using any of these against AppleTV in our Rex HTTP client init,
     # so deregister them so we don't overwhelm the user with fake options.
@@ -58,7 +57,6 @@ class MetasploitModule < Msf::Auxiliary
       'NTLM::SendSPN', 'NTLM::UseLMKey', 'DOMAIN', 'DigestAuthIIS', 'VHOST'
     )
   end
-
 
   #
   # Sends a video request to AppleTV. HttpClient isn't used because we actually need to keep
@@ -92,17 +90,15 @@ class MetasploitModule < Msf::Auxiliary
     res
   end
 
-
   #
   # Checks the URI datastore option. AppleTV is sort of picky about the URI. It's better to
   # always supply an IP instead of a domain.
   #
   def validate_source!(uri)
     unless Rex::Socket.is_ipv4?(URI(uri).host) # Same trick in target_uri form HttpClient
-      raise Msf::OptionValidateError.new(['URL'])
+      raise Msf::OptionValidateError, ['URL']
     end
   end
-
 
   #
   # Plays a video as a new thread
@@ -111,7 +107,7 @@ class MetasploitModule < Msf::Auxiliary
     uri = datastore['URL']
     validate_source!(uri)
 
-    body  = "Content-Location: #{uri}\n"
+    body = "Content-Location: #{uri}\n"
     body << "Start-Position: 0.0\n"
 
     opts = {
@@ -121,7 +117,7 @@ class MetasploitModule < Msf::Auxiliary
         'Content-Length' => body.length.to_s,
         'Content-Type'   => 'text/parameters'
       },
-      'data'    => body
+      'data' => body
     }
 
     res = send_video_request(opts)
@@ -135,7 +131,6 @@ class MetasploitModule < Msf::Auxiliary
     end
   end
 
-
   #
   # Maybe it's just me not understanding the /stop API correctly, but when I send a request to
   # /stop, it doesn't actually do anything. It is sort of possible to stop my video by looking
@@ -148,10 +143,8 @@ class MetasploitModule < Msf::Auxiliary
     raise NotImplementedError
   end
 
-
   def run
     print_status("Video request sent. Duration set: #{datastore['TIME']} seconds")
     play_video_uri
   end
-
 end

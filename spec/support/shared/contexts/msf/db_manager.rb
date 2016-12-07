@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 RSpec.shared_context 'Msf::DBManager' do
   include_context 'Msf::Simple::Framework'
 

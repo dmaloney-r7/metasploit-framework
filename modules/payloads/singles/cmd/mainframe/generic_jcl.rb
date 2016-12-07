@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This is a prototype JCL command payload for z/OS - mainframe.
 #   It submits the IEFBR14 standard z/OS program, which does nothing

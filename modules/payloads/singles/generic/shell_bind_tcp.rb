@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -8,7 +9,6 @@ require 'msf/core/payload/generic'
 require 'msf/core/handler/bind_tcp'
 
 module MetasploitModule
-
   CachedSize = 0
 
   include Msf::Payload::Single
@@ -16,13 +16,11 @@ module MetasploitModule
 
   def initialize(info = {})
     super(merge_info(info,
-      'Name'          => 'Generic Command Shell, Bind TCP Inline',
-      'Description'   => 'Listen for a connection and spawn a command shell',
-      'Author'        => 'skape',
-      'License'       => MSF_LICENSE,
-      'Handler'       => Msf::Handler::BindTcp,
-      'Session'       => Msf::Sessions::CommandShell
-      ))
+                     'Name'          => 'Generic Command Shell, Bind TCP Inline',
+                     'Description'   => 'Listen for a connection and spawn a command shell',
+                     'Author'        => 'skape',
+                     'License'       => MSF_LICENSE,
+                     'Handler'       => Msf::Handler::BindTcp,
+                     'Session'       => Msf::Sessions::CommandShell))
   end
-
 end

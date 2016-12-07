@@ -1,34 +1,32 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 
-
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::Tcp
   include Msf::Auxiliary::Dos
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'FreeBSD Remote NFS RPC Request Denial of Service',
-      'Description'    => %q{
-        This module sends a specially-crafted NFS Mount request causing a
-        kernel panic on host running FreeBSD 6.0.
-      },
-      'Author'         => [ 'MC' ],
-      'License'        => MSF_LICENSE,
-      'References'     =>
-        [
-          [ 'BID', '16838' ],
-          [ 'OSVDB', '23511' ],
-          [ 'CVE', '2006-0900' ],
-        ]))
+                      'Name'           => 'FreeBSD Remote NFS RPC Request Denial of Service',
+                      'Description'    => %q(
+                        This module sends a specially-crafted NFS Mount request causing a
+                        kernel panic on host running FreeBSD 6.0.
+                      ),
+                      'Author'         => [ 'MC' ],
+                      'License'        => MSF_LICENSE,
+                      'References'     =>
+                        [
+                          [ 'BID', '16838' ],
+                          [ 'OSVDB', '23511' ],
+                          [ 'CVE', '2006-0900' ]
+                        ]))
 
-      register_options([Opt::RPORT(2049),], self.class)
+    register_options([Opt::RPORT(2049)], self.class)
   end
 
   def run
@@ -44,5 +42,4 @@ class MetasploitModule < Msf::Auxiliary
 
     disconnect
   end
-
 end

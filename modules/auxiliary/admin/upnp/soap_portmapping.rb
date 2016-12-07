@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # encoding: utf-8
 # This module requires Metasploit: http://metasploit.com/download
@@ -13,10 +14,10 @@ class MetasploitModule < Msf::Auxiliary
   def initialize
     super(
       'Name'           => 'UPnP IGD SOAP Port Mapping Utility',
-      'Description'    => %q{
+      'Description'    => %q(
         Manage port mappings on UPnP IGD-capable device using the AddPortMapping and
         DeletePortMapping SOAP requests
-      },
+      ),
       'Author'         =>
         [
           'St0rn <fabien[at]anbu-pentest.com>', # initial module
@@ -31,14 +32,12 @@ class MetasploitModule < Msf::Auxiliary
             {
               'Description' => 'Use the AddPortMapping SOAP command to open and forward a port',
               'SOAP_ACTION' => 'AddPortMapping'
-            }
-          ],
+            }],
           [ 'DELETE',
             {
               'Description' => 'Use the DeletePortMapping SOAP command to remove a port forwarding',
               'SOAP_ACTION' => 'DeletePortMapping'
-            }
-          ]
+            }]
         ],
     )
 
@@ -131,7 +130,7 @@ class MetasploitModule < Msf::Auxiliary
         print_good("#{peer} #{map} #{action.name} succeeded")
       else
         print_error("#{peer} #{map} #{action.name} failed with response code #{res.code}")
-        vprint_status("#{res.body}")
+        vprint_status(res.body.to_s)
       end
     else
       print_error("#{peer} no response for #{map} #{action.name}")

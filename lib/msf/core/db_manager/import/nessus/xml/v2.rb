@@ -1,31 +1,31 @@
+# frozen_string_literal: true
 require 'rex/parser/nessus_xml'
 
 module Msf::DBManager::Import::Nessus::XML::V2
-  def import_nessus_xml_v2(args={}, &block)
+  def import_nessus_xml_v2(args = {}, &block)
     data = args[:data]
     wspace = args[:wspace] || workspace
     bl = validate_ips(args[:blacklist]) ? args[:blacklist].split : []
 
-    #@host = {
-        #'hname'             => nil,
-        #'addr'              => nil,
-        #'mac'               => nil,
-        #'os'                => nil,
-        #'ports'             => [ 'port' => {    'port'              	=> nil,
-        #					'svc_name'              => nil,
-        #					'proto'              	=> nil,
-        #					'severity'              => nil,
-        #					'nasl'              	=> nil,
-        #					'description'           => nil,
-        #					'cve'                   => [],
-        #					'bid'                   => [],
-        #					'xref'                  => []
-        #				}
-        #			]
-        #}
+    # @host = {
+    # 'hname'             => nil,
+    # 'addr'              => nil,
+    # 'mac'               => nil,
+    # 'os'                => nil,
+    # 'ports'             => [ 'port' => {    'port'              	=> nil,
+    #					'svc_name'              => nil,
+    #					'proto'              	=> nil,
+    #					'severity'              => nil,
+    #					'nasl'              	=> nil,
+    #					'description'           => nil,
+    #					'cve'                   => [],
+    #					'bid'                   => [],
+    #					'xref'                  => []
+    #				}
+    #			]
+    # }
     parser = Rex::Parser::NessusXMLStreamParser.new
-    parser.on_found_host = Proc.new { |host|
-
+    parser.on_found_host = proc { |host|
       hobj = nil
       addr = host['addr'] || host['hname']
 
@@ -34,7 +34,7 @@ module Msf::DBManager::Import::Nessus::XML::V2
       if bl.include? addr
         next
       else
-        yield(:address,addr) if block
+        yield(:address, addr) if block
       end
 
       os = host['os']
@@ -42,9 +42,9 @@ module Msf::DBManager::Import::Nessus::XML::V2
       mac = host['mac']
 
       host_info = {
-        :workspace => wspace,
-        :host => addr,
-        :task => args[:task]
+        workspace: wspace,
+        host: addr,
+        task: args[:task]
       }
       host_info[:name] = hname.to_s.strip if hname
       # Short mac, protect against Nessus's habit of saving multiple macs
@@ -52,18 +52,18 @@ module Msf::DBManager::Import::Nessus::XML::V2
       host_info[:mac]  = mac.to_s.strip.upcase.split(/\s+/).first if mac
 
       hobj = report_host(host_info)
-      report_import_note(wspace,hobj)
+      report_import_note(wspace, hobj)
 
       os = host['os']
-      yield(:os,os) if block
+      yield(:os, os) if block
       if os
         report_note(
-          :workspace => wspace,
-          :task => args[:task],
-          :host => hobj,
-          :type => 'host.os.nessus_fingerprint',
-          :data => {
-            :os => os.to_s.strip
+          workspace: wspace,
+          task: args[:task],
+          host: hobj,
+          type: 'host.os.nessus_fingerprint',
+          data: {
+            os: os.to_s.strip
           }
         )
       end
@@ -83,16 +83,14 @@ module Msf::DBManager::Import::Nessus::XML::V2
         xref = item['xref']
         msf = item['msf']
 
-        yield(:port,port) if block
+        yield(:port, port) if block
 
         handle_nessus_v2(wspace, hobj, port, proto, sname, nasl, nasl_name, severity, description, cve, bid, xref, msf, args[:task])
-
       end
-      yield(:end,hname) if block
+      yield(:end, hname) if block
     }
 
     REXML::Document.parse_stream(data, parser)
-
   end
 
   protected
@@ -101,58 +99,52 @@ module Msf::DBManager::Import::Nessus::XML::V2
   # NESSUS v2 file format has a dramatically different layout
   # for ReportItem data
   #
-  def handle_nessus_v2(wspace,hobj,port,proto,name,nasl,nasl_name,severity,description,cve,bid,xref,msf,task=nil)
+  def handle_nessus_v2(wspace, hobj, port, proto, name, nasl, nasl_name, _severity, description, cve, bid, xref, msf, task = nil)
     addr = hobj.address
 
-    info = { :workspace => wspace, :host => hobj, :port => port, :proto => proto, :task => task }
+    info = { workspace: wspace, host: hobj, port: port, proto: proto, task: task }
 
-    unless name =~ /^unknown$|\?$/
-      info[:name] = name
-    end
+    info[:name] = name unless name =~ /^unknown$|\?$/
 
-    if port.to_i != 0
-      report_service(info)
-    end
+    report_service(info) if port.to_i != 0
 
-    if nasl.nil? || nasl.empty? || nasl == 0 || nasl == "0"
-      return
-    end
+    return if nasl.nil? || nasl.empty? || nasl == 0 || nasl == "0"
 
     refs = []
 
-    cve.each do |r|
+    cve&.each do |r|
       r.to_s.gsub!(/C(VE|AN)\-/, '')
       refs.push('CVE-' + r.to_s)
-    end if cve
+    end
 
-    bid.each do |r|
+    bid&.each do |r|
       refs.push('BID-' + r.to_s)
-    end if bid
+    end
 
-    xref.each do |r|
+    xref&.each do |r|
       ref_id, ref_val = r.to_s.split(':')
       ref_val ? refs.push(ref_id + '-' + ref_val) : refs.push(ref_id)
-    end if xref
+    end
 
     msfref = "MSF-" << msf if msf
     refs.push msfref if msfref
 
     nss = 'NSS-' + nasl
-    if nasl_name.nil? || nasl_name.empty?
-      vuln_name = nss
-    else
-      vuln_name = nasl_name
-    end
+    vuln_name = if nasl_name.nil? || nasl_name.empty?
+                  nss
+                else
+                  nasl_name
+                end
 
     refs << nss.strip
 
     vuln = {
-      :workspace => wspace,
-      :host => hobj,
-      :name => vuln_name,
-      :info => description ? description : "",
-      :refs => refs,
-      :task => task,
+      workspace: wspace,
+      host: hobj,
+      name: vuln_name,
+      info: description ? description : "",
+      refs: refs,
+      task: task
     }
 
     if port.to_i != 0

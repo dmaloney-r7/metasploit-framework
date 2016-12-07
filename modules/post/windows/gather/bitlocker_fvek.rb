@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'rex/parser/fs/bitlocker'
 
 class MetasploitModule < Msf::Post
@@ -11,26 +12,26 @@ class MetasploitModule < Msf::Post
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'         => 'Bitlocker Master Key (FVEK) Extraction',
-      'Description'  => %q{
-        This module enumerates ways to decrypt bitlocker volume and if a recovery key is stored locally
-        or can be generated, dump the Bitlocker master key (FVEK)
-      },
-      'License'      => 'MSF_LICENSE',
-      'Platform'     => ['win'],
-      'SessionTypes' => ['meterpreter'],
-      'Author'       => ['Danil Bazin <danil.bazin[at]hsc.fr>'], # @danilbaz
-      'References'   => [
-        ['URL', 'https://github.com/libyal/libbde/blob/master/documentation/BitLocker Drive Encryption (BDE) format.asciidoc'],
-        ['URL', 'http://www.hsc.fr/ressources/outils/dislocker/']
-      ]
-    ))
+                      'Name'         => 'Bitlocker Master Key (FVEK) Extraction',
+                      'Description'  => %q{
+                        This module enumerates ways to decrypt bitlocker volume and if a recovery key is stored locally
+                        or can be generated, dump the Bitlocker master key (FVEK)
+                      },
+                      'License'      => 'MSF_LICENSE',
+                      'Platform'     => ['win'],
+                      'SessionTypes' => ['meterpreter'],
+                      'Author'       => ['Danil Bazin <danil.bazin[at]hsc.fr>'], # @danilbaz
+                      'References'   => [
+                        ['URL', 'https://github.com/libyal/libbde/blob/master/documentation/BitLocker Drive Encryption (BDE) format.asciidoc'],
+                        ['URL', 'http://www.hsc.fr/ressources/outils/dislocker/']
+                      ]))
 
     register_options(
       [
         OptString.new('DRIVE_LETTER', [true, 'Dump informations from the DRIVE_LETTER encrypted with Bitlocker', nil]),
         OptString.new('RECOVERY_KEY', [false, 'Use the recovery key provided to decrypt the Bitlocker master key (FVEK)', nil])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def run
@@ -60,8 +61,8 @@ class MetasploitModule < Msf::Post
 
     if r['GetLastError'] != ERROR::SUCCESS
       fail_with(Failure::Unknown,
-        "Error opening #{drive_letter}. Windows Error Code: #{r['GetLastError']}
-         - #{r['ErrorMessage']}")
+                "Error opening #{drive_letter}. Windows Error Code: #{r['GetLastError']}
+                 - #{r['ErrorMessage']}")
     end
 
     @handle = r['return']

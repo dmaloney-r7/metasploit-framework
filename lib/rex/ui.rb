@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 #
 # This file includes everything needed to interact with the user interface
@@ -6,7 +7,6 @@
 
 # General classes
 require 'rex/ui/output'
-
 
 # Text-based user interfaces
 require 'rex/ui/text/input'

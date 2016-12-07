@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'spec_helper'
 
 require 'msf/core/db_export'
@@ -15,7 +16,7 @@ RSpec.describe Msf::DBManager::Export do
 
   let(:workspace) do
     FactoryGirl.create(
-        :mdm_workspace
+      :mdm_workspace
     )
   end
 
@@ -43,8 +44,8 @@ RSpec.describe Msf::DBManager::Export do
 
       let!(:module_details) do
         FactoryGirl.create_list(
-            :mdm_module_detail,
-            module_detail_count
+          :mdm_module_detail,
+          module_detail_count
         )
       end
 

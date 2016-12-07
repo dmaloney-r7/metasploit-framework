@@ -1,17 +1,18 @@
+# frozen_string_literal: true
 require 'rex/parser/foundstone_nokogiri'
 
 module Msf::DBManager::Import::Foundstone
-  def import_foundstone_noko_stream(args={},&block)
-    if block
-      doc = Rex::Parser::FoundstoneDocument.new(args,framework.db) {|type, data| yield type,data }
-    else
-      doc = Rex::Parser::FoundstoneDocument.new(args,self)
-    end
+  def import_foundstone_noko_stream(args = {}, &block)
+    doc = if block
+            Rex::Parser::FoundstoneDocument.new(args, framework.db) { |type, data| yield type, data }
+          else
+            Rex::Parser::FoundstoneDocument.new(args, self)
+          end
     parser = ::Nokogiri::XML::SAX::Parser.new(doc)
     parser.parse(args[:data])
   end
 
-  def import_foundstone_xml(args={}, &block)
+  def import_foundstone_xml(args = {}, &block)
     bl = validate_ips(args[:blacklist]) ? args[:blacklist].split : []
     wspace = args[:wspace] || workspace
     if Rex::Parser.nokogiri_loaded
@@ -21,13 +22,13 @@ module Msf::DBManager::Import::Foundstone
       noko_args[:wspace] = wspace
       if block
         yield(:parser, parser)
-        import_foundstone_noko_stream(noko_args) {|type, data| yield type,data}
+        import_foundstone_noko_stream(noko_args) { |type, data| yield type, data }
       else
         import_foundstone_noko_stream(noko_args)
       end
       return true
     else # Sorry
-      raise Msf::DBImportError.new("Could not import due to missing Nokogiri parser. Try 'gem install nokogiri'.")
+      raise Msf::DBImportError, "Could not import due to missing Nokogiri parser. Try 'gem install nokogiri'."
     end
   end
 end

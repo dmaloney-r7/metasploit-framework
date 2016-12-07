@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,48 +8,44 @@ require 'msf/core'
 require 'rex'
 
 class MetasploitModule < Msf::Post
-
   include Msf::Post::File
   include Msf::Post::Windows::Registry
 
-  def initialize(info={})
-    super( update_info( info,
-        'Name'          => 'Windows Gather Enumerate Domain Tokens',
-        'Description'   => %q{
-            This module will enumerate tokens present on a system that are part of the
-            domain the target host is part of, will also enumerate users in the local
-            Administrators, Users and Backup Operator groups to identify Domain members.
-            Processes will be also enumerated and checked if they are running under a
-            Domain account, on all checks the accounts, processes and tokens will be
-            checked if they are part of the Domain Admin group of the domain the machine
-            is a member of.
-        },
-        'License'       => MSF_LICENSE,
-        'Author'        => [ 'Carlos Perez <carlos_perez[at]darkoperator.com>'],
-        'Platform'      => [ 'win'],
-        'SessionTypes'  => [ 'meterpreter' ]
-      ))
+  def initialize(info = {})
+    super(update_info(info,
+                      'Name'          => 'Windows Gather Enumerate Domain Tokens',
+                      'Description'   => %q(
+                          This module will enumerate tokens present on a system that are part of the
+                          domain the target host is part of, will also enumerate users in the local
+                          Administrators, Users and Backup Operator groups to identify Domain members.
+                          Processes will be also enumerated and checked if they are running under a
+                          Domain account, on all checks the accounts, processes and tokens will be
+                          checked if they are part of the Domain Admin group of the domain the machine
+                          is a member of.
+                      ),
+                      'License'       => MSF_LICENSE,
+                      'Author'        => [ 'Carlos Perez <carlos_perez[at]darkoperator.com>'],
+                      'Platform'      => [ 'win'],
+                      'SessionTypes'  => [ 'meterpreter' ]))
   end
 
   # Run Method for when run command is issued
   def run
-    print_status("Running module against #{sysinfo['Computer']}") if not sysinfo.nil?
-    domain = get_domain()
+    print_status("Running module against #{sysinfo['Computer']}") unless sysinfo.nil?
+    domain = get_domain
 
-    if not domain.empty?
+    unless domain.empty?
       uid = client.sys.config.getuid
       dom_admins = list_domain_group_mem("Domain Admins")
 
-      if  uid =~ /#{domain}/
+      if uid =~ /#{domain}/
         user = uid.split("\\")[1]
         if dom_admins.include?(user)
           print_good("Current session is running under a Domain Admin Account")
         end
       end
 
-      if not is_dc?
-        list_group_members(domain, dom_admins)
-      end
+      list_group_members(domain, dom_admins) unless is_dc?
 
       list_tokens(domain, dom_admins)
       list_processes(domain, dom_admins)
@@ -61,7 +58,7 @@ class MetasploitModule < Msf::Post
     raw_list = cmd_exec("net localgroup #{group}").split(devisor)[1]
     account_list = raw_list.split("\r\n")
     account_list.delete("The command completed successfully.")
-    return account_list
+    account_list
   end
 
   # List Members of a domain group
@@ -73,11 +70,11 @@ class MetasploitModule < Msf::Post
       account_list << m
     end
     account_list.delete("The command completed successfully.")
-    return account_list
+    account_list
   end
 
   # Gets the Domain Name
-  def get_domain()
+  def get_domain
     domain = ""
     begin
       subkey = "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Group Policy\\History"
@@ -88,11 +85,11 @@ class MetasploitModule < Msf::Post
     rescue
       print_error("This host is not part of a domain.")
     end
-    return domain
+    domain
   end
 
   # List Tokens precent on the domain
-  def list_tokens(domain,dom_admins)
+  def list_tokens(domain, dom_admins)
     tbl = Rex::Text::Table.new(
       'Header'  => "Impersonation Tokens with Domain Context",
       'Indent'  => 1,
@@ -102,7 +99,8 @@ class MetasploitModule < Msf::Post
         "Account Type",
         "Name",
         "Domain Admin"
-      ])
+      ]
+    )
     print_status("Checking for Domain group and user tokens")
     client.core.use("incognito")
     user_tokens = client.incognito.incognito_list_tokens(0)
@@ -114,53 +112,49 @@ class MetasploitModule < Msf::Post
     group_impersonation = group_tokens["impersonation"].split("\n")
 
     user_delegation.each do |dt|
-      if dt =~ /#{domain}/
-        user = dt.split("\\")[1]
-        if dom_admins.include?(user)
-          tbl << ["Delegation","User",dt,true]
-        else
-          tbl << ["Delegation","User",dt,false]
-        end
-      end
+      next unless dt =~ /#{domain}/
+      user = dt.split("\\")[1]
+      tbl << if dom_admins.include?(user)
+               ["Delegation", "User", dt, true]
+             else
+               ["Delegation", "User", dt, false]
+             end
     end
 
     user_impersonation.each do |dt|
-      if dt =~ /#{domain}/
-        user = dt.split("\\")[1]
-        if dom_admins.include?(user)
-          tbl << ["Impersonation","User",dt,true]
-        else
-          tbl << ["Impersonation","User",dt,false]
-        end
-      end
+      next unless dt =~ /#{domain}/
+      user = dt.split("\\")[1]
+      tbl << if dom_admins.include?(user)
+               ["Impersonation", "User", dt, true]
+             else
+               ["Impersonation", "User", dt, false]
+             end
     end
 
     group_delegation.each do |dt|
-      if dt =~ /#{domain}/
-        user = dt.split("\\")[1]
-        if dom_admins.include?(user)
-          tbl << ["Delegation","Group",dt,true]
-        else
-          tbl << ["Delegation","Group",dt,false]
-        end
-      end
+      next unless dt =~ /#{domain}/
+      user = dt.split("\\")[1]
+      tbl << if dom_admins.include?(user)
+               ["Delegation", "Group", dt, true]
+             else
+               ["Delegation", "Group", dt, false]
+             end
     end
 
     group_impersonation.each do |dt|
-      if dt =~ /#{domain}/
-        user = dt.split("\\")[1]
-        if dom_admins.include?(user)
-          tbl << ["Impersonation","Group",dt,true]
-        else
-          tbl << ["Impersonation","Group",dt,false]
-        end
-      end
+      next unless dt =~ /#{domain}/
+      user = dt.split("\\")[1]
+      tbl << if dom_admins.include?(user)
+               ["Impersonation", "Group", dt, true]
+             else
+               ["Impersonation", "Group", dt, false]
+             end
     end
     results = tbl.to_s
     print_line("\n" + results + "\n")
   end
 
-  def list_group_members(domain,dom_admins)
+  def list_group_members(domain, dom_admins)
     tbl = Rex::Text::Table.new(
       'Header'  => "Account in Local Groups with Domain Context",
       'Indent'  => 1,
@@ -169,47 +163,45 @@ class MetasploitModule < Msf::Post
         "Group",
         "Member",
         "Domain Admin"
-      ])
+      ]
+    )
     print_status("Checking local groups for Domain Accounts and Groups")
     admins = list_group_mem("Administrators")
     users = list_group_mem("users")
     backops = list_group_mem("\"Backup Operators\"")
     admins.each do |dt|
-      if dt =~ /#{domain}/
-        user = dt.split("\\")[1]
-        if dom_admins.include?(user)
-          tbl << ["Administrators",dt,true]
-        else
-          tbl << ["Administrators",dt,false]
-        end
-      end
+      next unless dt =~ /#{domain}/
+      user = dt.split("\\")[1]
+      tbl << if dom_admins.include?(user)
+               ["Administrators", dt, true]
+             else
+               ["Administrators", dt, false]
+             end
     end
 
     backops.each do |dt|
-      if dt =~ /#{domain}/
-        user = dt.split("\\")[1]
-        if dom_admins.include?(user)
-          tbl << ["Backup Operators",dt,true]
-        else
-          tbl << ["Backup Operators",dt,false]
-        end
-      end
+      next unless dt =~ /#{domain}/
+      user = dt.split("\\")[1]
+      tbl << if dom_admins.include?(user)
+               ["Backup Operators", dt, true]
+             else
+               ["Backup Operators", dt, false]
+             end
     end
     users.each do |dt|
-      if dt =~ /#{domain}/
-        user = dt.split("\\")[1]
-        if dom_admins.include?(user)
-          tbl << ["Users",dt,true]
-        else
-          tbl << ["Users",dt,false]
-        end
-      end
+      next unless dt =~ /#{domain}/
+      user = dt.split("\\")[1]
+      tbl << if dom_admins.include?(user)
+               ["Users", dt, true]
+             else
+               ["Users", dt, false]
+             end
     end
     results = tbl.to_s
     print_line("\n" + results + "\n")
   end
 
-  def list_processes(domain,dom_admins)
+  def list_processes(domain, dom_admins)
     tbl = Rex::Text::Table.new(
       'Header'  => "Processes under Domain Context",
       'Indent'  => 1,
@@ -220,17 +212,17 @@ class MetasploitModule < Msf::Post
         "Arch",
         "User",
         "Domain Admin"
-      ])
+      ]
+    )
     print_status("Checking for processes running under domain user")
     client.sys.process.processes.each do |p|
-      if p['user'] =~ /#{domain}/
-        user = p['user'].split("\\")[1]
-        if dom_admins.include?(user)
-          tbl << [p['name'],p['pid'],p['arch'],p['user'],true]
-        else
-          tbl << [p['name'],p['pid'],p['arch'],p['user'],false]
-        end
-      end
+      next unless p['user'] =~ /#{domain}/
+      user = p['user'].split("\\")[1]
+      tbl << if dom_admins.include?(user)
+               [p['name'], p['pid'], p['arch'], p['user'], true]
+             else
+               [p['name'], p['pid'], p['arch'], p['user'], false]
+             end
     end
     results = tbl.to_s
     print_line("\n" + results + "\n")
@@ -246,6 +238,6 @@ class MetasploitModule < Msf::Post
         is_dc_srv = true
       end
     end
-    return is_dc_srv
+    is_dc_srv
   end
 end

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://www.metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -14,13 +15,13 @@ class MetasploitModule < Msf::Auxiliary
     super(update_info(
       info,
       'Name'            => 'WordPress Ultimate CSV Importer User Table Extract',
-      'Description'     => %q{
+      'Description'     => %q(
         Due to lack of verification of a visitor's permissions, it is possible
         to execute the 'export.php' script included in the default installation of the
         Ultimate CSV Importer plugin and retrieve the full contents of the user table
         in the WordPress installation. This results in full disclosure of usernames,
         hashed passwords and email addresses for all users.
-      },
+      ),
       'License'         => MSF_LICENSE,
       'Author'          =>
         [
@@ -79,7 +80,7 @@ class MetasploitModule < Msf::Auxiliary
       CSV::Converters[:blank_to_nil] = lambda do |field|
         field && field.empty? ? nil : field
       end
-      csv = CSV.new(body, :col_sep => delimiter, :headers => true, :header_converters => :symbol, :converters => [:all, :blank_to_nil])
+      csv = CSV.new(body, col_sep: delimiter, headers: true, header_converters: :symbol, converters: [:all, :blank_to_nil])
       csv.to_a.map { |row| process_row(row) }
       return true
     rescue

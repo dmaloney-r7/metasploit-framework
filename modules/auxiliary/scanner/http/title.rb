@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -19,8 +20,8 @@ class MetasploitModule < Msf::Auxiliary
         HTML title attribute and location header (if set). This is useful for rapidly identifying
         interesting web applications en mass.
       },
-      'Author'       => 'Stuart Morgan <stuart.morgan[at]mwrinfosecurity.com>',
-      'License'     => MSF_LICENSE,
+      'Author' => 'Stuart Morgan <stuart.morgan[at]mwrinfosecurity.com>',
+      'License' => MSF_LICENSE,
     )
 
     register_options(
@@ -28,7 +29,8 @@ class MetasploitModule < Msf::Auxiliary
         OptBool.new('STORE_NOTES', [ true, 'Store the captured information in notes. Use "notes -t http.title" to view', true ]),
         OptBool.new('SHOW_TITLES', [ true, 'Show the titles on the console as they are grabbed', true ]),
         OptString.new('TARGETURI', [true, 'The base path', '/'])
-      ], self.class)
+      ], self.class
+    )
 
     deregister_options('VHOST')
   end
@@ -60,8 +62,8 @@ class MetasploitModule < Msf::Auxiliary
         location_header = nil
         if !res.headers.nil?
           res.headers.each do |key, val|
-            location_header = val if key.downcase == 'location'
-            server_header  = val if key.downcase == 'server'
+            location_header = val if key.casecmp('location').zero?
+            server_header = val if key.casecmp('server').zero?
           end
         else
           vprint_error("[#{target_host}:#{rport}] No HTTP headers")
@@ -97,7 +99,7 @@ class MetasploitModule < Msf::Auxiliary
         end
       end
 
-      rescue ::Rex::ConnectionRefused, ::Rex::HostUnreachable, ::Rex::ConnectionTimeout
-      rescue ::Timeout::Error, ::Errno::EPIPE
+  rescue ::Rex::ConnectionRefused, ::Rex::HostUnreachable, ::Rex::ConnectionTimeout
+  rescue ::Timeout::Error, ::Errno::EPIPE
   end
 end

@@ -1,10 +1,10 @@
+# frozen_string_literal: true
 # -*- coding:binary -*-
 require 'spec_helper'
 
 require 'rex/proto/kerberos'
 
 RSpec.describe Rex::Proto::Kerberos::Model::PrincipalName do
-
   subject(:principal_name) do
     described_class.new
   end
@@ -46,9 +46,9 @@ RSpec.describe Rex::Proto::Kerberos::Model::PrincipalName do
           @value="juan">]>]>]>
 =end
   let(:sample_single_name) do
-    "\x30\x0f\xa0\x03\x02\x01\x01\xa1" +
-    "\x08\x30\x06\x1b\x04\x6a\x75\x61" +
-    "\x6e"
+    "\x30\x0f\xa0\x03\x02\x01\x01\xa1" \
+      "\x08\x30\x06\x1b\x04\x6a\x75\x61" \
+      "\x6e"
   end
 
 =begin
@@ -94,10 +94,10 @@ RSpec.describe Rex::Proto::Kerberos::Model::PrincipalName do
           @value="DEMO.LOCAL">]>]>]>
 =end
   let(:sample_multiple_name) do
-    "\x30\x1d\xa0\x03\x02\x01\x01\xa1" +
-    "\x16\x30\x14\x1b\x06\x6b\x72\x62" +
-    "\x74\x67\x74\x1b\x0a\x44\x45\x4d" +
-    "\x4f\x2e\x4c\x4f\x43\x41\x4c"
+    "\x30\x1d\xa0\x03\x02\x01\x01\xa1" \
+      "\x16\x30\x14\x1b\x06\x6b\x72\x62" \
+      "\x74\x67\x74\x1b\x0a\x44\x45\x4d" \
+      "\x4f\x2e\x4c\x4f\x43\x41\x4c"
   end
 
   describe "#decode" do
@@ -140,7 +140,6 @@ RSpec.describe Rex::Proto::Kerberos::Model::PrincipalName do
       principal_name.name_string = ['juan']
       expect(principal_name.encode.unpack('C*')).to eq(sample_single_name.unpack('C*'))
     end
-
 
     it "encodes correctly PrincipalName with several names" do
       principal_name.name_type = 1

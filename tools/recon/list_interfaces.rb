@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 #
 # $Id$
 # $Revision$
@@ -14,11 +15,10 @@ while File.symlink?(msfbase)
   msfbase = File.expand_path(File.readlink(msfbase), File.dirname(msfbase))
 end
 
-$:.unshift(File.expand_path(File.join(File.dirname(msfbase), '..', '..','lib')))
+$LOAD_PATH.unshift(File.expand_path(File.join(File.dirname(msfbase), '..', '..', 'lib')))
 require 'msfenv'
 
-$:.unshift(ENV['MSF_LOCAL_LIB']) if ENV['MSF_LOCAL_LIB']
-
+$LOAD_PATH.unshift(ENV['MSF_LOCAL_LIB']) if ENV['MSF_LOCAL_LIB']
 
 if RUBY_PLATFORM == "i386-mingw32"
   begin
@@ -28,11 +28,11 @@ if RUBY_PLATFORM == "i386-mingw32"
     exit
   end
 
-  unless (
-    NetworkInterface.respond_to?(:interfaces) and
-    NetworkInterface.respond_to?(:addresses)  and
+  unless
+    NetworkInterface.respond_to?(:interfaces) &&
+    NetworkInterface.respond_to?(:addresses)  &&
     NetworkInterface.respond_to?(:interface_info)
-  )
+
     $stderr.puts "Error: Looks like you are not running the latest version of NetworkInterface"
     exit
   end
@@ -52,7 +52,7 @@ if RUBY_PLATFORM == "i386-mingw32"
     else
       puts "MAC ADDRESS  :  NONE"
     end
-    if addr[NetworkInterface::AF_INET][0]['addr'] and addr[NetworkInterface::AF_INET][0]['netmask']
+    if addr[NetworkInterface::AF_INET][0]['addr'] && addr[NetworkInterface::AF_INET][0]['netmask']
       puts "IP ADDRESS   :  #{addr[NetworkInterface::AF_INET][0]['addr']}/#{addr[NetworkInterface::AF_INET][0]['netmask']}"
     else
       puts "IP ADDRESS   :  NONE"

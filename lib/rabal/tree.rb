@@ -1,10 +1,10 @@
+# frozen_string_literal: true
 #
 # Rabal Tree,rb
 # A basic Tree structure
 #
 
 class Tree
-
   include Enumerable
 
   # The name of this Tree
@@ -42,19 +42,19 @@ class Tree
     @children.empty?
   end
 
-  # 
+  #
   # Return true if this Tree has no parent.
   #
   def is_root?
     @parent.nil?
   end
 
-  # 
+  #
   # Return the root node of the tree
   #
   def root
     return self if is_root?
-    return @parent.root
+    @parent.root
   end
 
   #
@@ -62,7 +62,7 @@ class Tree
   #
   def depth
     return 0 if is_root?
-    return (1 + @parent.depth)
+    (1 + @parent.depth)
   end
 
   #
@@ -72,12 +72,12 @@ class Tree
   #
   # The path is given as a string separated by '/'.  Each portion
   # of the string is matched against the name of the particular
-  # tree.  
+  # tree.
   #
   # Given :
   #
   #   a --- b --- c
-  #	\ 
+  #	\
   # 	d - e --- f
   #  		\
   #   		g - h
@@ -89,10 +89,10 @@ class Tree
   #
   # Leading and trailing '/' on the path are not necessary and removed.
   #
-  def add_at_path(path,subtree)
+  def add_at_path(path, subtree)
     parent_tree = tree_at_path(path)
     parent_tree << subtree
-    return self
+    self
   end
 
   #
@@ -100,7 +100,7 @@ class Tree
   #
   def tree_at_path(path_str)
     path_str = path_str.chomp("/").reverse.chomp("/").reverse
-    path 	= path_str.split("/")
+    path	= path_str.split("/")
 
     # strip of the redundant first match if it is the same as
     # the current node
@@ -114,68 +114,66 @@ class Tree
   def <<(subtree)
     # this should not generally be the case, but wrap things
     # up to be nice.
-    if not subtree.kind_of?(Tree) then
-      subtree = Tree.new(subtree)
-    end
+    subtree = Tree.new(subtree) unless subtree.is_a?(Tree)
 
     subtree.parent = self
 
-    # FIXME: techinically this should no longer be called 'post_add' 
-    # but maybe 'add_hook'  
+    # FIXME: techinically this should no longer be called 'post_add'
+    # but maybe 'add_hook'
     subtree.post_add
 
     # Don't overwrite any existing children with the same name,
     # just put the new subtree's children into the children of
     # the already existing subtree.
 
-    if children.has_key?(subtree.name) then
-      subtree.children.each_pair do |subtree_child_name,subtree_child_tree|
+    if children.key?(subtree.name)
+      subtree.children.each_pair do |_subtree_child_name, subtree_child_tree|
         children[subtree.name] << subtree_child_tree
       end
     else
       children[subtree.name] = subtree
     end
 
-    return self
+    self
   end
 
-  alias :add :<<
+  alias add <<
 
   #
   # Allow for Enumerable to be included.  This just wraps walk.
   #
   def each
-    self.walk(self,lambda { |tree| yield tree }) 
+    walk(self, ->(tree) { yield tree })
   end
 
   #
   # Count how many items are in the tree
   #
   def size
-    inject(0) { |count,n| count + 1 }
+    inject(0) { |count, _n| count + 1 }
   end
 
-  # 
+  #
   # Walk the tree in a depth first manner, visiting the Tree
   # first, then its children
   #
-  def walk(tree,method)
+  def walk(tree, method)
     method.call(tree)
-    tree.children.each_pair do |name,child|
-      walk(child,method) 
+    tree.children.each_pair do |_name, child|
+      walk(child, method)
     end
-    #for depth first
-    #method.call(tree)
+    # for depth first
+    # method.call(tree)
   end
 
-  # 
+  #
   # Allow for a method call to cascade up the tree looking for a
   # Tree that responds to the call.
   #
-  def method_missing(method_id,*params,&block)
-    if not parameters.nil? and parameters.respond_to?(method_id, true) then
-      return parameters.send(method_id, *params, &block)
-    elsif not is_root? then
+  def method_missing(method_id, *params, &block)
+    if !parameters.nil? && parameters.respond_to?(method_id, true)
+      parameters.send(method_id, *params, &block)
+    elsif !is_root?
       @parent.send method_id, *params, &block
     else
       raise NoMethodError, "undefined method `#{method_id}' for #{name}:Tree"
@@ -189,6 +187,7 @@ class Tree
   #
   def post_add
   end
+
   #
   # find the current path of the tree from root to here, return it
   # as a '/' separates string.
@@ -197,21 +196,21 @@ class Tree
     #
     # WMAP: removed the asterixs and modified the first return
     # to just return a '/'
-    # 
-    return "/" if is_root? 
-    return ([name,parent.current_path]).flatten.reverse.join("/")
+    #
+    return "/" if is_root?
+    [name, parent.current_path].flatten.reverse.join("/")
   end
 
   #
   # Given the initial path to match as an Array find the Tree that
   # matches that path.
-  # 
+  #
   def find_subtree(path)
-    if path.empty? then
-      return self
+    if path.empty?
+      self
     else
       possible_child = path.shift
-      if children.has_key?(possible_child) then
+      if children.key?(possible_child)
         children[possible_child].find_subtree(path)
       else
         raise PathNotFoundError, "`#{possible_child}' does not match anything at the current path in the Tree (#{current_path})"
@@ -223,22 +222,20 @@ class Tree
   # Return true of false if the given subtree exists or not
   #
   def has_subtree?(path)
-    begin
-      find_subtree(path)
-      return true
-    rescue PathNotFoundError
-      return false
-    end
+    find_subtree(path)
+    return true
+  rescue PathNotFoundError
+    return false
   end
 
   #
   # Allow for numerable to be included. This just wraps walk
   #
   def each
-    self.walk(self,lambda { |tree| yield tree })	
+    walk(self, ->(tree) { yield tree })
   end
 
   def each_datum
-    self.walk(self,lambda { |tree| yield tree.data})
+    walk(self, ->(tree) { yield tree.data })
   end
 end

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 module Msf
   module Handler
     module Reverse
@@ -10,8 +11,8 @@ module Msf
           register_advanced_options(
             [
               OptPath.new('HandlerSSLCert', [false, "Path to a SSL certificate in unified PEM format"])
-            ], Msf::Handler::Reverse::SSL)
-
+            ], Msf::Handler::Reverse::SSL
+          )
         end
       end
     end

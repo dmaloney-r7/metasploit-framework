@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -26,7 +27,8 @@ class MetasploitModule < Msf::Auxiliary
         OptString.new('LOGIN_URL', [true, 'The URL that handles the login process', '/j_acegi_security_check']),
         OptEnum.new('HTTP_METHOD', [true, 'The HTTP method to use for the login', 'POST', ['GET', 'POST']]),
         Opt::RPORT(8080)
-      ], self.class)
+      ], self.class
+    )
 
     register_autofilter_ports([ 80, 443, 8080, 8081, 8000 ])
 
@@ -59,10 +61,8 @@ class MetasploitModule < Msf::Auxiliary
 
     scanner.scan! do |result|
       credential_data = result.to_h
-      credential_data.merge!(
-          module_fullname: fullname,
-          workspace_id: myworkspace_id
-      )
+      credential_data[:module_fullname] = fullname
+      credential_data[:workspace_id] = myworkspace_id
       if result.success?
         credential_core = create_credential(credential_data)
         credential_data[:core] = credential_core

@@ -1,10 +1,10 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 #
 # A Post-exploitation module
 #
 class Msf::Post < Msf::Module
-
   require 'msf/core/post/common'
   require 'msf/core/post_mixin'
 
@@ -22,8 +22,8 @@ class Msf::Post < Msf::Module
 
   def setup
     m = replicant
-    if m.actions.length > 0 && !m.action
-      raise Msf::MissingActionError, "Please use: #{m.actions.collect {|e| e.name} * ", "}"
+    if !m.actions.empty? && !m.action
+      raise Msf::MissingActionError, "Please use: #{m.actions.collect(&:name) * ', '}"
     end
   end
 
@@ -59,10 +59,6 @@ class Msf::Post < Msf::Module
   # @return [NilClass] if there is no database record for the session
   # @return [Fixnum] if there is a database record to get the id for
   def session_db_id
-    if session.db_record
-      session.db_record.id
-    else
-      nil
-    end
+    session.db_record&.id
   end
 end

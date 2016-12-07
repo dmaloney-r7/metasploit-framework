@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'rex/proto/http'
 require 'metasploit/framework/login_scanner/base'
 require 'metasploit/framework/login_scanner/rex_socket'
@@ -15,9 +16,9 @@ module Metasploit
         DEFAULT_REALM        = nil
         DEFAULT_PORT         = 80
         DEFAULT_SSL_PORT     = 443
-        LIKELY_PORTS         = [ 80, 443, 8000, 8080 ]
-        LIKELY_SERVICE_NAMES = [ 'http', 'https' ]
-        PRIVATE_TYPES        = [ :password ]
+        LIKELY_PORTS         = [ 80, 443, 8000, 8080 ].freeze
+        LIKELY_SERVICE_NAMES = [ 'http', 'https' ].freeze
+        PRIVATE_TYPES        = [ :password ].freeze
         REALM_KEY            = Metasploit::Model::Realm::Key::ACTIVE_DIRECTORY_DOMAIN
 
         # @!attribute uri
@@ -169,7 +170,6 @@ module Metasploit
         # @return [String]
         attr_accessor :http_password
 
-
         validates :uri, presence: true, length: { minimum: 1 }
 
         validates :method,
@@ -179,7 +179,7 @@ module Metasploit
         # (see Base#check_setup)
         def check_setup
           http_client = Rex::Proto::Http::Client.new(
-            host, port, {'Msf' => framework, 'MsfExploit' => framework_module}, ssl, ssl_version, proxies, http_username, http_password
+            host, port, { 'Msf' => framework, 'MsfExploit' => framework_module }, ssl, ssl_version, proxies, http_username, http_password
           )
           request = http_client.request_cgi(
             'uri' => uri,
@@ -194,11 +194,11 @@ module Metasploit
             error_message = "Unable to connect to target"
           end
 
-          if !(response && response.code == 401 && response.headers['WWW-Authenticate'])
-            error_message = "No authentication required"
-          else
-            error_message = false
-          end
+          error_message = if !(response && response.code == 401 && response.headers['WWW-Authenticate'])
+                            "No authentication required"
+                          else
+                            false
+                          end
 
           error_message
         end
@@ -224,7 +224,7 @@ module Metasploit
           username        = opts['credential'] ? opts['credential'].public : http_username
           password        = opts['credential'] ? opts['credential'].private : http_password
           realm           = opts['credential'] ? opts['credential'].realm : nil
-          context         = opts['context'] || { 'Msf' => framework, 'MsfExploit' => framework_module}
+          context         = opts['context'] || { 'Msf' => framework, 'MsfExploit' => framework_module }
 
           res = nil
           cli = Rex::Proto::Http::Client.new(
@@ -239,15 +239,13 @@ module Metasploit
           )
           configure_http_client(cli)
 
-          if realm
-            cli.set_config('domain' => realm)
-          end
+          cli.set_config('domain' => realm) if realm
 
           begin
             cli.connect
             req = cli.request_cgi(opts)
             res = cli.send_recv(req)
-          rescue ::EOFError, Errno::ETIMEDOUT ,Errno::ECONNRESET, Rex::ConnectionError, OpenSSL::SSL::SSLError, ::Timeout::Error => e
+          rescue ::EOFError, Errno::ETIMEDOUT, Errno::ECONNRESET, Rex::ConnectionError, OpenSSL::SSL::SSLError, ::Timeout::Error => e
             raise Rex::ConnectionError, e.message
           ensure
             cli.close
@@ -255,7 +253,6 @@ module Metasploit
 
           res
         end
-
 
         # Attempt a single login with a single credential against the target.
         #
@@ -272,14 +269,14 @@ module Metasploit
             protocol: 'tcp'
           }
 
-          if ssl
-            result_opts[:service_name] = 'https'
-          else
-            result_opts[:service_name] = 'http'
-          end
+          result_opts[:service_name] = if ssl
+                                         'https'
+                                       else
+                                         'http'
+                                       end
 
           begin
-            response = send_request('credential'=>credential, 'uri'=>uri, 'method'=>method)
+            response = send_request('credential' => credential, 'uri' => uri, 'method' => method)
             if response && response.code == 200
               result_opts.merge!(status: Metasploit::Model::Login::Status::SUCCESSFUL, proof: response.headers)
             end
@@ -335,7 +332,7 @@ module Metasploit
           }
 
           # Set the parameter only if it is not nil
-          possible_params.each_pair do |k,v|
+          possible_params.each_pair do |k, v|
             next if v.nil?
             http_client.set_config(k => v)
           end
@@ -347,27 +344,25 @@ module Metasploit
         # like timeouts and TCP evasion options
         def set_sane_defaults
           self.connection_timeout ||= 20
-          self.uri = '/' if self.uri.blank?
-          self.method = 'GET' if self.method.blank?
+          self.uri = '/' if uri.blank?
+          self.method = 'GET' if method.blank?
 
           # Note that this doesn't cover the case where ssl is unset and
           # port is something other than a default. In that situtation,
           # we don't know what the user has in mind so we have to trust
           # that they're going to do something sane.
-          if !(self.ssl) && self.port.nil?
+          if !ssl && port.nil?
             self.port = self.class::DEFAULT_PORT
             self.ssl = false
-          elsif self.ssl && self.port.nil?
+          elsif ssl && port.nil?
             self.port = self.class::DEFAULT_SSL_PORT
-          elsif self.ssl.nil? && self.port == self.class::DEFAULT_PORT
+          elsif ssl.nil? && port == self.class::DEFAULT_PORT
             self.ssl = false
-          elsif self.ssl.nil? && self.port == self.class::DEFAULT_SSL_PORT
+          elsif ssl.nil? && port == self.class::DEFAULT_SSL_PORT
             self.ssl = true
           end
 
-          if self.ssl.nil?
-            self.ssl = false
-          end
+          self.ssl = false if ssl.nil?
 
           nil
         end
@@ -377,9 +372,8 @@ module Metasploit
         # @param [String] target_uri the target URL
         # @return [String] the final URL mapped against the base
         def normalize_uri(target_uri)
-          (self.uri.to_s + "/" + target_uri.to_s).gsub(/\/+/, '/')
+          (uri.to_s + "/" + target_uri.to_s).gsub(/\/+/, '/')
         end
-
       end
     end
   end

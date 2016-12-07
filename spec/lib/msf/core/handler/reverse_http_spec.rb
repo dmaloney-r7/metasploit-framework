@@ -1,8 +1,8 @@
+# frozen_string_literal: true
 require 'spec_helper'
 require 'msf/core/handler/reverse_http'
 
 RSpec.describe Msf::Handler::ReverseHttp do
-
   def create_payload(info = {})
     klass = Class.new(Msf::Payload)
     klass.include described_class
@@ -26,11 +26,10 @@ RSpec.describe Msf::Handler::ReverseHttp do
     end
 
     specify 'should be parseable as a URI' do
-      expect {
+      expect do
         URI.parse(payload_uri)
-      }.not_to raise_error
+      end.not_to raise_error
     end
-
   end
 
   describe '#luri' do
@@ -44,9 +43,9 @@ RSpec.describe Msf::Handler::ReverseHttp do
       end
 
       specify 'should be parseable as a URI' do
-        expect {
+        expect do
           URI.parse(luri)
-        }.not_to raise_error
+        end.not_to raise_error
       end
 
       specify 'is a string' do
@@ -56,7 +55,6 @@ RSpec.describe Msf::Handler::ReverseHttp do
       specify 'keeps leading, removes trailing slash' do
         expect(luri).to eql('/asdf')
       end
-
     end
 
     context 'with a leading slash' do
@@ -65,9 +63,9 @@ RSpec.describe Msf::Handler::ReverseHttp do
       end
 
       specify 'should be parseable as a URI' do
-        expect {
+        expect do
           URI.parse(luri)
-        }.not_to raise_error
+        end.not_to raise_error
       end
 
       specify 'is a string' do
@@ -77,7 +75,6 @@ RSpec.describe Msf::Handler::ReverseHttp do
       specify 'maintains one slash' do
         expect(luri).to eql('/asdf')
       end
-
     end
 
     context 'with a trailing slash' do
@@ -86,9 +83,9 @@ RSpec.describe Msf::Handler::ReverseHttp do
       end
 
       specify 'should be parseable as a URI' do
-        expect {
+        expect do
           URI.parse(luri)
-        }.not_to raise_error
+        end.not_to raise_error
       end
 
       specify 'is a string' do
@@ -98,7 +95,6 @@ RSpec.describe Msf::Handler::ReverseHttp do
       specify 'adds leading, removes trailing slash' do
         expect(luri).to eql('/asdf')
       end
-
     end
 
     context 'just a slash' do
@@ -107,9 +103,9 @@ RSpec.describe Msf::Handler::ReverseHttp do
       end
 
       specify 'should be parseable as a URI' do
-        expect {
+        expect do
           URI.parse(luri)
-        }.not_to raise_error
+        end.not_to raise_error
       end
 
       specify 'is a string' do
@@ -120,7 +116,5 @@ RSpec.describe Msf::Handler::ReverseHttp do
         expect(luri).to eql('/')
       end
     end
-
   end
-
 end

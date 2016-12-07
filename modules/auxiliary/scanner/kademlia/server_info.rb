@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -33,14 +34,15 @@ class MetasploitModule < Msf::Auxiliary
           ['BOOTSTRAP', 'Description' => 'Use a Kademlia2 BOOTSTRAP'],
           ['PING', 'Description' => 'Use a Kademlia2 PING']
         ],
-        'DefaultAction'  => 'BOOTSTRAP'
+        'DefaultAction' => 'BOOTSTRAP'
       )
     )
 
     register_options(
-    [
-      Opt::RPORT(4672)
-    ], self.class)
+      [
+        Opt::RPORT(4672)
+      ], self.class
+    )
   end
 
   def build_probe
@@ -65,7 +67,7 @@ class MetasploitModule < Msf::Auxiliary
           version: bootstrap_res.version,
           peers: bootstrap_res.peers
         }
-        print_good("#{peer} ID #{bootstrap_res.peer_id}, TCP port #{bootstrap_res.tcp_port}," +
+        print_good("#{peer} ID #{bootstrap_res.peer_id}, TCP port #{bootstrap_res.tcp_port}," \
                    " version #{bootstrap_res.version}, #{bootstrap_res.peers.size} peers")
       end
     when 'PING'

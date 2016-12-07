@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # Logs if constants created by module loading are left over after suite has completed.
 module Metasploit::Framework::Spec::Constants::Suite
   #
@@ -37,15 +38,15 @@ module Metasploit::Framework::Spec::Constants::Suite
       RSpec.configure do |config|
         config.before(:suite) do
           Metasploit::Framework::Spec::Constants::Suite.log_leaked_constants(
-              :before,
-              'Modules are being loaded outside callbacks before suite starts.'
+            :before,
+            'Modules are being loaded outside callbacks before suite starts.'
           )
         end
 
         config.after(:suite) do
           Metasploit::Framework::Spec::Constants::Suite.log_leaked_constants(
-              :after,
-              'Modules are being loaded inside callbacks or examples during suite run.'
+            :after,
+            'Modules are being loaded inside callbacks or examples during suite run.'
           )
         end
       end
@@ -73,9 +74,7 @@ module Metasploit::Framework::Spec::Constants::Suite
                      "is used to clean up constants instead of `after(:each)`**"
       end
 
-      if leaked_before || leaked_after
-        exit 1
-      end
+      exit 1 if leaked_before || leaked_after
     end
   end
 
@@ -105,9 +104,7 @@ module Metasploit::Framework::Spec::Constants::Suite
           constant_name = line.strip
           full_name = Metasploit::Framework::Spec::Constants.full_name(constant_name)
 
-          if full_name
-            formatted_full_name = " # #{full_name}"
-          end
+          formatted_full_name = " # #{full_name}" if full_name
 
           $stderr.puts "  #{constant_name}#{formatted_full_name}"
         end

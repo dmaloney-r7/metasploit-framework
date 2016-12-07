@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 #
 # This script updates the CachedSize constants in payload modules
 #
@@ -8,10 +9,10 @@ while File.symlink?(msfbase)
   msfbase = File.expand_path(File.readlink(msfbase), File.dirname(msfbase))
 end
 
-$:.unshift(File.expand_path(File.join(File.dirname(msfbase), '..', '..', 'lib')))
+$LOAD_PATH.unshift(File.expand_path(File.join(File.dirname(msfbase), '..', '..', 'lib')))
 require 'msfenv'
 
-$:.unshift(ENV['MSF_LOCAL_LIB']) if ENV['MSF_LOCAL_LIB']
+$LOAD_PATH.unshift(ENV['MSF_LOCAL_LIB']) if ENV['MSF_LOCAL_LIB']
 
 gem 'rex-text'
 
@@ -26,9 +27,8 @@ framework = Msf::Simple::Framework.create('DisableDatabase' => true)
 framework.payloads.each_module do |name, mod|
   next if name =~ /generic/
   mod_inst = framework.payloads.create(name)
-  #mod_inst.datastore.merge!(framework.datastore)
+  # mod_inst.datastore.merge!(framework.datastore)
   next if Msf::Util::PayloadCachedSize.is_cached_size_accurate?(mod_inst)
   $stdout.puts "[*] Updating the CacheSize for #{mod.file_path}..."
   Msf::Util::PayloadCachedSize.update_module_cached_size(mod_inst)
 end
-

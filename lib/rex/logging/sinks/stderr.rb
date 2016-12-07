@@ -1,44 +1,41 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 module Rex
-module Logging
-module Sinks
+  module Logging
+    module Sinks
+      ###
+      #
+      # This class implements the LogSink interface and backs it against stderr
+      ###
+      class Stderr
+        include Rex::Logging::LogSink
 
-###
-#
-# This class implements the LogSink interface and backs it against stderr
-###
-class Stderr
+        #
+        # Writes log data to stderr
+        #
 
-  include Rex::Logging::LogSink
+        def log(sev, src, level, msg, _from) # :nodoc:
+          if sev == LOG_RAW
+            $stderr.write(msg)
+          else
+            code = 'i'
 
-  #
-  # Writes log data to stderr
-  #
+            case sev
+            when LOG_DEBUG
+              code = 'd'
+            when LOG_ERROR
+              code = 'e'
+            when LOG_INFO
+              code = 'i'
+            when LOG_WARN
+              code = 'w'
+            end
+            $stderr.write("[#{get_current_timestamp}] [#{code}(#{level})] #{src}: #{msg}\n")
+          end
 
-  def log(sev, src, level, msg, from) # :nodoc:
-    if (sev == LOG_RAW)
-      $stderr.write(msg)
-    else
-      code = 'i'
+          $stderr.flush
+        end
 
-      case sev
-        when LOG_DEBUG
-          code = 'd'
-        when LOG_ERROR
-          code = 'e'
-        when LOG_INFO
-          code = 'i'
-        when LOG_WARN
-          code = 'w'
+        protected
       end
-      $stderr.write("[#{get_current_timestamp}] [#{code}(#{level})] #{src}: #{msg}\n")
-    end
-
-    $stderr.flush
-  end
-
-protected
-
-end
-
-end end end
+    end end end

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,7 +8,6 @@ require 'msf/core'
 require 'fileutils'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Auxiliary::IAX2
 
   def initialize
@@ -16,29 +16,28 @@ class MetasploitModule < Msf::Auxiliary
       'Description'    => 'This module dials a range of phone numbers and records audio from each answered call',
       'Author'         => [ 'hdm' ],
       'License'        => MSF_LICENSE,
-      'References'     => [  ]
+      'References'     => [ ]
     )
     register_options([
-      OptString.new('TARGETS', [true, "A list of telephone masks in the format of 1-555-555-5XXX, separated by commas"]),
-      OptString.new('OUTPUT_PATH', [true, "A local directory to store the resulting audio files"]),
-      OptInt.new('CALL_TIME', [true, "The maximum time in seconds to spent on each call (ring + recording)", 52])
-    ], self.class)
+                       OptString.new('TARGETS', [true, "A list of telephone masks in the format of 1-555-555-5XXX, separated by commas"]),
+                       OptString.new('OUTPUT_PATH', [true, "A local directory to store the resulting audio files"]),
+                       OptInt.new('CALL_TIME', [true, "The maximum time in seconds to spent on each call (ring + recording)", 52])
+                     ], self.class)
   end
 
   def run
     targets = crack_phone_ranges(datastore['TARGETS'].split(","))
     connect
 
-    ::FileUtils.mkdir_p( datastore['OUTPUT_PATH'] )
+    ::FileUtils.mkdir_p(datastore['OUTPUT_PATH'])
 
     targets.each do |number|
-
       c = create_call
       begin
-        ::Timeout.timeout( datastore['CALL_TIME'] ) do
+        ::Timeout.timeout(datastore['CALL_TIME']) do
           print_status("Dialing #{number}...")
           r = c.dial(number)
-          if not c
+          unless c
             print_error("Failed to call #{number}")
             next
           end
@@ -51,24 +50,26 @@ class MetasploitModule < Msf::Auxiliary
       rescue ::Timeout::Error
         # Timeouts are A-OK
       ensure
-        c.hangup rescue nil
+        begin
+          c.hangup
+        rescue
+          nil
+        end
       end
 
       print_status("  COMPLETED   Number: #{number}  State: #{c.state}  Frames: #{c.audio_buff.length}  DTMF: '#{c.dtmf}'")
 
-      if c.audio_buff.length > 0
-        opath = ::File.join( datastore['OUTPUT_PATH'], "#{number}.raw" )
-        cnt   = 0
-        ::File.open(opath, 'wb') do |fd|
-          c.audio_buff.each do |raw|
-            cnt += raw.length
-            fd.write(raw)
-          end
+      next if c.audio_buff.empty?
+      opath = ::File.join(datastore['OUTPUT_PATH'], "#{number}.raw")
+      cnt   = 0
+      ::File.open(opath, 'wb') do |fd|
+        c.audio_buff.each do |raw|
+          cnt += raw.length
+          fd.write(raw)
         end
-        print_good("#{number} resulted in #{cnt} bytes of audio saved to #{opath}")
       end
+      print_good("#{number} resulted in #{cnt} bytes of audio saved to #{opath}")
       # Next call
     end
   end
-
 end

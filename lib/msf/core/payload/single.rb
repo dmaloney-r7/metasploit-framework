@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 require 'msf/core'
 
@@ -10,12 +11,11 @@ require 'msf/core'
 #
 ###
 module Msf::Payload::Single
-
   #
   # Sets the payload type to that of a single payload.
   #
   def payload_type
-    return Msf::Payload::Type::Single
+    Msf::Payload::Type::Single
   end
 
   #
@@ -41,5 +41,4 @@ module Msf::Payload::Single
       end
     end
   end
-
 end

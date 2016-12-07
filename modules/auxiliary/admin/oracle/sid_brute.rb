@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,36 +7,34 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Auxiliary::Report
   include Msf::Exploit::Remote::TNS
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Oracle TNS Listener SID Brute Forcer',
-      'Description'    => %q{
-        This module simply attempts to discover the protected SID.
-      },
-      'Author'         => [ 'MC' ],
-      'License'        => MSF_LICENSE,
-      'References'     =>
-        [
-          [ 'URL', 'https://www.metasploit.com/users/mc' ],
-          [ 'URL' , 'http://www.red-database-security.com/scripts/sid.txt' ],
-        ],
-      'DisclosureDate' => 'Jan 7 2009'))
+                      'Name'           => 'Oracle TNS Listener SID Brute Forcer',
+                      'Description'    => %q(
+                        This module simply attempts to discover the protected SID.
+                      ),
+                      'Author'         => [ 'MC' ],
+                      'License'        => MSF_LICENSE,
+                      'References'     =>
+                        [
+                          [ 'URL', 'https://www.metasploit.com/users/mc' ],
+                          [ 'URL', 'http://www.red-database-security.com/scripts/sid.txt' ]
+                        ],
+                      'DisclosureDate' => 'Jan 7 2009'))
 
     register_options(
       [
         Opt::RPORT(1521),
         OptString.new('SLEEP', [ false,   'Sleep() amount between each request.', '1']),
-        OptString.new('SIDFILE', [ false, 'The file that contains a list of sids.', File.join(Msf::Config.install_root, 'data', 'wordlists', 'sid.txt')]),
-      ], self.class)
-
+        OptString.new('SIDFILE', [ false, 'The file that contains a list of sids.', File.join(Msf::Config.install_root, 'data', 'wordlists', 'sid.txt')])
+      ], self.class
+    )
   end
 
   def run
-
     s    = datastore['SLEEP']
     list = datastore['SIDFILE']
 
@@ -48,7 +47,7 @@ class MetasploitModule < Msf::Auxiliary
       begin
         connect
       rescue ::Interrupt
-        raise $!
+        raise $ERROR_INFO
       rescue => e
         print_error(e.to_s)
         disconnect
@@ -56,25 +55,22 @@ class MetasploitModule < Msf::Auxiliary
       end
 
       sock.put(pkt)
-      select(nil,nil,nil,s.to_i)
+      select(nil, nil, nil, s.to_i)
       res = sock.get_once
       disconnect
 
-      if res and res.to_s !~ /ERROR_STACK/
-        report_note(
-          :host => rhost,
-          :port => rport,
-          :type => 'oracle_sid',
-          :data => "PORT=#{rport}, SID=#{sid.strip}",
-          :update => :unique_data
-        )
-        print_good("#{rhost}:#{rport} Found SID '#{sid.strip}'")
-      end
-
+      next unless res && res.to_s !~ /ERROR_STACK/
+      report_note(
+        host: rhost,
+        port: rport,
+        type: 'oracle_sid',
+        data: "PORT=#{rport}, SID=#{sid.strip}",
+        update: :unique_data
+      )
+      print_good("#{rhost}:#{rport} Found SID '#{sid.strip}'")
     end
 
     print_status("Done with brute force...")
     fd.close
-
   end
 end

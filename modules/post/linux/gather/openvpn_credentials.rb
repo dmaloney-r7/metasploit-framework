@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,32 +8,30 @@ require 'msf/core'
 require 'rex'
 
 class MetasploitModule < Msf::Post
-
   include Msf::Post::File
   include Msf::Post::Linux::Priv
   include Msf::Post::Linux::System
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'          => 'OpenVPN Gather Credentials',
-      'Description'   => %q{
-        This module grab OpenVPN credentials from a running process
-        in Linux.
+                      'Name'          => 'OpenVPN Gather Credentials',
+                      'Description'   => %q(
+                        This module grab OpenVPN credentials from a running process
+                        in Linux.
 
-        Note: --auth-nocache must not be set in the OpenVPN command line.
-      },
-      'License'       => MSF_LICENSE,
-      'Author'        =>
-        [
-          'rvrsh3ll', # Discovery
-          'Roberto Soares Espreto <robertoespreto[at]gmail.com>', # Metasploit Module
-        ],
-      'Platform'      => ['linux'],
-      'SessionTypes'  => ['shell', 'meterpreter'],
-      'References'    => [
-        ['URL', 'https://gist.github.com/rvrsh3ll/cc93a0e05e4f7145c9eb#file-openvpnscraper-sh']
-      ]
-    ))
+                        Note: --auth-nocache must not be set in the OpenVPN command line.
+                      ),
+                      'License'       => MSF_LICENSE,
+                      'Author'        =>
+                        [
+                          'rvrsh3ll', # Discovery
+                          'Roberto Soares Espreto <robertoespreto[at]gmail.com>', # Metasploit Module
+                        ],
+                      'Platform'      => ['linux'],
+                      'SessionTypes'  => ['shell', 'meterpreter'],
+                      'References'    => [
+                        ['URL', 'https://gist.github.com/rvrsh3ll/cc93a0e05e4f7145c9eb#file-openvpnscraper-sh']
+                      ]))
 
     register_options(
       [

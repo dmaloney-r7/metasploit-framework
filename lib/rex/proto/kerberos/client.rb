@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 module Rex
@@ -150,7 +151,7 @@ module Rex
         # UDP isn't supported
         #
         # @raise [NotImplementedError]
-        def send_request_udp(req)
+        def send_request_udp(_req)
           raise ::NotImplementedError, 'Kerberos Client: UDP unsupported'
         end
 

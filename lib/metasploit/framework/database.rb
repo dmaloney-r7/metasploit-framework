@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'metasploit/framework'
 require 'msf/base/config'
 
@@ -9,10 +10,10 @@ module Metasploit
       #
 
       CONFIGURATIONS_PATHNAME_PRECEDENCE = [
-          :environment_configurations_pathname,
-          :user_configurations_pathname,
-          :project_configurations_pathname
-      ]
+        :environment_configurations_pathname,
+        :user_configurations_pathname,
+        :project_configurations_pathname
+      ].freeze
 
       #
       # Module Methods
@@ -24,22 +25,18 @@ module Metasploit
       # @option options [String] :path Path to use instead of first element of configurations_pathnames
       # @return [Pathname] if configuration pathname exists.
       # @return [nil] if configuration pathname does not exist.
-      def self.configurations_pathname(options={})
+      def self.configurations_pathname(options = {})
         options.assert_valid_keys(:path)
 
         path = options[:path]
 
-        if path.present?
-          pathname = Pathname.new(path)
-        else
-          pathname = configurations_pathnames.first
-        end
+        pathname = if path.present?
+                     Pathname.new(path)
+                   else
+                     configurations_pathnames.first
+                   end
 
-        if pathname.present? && pathname.exist?
-          pathname
-        else
-          nil
-        end
+        pathname if pathname.present? && pathname.exist?
       end
 
       # Return configuration pathnames that exist.
@@ -72,11 +69,11 @@ module Metasploit
       def self.environment_configurations_pathname
         msf_database_config = ENV['MSF_DATABASE_CONFIG']
 
-        if msf_database_config.blank?
-          msf_database_config = nil
-        else
-          msf_database_config = Pathname.new(msf_database_config)
-        end
+        msf_database_config = if msf_database_config.blank?
+                                nil
+                              else
+                                Pathname.new(msf_database_config)
+                              end
 
         msf_database_config
       end

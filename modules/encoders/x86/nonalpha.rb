@@ -1,15 +1,13 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 require 'rex/encoder/nonalpha'
 
-
 class MetasploitModule < Msf::Encoder::NonAlpha
-
   Rank = LowRanking
 
   def initialize
@@ -27,7 +25,7 @@ class MetasploitModule < Msf::Encoder::NonAlpha
       'EncoderType'      => Msf::Encoder::Type::NonAlpha,
       'Decoder'          =>
         {
-          'BlockSize' => 1,
+          'BlockSize' => 1
         })
   end
 
@@ -38,7 +36,7 @@ class MetasploitModule < Msf::Encoder::NonAlpha
   def decoder_stub(state)
     state.key                   = ""
     state.decoder_key_size      = 0
-    Rex::Encoder::NonAlpha::gen_decoder()
+    Rex::Encoder::NonAlpha.gen_decoder
   end
 
   #
@@ -46,8 +44,8 @@ class MetasploitModule < Msf::Encoder::NonAlpha
   # payload.
   #
   def encode_block(state, block)
-    newchar, state.key, state.decoder_key_size = Rex::Encoder::NonAlpha::encode_byte(block.unpack('C')[0], state.key, state.decoder_key_size)
-    return newchar
+    newchar, state.key, state.decoder_key_size = Rex::Encoder::NonAlpha.encode_byte(block.unpack('C')[0], state.key, state.decoder_key_size)
+    newchar
   end
 
   #
@@ -55,7 +53,7 @@ class MetasploitModule < Msf::Encoder::NonAlpha
   #
   def encode_end(state)
     state.encoded.gsub!(/A/, state.decoder_key_size.chr)
-    state.encoded.gsub!(/B/, (state.decoder_key_size+5).chr)
+    state.encoded.gsub!(/B/, (state.decoder_key_size + 5).chr)
     state.encoded[0x24, 0] = state.key
   end
 end

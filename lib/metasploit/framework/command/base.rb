@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 #
 # Gems
 #
@@ -91,7 +92,7 @@ class Metasploit::Framework::Command::Base
   # @option attributes [ActiveSupport::OrderedOptions] :parsed_options
   # @raise [KeyError] if :application is not given
   # @raise [KeyError] if :parsed_options is not given
-  def initialize(attributes={})
+  def initialize(attributes = {})
     @application = attributes.fetch(:application)
     @parsed_options = attributes.fetch(:parsed_options)
   end

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 module Msf::Module::Compatibility
   #
   # Returns the hash that describes this module's compatibilities.
@@ -14,17 +15,17 @@ module Msf::Module::Compatibility
     ch = nil
 
     # Invalid module?  Shoot, we can't compare that.
-    return true if (mod == nil)
+    return true if mod.nil?
 
     # Determine which hash to used based on the supplied module type
-    if (mod.type == Msf::MODULE_ENCODER)
-      ch = self.compat['Encoder']
-    elsif (mod.type == Msf::MODULE_NOP)
-      ch = self.compat['Nop']
-    elsif (mod.type == Msf::MODULE_PAYLOAD)
-      ch = self.compat['Payload']
-      if self.respond_to?("target") and self.target and self.target['Payload'] and self.target['Payload']['Compat']
-        ch = ch.merge(self.target['Payload']['Compat'])
+    if mod.type == Msf::MODULE_ENCODER
+      ch = compat['Encoder']
+    elsif mod.type == Msf::MODULE_NOP
+      ch = compat['Nop']
+    elsif mod.type == Msf::MODULE_PAYLOAD
+      ch = compat['Payload']
+      if respond_to?("target") && target && target['Payload'] && target['Payload']['Compat']
+        ch = ch.merge(target['Payload']['Compat'])
       end
     else
       return true
@@ -32,15 +33,14 @@ module Msf::Module::Compatibility
 
     # Enumerate each compatibility item in our hash to find out
     # if we're compatible with this sucker.
-    ch.each_pair do |k,v|
-
+    ch.each_pair do |k, v|
       # Get the value of the current key from the module, such as
       # the ConnectionType for a stager (ws2ord, for instance).
       mval = mod.module_info[k]
 
       # Reject a filled compat item on one side, but not the other
-      if (v and not mval)
-        dlog("Module #{mod.refname} is incompatible with #{self.refname} for #{k}: limiter was #{v}")
+      if v && !mval
+        dlog("Module #{mod.refname} is incompatible with #{refname} for #{k}: limiter was #{v}")
         return false
       end
 
@@ -52,12 +52,11 @@ module Msf::Module::Compatibility
       mv = mval.split(/\s+/)
 
       sv.each do |x|
-
-        dlog("Checking compat [#{mod.refname} with #{self.refname}]: #{x} to #{mv.join(", ")}", 'core', LEV_3)
+        dlog("Checking compat [#{mod.refname} with #{refname}]: #{x} to #{mv.join(', ')}", 'core', LEV_3)
 
         # Verify that any negate values are not matched
-        if (x[0,1] == '-' and mv.include?(x[1, x.length-1]))
-          dlog("Module #{mod.refname} is incompatible with #{self.refname} for #{k}: limiter was #{x}, value was #{mval}", 'core', LEV_1)
+        if (x[0, 1] == '-') && mv.include?(x[1, x.length - 1])
+          dlog("Module #{mod.refname} is incompatible with #{refname} for #{k}: limiter was #{x}, value was #{mval}", 'core', LEV_1)
           return false
         end
 
@@ -65,18 +64,16 @@ module Msf::Module::Compatibility
       end
 
       # No values matched, reject this module
-      if (mcnt == 0)
-        dlog("Module #{mod.refname} is incompatible with #{self.refname} for #{k}: limiter was #{v}, value was #{mval}", 'core', LEV_1)
+      if mcnt == 0
+        dlog("Module #{mod.refname} is incompatible with #{refname} for #{k}: limiter was #{v}, value was #{mval}", 'core', LEV_1)
         return false
       end
-
     end
 
-    dlog("Module #{mod.refname} is compatible with #{self.refname}", "core", LEV_1)
-
+    dlog("Module #{mod.refname} is compatible with #{refname}", "core", LEV_1)
 
     # If we get here, we're compatible.
-    return true
+    true
   end
 
   protected
@@ -97,14 +94,12 @@ module Msf::Module::Compatibility
   def init_compat
     c = module_info['Compat']
 
-    if (c == nil)
-      c = module_info['Compat'] = Hash.new
-    end
+    c = module_info['Compat'] = {} if c.nil?
 
     # Initialize the module sub compatibilities
-    c['Payload'] = Hash.new if (c['Payload'] == nil)
-    c['Encoder'] = Hash.new if (c['Encoder'] == nil)
-    c['Nop']     = Hash.new if (c['Nop'] == nil)
+    c['Payload'] = {} if c['Payload'].nil?
+    c['Encoder'] = {} if c['Encoder'].nil?
+    c['Nop']     = {} if c['Nop'].nil?
 
     # Update the compat-derived module specific compatibilities from
     # the specific ones to make a uniform view of compatibilities

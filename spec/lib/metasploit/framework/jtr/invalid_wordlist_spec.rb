@@ -1,8 +1,8 @@
+# frozen_string_literal: true
 require 'spec_helper'
 require 'metasploit/framework/jtr/invalid_wordlist'
 
 RSpec.describe Metasploit::Framework::JtR::InvalidWordlist do
-
   subject(:invalid) do
     described_class.new(model)
   end
@@ -34,5 +34,4 @@ RSpec.describe Metasploit::Framework::JtR::InvalidWordlist do
       expect(error_model).to eq model
     end
   end
-
 end

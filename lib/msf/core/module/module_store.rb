@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 module Msf::Module::ModuleStore
   #
   # Attributes
@@ -16,13 +17,13 @@ module Msf::Module::ModuleStore
   # Read a value from the module store
   #
   def [](k)
-    self.module_store[k]
+    module_store[k]
   end
 
   #
   # Store a value into the module
   #
-  def []=(k,v)
-    self.module_store[k] = v
+  def []=(k, v)
+    module_store[k] = v
   end
 end

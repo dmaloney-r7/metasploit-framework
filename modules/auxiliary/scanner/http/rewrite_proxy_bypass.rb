@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -12,7 +13,7 @@ class MetasploitModule < Msf::Auxiliary
   def initialize
     super(
       'Name'        => 'Apache Reverse Proxy Bypass Vulnerability Scanner',
-      'Description' => %q{
+      'Description' => %q(
         Scan for poorly configured reverse proxy servers.
         By default, this module attempts to force the server to make
         a request with an invalid domain name. Then, if the bypass
@@ -22,36 +23,37 @@ class MetasploitModule < Msf::Auxiliary
         status code, the injection attempt does not occur.
         "set VERBOSE true" if you are paranoid and want to catch potential
         false negatives. Works best against Apache and mod_rewrite
-      },
+      ),
       'Author'      => ['chao-mu'],
       'License'     => MSF_LICENSE,
       'References'  =>
         [
           ['URL', 'http://www.contextis.com/research/blog/reverseproxybypass/'],
-          ['CVE', '2011-3368'],
+          ['CVE', '2011-3368']
         ]
     )
 
     register_options(
       [
         OptString.new('ESCAPE_SEQUENCE',
-          [true, 'Character(s) that terminate the rewrite rule', '@']),
+                      [true, 'Character(s) that terminate the rewrite rule', '@']),
 
         OptString.new('INJECTED_URI',
-          [true, 'String injected after escape sequence', '...']),
+                      [true, 'String injected after escape sequence', '...']),
 
         OptInt.new('EXPECTED_RESPONSE',
-          [true, 'Status code that indicates vulnerability', 502]),
+                   [true, 'Status code that indicates vulnerability', 502]),
 
         OptString.new('BASELINE_URI',
-          [true, 'Requested to establish that EXPECTED_RESPONSE is not the usual response', '/']),
-      ], self.class)
+                      [true, 'Requested to establish that EXPECTED_RESPONSE is not the usual response', '/'])
+      ], self.class
+    )
   end
 
-  def make_request(host, uri, timeout=20)
+  def make_request(_host, uri, timeout = 20)
     begin
       requested_at = Time.now.utc
-      response     = send_request_raw({'uri' => uri}, timeout)
+      response     = send_request_raw({ 'uri' => uri }, timeout)
       responded_at = Time.now.utc
     rescue ::Rex::ConnectionError => e
       vprint_error e.to_s
@@ -69,10 +71,10 @@ class MetasploitModule < Msf::Auxiliary
     status_code = response.code
     vprint_status "#{rhost}:#{rport} Server responded with status code #{status_code} to URI #{uri}"
 
-    return {
-      :requested_at => requested_at,
-      :responded_at => responded_at,
-      :status_code  => status_code
+    {
+      requested_at: requested_at,
+      responded_at: responded_at,
+      status_code: status_code
     }
   end
 
@@ -80,9 +82,7 @@ class MetasploitModule < Msf::Auxiliary
     test_status_code = datastore['EXPECTED_RESPONSE']
 
     baseline = make_request(host, datastore['BASELINE_URI'])
-    if baseline.nil?
-      return
-    end
+    return if baseline.nil?
 
     if baseline[:status_code] == test_status_code
       vprint_error "#{rhost}:#{rport} The baseline status code for #{host} matches our test's"
@@ -96,14 +96,14 @@ class MetasploitModule < Msf::Auxiliary
     if status_code == test_status_code
       print_good "#{rhost}:#{rport} Server appears to be vulnerable!"
       report_vuln(
-        :host   => host,
-        :port   => rport,
-        :proto  => 'tcp',
-        :sname  => ssl ? 'https' : 'http',
-        :name   => self.name,
-        :info   => "Module #{self.fullname} obtained #{status_code} when requesting #{uri}",
-        :refs   => self.references,
-        :exploited_at => injection_info[:requested_at]
+        host: host,
+        port: rport,
+        proto: 'tcp',
+        sname: ssl ? 'https' : 'http',
+        name: name,
+        info: "Module #{fullname} obtained #{status_code} when requesting #{uri}",
+        refs: references,
+        exploited_at: injection_info[:requested_at]
       )
     end
   end

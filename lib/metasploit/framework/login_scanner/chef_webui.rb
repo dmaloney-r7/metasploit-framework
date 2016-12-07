@@ -1,15 +1,14 @@
 
+# frozen_string_literal: true
 require 'metasploit/framework/login_scanner/http'
 
 module Metasploit
   module Framework
     module LoginScanner
-
       # The ChefWebUI HTTP LoginScanner class provides methods to authenticate to Chef WebUI
       class ChefWebUI < HTTP
-
         DEFAULT_PORT  = 80
-        PRIVATE_TYPES = [ :password ]
+        PRIVATE_TYPES = [ :password ].freeze
 
         # @!attribute session_name
         #   @return [String] Cookie name for session_id
@@ -46,7 +45,7 @@ module Metasploit
         # (see Base#check_setup)
         def check_setup
           begin
-            res = send_request({'uri' => normalize_uri('/users/login')})
+            res = send_request('uri' => normalize_uri('/users/login'))
             return "Connection failed" if res.nil?
 
             if res.code != 200
@@ -69,7 +68,7 @@ module Metasploit
         # @param (see Rex::Proto::Http::Resquest#request_raw)
         # @return [Rex::Proto::Http::Response] The HTTP response
         def send_request(opts)
-          cli = Rex::Proto::Http::Client.new(host, port, {'Msf' => framework, 'MsfExploit' => self}, ssl, ssl_version, proxies, http_username, http_password)
+          cli = Rex::Proto::Http::Client.new(host, port, { 'Msf' => framework, 'MsfExploit' => self }, ssl, ssl_version, proxies, http_username, http_password)
           configure_http_client(cli)
           cli.connect
           req = cli.request_raw(opts)
@@ -77,8 +76,8 @@ module Metasploit
 
           # Save the session ID cookie
           if res && res.get_cookies =~ /(_\w+_session)=([^;$]+)/i
-            self.session_name = $1
-            self.session_id = $2
+            self.session_name = Regexp.last_match(1)
+            self.session_id = Regexp.last_match(2)
           end
 
           res
@@ -89,8 +88,7 @@ module Metasploit
         # @param credential [Metasploit::Framework::Credential] The credential object
         # @return [Rex::Proto::Http::Response] The HTTP auth response
         def try_credential(csrf_token, credential)
-
-          data  = "utf8=%E2%9C%93" # ✓
+          data = "utf8=%E2%9C%93" # ✓
           data << "&authenticity_token=#{Rex::Text.uri_encode(csrf_token)}"
           data << "&name=#{Rex::Text.uri_encode(credential.public)}"
           data << "&password=#{Rex::Text.uri_encode(credential.private)}"
@@ -102,13 +100,12 @@ module Metasploit
             'data'    => data,
             'headers' => {
               'Content-Type'   => 'application/x-www-form-urlencoded',
-              'Cookie'         => "#{self.session_name}=#{self.session_id}"
+              'Cookie'         => "#{session_name}=#{session_id}"
             }
           }
 
           send_request(opts)
         end
-
 
         # Tries to login to Chef WebUI
         #
@@ -117,14 +114,13 @@ module Metasploit
         #   * :status [Metasploit::Model::Login::Status]
         #   * :proof [String] the HTTP response body
         def try_login(credential)
-
           # Obtain a CSRF token first
-          res = send_request({'uri' => normalize_uri('/users/login')})
-          unless (res && res.code == 200 && res.body =~ /input name="authenticity_token" type="hidden" value="([^"]+)"/m)
-            return {:status => Metasploit::Model::Login::Status::UNTRIED, :proof => res.body}
+          res = send_request('uri' => normalize_uri('/users/login'))
+          unless res && res.code == 200 && res.body =~ /input name="authenticity_token" type="hidden" value="([^"]+)"/m
+            return { status: Metasploit::Model::Login::Status::UNTRIED, proof: res.body }
           end
 
-          csrf_token = $1
+          csrf_token = Regexp.last_match(1)
 
           res = try_credential(csrf_token, credential)
           if res && res.code == 302
@@ -132,20 +128,18 @@ module Metasploit
               'uri'     => normalize_uri("/users/#{credential.public}/edit"),
               'method'  => 'GET',
               'headers' => {
-                'Cookie'  => "#{self.session_name}=#{self.session_id}"
+                'Cookie' => "#{session_name}=#{session_id}"
               }
             }
             res = send_request(opts)
-            if (res && res.code == 200 && res.body.to_s =~ /New password for the User/)
-              return {:status => Metasploit::Model::Login::Status::SUCCESSFUL, :proof => res.body}
+            if res && res.code == 200 && res.body.to_s =~ /New password for the User/
+              return { status: Metasploit::Model::Login::Status::SUCCESSFUL, proof: res.body }
             end
           end
 
-          {:status => Metasploit::Model::Login::Status::INCORRECT, :proof => res.body}
+          { status: Metasploit::Model::Login::Status::INCORRECT, proof: res.body }
         end
-
       end
     end
   end
 end
-

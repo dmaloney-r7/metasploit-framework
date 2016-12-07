@@ -1,106 +1,101 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 require 'rex/post/meterpreter/extensions/stdapi/tlv'
 
 module Rex
-module Post
-module Meterpreter
-module Extensions
-module Stdapi
-module Net
+  module Post
+    module Meterpreter
+      module Extensions
+        module Stdapi
+          module Net
+            ###
+            #
+            # This class provides DNS resolution from the perspective
+            # of the remote host.
+            #
+            ###
+            class Resolve
+              ##
+              #
+              # Constructor
+              #
+              ##
 
-###
-#
-# This class provides DNS resolution from the perspective
-# of the remote host.
-#
-###
-class Resolve
+              #
+              # Initializes a Resolve instance that is used to resolve network addresses
+              # on the remote machine.
+              #
+              def initialize(client)
+                self.client = client
+              end
 
-  ##
-  #
-  # Constructor
-  #
-  ##
+              def resolve_host(hostname, family = AF_INET)
+                request = Packet.create_request('stdapi_net_resolve_host')
+                request.add_tlv(TLV_TYPE_HOST_NAME, hostname)
+                request.add_tlv(TLV_TYPE_ADDR_TYPE, family)
 
-  #
-  # Initializes a Resolve instance that is used to resolve network addresses
-  # on the remote machine.
-  #
-  def initialize(client)
-    self.client = client
-  end
+                response = client.send_request(request)
 
-  def resolve_host(hostname, family=AF_INET)
-    request = Packet.create_request('stdapi_net_resolve_host')
-    request.add_tlv(TLV_TYPE_HOST_NAME, hostname)
-    request.add_tlv(TLV_TYPE_ADDR_TYPE, family)
+                type = response.get_tlv_value(TLV_TYPE_ADDR_TYPE)
+                raw = response.get_tlv_value(TLV_TYPE_IP)
 
-    response = client.send_request(request)
+                raw_to_host_ip_pair(hostname, raw, type)
+              end
 
-    type = response.get_tlv_value(TLV_TYPE_ADDR_TYPE)
-    raw = response.get_tlv_value(TLV_TYPE_IP)
+              def resolve_hosts(hostnames, family = AF_INET)
+                request = Packet.create_request('stdapi_net_resolve_hosts')
+                request.add_tlv(TLV_TYPE_ADDR_TYPE, family)
 
-    return raw_to_host_ip_pair(hostname, raw, type)
-  end
+                hostnames.each do |hostname|
+                  request.add_tlv(TLV_TYPE_HOST_NAME, hostname)
+                end
 
-  def resolve_hosts(hostnames, family=AF_INET)
-    request = Packet.create_request('stdapi_net_resolve_hosts')
-    request.add_tlv(TLV_TYPE_ADDR_TYPE, family)
+                response = client.send_request(request)
 
-    hostnames.each do |hostname|
-      request.add_tlv(TLV_TYPE_HOST_NAME, hostname)
-    end
+                hosts = []
+                raws = []
+                types = []
 
-    response = client.send_request(request)
+                response.each(TLV_TYPE_IP) do |raw|
+                  raws << raw
+                end
 
-    hosts = []
-    raws = []
-    types = []
+                response.each(TLV_TYPE_ADDR_TYPE) do |type|
+                  types << type
+                end
 
-    response.each(TLV_TYPE_IP) do |raw|
-      raws << raw
-    end
+                0.upto(hostnames.length - 1) do |i|
+                  raw = raws[i]
+                  type = types[i]
+                  host = hostnames[i]
 
-    response.each(TLV_TYPE_ADDR_TYPE) do |type|
-      types << type
-    end
+                  hosts << raw_to_host_ip_pair(host, raw.value, type.value)
+                end
 
-    0.upto(hostnames.length - 1) do |i|
-      raw = raws[i]
-      type = types[i]
-      host = hostnames[i]
+                hosts
+              end
 
-      hosts << raw_to_host_ip_pair(host, raw.value, type.value)
-    end
+              def raw_to_host_ip_pair(host, raw, type)
+                return nil if raw.nil? || host.nil?
 
-    return hosts
-  end
+                ip = if raw.empty?
+                       nil
+                     else
+                       ip = if type == AF_INET
+                              Rex::Socket.addr_ntoa(raw[0..3])
+                            else
+                              Rex::Socket.addr_ntoa(raw[0..16])
+                            end
+                     end
 
-  def raw_to_host_ip_pair(host, raw, type)
-    if raw.nil? or host.nil?
-      return nil
-    end
+                result = { hostname: host, ip: ip }
 
-    if raw.empty?
-      ip = nil
-    else
-      if type == AF_INET
-        ip = Rex::Socket.addr_ntoa(raw[0..3])
-      else
-        ip = Rex::Socket.addr_ntoa(raw[0..16])
-      end
-    end
+                result
+              end
 
-    result = { :hostname => host, :ip => ip }
+              protected
 
-    return result
-  end
-
-protected
-
-  attr_accessor :client # :nodoc:
-
-end
-
-end; end; end; end; end; end
+              attr_accessor :client # :nodoc:
+            end
+          end; end; end; end; end; end

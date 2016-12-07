@@ -1,60 +1,57 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 require 'rex/post/meterpreter'
 
 module Rex
-module Post
-module Meterpreter
-module Ui
+  module Post
+    module Meterpreter
+      module Ui
+        ###
+        #
+        # Lanattacks extension.
+        #
+        ###
+        class Console::CommandDispatcher::Lanattacks
+          require 'rex/post/meterpreter/ui/console/command_dispatcher/lanattacks/dhcp'
+          require 'rex/post/meterpreter/ui/console/command_dispatcher/lanattacks/tftp'
 
-###
-#
-# Lanattacks extension.
-#
-###
-class Console::CommandDispatcher::Lanattacks
+          Klass = Console::CommandDispatcher::Lanattacks
 
-  require 'rex/post/meterpreter/ui/console/command_dispatcher/lanattacks/dhcp'
-  require 'rex/post/meterpreter/ui/console/command_dispatcher/lanattacks/tftp'
+          Dispatchers =
+            [
+              Klass::Dhcp,
+              Klass::Tftp
+            ].freeze
 
-  Klass = Console::CommandDispatcher::Lanattacks
+          include Console::CommandDispatcher
 
-  Dispatchers =
-    [
-      Klass::Dhcp,
-      Klass::Tftp
-    ]
+          #
+          # Initializes an instance of the lanattacks command interaction.
+          #
+          def initialize(shell)
+            super
 
-  include Console::CommandDispatcher
+            Dispatchers.each do |d|
+              shell.enstack_dispatcher(d)
+            end
+          end
 
-  #
-  # Initializes an instance of the lanattacks command interaction.
-  #
-  def initialize(shell)
-    super
+          #
+          # List of supported commands.
+          #
+          def commands
+            {
+            }
+          end
 
-    Dispatchers.each { |d|
-      shell.enstack_dispatcher(d)
-    }
+          #
+          # Name for this dispatcher
+          #
+          def name
+            "Lanattacks extension"
+          end
+          end
+        end
+    end
   end
-
-  #
-  # List of supported commands.
-  #
-  def commands
-    {
-    }
-  end
-
-  #
-  # Name for this dispatcher
-  #
-  def name
-    "Lanattacks extension"
-  end
-
-end
-
-end
-end
-end
 end

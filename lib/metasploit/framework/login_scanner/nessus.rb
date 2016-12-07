@@ -1,27 +1,23 @@
 
+# frozen_string_literal: true
 require 'metasploit/framework/login_scanner/http'
 
 module Metasploit
   module Framework
     module LoginScanner
-
       class Nessus < HTTP
-
         DEFAULT_PORT  = 8834
-        PRIVATE_TYPES = [ :password ]
-        LIKELY_SERVICE_NAMES = [ 'nessus' ]
-        LOGIN_STATUS  = Metasploit::Model::Login::Status # Shorter name
-
+        PRIVATE_TYPES = [ :password ].freeze
+        LIKELY_SERVICE_NAMES = [ 'nessus' ].freeze
+        LOGIN_STATUS = Metasploit::Model::Login::Status # Shorter name
 
         # Checks if the target is a Tenable Nessus server.
         #
         # @return [Boolean] TrueClass if target is Nessus server, otherwise FalseClass
         def check_setup
           login_uri = "/server/properties"
-          res = send_request({'uri'=> login_uri})
-          if res && res.body.include?('Nessus')
-            return true
-          end
+          res = send_request('uri' => login_uri)
+          return true if res && res.body.include?('Nessus')
 
           false
         end
@@ -34,27 +30,24 @@ module Metasploit
         #   * :status [Metasploit::Model::Login::Status]
         #   * :proof [String] the HTTP response body
         def get_login_state(username, password)
-          login_uri = "#{uri}"
+          login_uri = uri.to_s
 
-          res = send_request({
-            'uri' => login_uri,
-            'method' => 'POST',
-            'vars_post' => {
-              'username' => username,
-              'password' => password
-            }
-          })
+          res = send_request('uri' => login_uri,
+                             'method' => 'POST',
+                             'vars_post' => {
+                               'username' => username,
+                               'password' => password
+                             })
 
           unless res
-            return {:status => LOGIN_STATUS::UNABLE_TO_CONNECT, :proof => res.to_s}
+            return { status: LOGIN_STATUS::UNABLE_TO_CONNECT, proof: res.to_s }
           end
           if res.code == 200 && res.body =~ /token/
-            return {:status => LOGIN_STATUS::SUCCESSFUL, :proof => res.body.to_s}
+            return { status: LOGIN_STATUS::SUCCESSFUL, proof: res.body.to_s }
           end
 
-          {:status => LOGIN_STATUS::INCORRECT, :proof => res.to_s}
+          { status: LOGIN_STATUS::INCORRECT, proof: res.to_s }
         end
-
 
         # Attempts to login to Nessus.
         #
@@ -86,9 +79,7 @@ module Metasploit
           # so we have to set the default here, too.
           self.uri = '/session'
         end
-
       end
     end
   end
 end
-

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 module Rex
@@ -7,7 +8,6 @@ module Rex
         # This class provides a representation for Kerberos pre authenticated
         # data
         class PreAuthData < Element
-
           # @!attribute type
           #   @return [Fixnum] The padata type
           attr_accessor :type

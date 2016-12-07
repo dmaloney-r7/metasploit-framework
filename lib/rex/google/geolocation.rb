@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 
 require 'net/http'
 require 'json'
@@ -39,7 +40,7 @@ module Rex
         else
           msg = "Failure connecting to Google for location lookup."
           msg += " Code #{response.code} for query #{@uri}" if response
-          fail msg
+          raise msg
         end
       end
 

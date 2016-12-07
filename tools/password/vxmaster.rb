@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 
 # $Id$
 
@@ -12,7 +13,6 @@
 # $Revision$
 #
 
-
 # VxWorks converts the clear-text password into single integer value. This value
 # can only be one of about 210,000 possible options. The method below emulates
 # what the vxencrypt utility does and was implemented based on publicly indexed
@@ -22,13 +22,11 @@
 #      not very common in the wild.
 
 def vxworks_sum_from_pass(pass)
-  if pass.length < 8 or pass.length > 40
-    raise RuntimeError, "too short or too long"
-  end
+  raise "too short or too long" if pass.length < 8 || pass.length > 40
 
   sum   = 0
   bytes = pass.unpack("C*")
-  bytes.each_index {|i| sum += (bytes[i] * (i + 1)) ^ (i + 1) }
+  bytes.each_index { |i| sum += (bytes[i] * (i + 1)) ^ (i + 1) }
   sum
 end
 
@@ -37,35 +35,31 @@ end
 def vxworks_hash_from_sum(sum)
   magic = 31695317
   res = ((sum * magic) & 0xffffffff).to_s
-  res.unpack("C*").map{ |c|
+  res.unpack("C*").map do |c|
     c += 0x21 if c < 0x33
     c += 0x2f if c < 0x37
     c += 0x42 if c < 0x39
     c
-  }.pack("C*")
+  end.pack("C*")
 end
 
 # This method tries to find an exact match for a given sum. This is inefficient,
 # but the master password only needs to be precomputed once.
 def vxworks_pass_from_sum_refine(sum, bsum, pass)
-  0.upto(pass.length-1) do |i|
+  0.upto(pass.length - 1) do |i|
     tpass = pass.dup
-    while ( tpass[i, 1].unpack("C*")[0] > 0x21 )
+    while tpass[i, 1].unpack("C*")[0] > 0x21
       tpass[i, 1] = [ tpass[i, 1].unpack("C*")[0] - 1 ].pack("C")
       bsum = vxworks_sum_from_pass(tpass)
-      if bsum == sum
-        return tpass
-      end
+      return tpass if bsum == sum
     end
   end
-  0.upto(pass.length-1) do |i|
+  0.upto(pass.length - 1) do |i|
     tpass = pass.dup
-    while ( tpass[i, 1].unpack("C*")[0] < 0x7c )
+    while tpass[i, 1].unpack("C*")[0] < 0x7c
       tpass[i, 1] = [ tpass[i, 1].unpack("C*")[0] + 1 ].pack("C")
       bsum = vxworks_sum_from_pass(tpass)
-      if bsum == sum
-        return tpass
-      end
+      return tpass if bsum == sum
     end
   end
   "<failed>"
@@ -73,42 +67,36 @@ end
 
 # This method locates a "workalike" password that matches a given
 # intermediate additive sum value.
-def vxworks_pass_from_sum(sum, lpass=nil)
+def vxworks_pass_from_sum(sum, lpass = nil)
   opass = lpass || "\x20" * 8
   pass  = opass.dup
-  fmax  = (sum > 10000) ? 0xff : 0x7b
+  fmax  = sum > 10000 ? 0xff : 0x7b
   pidx  = 0
-  pcnt  = pass[0,1].unpack("C*")[0]
+  pcnt  = pass[0, 1].unpack("C*")[0]
   more  = false
 
   bsum = vxworks_sum_from_pass(pass)
-  if bsum > sum
-    return "<invalid>"
-  end
+  return "<invalid>" if bsum > sum
 
   while bsum != sum
 
-    if bsum > sum
-      return vxworks_pass_from_sum_refine(sum, bsum, pass)
-    end
+    return vxworks_pass_from_sum_refine(sum, bsum, pass) if bsum > sum
 
     if pcnt > fmax
       pidx += 1
 
-      if pidx == (pass.length)
-        pass += " "
-      end
+      pass += " " if pidx == pass.length
       pcnt = pass[pidx, 1].unpack("C")[0]
     end
 
-    pass[pidx,1] = [ pcnt ].pack("C")
+    pass[pidx, 1] = [ pcnt ].pack("C")
     bsum  = vxworks_sum_from_pass(pass)
     pcnt += 1
   end
   pass
 end
 
-outputfile = ARGV.shift() || "masterpasswords.txt"
+outputfile = ARGV.shift || "masterpasswords.txt"
 
 # Create the master password list output file
 ofd = File.open(outputfile, "wb")
@@ -127,7 +115,6 @@ seeds = []
   end
 end
 seedsets << seeds
-
 
 seeds = []
 8.upto(12) do |slen|
@@ -165,7 +152,6 @@ seeds = []
 end
 seedsets << seeds
 
-
 # Calculate passwords and their hashes for all possible outputs
 1.upto(209656) do |i|
   found = false
@@ -181,12 +167,12 @@ seedsets << seeds
     hash = vxworks_hash_from_sum(i)
     pass = vxworks_pass_from_sum(i, lhash)
 
-    puts "[*] Generated #{i} of 209656 passwords..." if (i % 1000 == 0)
+    puts "[*] Generated #{i} of 209656 passwords..." if i % 1000 == 0
     # The first 1187 passwords are not very likely to occur and we skip
     # generation. These are "sums" that result in a value lesss than a
     # 8 digit password of all spaces.
 
-    if i > 1187 and pass =~ /<.*>/
+    if i > 1187 && pass =~ /<.*>/
       # p "#{i} SEED '#{lhash}' => '#{hash}' => '#{pass}'"
       next
     end
@@ -195,9 +181,8 @@ seedsets << seeds
     break
   end
 
-  if not found
+  unless found
     puts "FAILED TO GENERATE #{i}"
     exit(0)
   end
 end
-

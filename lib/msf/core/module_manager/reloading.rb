@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 # Concerns reloading modules
 module Msf::ModuleManager::Reloading
@@ -7,11 +8,11 @@ module Msf::ModuleManager::Reloading
   # @return (see Msf::Modules::Loader::Base#reload_module)
   def reload_module(mod)
     # if it's can instance, then get its class
-    if mod.is_a? Msf::Module
-      metasploit_class = mod.class
-    else
-      metasploit_class = mod
-    end
+    metasploit_class = if mod.is_a? Msf::Module
+                         mod.class
+                       else
+                         mod
+                       end
 
     namespace_module = metasploit_class.parent
     loader = namespace_module.loader
@@ -22,7 +23,7 @@ module Msf::ModuleManager::Reloading
   #
   # @return (see Msf::ModuleManager::Loading#load_modules)
   def reload_modules
-    self.enablement_by_type.each_key do |type|
+    enablement_by_type.each_key do |type|
       module_set_by_type[type].clear
       init_module_set(type)
     end
@@ -31,7 +32,7 @@ module Msf::ModuleManager::Reloading
     count_by_type = Hash.new(0)
 
     module_paths.each do |path|
-      path_count_by_type = load_modules(path, :force => true)
+      path_count_by_type = load_modules(path, force: true)
 
       # merge count with count from other paths
       path_count_by_type.each do |type, count|

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -37,7 +38,8 @@ class MetasploitModule < Msf::Auxiliary
         OptString.new('TARGETURI', [ true, 'Path to GitLab instance', '/']),
         OptInt.new('START_ID', [true, 'ID number to start from', 0]),
         OptInt.new('END_ID', [true, 'ID number to enumerate up to', 50])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def run_host(_ip)
@@ -46,7 +48,7 @@ class MetasploitModule < Msf::Auxiliary
 
     print_status('Sending GitLab version request...')
     res = send_request_cgi(
-        'uri' => check
+      'uri' => check
     )
 
     if res && res.code == 200 && res.body
@@ -85,10 +87,10 @@ class MetasploitModule < Msf::Auxiliary
     print_status("Enumerating user keys #{datastore['START_ID']}-#{datastore['END_ID']}...")
     datastore['START_ID'].upto(datastore['END_ID']) do |id|
       res = send_request_cgi(
-          'uri'       => discover,
-          'method'    => 'GET',
-          'vars_get'  => { 'key_id' => id }
-        )
+        'uri'       => discover,
+        'method'    => 'GET',
+        'vars_get'  => { 'key_id' => id }
+      )
 
       if res && res.code == 200 && res.body
         begin
@@ -109,9 +111,7 @@ class MetasploitModule < Msf::Auxiliary
       end
     end
 
-    unless users.nil? || users.to_s.empty?
-      store_userlist(users, service)
-    end
+    store_userlist(users, service) unless users.nil? || users.to_s.empty?
   end
 
   def store_userlist(users, service)

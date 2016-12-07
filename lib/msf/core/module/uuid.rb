@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 module Msf::Module::UUID
   #
   # Attributes
@@ -15,7 +16,6 @@ module Msf::Module::UUID
 
   # @!attribute [w] uuid
   attr_writer :uuid
-
 
   #
   # Instance Methods

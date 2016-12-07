@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 module Msf::DBManager::Import::MetasploitFramework
   autoload :Credential, 'msf/core/db_manager/import/metasploit_framework/credential'
   autoload :XML, 'msf/core/db_manager/import/metasploit_framework/xml'
@@ -16,12 +17,12 @@ module Msf::DBManager::Import::MetasploitFramework
     return nil unless xml_elem
     string = xml_elem.text.to_s.strip
     return string unless string.is_a?(String)
-    return nil if (string.empty? || string.nil?)
+    return nil if string.empty? || string.nil?
 
     begin
       # Validate that it is properly formed base64 first
       if string.gsub(/\s+/, '') =~ /^([a-z0-9A-Z\+\/=]+)$/
-        Marshal.load($1.unpack("m")[0])
+        Marshal.load(Regexp.last_match(1).unpack("m")[0])
       else
         if allow_yaml
           begin
@@ -36,7 +37,11 @@ module Msf::DBManager::Import::MetasploitFramework
       end
     rescue ::Exception => e
       if allow_yaml
-        YAML.load(string) rescue string
+        begin
+          YAML.load(string)
+        rescue
+          string
+        end
       else
         string
       end

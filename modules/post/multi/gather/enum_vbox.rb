@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -8,23 +9,20 @@ require 'rex'
 require 'yaml'
 
 class MetasploitModule < Msf::Post
-
   include Msf::Post::File
 
-
-  def initialize(info={})
-    super( update_info(info,
-      'Name'           => 'Multi Gather VirtualBox VM Enumeration',
-      'Description'    => %q{
-        This module will attempt to enumerate any VirtualBox VMs on the target machine.
-        Due to the nature of VirtualBox, this module can only enumerate VMs registered
-        for the current user, thereforce, this module needs to be invoked from a user context.
-      },
-      'License'        => MSF_LICENSE,
-      'Author'         => ['theLightCosine'],
-      'Platform'       => %w{ bsd linux osx unix win },
-      'SessionTypes'   => ['shell', 'meterpreter' ]
-    ))
+  def initialize(info = {})
+    super(update_info(info,
+                      'Name'           => 'Multi Gather VirtualBox VM Enumeration',
+                      'Description'    => %q(
+                        This module will attempt to enumerate any VirtualBox VMs on the target machine.
+                        Due to the nature of VirtualBox, this module can only enumerate VMs registered
+                        for the current user, thereforce, this module needs to be invoked from a user context.
+                      ),
+                      'License'        => MSF_LICENSE,
+                      'Author'         => ['theLightCosine'],
+                      'Platform'       => %w(bsd linux osx unix win),
+                      'SessionTypes'   => ['shell', 'meterpreter' ]))
   end
 
   def run
@@ -62,6 +60,4 @@ class MetasploitModule < Msf::Post
     store_path = store_loot('virtualbox_vms', "text/plain", session, res, "virtualbox_vms.txt", "Virtualbox Virtual Machines")
     print_good("#{peer} - File successfully retrieved and saved on #{store_path}")
   end
-
-
 end

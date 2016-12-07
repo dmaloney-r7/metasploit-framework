@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://www.metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -34,7 +35,8 @@ class MetasploitModule < Msf::Auxiliary
     register_options(
       [
         OptInt.new('MAXTIME', [ true, 'The maximum number of seconds to wait for the export to complete', 300 ])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def check
@@ -49,7 +51,8 @@ class MetasploitModule < Msf::Auxiliary
         'uri'       => wordpress_url_admin_ajax,
         'vars_get'  => { 'action' => 'router' },
         'vars_post' => { 'options[action]' => 'export' }
-      }, datastore['MAXTIME'])
+      }, datastore['MAXTIME']
+    )
 
     unless res
       fail_with(Failure::Unknown, "#{peer} - No response from the target")

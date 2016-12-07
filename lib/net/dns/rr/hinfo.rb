@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 ##
 #
@@ -10,7 +11,6 @@
 module Net
   module DNS
     class RR
-      
       #------------------------------------------------------------
       # RR type HINFO
       #------------------------------------------------------------
@@ -18,15 +18,15 @@ module Net
         attr_reader :cpu, :os
 
         private
-        
+
         def check_hinfo(str)
           if str.strip =~ /^["'](.*?)["']\s+["'](.*?)["']$/
-            return $1,$2
+            [Regexp.last_match(1), Regexp.last_match(2)]
           else
             raise RRArgumentError, "HINFO section not valid: #{str.inspect}"
           end
         end
-        
+
         def build_pack
           @hinfo_pack = [@cpu.size].pack("C") + @cpu
           @hinfo_pack += [@os.size].pack("C") + @os
@@ -42,11 +42,11 @@ module Net
         end
 
         def get_inspect
-          "#@cpu #@os"
+          "#{@cpu} #{@os}"
         end
 
         def subclass_new_from_hash(args)
-          if args.has_key? :cpu and args.has_key? :os
+          if args.key?(:cpu) && args.key?(:os)
             @cpu = args[:cpu]
             @os =  args[:os]
           else
@@ -55,20 +55,18 @@ module Net
         end
 
         def subclass_new_from_string(str)
-          @cpu,@os = check_hinfo(str)
+          @cpu, @os = check_hinfo(str)
         end
 
-        def subclass_new_from_binary(data,offset)
+        def subclass_new_from_binary(data, offset)
           len = data.unpack("@#{offset} C")[0]
-          @cpu = data[offset+1..offset+1+len]
-          offset += len+1
+          @cpu = data[offset + 1..offset + 1 + len]
+          offset += len + 1
           len = data.unpack("@#{offset} C")[0]
-          @os = data[offset+1..offset+1+len]
-          return offset += len+1
+          @os = data[offset + 1..offset + 1 + len]
+          offset += len + 1
         end
-        
       end # class HINFO
-      
     end # class RR
   end # module DNS
 end # module Net

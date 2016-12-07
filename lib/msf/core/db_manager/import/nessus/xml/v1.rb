@@ -1,5 +1,6 @@
+# frozen_string_literal: true
 module Msf::DBManager::Import::Nessus::XML::V1
-  def import_nessus_xml(args={}, &block)
+  def import_nessus_xml(args = {}, &block)
     data = args[:data]
     wspace = args[:wspace] || workspace
     bl = validate_ips(args[:blacklist]) ? args[:blacklist].split : []
@@ -23,30 +24,30 @@ module Msf::DBManager::Import::Nessus::XML::V1
       if bl.include? addr
         next
       else
-        yield(:address,addr) if block
+        yield(:address, addr) if block
       end
 
       hinfo = {
-        :workspace => wspace,
-        :host => addr,
-        :task => args[:task]
+        workspace: wspace,
+        host: addr,
+        task: args[:task]
       }
 
       # Record the hostname
-      hinfo.merge!(:name => hname.to_s.strip) if hname
+      hinfo[:name] = hname.to_s.strip if hname
       hobj = report_host(hinfo)
-      report_import_note(wspace,hobj)
+      report_import_note(wspace, hobj)
 
       # Record the OS
       os ||= host.elements["os_name"]
       if os
         report_note(
-          :workspace => wspace,
-          :task => args[:task],
-          :host => hobj,
-          :type => 'host.os.nessus_fingerprint',
-          :data => {
-            :os => os.text.to_s.strip
+          workspace: wspace,
+          task: args[:task],
+          host: hobj,
+          type: 'host.os.nessus_fingerprint',
+          data: {
+            os: os.text.to_s.strip
           }
         )
       end

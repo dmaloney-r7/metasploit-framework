@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::Scanner
@@ -14,9 +14,9 @@ class MetasploitModule < Msf::Auxiliary
   def initialize
     super(
       'Name'         => 'SAP Management Console GetProcessList',
-      'Description'  => %q{
+      'Description'  => %q(
         This module attempts to list SAP processes through the SAP Management Console SOAP Interface
-        },
+        ),
       'References'   =>
         [
           # General
@@ -33,19 +33,20 @@ class MetasploitModule < Msf::Auxiliary
     register_options(
       [
         Opt::RPORT(50013),
-        OptString.new('URI', [false, 'Path to the SAP Management Console ', '/']),
-      ], self.class)
+        OptString.new('URI', [false, 'Path to the SAP Management Console ', '/'])
+      ], self.class
+    )
     register_autofilter_ports([ 50013 ])
     deregister_options('RHOST')
   end
 
   def run_host(ip)
     res = send_request_cgi({
-      'uri'      => normalize_uri(datastore['URI']),
-      'method'   => 'GET'
-    }, 25)
+                             'uri' => normalize_uri(datastore['URI']),
+                             'method' => 'GET'
+                           }, 25)
 
-    if not res
+    unless res
       print_error("#{rhost}:#{rport} [SAP] Unable to connect")
       return
     end
@@ -77,20 +78,20 @@ class MetasploitModule < Msf::Auxiliary
 
     begin
       res = send_request_raw({
-        'uri'      => normalize_uri(datastore['URI']),
-        'method'   => 'POST',
-        'data'     => data,
-        'headers'  =>
+                               'uri' => normalize_uri(datastore['URI']),
+                               'method'   => 'POST',
+                               'data'     => data,
+                               'headers'  =>
           {
             'Content-Length' => data.length,
             'SOAPAction'	=> '""',
-            'Content-Type'  => 'text/xml; charset=UTF-8',
+            'Content-Type' => 'text/xml; charset=UTF-8'
           }
-      }, 15)
+                             }, 15)
 
       env = []
 
-      if res and res.code == 200
+      if res && (res.code == 200)
 
         case res.body
         when /<process>(.*?)<\/process>/i
@@ -99,10 +100,10 @@ class MetasploitModule < Msf::Auxiliary
           env = body.scan(/<name>(.*?)<\/name><description>(.*?)<\/description><dispstatus>(.*?)<\/dispstatus><textstatus>(.*?)<\/textstatus><starttime>(.*?)<\/starttime><elapsedtime>(.*?)<\/elapsedtime>/i)
           success = true
         end
-      elsif res and res.code == 500
+      elsif res && (res.code == 500)
         case res.body
         when /<faultstring>(.*)<\/faultstring>/i
-          faultcode = $1.strip
+          faultcode = Regexp.last_match(1).strip
           fault = true
         end
       end
@@ -116,22 +117,23 @@ class MetasploitModule < Msf::Auxiliary
       print_good("#{rhost}:#{rport} [SAP] #{env.length} processes listed")
 
       saptbl = Msf::Ui::Console::Table.new(
-          Msf::Ui::Console::Table::Style::Default,
-          'Header'    => "[SAP] Process List",
-          'Prefix'  => "\n",
-          'Postfix' => "\n",
-            'Indent'    => 1,
-            'Columns'   =>
-            [
-                "Name",
-                "Description",
-                "Status",
-                "StartTime",
-                "ElapsedTime"
-            ])
+        Msf::Ui::Console::Table::Style::Default,
+        'Header' => "[SAP] Process List",
+        'Prefix'  => "\n",
+        'Postfix' => "\n",
+        'Indent'    => 1,
+        'Columns'   =>
+          [
+            "Name",
+            "Description",
+            "Status",
+            "StartTime",
+            "ElapsedTime"
+          ]
+      )
       env.each do |output|
         saptbl << [ output[0], output[1], output[3], output[4], output[5] ]
-        end
+      end
 
       print_line(saptbl.to_s)
       return

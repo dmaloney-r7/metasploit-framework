@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -31,7 +32,7 @@ class MetasploitModule < Msf::Post
         'Mike Manzotti <mike.manzotti[at]dionach.com>', # Metasploit module
         'Maurizio inode Agazzini' # original research
       ],
-      'References'    => [
+      'References' => [
         ['URL', 'https://www.dionach.com/blog/disabling-mcafee-on-access-scanning']
       ],
       'Platform'      => [ 'win' ],
@@ -71,7 +72,7 @@ class MetasploitModule < Msf::Post
 
   def extract_hashes_and_versions(keys)
     vprint_status("Attempting to extract hashes from #{keys.size} McAfee VSE installations")
-    hash_map =  {}
+    hash_map = {}
     keys.each do |key|
       hash = registry_getvaldata(key, "UIPEx")
       if hash.empty?
@@ -96,7 +97,7 @@ class MetasploitModule < Msf::Post
         version_name = 'v5'
       else
         # Base64 decode hash
-        hash =  Rex::Text.to_hex(Rex::Text.decode_base64(hash), "")
+        hash = Rex::Text.to_hex(Rex::Text.decode_base64(hash), "")
         hashtype = 'dynamic_1405'
         version_name = 'v8'
         unless version >= VERSION_8 && version < VERSION_9

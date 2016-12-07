@@ -1,8 +1,8 @@
+# frozen_string_literal: true
 require 'anemone/http'
 
 module Anemone
   class Tentacle
-
     #
     # Create a new Tentacle
     #
@@ -34,6 +34,5 @@ module Anemone
     def delay
       sleep @opts[:delay] if @opts[:delay] > 0
     end
-
   end
 end

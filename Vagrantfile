@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
@@ -6,15 +7,15 @@ Vagrant.configure(2) do |config|
   config.vm.box = "ubuntu/trusty64"
   # TODO: find a minimal image that keeps up-to-date and
   # supports multiple providers
-  #config.vm.box = "phusion/ubuntu-14.04-amd64"
+  # config.vm.box = "phusion/ubuntu-14.04-amd64"
   config.vm.network :forwarded_port, guest: 4444, host: 4444
   config.vm.provider "vmware" do |v|
-	  v.memory = 2048
-	  v.cpus = 2
+    v.memory = 2048
+    v.cpus = 2
   end
   config.vm.provider "virtualbox" do |v|
-	  v.memory = 2048
-	  v.cpus = 2
+    v.memory = 2048
+    v.cpus = 2
   end
   %w(.vimrc .gitconfig).each do |f|
     local = File.expand_path "~/#{f}"
@@ -23,10 +24,10 @@ Vagrant.configure(2) do |config|
     end
   end
 
-  [ #"echo 127.0.1.1 `cat /etc/hostname` >> /etc/hosts", work around a bug in official Ubuntu Xenial cloud images
+  [ # "echo 127.0.1.1 `cat /etc/hostname` >> /etc/hosts", work around a bug in official Ubuntu Xenial cloud images
     "apt-get update",
     "apt-get dist-upgrade -y",
-    "apt-get -y install curl build-essential git tig vim john nmap libpq-dev libpcap-dev gnupg fortune postgresql postgresql-contrib",
+    "apt-get -y install curl build-essential git tig vim john nmap libpq-dev libpcap-dev gnupg fortune postgresql postgresql-contrib"
   ].each do |step|
     config.vm.provision "shell", inline: step
   end
@@ -36,8 +37,7 @@ Vagrant.configure(2) do |config|
     "source ~/.rvm/scripts/rvm && cd /vagrant && rvm --install .ruby-version",
     "source ~/.rvm/scripts/rvm && cd /vagrant && gem install bundler",
     "source ~/.rvm/scripts/rvm && cd /vagrant && bundle",
-    "mkdir -p ~/.msf4",
-  ].each do |step|
+    "mkdir -p ~/.msf4"].each do |step|
     config.vm.provision "shell", privileged: false, inline: step
   end
   config.vm.provision "file", source: "config/database.yml.vagrant", destination: "~/.msf4/database.yml"

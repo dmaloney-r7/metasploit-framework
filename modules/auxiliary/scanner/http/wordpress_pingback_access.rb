@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -12,47 +13,48 @@ class MetasploitModule < Msf::Auxiliary
 
   def initialize(info = {})
     super(update_info(info,
-      'Name' => 'Wordpress Pingback Locator',
-      'Description' => %q{
-          This module will scan for wordpress sites with the Pingback
-          API enabled. By interfacing with the API an attacker can cause
-          the wordpress site to port scan an external target and return
-          results. Refer to the wordpress_pingback_portscanner module.
-          This issue was fixed in wordpress 3.5.1
-        },
-      'Author' =>
-        [
-          'Thomas McCarthy "smilingraccoon" <smilingraccoon[at]gmail.com>',
-          'Brandon McCann "zeknox" <bmccann[at]accuvant.com>' ,
-          'Christian Mehlmauer' # Original PoC
-        ],
-      'License' => MSF_LICENSE,
-      'References'  =>
-        [
-          [ 'URL', 'http://www.securityfocus.com/archive/1/525045/30/30/threaded'],
-          [ 'URL', 'http://www.ethicalhack3r.co.uk/security/introduction-to-the-wordpress-xml-rpc-api/'],
-          [ 'URL', 'https://github.com/FireFart/WordpressPingbackPortScanner']
-        ]
-      ))
+                      'Name' => 'Wordpress Pingback Locator',
+                      'Description' => %q(
+                          This module will scan for wordpress sites with the Pingback
+                          API enabled. By interfacing with the API an attacker can cause
+                          the wordpress site to port scan an external target and return
+                          results. Refer to the wordpress_pingback_portscanner module.
+                          This issue was fixed in wordpress 3.5.1
+                        ),
+                      'Author' =>
+                        [
+                          'Thomas McCarthy "smilingraccoon" <smilingraccoon[at]gmail.com>',
+                          'Brandon McCann "zeknox" <bmccann[at]accuvant.com>',
+                          'Christian Mehlmauer' # Original PoC
+                        ],
+                      'License' => MSF_LICENSE,
+                      'References' =>
+                        [
+                          [ 'URL', 'http://www.securityfocus.com/archive/1/525045/30/30/threaded'],
+                          [ 'URL', 'http://www.ethicalhack3r.co.uk/security/introduction-to-the-wordpress-xml-rpc-api/'],
+                          [ 'URL', 'https://github.com/FireFart/WordpressPingbackPortScanner']
+                        ]))
 
-      register_options(
-        [
-          OptString.new('TARGETURI', [ true, 'The path to wordpress installation (e.g. /wordpress/)', '/'])
-        ], self.class)
+    register_options(
+      [
+        OptString.new('TARGETURI', [ true, 'The path to wordpress installation (e.g. /wordpress/)', '/'])
+      ], self.class
+    )
 
-      register_advanced_options(
-        [
-          OptInt.new('NUM_REDIRECTS', [ true, "Number of HTTP redirects to follow", 10])
-        ], self.class)
+    register_advanced_options(
+      [
+        OptInt.new('NUM_REDIRECTS', [ true, "Number of HTTP redirects to follow", 10])
+      ], self.class
+    )
   end
 
-  def setup()
+  def setup
     # Check if database is active
-    if db()
-      @db_active = true
-    else
-      @db_active = false
-    end
+    @db_active = if db
+                   true
+                 else
+                   false
+                 end
   end
 
   def get_xml_rpc_url(ip)
@@ -62,13 +64,12 @@ class MetasploitModule < Msf::Auxiliary
     begin
 
       uri = target_uri.path
-      uri << '/' if uri[-1,1] != '/'
+      uri << '/' if uri[-1, 1] != '/'
 
       res = send_request_cgi(
-      {
-          'method'	=> 'HEAD',
-          'uri'		=> "#{uri}"
-      })
+        'method'	=> 'HEAD',
+        'uri'		=> uri.to_s
+      )
       # Check if X-Pingback exists and return value
       if res
         if res['X-Pingback']
@@ -96,7 +97,7 @@ class MetasploitModule < Msf::Auxiliary
     xml << "<param><value><string>#{valid_blog_post}</string></value></param>"
     xml << "</params>"
     xml << "</methodCall>"
-    return xml
+    xml
   end
 
   def get_blog_posts(xml_rpc, ip)
@@ -104,49 +105,46 @@ class MetasploitModule < Msf::Auxiliary
     blog_posts = wordpress_get_all_blog_posts_via_feed(datastore['NUM_REDIRECTS'])
     blog_posts.each do |blog_post|
       pingback_response = get_pingback_request(xml_rpc, 'http://127.0.0.1', blog_post)
-      if pingback_response
-        pingback_disabled_match = pingback_response.body.match(/<value><int>33<\/int><\/value>/i)
-        if pingback_response.code == 200 and pingback_disabled_match.nil?
-          print_good("#{ip} - Pingback enabled: #{blog_post}")
-          return blog_post
-        else
-          vprint_status("#{ip} - Pingback disabled: #{blog_post}")
-        end
+      next unless pingback_response
+      pingback_disabled_match = pingback_response.body.match(/<value><int>33<\/int><\/value>/i)
+      if (pingback_response.code == 200) && pingback_disabled_match.nil?
+        print_good("#{ip} - Pingback enabled: #{blog_post}")
+        return blog_post
+      else
+        vprint_status("#{ip} - Pingback disabled: #{blog_post}")
       end
     end
 
-    return nil
+    nil
   end
 
   # method to send xml-rpc requests
   def get_pingback_request(xml_rpc, target, blog_post)
-    uri = xml_rpc.sub(/.*?#{target}/,"")
+    uri = xml_rpc.sub(/.*?#{target}/, "")
     # create xml pingback request
     pingback_xml = generate_pingback_xml(target, blog_post)
 
     # Send post request with crafted XML as data
     begin
-      res = send_request_cgi({
-        'uri'    => "#{uri}",
-        'method' => 'POST',
-        'data'	 => "#{pingback_xml}"
-        })
+      res = send_request_cgi('uri' => uri.to_s,
+                             'method' => 'POST',
+                             'data'	 => pingback_xml.to_s)
     rescue ::Rex::ConnectionRefused, ::Rex::HostUnreachable, ::Rex::ConnectionTimeout
       vprint_error("Unable to connect to #{uri}")
       return nil
     end
-    return res
+    res
   end
 
   # Save data to vuln table
   def store_vuln(ip, blog)
     report_vuln(
-      :host		=> ip,
-      :proto		=> 'tcp',
-      :port		=> datastore['RPORT'],
-      :name		=> self.name,
-      :info		=> "Module #{self.fullname} found pingback at #{blog}",
-      :sname		=> datastore['SSL'] ? "https" : "http"
+      host: ip,
+      proto: 'tcp',
+      port: datastore['RPORT'],
+      name: name,
+      info: "Module #{fullname} found pingback at #{blog}",
+      sname: datastore['SSL'] ? "https" : "http"
     )
   end
 

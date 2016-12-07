@@ -1,5 +1,5 @@
+# frozen_string_literal: true
 RSpec.shared_examples_for 'Metasploit::Framework::LoginScanner::NTLM' do
-
   subject(:login_scanner) { described_class.new }
 
   it { is_expected.to respond_to :send_lm }
@@ -10,7 +10,6 @@ RSpec.shared_examples_for 'Metasploit::Framework::LoginScanner::NTLM' do
   it { is_expected.to respond_to :use_ntlmv2 }
 
   context 'validations' do
-
     context '#send_lm' do
       it 'is not valid for the string true' do
         login_scanner.send_lm = 'true'
@@ -154,7 +153,5 @@ RSpec.shared_examples_for 'Metasploit::Framework::LoginScanner::NTLM' do
         expect(login_scanner.errors[:use_ntlmv2]).to be_empty
       end
     end
-
   end
-
 end

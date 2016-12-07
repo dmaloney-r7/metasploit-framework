@@ -1,8 +1,8 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
-
 
 require 'msf/core'
 require 'msf/core/post/common'
@@ -19,34 +19,34 @@ class MetasploitModule < Msf::Post
     'KB2778930' => "KB2778930 - Possibly vulnerable to MS13-005 hwnd_broadcast, elevates from Low to Medium integrity",
     'KB2850851' => "KB2850851 - Possibly vulnerable to MS13-053 schlamperei if x86 Win7 SP0/SP1",
     'KB2870008' => "KB2870008 - Possibly vulnerable to MS13-081 track_popup_menu if x86 Windows 7 SP0/SP1"
-  }
+  }.freeze
 
-  def initialize(info={})
+  def initialize(info = {})
     super(update_info(info,
-      'Name'            => "Windows Gather Applied Patches",
-      'Description'     => %q{
-          This module will attempt to enumerate which patches are applied to a windows system
-          based on the result of the WMI query: SELECT HotFixID FROM Win32_QuickFixEngineering
-        },
-      'License'         => MSF_LICENSE,
-      'Platform'        => ['win'],
-      'SessionTypes'    => ['meterpreter'],
-      'Author'          =>
-        [
-          'zeroSteiner', # Original idea
-          'mubix' # Post module
-        ],
-      'References'      =>
-        [
-          ['URL', 'http://msdn.microsoft.com/en-us/library/aa394391(v=vs.85).aspx']
-        ]
-    ))
+                      'Name'            => "Windows Gather Applied Patches",
+                      'Description'     => %q(
+                          This module will attempt to enumerate which patches are applied to a windows system
+                          based on the result of the WMI query: SELECT HotFixID FROM Win32_QuickFixEngineering
+                        ),
+                      'License'         => MSF_LICENSE,
+                      'Platform'        => ['win'],
+                      'SessionTypes'    => ['meterpreter'],
+                      'Author'          =>
+                        [
+                          'zeroSteiner', # Original idea
+                          'mubix' # Post module
+                        ],
+                      'References'      =>
+                        [
+                          ['URL', 'http://msdn.microsoft.com/en-us/library/aa394391(v=vs.85).aspx']
+                        ]))
 
     register_options(
       [
         OptBool.new('MSFLOCALS', [ true, 'Search for missing patchs for which there is a MSF local module', true]),
-        OptString.new('KB',  [ true, 'A comma separated list of KB patches to search for', 'KB2871997, KB2928120'])
-      ], self.class)
+        OptString.new('KB', [ true, 'A comma separated list of KB patches to search for', 'KB2871997, KB2928120'])
+      ], self.class
+    )
   end
 
   # The sauce starts here
@@ -57,9 +57,7 @@ class MetasploitModule < Msf::Post
       patches << kb.strip
     end
 
-    if datastore['MSFLOCALS']
-      patches = patches + MSF_MODULES.keys
-    end
+    patches += MSF_MODULES.keys if datastore['MSFLOCALS']
 
     extapi_loaded = load_extapi
     if extapi_loaded

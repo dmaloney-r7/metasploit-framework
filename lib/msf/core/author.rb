@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 require 'msf/core'
 
@@ -8,7 +9,6 @@ require 'msf/core'
 #
 ###
 class Msf::Author
-
   #
   # Constants
   #
@@ -26,7 +26,7 @@ class Msf::Author
     'et'                  => 'et' + 0x40.chr + 'metasploit.com',
     'Christian Mehlmauer' => 'FireFart' + 0x40.chr + 'gmail.com',
     'hdm'                 => 'x' + 0x40.chr + 'hdm.io',
-    'I)ruid'              => 'druid' +  0x40.chr + 'caughq.org',
+    'I)ruid'              => 'druid' + 0x40.chr + 'caughq.org',
     'jcran'               => 'jcran' + 0x40.chr + 'metasploit.com',
     'jduck'               => 'jduck' + 0x40.chr + 'metasploit.com',
     'joev'                => 'joev' + 0x40.chr + 'metasploit.com',
@@ -53,7 +53,7 @@ class Msf::Author
     'vlad902'             => 'vlad902' + 0x40.chr + 'gmail.com',
     'wvu'                 => 'wvu' + 0x40.chr + 'metasploit.com',
     'zeroSteiner'         => 'zeroSteiner' + 0x40.chr + 'gmail.com'
-  }
+  }.freeze
 
   #
   # Class Methods
@@ -65,14 +65,10 @@ class Msf::Author
   # @return [Author] a valid {Author} instance
   # @return nil if `str` is not the correct format
   def self.from_s(str)
-    instance = self.new
+    instance = new
 
     # If the serialization fails...
-    if instance.from_s(str) == true
-      instance
-    else
-      nil
-    end
+    instance if instance.from_s(str) == true
   end
 
   # Normalizes a single {Author} reference or an Array of {Author} references
@@ -122,13 +118,10 @@ class Msf::Author
   #
   # @return [String] serialized {Author}
   def to_s
-    str = "#{name}"
-    if (email and not email.empty?)
-      str += " <#{email}>"
-    end
+    str = name.to_s
+    str += " <#{email}>" if email && !email.empty?
     str
   end
-
 
   # Parses {Author} details from the supplied string which may
   # be of the form `name` or `name <a@b.com>`
@@ -136,45 +129,41 @@ class Msf::Author
   # @param str [String] the String to parse from
   # @return [Boolean] the translation succeeded
   def from_s(str)
-
     # Supported formats:
     #   known_name
     #   user [at/@] host [dot/.] tld
     #   Name <user [at/@] host [dot/.] tld>
 
     if str.present?
-      if ((m = str.match(/^\s*([^<]+)<([^>]+)>\s*$/)))
+      if (m = str.match(/^\s*([^<]+)<([^>]+)>\s*$/))
         self.name  = m[1].sub(/<.*/, '')
         self.email = m[2].sub(/\s*\[at\]\s*/, '@').sub(/\s*\[dot\]\s*/, '.')
       else
-        if (KNOWN[str])
+        if KNOWN[str]
           self.email = KNOWN[str]
           self.name  = str
         else
           self.email = str.sub(/\s*\[at\]\s*/, '@').sub(/\s*\[dot\]\s*/, '.').gsub(/^<|>$/, '')
-          m = self.email.match(/([^@]+)@/)
+          m = email.match(/([^@]+)@/)
           self.name = m ? m[1] : nil
-          if !(self.email and self.email.index('@'))
-            self.name  = self.email
+          unless email && email.index('@')
+            self.name  = email
             self.email = ''
           end
         end
       end
     end
 
-    self.name.strip! if self.name.present?
+    name.strip! if name.present?
 
     # The parse succeeds only when a name is found
-    self.name.present?
+    name.present?
   end
 
   # Sets the name of the author and updates the email if it's a known author.
   # @param name [String] the name to set
   def name=(name)
-    if KNOWN.has_key?(name)
-      self.email = KNOWN[name]
-    end
+    self.email = KNOWN[name] if KNOWN.key?(name)
     @name = name
   end
-
 end

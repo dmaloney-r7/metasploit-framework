@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'net/ssh'
 require 'metasploit/framework/login_scanner/base'
 require 'rex/socket/ssh_factory'
@@ -5,7 +6,6 @@ require 'rex/socket/ssh_factory'
 module Metasploit
   module Framework
     module LoginScanner
-
       # This is the LoginScanner class for dealing with the Secure Shell protocol.
       # It is responsible for taking a single target, and a list of credentials
       # and attempting them. It then saves the results.
@@ -19,18 +19,18 @@ module Metasploit
 
         CAN_GET_SESSION      = true
         DEFAULT_PORT         = 22
-        LIKELY_PORTS         = [ DEFAULT_PORT ]
-        LIKELY_SERVICE_NAMES = [ 'ssh' ]
-        PRIVATE_TYPES        = [ :password, :ssh_key ]
+        LIKELY_PORTS         = [ DEFAULT_PORT ].freeze
+        LIKELY_SERVICE_NAMES = [ 'ssh' ].freeze
+        PRIVATE_TYPES        = [ :password, :ssh_key ].freeze
         REALM_KEY            = nil
 
         VERBOSITIES = [
-            :debug,
-            :info,
-            :warn,
-            :error,
-            :fatal
-        ]
+          :debug,
+          :info,
+          :warn,
+          :error,
+          :fatal
+        ].freeze
         # @!attribute ssh_socket
         #   @return [Net::SSH::Connection::Session] The current SSH connection
         attr_accessor :ssh_socket
@@ -41,32 +41,32 @@ module Metasploit
         attr_accessor :verbosity
 
         validates :verbosity,
-          presence: true,
-          inclusion: { in: VERBOSITIES }
+                  presence: true,
+                  inclusion: { in: VERBOSITIES }
 
         # (see {Base#attempt_login})
         # @note The caller *must* close {#ssh_socket}
         def attempt_login(credential)
           self.ssh_socket = nil
-          factory = Rex::Socket::SSHFactory.new(framework,framework_module, proxies)
+          factory = Rex::Socket::SSHFactory.new(framework, framework_module, proxies)
           opt_hash = {
-            :port            => port,
-            :use_agent       => false,
-            :config          => false,
-            :verbose         => verbosity,
-            :proxy           => factory,
-            :non_interactive => true
+            port: port,
+            use_agent: false,
+            config: false,
+            verbose: verbosity,
+            proxy: factory,
+            non_interactive: true
           }
           case credential.private_type
           when :password, nil
             opt_hash.update(
-              :auth_methods  => ['password','keyboard-interactive'],
-              :password      => credential.private,
+              auth_methods: ['password', 'keyboard-interactive'],
+              password: credential.private
             )
           when :ssh_key
             opt_hash.update(
-              :auth_methods  => ['publickey'],
-              :key_data      => credential.private,
+              auth_methods: ['publickey'],
+              key_data: credential.private
             )
           end
 
@@ -87,12 +87,14 @@ module Metasploit
             result_options.merge!(status: Metasploit::Model::Login::Status::INCORRECT, proof: e)
           end
 
-          unless result_options.has_key? :status
+          unless result_options.key? :status
             if ssh_socket
               proof = gather_proof
-              result_options.merge!(status: Metasploit::Model::Login::Status::SUCCESSFUL, proof: proof)
+              result_options[:status] = Metasploit::Model::Login::Status::SUCCESSFUL
+              result_options[:proof] = proof
             else
-              result_options.merge!(status: Metasploit::Model::Login::Status::INCORRECT, proof: nil)
+              result_options[:status] = Metasploit::Model::Login::Status::INCORRECT
+              result_options[:proof] = nil
             end
           end
 
@@ -113,7 +115,7 @@ module Metasploit
           begin
             Timeout.timeout(5) do
               proof = ssh_socket.exec!("id\n").to_s
-              if(proof =~ /id=/)
+              if proof =~ /id=/
                 proof << ssh_socket.exec!("uname -a\n").to_s
               else
                 # Cisco IOS
@@ -130,13 +132,11 @@ module Metasploit
         end
 
         def set_sane_defaults
-          self.connection_timeout = 30 if self.connection_timeout.nil?
-          self.port = DEFAULT_PORT if self.port.nil?
-          self.verbosity = :fatal if self.verbosity.nil?
+          self.connection_timeout = 30 if connection_timeout.nil?
+          self.port = DEFAULT_PORT if port.nil?
+          self.verbosity = :fatal if verbosity.nil?
         end
-
       end
-
     end
   end
 end

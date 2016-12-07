@@ -1,14 +1,18 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 module Msf::Post::File
-
   #
   # Change directory in the remote session to +path+, which may be relative or
   # absolute.
   #
   # @return [void]
   def cd(path)
-    e_path = expand_path(path) rescue path
+    e_path = begin
+               expand_path(path)
+             rescue
+               path
+             end
     if session.type == "meterpreter"
       session.fs.dir.chdir(e_path)
     else
@@ -25,14 +29,14 @@ module Msf::Post::File
   # @return [String]
   def pwd
     if session.type == "meterpreter"
-      return session.fs.dir.getwd
+      session.fs.dir.getwd
     else
       if session.platform == 'windows'
         # XXX: %CD% only exists on XP and newer, figure something out for NT4
         # and 2k
-        return session.shell_command_token("echo %CD%")
+        session.shell_command_token("echo %CD%")
       else
-        return session.shell_command_token("pwd")
+        session.shell_command_token("pwd")
       end
     end
   end
@@ -42,12 +46,12 @@ module Msf::Post::File
   # @return [Array] the contents of the directory
   def dir(directory)
     if session.type == 'meterpreter'
-      return session.fs.dir.entries(directory)
+      session.fs.dir.entries(directory)
     else
       if session.platform == 'windows'
-        return session.shell_command_token("dir #{directory}").split(/[\r\n]+/)
+        session.shell_command_token("dir #{directory}").split(/[\r\n]+/)
       else
-        return session.shell_command_token("ls #{directory}").split(/[\r\n]+/)
+        session.shell_command_token("ls #{directory}").split(/[\r\n]+/)
       end
     end
   end
@@ -60,19 +64,23 @@ module Msf::Post::File
   # @param path [String] Remote filename to check
   def directory?(path)
     if session.type == "meterpreter"
-      stat = session.fs.file.stat(path) rescue nil
+      stat = begin
+               session.fs.file.stat(path)
+             rescue
+               nil
+             end
       return false unless stat
-      return stat.directory?
+      stat.directory?
     else
-      if session.platform == 'windows'
-        f = cmd_exec("cmd.exe /C IF exist \"#{path}\\*\" ( echo true )")
-      else
-        f = session.shell_command_token("test -d \"#{path}\" && echo true")
-      end
+      f = if session.platform == 'windows'
+            cmd_exec("cmd.exe /C IF exist \"#{path}\\*\" ( echo true )")
+          else
+            session.shell_command_token("test -d \"#{path}\" && echo true")
+          end
 
-      return false if f.nil? or f.empty?
+      return false if f.nil? || f.empty?
       return false unless f =~ /true/
-      return true
+      true
     end
   end
 
@@ -82,9 +90,9 @@ module Msf::Post::File
   # @return [String]
   def expand_path(path)
     if session.type == "meterpreter"
-      return session.fs.file.expand_path(path)
+      session.fs.file.expand_path(path)
     else
-      return cmd_exec("echo #{path}")
+      cmd_exec("echo #{path}")
     end
   end
 
@@ -94,9 +102,13 @@ module Msf::Post::File
   # @param path [String] Remote filename to check
   def file?(path)
     if session.type == "meterpreter"
-      stat = session.fs.file.stat(path) rescue nil
+      stat = begin
+               session.fs.file.stat(path)
+             rescue
+               nil
+             end
       return false unless stat
-      return stat.file?
+      stat.file?
     else
       if session.platform == 'windows'
         f = cmd_exec("cmd.exe /C IF exist \"#{path}\" ( echo true )")
@@ -107,9 +119,9 @@ module Msf::Post::File
         f = session.shell_command_token("test -f \"#{path}\" && echo true")
       end
 
-      return false if f.nil? or f.empty?
+      return false if f.nil? || f.empty?
       return false unless f =~ /true/
-      return true
+      true
     end
   end
 
@@ -121,22 +133,26 @@ module Msf::Post::File
   # @param path [String] Remote filename to check
   def exist?(path)
     if session.type == "meterpreter"
-      stat = session.fs.file.stat(path) rescue nil
-      return !!(stat)
+      stat = begin
+               session.fs.file.stat(path)
+             rescue
+               nil
+             end
+      !!stat
     else
-      if session.platform == 'windows'
-        f = cmd_exec("cmd.exe /C IF exist \"#{path}\" ( echo true )")
-      else
-        f = cmd_exec("test -e \"#{path}\" && echo true")
-      end
+      f = if session.platform == 'windows'
+            cmd_exec("cmd.exe /C IF exist \"#{path}\" ( echo true )")
+          else
+            cmd_exec("test -e \"#{path}\" && echo true")
+          end
 
-      return false if f.nil? or f.empty?
+      return false if f.nil? || f.empty?
       return false unless f =~ /true/
-      return true
+      true
     end
   end
 
-  alias :exists? :exist?
+  alias exists? exist?
 
   #
   # Writes a given string to a given local file
@@ -145,9 +161,7 @@ module Msf::Post::File
   # @param data [String]
   # @return [void]
   def file_local_write(local_file_name, data)
-    unless ::File.exist?(local_file_name)
-      ::FileUtils.touch(local_file_name)
-    end
+    ::FileUtils.touch(local_file_name) unless ::File.exist?(local_file_name)
 
     output = ::File.open(local_file_name, "a")
     data.each_line do |d|
@@ -165,8 +179,8 @@ module Msf::Post::File
     if ::File.exist?(local_file_name)
       require 'digest/md5'
       chksum = nil
-      chksum = Digest::MD5.hexdigest(::File.open(local_file_name, "rb") { |f| f.read})
-      return chksum
+      chksum = Digest::MD5.hexdigest(::File.open(local_file_name, "rb", &:read))
+      chksum
     else
       raise "File #{local_file_name} does not exists!"
     end
@@ -181,10 +195,8 @@ module Msf::Post::File
   def file_remote_digestmd5(file_name)
     data = read_file(file_name)
     chksum = nil
-    if data
-      chksum = Digest::MD5.hexdigest(data)
-    end
-    return chksum
+    chksum = Digest::MD5.hexdigest(data) if data
+    chksum
   end
 
   #
@@ -196,8 +208,8 @@ module Msf::Post::File
     if ::File.exist?(local_file_name)
       require 'digest/sha1'
       chksum = nil
-      chksum = Digest::SHA1.hexdigest(::File.open(local_file_name, "rb") { |f| f.read})
-      return chksum
+      chksum = Digest::SHA1.hexdigest(::File.open(local_file_name, "rb", &:read))
+      chksum
     else
       raise "File #{local_file_name} does not exists!"
     end
@@ -212,10 +224,8 @@ module Msf::Post::File
   def file_remote_digestsha1(file_name)
     data = read_file(file_name)
     chksum = nil
-    if data
-      chksum = Digest::SHA1.hexdigest(data)
-    end
-    return chksum
+    chksum = Digest::SHA1.hexdigest(data) if data
+    chksum
   end
 
   #
@@ -227,8 +237,8 @@ module Msf::Post::File
     if ::File.exist?(local_file_name)
       require 'digest/sha2'
       chksum = nil
-      chksum = Digest::SHA256.hexdigest(::File.open(local_file_name, "rb") { |f| f.read})
-      return chksum
+      chksum = Digest::SHA256.hexdigest(::File.open(local_file_name, "rb", &:read))
+      chksum
     else
       raise "File #{local_file_name} does not exists!"
     end
@@ -243,10 +253,8 @@ module Msf::Post::File
   def file_remote_digestsha2(file_name)
     data = read_file(file_name)
     chksum = nil
-    if data
-      chksum = Digest::SHA256.hexdigest(data)
-    end
-    return chksum
+    chksum = Digest::SHA256.hexdigest(data) if data
+    chksum
   end
 
   #
@@ -260,11 +268,11 @@ module Msf::Post::File
     if session.type == "meterpreter"
       data = _read_file_meterpreter(file_name)
     elsif session.type == "shell"
-      if session.platform == 'windows'
-        data = session.shell_command_token("type \"#{file_name}\"")
-      else
-        data = session.shell_command_token("cat \"#{file_name}\"")
-      end
+      data = if session.platform == 'windows'
+               session.shell_command_token("type \"#{file_name}\"")
+             else
+               session.shell_command_token("cat \"#{file_name}\"")
+             end
 
     end
     data
@@ -290,7 +298,7 @@ module Msf::Post::File
       end
 
     end
-    return true
+    true
   end
 
   #
@@ -314,7 +322,7 @@ module Msf::Post::File
         _write_file_unix_shell(file_name, data, true)
       end
     end
-    return true
+    true
   end
 
   #
@@ -348,7 +356,7 @@ module Msf::Post::File
     end
   end
 
-  alias :file_rm :rm_f
+  alias file_rm rm_f
 
   #
   # Rename a remote file.
@@ -357,19 +365,19 @@ module Msf::Post::File
   # @param new_file [String] The new name for the remote file
   def rename_file(old_file, new_file)
     if session.type == "meterpreter"
-      return (session.fs.file.mv(old_file, new_file).result == 0)
+      (session.fs.file.mv(old_file, new_file).result == 0)
     else
       if session.platform == 'windows'
-        cmd_exec(%Q|move /y "#{old_file}" "#{new_file}"|) =~ /moved/
+        cmd_exec(%(move /y "#{old_file}" "#{new_file}")) =~ /moved/
       else
-        cmd_exec(%Q|mv -f "#{old_file}" "#{new_file}"|).empty?
+        cmd_exec(%(mv -f "#{old_file}" "#{new_file}")).empty?
       end
     end
   end
-  alias :move_file :rename_file
-  alias :mv_file :rename_file
+  alias move_file rename_file
+  alias mv_file rename_file
 
-protected
+  protected
 
   #
   # Meterpreter-specific file read.  Returns contents of remote file
@@ -389,9 +397,7 @@ protected
 
     data = fd.read
     begin
-      until fd.eof?
-        data << fd.read
-      end
+      data << fd.read until fd.eof?
     ensure
       fd.close
     end
@@ -408,12 +414,12 @@ protected
   # session.
   #
   # @return [void]
-  def _write_file_unix_shell(file_name, data, append=false)
+  def _write_file_unix_shell(file_name, data, append = false)
     redirect = (append ? ">>" : ">")
 
     # Short-circuit an empty string. The : builtin is part of posix
     # standard and should theoretically exist everywhere.
-    if data.length == 0
+    if data.empty?
       session.shell_command_token(": #{redirect} #{file_name}")
       return
     end
@@ -444,40 +450,40 @@ protected
       # first.
       #
       # Both of these work for sure on Linux and FreeBSD
-      { :cmd => %q^/usr/bin/printf 'CONTENTS'^ , :enc => :octal, :name => "printf" },
-      { :cmd => %q^printf 'CONTENTS'^ , :enc => :octal, :name => "printf" },
+      { cmd: %q(/usr/bin/printf 'CONTENTS'), enc: :octal, name: "printf" },
+      { cmd: %q(printf 'CONTENTS'), enc: :octal, name: "printf" },
       # Works on Solaris
-      { :cmd => %q^/usr/bin/printf %b 'CONTENTS'^ , :enc => :octal, :name => "printf" },
-      { :cmd => %q^printf %b 'CONTENTS'^ , :enc => :octal, :name => "printf" },
+      { cmd: %q(/usr/bin/printf %b 'CONTENTS'), enc: :octal, name: "printf" },
+      { cmd: %q(printf %b 'CONTENTS'), enc: :octal, name: "printf" },
       # Perl supports both octal and hex escapes, but octal is usually
       # shorter (e.g. 0 becomes \0 instead of \x00)
-      { :cmd => %q^perl -e 'print("CONTENTS")'^ , :enc => :octal, :name => "perl" },
+      { cmd: %q^perl -e 'print("CONTENTS")'^, enc: :octal, name: "perl" },
       # POSIX awk doesn't have \xNN escapes, use gawk to ensure we're
       # getting the GNU version.
-      { :cmd => %q^gawk 'BEGIN {ORS="";print "CONTENTS"}' </dev/null^ , :enc => :hex, :name => "awk" },
+      { cmd: %q(gawk 'BEGIN {ORS="";print "CONTENTS"}' </dev/null), enc: :hex, name: "awk" },
       # xxd's -p flag specifies a postscript-style hexdump of unadorned hex
       # digits, e.g. ABCD would be 41424344
-      { :cmd => %q^echo 'CONTENTS'|xxd -p -r^ , :enc => :bare_hex, :name => "xxd" },
+      { cmd: %q(echo 'CONTENTS'|xxd -p -r), enc: :bare_hex, name: "xxd" },
       # Use echo as a last resort since it frequently doesn't support -e
       # or -n.  bash and zsh's echo builtins are apparently the only ones
       # that support both.  Most others treat all options as just more
       # arguments to print. In particular, the standalone /bin/echo or
       # /usr/bin/echo appear never to have -e so don't bother trying
       # them.
-      { :cmd => %q^echo -ne 'CONTENTS'^ , :enc => :hex },
-    ].each { |foo|
+      { cmd: %q(echo -ne 'CONTENTS'), enc: :hex }
+    ].each do |foo|
       # Some versions of printf mangle %.
       test_str = "\0\xff\xfeABCD\x7f%%\r\n"
-      #test_str = "\0\xff\xfe"
+      # test_str = "\0\xff\xfe"
       case foo[:enc]
       when :hex
-        cmd = foo[:cmd].sub("CONTENTS"){ Rex::Text.to_hex(test_str) }
+        cmd = foo[:cmd].sub("CONTENTS") { Rex::Text.to_hex(test_str) }
       when :octal
-        cmd = foo[:cmd].sub("CONTENTS"){ Rex::Text.to_octal(test_str) }
+        cmd = foo[:cmd].sub("CONTENTS") { Rex::Text.to_octal(test_str) }
       when :bare_hex
-        cmd = foo[:cmd].sub("CONTENTS"){ Rex::Text.to_hex(test_str,'') }
+        cmd = foo[:cmd].sub("CONTENTS") { Rex::Text.to_hex(test_str, '') }
       end
-      a = session.shell_command_token("#{cmd}")
+      a = session.shell_command_token(cmd.to_s)
 
       if test_str == a
         command = foo[:cmd]
@@ -487,7 +493,7 @@ protected
       else
         vprint_status("#{cmd} Failed: #{a.inspect} != #{test_str.inspect}")
       end
-    }
+    end
 
     if command.nil?
       raise RuntimeError, "Can't find command on the victim for writing binary data", caller
@@ -495,18 +501,18 @@ protected
 
     # each byte will balloon up to 4 when we encode
     # (A becomes \x41 or \101)
-    max = line_max/4
+    max = line_max / 4
 
     i = 0
-    while (i < d.length)
-      slice = d.slice(i...(i+max))
+    while i < d.length
+      slice = d.slice(i...(i + max))
       case encoding
       when :hex
         chunks << Rex::Text.to_hex(slice)
       when :octal
         chunks << Rex::Text.to_octal(slice)
       when :bare_hex
-        chunks << Rex::Text.to_hex(slice,'')
+        chunks << Rex::Text.to_hex(slice, '')
       end
       i += max
     end
@@ -520,12 +526,12 @@ protected
 
     # After creating/truncating or appending with the first command, we
     # need to append from here on out.
-    chunks.each { |chunk|
+    chunks.each do |chunk|
       vprint_status("Next chunk is #{chunk.length} bytes")
       cmd = command.sub("CONTENTS") { chunk }
 
       session.shell_command_token("#{cmd} >> '#{file_name}'")
-    }
+    end
 
     true
   end

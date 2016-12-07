@@ -1,9 +1,9 @@
+# frozen_string_literal: true
 require 'spec_helper'
 
 load Metasploit::Framework.root.join('msfupdate').to_path
 
 RSpec.describe Msfupdate do
-
   def dummy_pathname
     Pathname.new(File.dirname(__FILE__)).join('dummy')
   end
@@ -74,7 +74,7 @@ RSpec.describe Msfupdate do
       end
 
       it "exits before updating" do
-        expect {subject.parse_args(args)}.to raise_error(SystemExit)
+        expect { subject.parse_args(args) }.to raise_error(SystemExit)
       end
     end
 
@@ -298,7 +298,6 @@ RSpec.describe Msfupdate do
     it { expect(subject.binary_install?).to be_falsey }
     it { expect(subject.git?).to be_truthy }
 
-
     context "#validate_args" do
       before(:example) do
         subject.parse_args(args)
@@ -344,5 +343,4 @@ RSpec.describe Msfupdate do
       # TODO: Add more tests!
     end
   end
-
 end

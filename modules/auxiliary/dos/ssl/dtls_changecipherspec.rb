@@ -1,38 +1,37 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Auxiliary::Dos
   include Msf::Exploit::Capture
   include Exploit::Remote::Tcp
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'		=> 'OpenSSL DTLS ChangeCipherSpec Remote DoS',
-      'Description'	=> %q{
-          This module performs a Denial of Service Attack against Datagram TLS in OpenSSL
-        version 0.9.8i and earlier. OpenSSL crashes under these versions when it recieves a
-        ChangeCipherspec Datagram before a ClientHello.
-      },
-      'Author'	=> [
-            'Jon Oberheide <jon[at]oberheide.org>', #original code
-            'theLightCosine' # metasploit module
-            ],
-      'License'        => MSF_LICENSE,
-      'References'     =>
-        [
-          [ 'CVE', '2009-1386' ],
-          [ 'OSVDB', '55073'],
-        ],
-      'DisclosureDate' => 'Apr 26 2000'))
+                      'Name'		=> 'OpenSSL DTLS ChangeCipherSpec Remote DoS',
+                      'Description'	=> %q(
+                          This module performs a Denial of Service Attack against Datagram TLS in OpenSSL
+                        version 0.9.8i and earlier. OpenSSL crashes under these versions when it recieves a
+                        ChangeCipherspec Datagram before a ClientHello.
+                      ),
+                      'Author'	=> [
+                        'Jon Oberheide <jon[at]oberheide.org>', # original code
+                        'theLightCosine' # metasploit module
+                      ],
+                      'License'        => MSF_LICENSE,
+                      'References'     =>
+                        [
+                          [ 'CVE', '2009-1386' ],
+                          [ 'OSVDB', '55073']
+                        ],
+                      'DisclosureDate' => 'Apr 26 2000'))
 
-    deregister_options('FILTER','PCAPFILE', 'INTERFACE', 'SNAPLEN', 'TIMEOUT')
+    deregister_options('FILTER', 'PCAPFILE', 'INTERFACE', 'SNAPLEN', 'TIMEOUT')
   end
 
   def run

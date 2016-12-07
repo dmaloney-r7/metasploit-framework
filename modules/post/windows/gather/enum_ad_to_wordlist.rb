@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,7 +8,6 @@ require 'rex'
 require 'msf/core'
 
 class MetasploitModule < Msf::Post
-
   include Msf::Auxiliary::Report
   include Msf::Post::Windows::LDAP
 
@@ -28,30 +28,29 @@ class MetasploitModule < Msf::Post
     'sAMAccountName',
     'comment',
     'description'
-  ]
+  ].freeze
 
-  def initialize(info={})
-    super( update_info( info,
-      'Name'         => 'Windows Active Directory Wordlist Builder',
-      'Description'  => %q{
-        This module will gather information from the default Active Domain (AD) directory
-        and use these words to seed a wordlist. By default it enumerates user accounts to
-        build the wordlist.
-      },
-      'License'      => MSF_LICENSE,
-      'Author'       => ['Thomas Ring'],
-      'Platform'     => ['win'],
-      'SessionTypes' => ['meterpreter']
-    ))
+  def initialize(info = {})
+    super(update_info(info,
+                      'Name'         => 'Windows Active Directory Wordlist Builder',
+                      'Description'  => %q{
+                        This module will gather information from the default Active Domain (AD) directory
+                        and use these words to seed a wordlist. By default it enumerates user accounts to
+                        build the wordlist.
+                      },
+                      'License'      => MSF_LICENSE,
+                      'Author'       => ['Thomas Ring'],
+                      'Platform'     => ['win'],
+                      'SessionTypes' => ['meterpreter']))
 
     register_options([
-      OptString.new('FIELDS', [true, 'Fields to retrieve (ie, sn, givenName, displayName, description, comment)', DEFAULT_FIELDS.join(',')]),
-      OptString.new('FILTER', [true, 'Search filter.','(&(objectClass=organizationalPerson)(objectClass=user)(objectClass=person)(!(objectClass=computer)))'])
-    ], self.class)
+                       OptString.new('FIELDS', [true, 'Fields to retrieve (ie, sn, givenName, displayName, description, comment)', DEFAULT_FIELDS.join(',')]),
+                       OptString.new('FILTER', [true, 'Search filter.', '(&(objectClass=organizationalPerson)(objectClass=user)(objectClass=person)(!(objectClass=computer)))'])
+                     ], self.class)
   end
 
   def run
-    fields = datastore['FIELDS'].gsub(/\s+/,'').split(',')
+    fields = datastore['FIELDS'].gsub(/\s+/, '').split(',')
     search_filter = datastore['FILTER']
     q = nil
 
@@ -73,8 +72,8 @@ class MetasploitModule < Msf::Post
     end # q.each
 
     # build array of words to output sorted on frequency
-    ordered_dict = @words_dict.sort_by { |k,v| v }.reverse
-    ordered_dict.collect! { |k, v| k }
+    ordered_dict = @words_dict.sort_by { |_k, v| v }.reverse
+    ordered_dict.collect! { |k, _v| k }
 
     if ordered_dict.blank?
       print_error("The wordlist is empty")
@@ -106,4 +105,3 @@ class MetasploitModule < Msf::Post
     end
   end
 end
-

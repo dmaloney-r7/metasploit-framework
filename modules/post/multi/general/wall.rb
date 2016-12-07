@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -30,7 +31,8 @@ class MetasploitModule < Msf::Post
         OptString.new('USERS', [false, 'List of users to write(1) to, separated by commas. ' \
                       ' wall(1)s to all users by default']),
         OptBool.new('COWSAY', [true, 'Display MESSAGE in a ~cowsay way', false])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def users
@@ -38,11 +40,11 @@ class MetasploitModule < Msf::Post
   end
 
   def message
-    if datastore['MESSAGE'].blank?
-      text = "Hello from a metasploit session at #{Time.now}"
-    else
-      text = datastore['MESSAGE']
-    end
+    text = if datastore['MESSAGE'].blank?
+             "Hello from a metasploit session at #{Time.now}"
+           else
+             datastore['MESSAGE']
+           end
 
     datastore['COWSAY'] ? Rex::Text.cowsay(text) : text
   end

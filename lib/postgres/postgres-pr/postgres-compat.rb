@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 # This is a compatibility layer for using the pure Ruby postgres-pr instead of
 # the C interface of postgres.
@@ -7,156 +8,150 @@ require 'postgres/postgres-pr/connection'
 
 # Namespace for Metasploit branch.
 module Msf
-module Db
+  module Db
+    class PGconn
+      class << self
+        alias connect new
+      end
 
-class PGconn
-  class << self
-    alias connect new
-  end
+      def initialize(host, port, _options, _tty, database, user, auth)
+        uri =
+          if host.nil?
+            nil
+          elsif host[0] != '/'
+            "tcp://#{host}:#{port}"
+          else
+            "unix:#{host}/.s.PGSQL.#{port}"
+          end
+        @host = host
+        @db = database
+        @user = user
+        @conn = PostgresPR::Connection.new(database, user, auth, uri)
+      end
 
-  def initialize(host, port, options, tty, database, user, auth)
-    uri =
-    if host.nil?
-      nil
-    elsif host[0] != ?/
-      "tcp://#{ host }:#{ port }"
-    else
-      "unix:#{ host }/.s.PGSQL.#{ port }"
+      def close
+        @conn.close
+      end
+
+      attr_reader :host, :db, :user
+
+      def query(sql)
+        PGresult.new(@conn.query(sql))
+      end
+
+      alias exec query
+
+      def transaction_status
+        @conn.transaction_status
+      end
+
+      def self.escape(str)
+        str.gsub("'", "''").gsub("\\", "\\\\\\\\")
+      end
+
+      def notice_processor
+        @conn.notice_processor
+      end
+
+      def notice_processor=(np)
+        @conn.notice_processor = np
+      end
+
+      def self.quote_ident(name)
+        %("#{name}")
+      end
     end
-    @host = host
-    @db = database
-    @user = user
-    @conn = PostgresPR::Connection.new(database, user, auth, uri)
-  end
 
-  def close
-    @conn.close
-  end
+    class PGresult
+      include Enumerable
 
-  attr_reader :host, :db, :user
+      EMPTY_QUERY = 0
+      COMMAND_OK = 1
+      TUPLES_OK = 2
+      COPY_OUT = 3
+      COPY_IN = 4
+      BAD_RESPONSE = 5
+      NONFATAL_ERROR = 6
+      FATAL_ERROR = 7
 
-  def query(sql)
-    PGresult.new(@conn.query(sql))
-  end
+      def each(&block)
+        @result.each(&block)
+      end
 
-  alias exec query
+      def [](index)
+        @result[index]
+      end
 
-  def transaction_status
-    @conn.transaction_status
-  end
+      def initialize(res)
+        @res = res
+        @fields = @res.fields.map(&:name)
+        @result = @res.rows
+      end
 
-  def self.escape(str)
-    str.gsub("'","''").gsub("\\", "\\\\\\\\")
-  end
+      # TODO: status, getlength, cmdstatus
 
-  def notice_processor
-    @conn.notice_processor
-  end
+      attr_reader :result, :fields
 
-  def notice_processor=(np)
-    @conn.notice_processor = np
-  end
+      def num_tuples
+        @result.size
+      end
 
-  def self.quote_ident(name)
-    %("#{name}")
-  end
+      def num_fields
+        @fields.size
+      end
 
-end
+      def fieldname(index)
+        @fields[index]
+      end
 
-class PGresult
-  include Enumerable
+      def fieldnum(name)
+        @fields.index(name)
+      end
 
-  EMPTY_QUERY = 0
-  COMMAND_OK = 1
-  TUPLES_OK = 2
-  COPY_OUT = 3
-  COPY_IN = 4
-  BAD_RESPONSE = 5
-  NONFATAL_ERROR = 6
-  FATAL_ERROR = 7
+      def type(index)
+        # TODO: correct?
+        @res.fields[index].type_oid
+      end
 
-  def each(&block)
-    @result.each(&block)
-  end
+      def size(index)
+        raise
+        # TODO: correct?
+        @res.fields[index].typlen
+      end
 
-  def [](index)
-    @result[index]
-  end
- 
-  def initialize(res)
-    @res = res
-    @fields = @res.fields.map {|f| f.name}
-    @result = @res.rows
-  end
+      def getvalue(tup_num, field_num)
+        @result[tup_num][field_num]
+      end
 
-  # TODO: status, getlength, cmdstatus
+      def status
+        if num_tuples > 0
+          TUPLES_OK
+        else
+          COMMAND_OK
+        end
+      end
 
-  attr_reader :result, :fields
+      def cmdstatus
+        @res.cmd_tag || ''
+      end
 
-  def num_tuples
-    @result.size
-  end
+      # free the result set
+      def clear
+        @res = @fields = @result = nil
+      end
 
-  def num_fields
-    @fields.size
-  end
+      # Returns the number of rows affected by the SQL command
+      def cmdtuples
+        case @res.cmd_tag
+        when nil
+          nil
+        when /^INSERT\s+(\d+)\s+(\d+)$/, /^(DELETE|UPDATE|MOVE|FETCH)\s+(\d+)$/
+          Regexp.last_match(2).to_i
+        end
+      end
+    end
 
-  def fieldname(index)
-    @fields[index]
-  end
-
-  def fieldnum(name)
-    @fields.index(name)
-  end
-
-  def type(index)
-    # TODO: correct?
-    @res.fields[index].type_oid
-  end
-
-  def size(index)
-    raise
-    # TODO: correct?
-    @res.fields[index].typlen
-  end
-
-  def getvalue(tup_num, field_num)
-    @result[tup_num][field_num]
-  end
-
-  def status
-    if num_tuples > 0
-      TUPLES_OK
-    else
-      COMMAND_OK
+    class PGError < RuntimeError
     end
   end
-
-  def cmdstatus
-    @res.cmd_tag || ''
-  end
-
-  # free the result set
-  def clear
-    @res = @fields = @result = nil
-  end
-
-  # Returns the number of rows affected by the SQL command
-  def cmdtuples
-    case @res.cmd_tag
-    when nil 
-      return nil
-    when /^INSERT\s+(\d+)\s+(\d+)$/, /^(DELETE|UPDATE|MOVE|FETCH)\s+(\d+)$/
-      $2.to_i
-    else
-      nil
-    end
-  end
-
-end
-
-class PGError < ::Exception
-end
-
-end
 end

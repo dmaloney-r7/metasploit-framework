@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,27 +8,24 @@ require 'msf/core'
 require 'rex'
 
 class MetasploitModule < Msf::Post
-
   include Msf::Post::Windows::Registry
   include Msf::Post::Windows::Accounts
 
-  def initialize(info={})
-    super( update_info( info,
-        'Name'          => 'Windows Gather Logged On User Enumeration (Registry)',
-        'Description'   => %q{ This module will enumerate current and recently logged on Windows users},
-        'License'       => MSF_LICENSE,
-        'Author'        => [ 'Carlos Perez <carlos_perez[at]darkoperator.com>'],
-        'Platform'      => [ 'win' ],
-        'SessionTypes'  => [ 'meterpreter' ]
-      ))
+  def initialize(info = {})
+    super(update_info(info,
+                      'Name'          => 'Windows Gather Logged On User Enumeration (Registry)',
+                      'Description'   => %q( This module will enumerate current and recently logged on Windows users),
+                      'License'       => MSF_LICENSE,
+                      'Author'        => [ 'Carlos Perez <carlos_perez[at]darkoperator.com>'],
+                      'Platform'      => [ 'win' ],
+                      'SessionTypes'  => [ 'meterpreter' ]))
     register_options(
       [
         OptBool.new('CURRENT', [ true, 'Enumerate currently logged on users', true]),
-        OptBool.new('RECENT' , [ true, 'Enumerate Recently logged on users' , true])
-      ], self.class)
-
+        OptBool.new('RECENT', [ true, 'Enumerate Recently logged on users', true])
+      ], self.class
+    )
   end
-
 
   def ls_logged
     sids = []
@@ -39,18 +37,19 @@ class MetasploitModule < Msf::Post
       [
         "SID",
         "Profile Path"
-      ])
+      ]
+    )
     sids.flatten.map do |sid|
-      profile_path = registry_getvaldata("HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\ProfileList\\#{sid}","ProfileImagePath")
-      tbl << [sid,profile_path]
+      profile_path = registry_getvaldata("HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\ProfileList\\#{sid}", "ProfileImagePath")
+      tbl << [sid, profile_path]
     end
     print_line("\n" + tbl.to_s + "\n")
     store_loot("host.users.recent", "text/plain", session, tbl.to_s, "recent_users.txt", "Recent Users")
   end
 
-
   def ls_current
-    key_base, username = "",""
+    key_base = ""
+    username = ""
     tbl = Rex::Text::Table.new(
       'Header'  => "Current Logged Users",
       'Indent'  => 1,
@@ -58,18 +57,17 @@ class MetasploitModule < Msf::Post
       [
         "SID",
         "User"
-      ])
+      ]
+    )
     registry_enumkeys("HKU").each do |maybe_sid|
       # There is junk like .DEFAULT we want to avoid
-      if maybe_sid =~ /^S(?:-\d+){2,}$/
-        info = resolve_sid(maybe_sid)
+      next unless maybe_sid =~ /^S(?:-\d+){2,}$/
+      info = resolve_sid(maybe_sid)
 
-        if !info.nil? && info[:type] == :user
-          username = info[:domain] << '\\' << info[:name]
+      next unless !info.nil? && info[:type] == :user
+      username = info[:domain] << '\\' << info[:name]
 
-          tbl << [maybe_sid,username]
-        end
-      end
+      tbl << [maybe_sid, username]
     end
 
     print_line("\n" + tbl.to_s + "\n")
@@ -80,13 +78,8 @@ class MetasploitModule < Msf::Post
   def run
     print_status("Running against session #{datastore['SESSION']}")
 
-    if datastore['CURRENT']
-      ls_current
-    end
+    ls_current if datastore['CURRENT']
 
-    if datastore['RECENT']
-      ls_logged
-    end
-
+    ls_logged if datastore['RECENT']
   end
 end

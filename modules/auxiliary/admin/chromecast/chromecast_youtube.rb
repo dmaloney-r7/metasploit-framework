@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,31 +7,29 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
 
   def initialize(info = {})
     super(update_info(info,
-      'Name' => 'Chromecast YouTube Remote Control',
-      'Description' => %q{
-        This module acts as a simple remote control for Chromecast YouTube.
-      },
-      'Author' => ['wvu'],
-      'References' => [
-        ['URL', 'http://www.google.com/intl/en/chrome/devices/chromecast/index.html'] # vendor website
-      ],
-      'License' => MSF_LICENSE,
-      'Actions' => [
-        ['Play', 'Description' => 'Play video'],
-        ['Stop', 'Description' => 'Stop video']
-      ],
-      'DefaultAction' => 'Play'
-    ))
+                      'Name' => 'Chromecast YouTube Remote Control',
+                      'Description' => %q(
+                        This module acts as a simple remote control for Chromecast YouTube.
+                      ),
+                      'Author' => ['wvu'],
+                      'References' => [
+                        ['URL', 'http://www.google.com/intl/en/chrome/devices/chromecast/index.html'] # vendor website
+                      ],
+                      'License' => MSF_LICENSE,
+                      'Actions' => [
+                        ['Play', 'Description' => 'Play video'],
+                        ['Stop', 'Description' => 'Stop video']
+                      ],
+                      'DefaultAction' => 'Play'))
 
     register_options([
-      Opt::RPORT(8008),
-      OptString.new('VID', [true, 'Video ID', 'kxopViU98Xo'])
-    ], self.class)
+                       Opt::RPORT(8008),
+                       OptString.new('VID', [true, 'Video ID', 'kxopViU98Xo'])
+                     ], self.class)
   end
 
   def run
@@ -87,5 +86,4 @@ class MetasploitModule < Msf::Auxiliary
       disconnect
     end
   end
-
 end

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::Tcp
   include Msf::Auxiliary::AuthBrute
   include Msf::Auxiliary::Scanner
@@ -38,37 +38,40 @@ class MetasploitModule < Msf::Auxiliary
     )
 
     register_options(
-    [
-      OptPath.new(
-        'USER_FILE',
-        [
-          false,
-          "File containing usernames, one per line",
-          File.join(Msf::Config.data_directory, "wordlists", "multi_vendor_cctv_dvr_users.txt")
-        ]),
-      OptPath.new(
-        'PASS_FILE',
-        [
-          false,
-          "File containing passwords, one per line",
-          File.join(Msf::Config.data_directory, "wordlists", "multi_vendor_cctv_dvr_pass.txt")
-        ]),
-      OptBool.new('STOP_ON_SUCCESS', [false, "Stop guessing when a credential works for a host", true]),
-      OptPort.new('HTTP_PORT', [true, "The HTTP port for the IE ActiveX web client interface", 80]),
-      Opt::RPORT(5920)
-    ], self.class)
+      [
+        OptPath.new(
+          'USER_FILE',
+          [
+            false,
+            "File containing usernames, one per line",
+            File.join(Msf::Config.data_directory, "wordlists", "multi_vendor_cctv_dvr_users.txt")
+          ]
+        ),
+        OptPath.new(
+          'PASS_FILE',
+          [
+            false,
+            "File containing passwords, one per line",
+            File.join(Msf::Config.data_directory, "wordlists", "multi_vendor_cctv_dvr_pass.txt")
+          ]
+        ),
+        OptBool.new('STOP_ON_SUCCESS', [false, "Stop guessing when a credential works for a host", true]),
+        OptPort.new('HTTP_PORT', [true, "The HTTP port for the IE ActiveX web client interface", 80]),
+        Opt::RPORT(5920)
+      ], self.class
+    )
   end
 
-  def run_host(ip)
+  def run_host(_ip)
     @valid_hosts = []
     begin
       connect
 
-      each_user_pass { |user, pass|
+      each_user_pass do |user, pass|
         do_login(user, pass)
-      }
+      end
     rescue ::Interrupt
-      raise $!
+      raise $ERROR_INFO
     rescue ::Rex::ConnectionRefused, ::Rex::HostUnreachable, ::Rex::ConnectionTimeout
       print_error("Timeout or no connection on #{rhost}:#{rport}")
       return
@@ -82,15 +85,12 @@ class MetasploitModule < Msf::Auxiliary
     @valid_hosts.each do |h|
       http_interface_check(h)
     end
-
   end
 
   def http_interface_check(h)
     begin
-      http = connect(false, {
-        'RPORT' => datastore['HTTP_PORT'],
-        'RHOST' => h
-      })
+      http = connect(false, 'RPORT' => datastore['HTTP_PORT'],
+                            'RHOST' => h)
 
       http.put("GET / HTTP/1.1\r\n\r\n")
 
@@ -102,20 +102,20 @@ class MetasploitModule < Msf::Auxiliary
         # Report HTTP service info since there is a confirmed IE ActiveX control
         # Code base example:
         # codebase="CtrWeb.cab#version=1,1,5,4"
-        if data.match(/codebase="(\w{1,16})\.(\w{1,3}).version=(\d{1,3},\d{1,3},\d{1,3},\d{1,3})/)
-          v   = "#{$1}.#{$2} v#{$3}"
-        else
-          v   = "unknown version"
-        end
+        v = if data =~ /codebase="(\w{1,16})\.(\w{1,3}).version=(\d{1,3},\d{1,3},\d{1,3},\d{1,3})/
+              "#{Regexp.last_match(1)}.#{Regexp.last_match(2)} v#{Regexp.last_match(3)}"
+            else
+              "unknown version"
+            end
 
         uri = "http://#{rhost}:#{datastore['HTTP_PORT']}"
         print_status("Confirmed IE ActiveX HTTP interface (#{v}): #{uri}")
 
         report_service(
-          :host => rhost,
-          :port => datastore['HTTP_PORT'],
-          :name => "http",
-          :info => "IE ActiveX CCTV DVR Control (#{v})"
+          host: rhost,
+          port: datastore['HTTP_PORT'],
+          name: "http",
+          info: "IE ActiveX CCTV DVR Control (#{v})"
         )
       else
         # An HTTP server is listening on HTTP_PORT, however, does not appear to be
@@ -157,24 +157,20 @@ class MetasploitModule < Msf::Auxiliary
     create_credential_login(login_data)
   end
 
-  def do_login(user=nil, pass=nil)
+  def do_login(user = nil, pass = nil)
     vprint_status("#{rhost} - Trying username:'#{user}' with password:'#{pass}'")
 
     fill_length1 = 64 - user.length
 
     # Check if user name length is too long for submission (exceeds packet length)
-    if fill_length1 < 1
-      return
-    end
+    return if fill_length1 < 1
 
     # Build the authentication packet starting here
     data = "\x00\x01\x00\x00\x80\x00\x00\x00" + user + ("\x00" * fill_length1)
 
     # Check if password length is too long for submission (exceeds packet length)
     fill_length2 = 64 - pass.length
-    if fill_length2 < 1
-      return
-    end
+    return if fill_length2 < 1
 
     data = data + pass + ("\x00" * fill_length2)
     res = nil
@@ -185,28 +181,28 @@ class MetasploitModule < Msf::Auxiliary
       return :abort
     end
 
-    if not (res)
+    unless res
       disconnect
       vprint_error("#{rhost}  No Response")
       return :abort
     end
 
     # Analyze the response
-    if res == "\x00\x01\x03\x01\x00\x00\x00\x00"  #Failed Password
+    if res == "\x00\x01\x03\x01\x00\x00\x00\x00" # Failed Password
       vprint_error("#{rhost}:#{rport}  Failed login as: '#{user}'")
       return
 
-    elsif res =="\x00\x01\x02\x01\x00\x00\x00\x00" #Invalid User
+    elsif res == "\x00\x01\x02\x01\x00\x00\x00\x00" # Invalid User
       vprint_error("#{rhost}:#{rport}  Invalid user: '#{user}'")
       # Stop attempting passwords for this user since it doesn't exist
       return :skip_user
 
-    elsif res =="\x00\x01\x05\x01\x00\x00\x00\x00" or res =="\x00\x01\x01\x01\x00\x00\x00\x00"
+    elsif (res == "\x00\x01\x05\x01\x00\x00\x00\x00") || (res == "\x00\x01\x01\x01\x00\x00\x00\x00")
       print_good("#{rhost}:#{rport}  Successful login: '#{user}' : '#{pass}'")
 
       # Report valid credentials under the CCTV DVR admin port (5920/TCP).
       # This is a proprietary protocol.
-      report_cred(ip: rhost, port: rport, user:user, password: pass, proof: res.inspect)
+      report_cred(ip: rhost, port: rport, user: user, password: pass, proof: res.inspect)
 
       @valid_hosts << rhost
       return :next_user
@@ -215,7 +211,5 @@ class MetasploitModule < Msf::Auxiliary
       vprint_error("#{rhost}:#{rport}  Failed login as: '#{user}' - Unclassified Response: #{res.inspect}")
       return
     end
-
   end
-
 end

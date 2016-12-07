@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -9,7 +10,6 @@ require 'msf/base/sessions/command_shell'
 require 'msf/base/sessions/command_shell_options'
 
 module MetasploitModule
-
   CachedSize = 5105
 
   include Msf::Payload::Stager
@@ -17,19 +17,18 @@ module MetasploitModule
 
   def initialize(info = {})
     super(merge_info(info,
-      'Name'          => 'Java Bind TCP Stager',
-      'Description'   => 'Listen for a connection',
-      'Author'        => [
-          'mihi',  # all the hard work
-          'egypt', # msf integration
-        ],
-      'License'       => MSF_LICENSE,
-      'Platform'      => 'java',
-      'Arch'          => ARCH_JAVA,
-      'Handler'       => Msf::Handler::BindTcp,
-      'Convention'    => 'javasocket',
-      'Stager'        => {'Payload' => ""}
-      ))
+                     'Name'          => 'Java Bind TCP Stager',
+                     'Description'   => 'Listen for a connection',
+                     'Author'        => [
+                       'mihi', # all the hard work
+                       'egypt', # msf integration
+                     ],
+                     'License'       => MSF_LICENSE,
+                     'Platform'      => 'java',
+                     'Arch'          => ARCH_JAVA,
+                     'Handler'       => Msf::Handler::BindTcp,
+                     'Convention'    => 'javasocket',
+                     'Stager'        => { 'Payload' => "" }))
 
     register_advanced_options(
       [
@@ -49,14 +48,13 @@ module MetasploitModule
     if pass != ""
       c << "AESPassword=#{pass}\n"
       @class_files = [
-        [ "metasploit", "AESEncryption.class" ],
+        [ "metasploit", "AESEncryption.class" ]
       ]
     else
       @class_files = [ ]
     end
-    c << "LPORT=#{datastore["LPORT"]}\n" if datastore["LPORT"]
+    c << "LPORT=#{datastore['LPORT']}\n" if datastore["LPORT"]
 
     c
   end
-
 end

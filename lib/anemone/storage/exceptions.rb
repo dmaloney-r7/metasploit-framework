@@ -1,7 +1,7 @@
+# frozen_string_literal: true
 module Anemone
   module Storage
-
-    class GenericError < Error; end;
+    class GenericError < Error; end
 
     class ConnectionError < Error; end
 
@@ -10,6 +10,5 @@ module Anemone
     class InsertionError < Error; end
 
     class CloseError < Error; end
-
   end
 end

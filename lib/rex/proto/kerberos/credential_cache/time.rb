@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 module Rex
@@ -61,7 +62,6 @@ module Rex
           def encode_renew_time
             [renew_till].pack('N')
           end
-
         end
       end
     end

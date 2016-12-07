@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -17,7 +18,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::Scanner
@@ -25,10 +25,10 @@ class MetasploitModule < Msf::Auxiliary
   def initialize
     super(
       'Name' => 'SAP /sap/bc/soap/rfc SOAP Service RFC_PING Function Service Discovery',
-      'Description' => %q{
+      'Description' => %q(
           This module makes use of the RFC_PING function, through the	/sap/bc/soap/rfc
         SOAP service, to test connectivity to remote RFC destinations.
-        },
+        ),
       'References' =>
         [
           [ 'URL', 'http://labs.mwrinfosecurity.com/tools/2012/04/27/sap-metasploit-modules/' ]
@@ -47,7 +47,8 @@ class MetasploitModule < Msf::Auxiliary
         OptString.new('CLIENT', [true, 'Client', '001']),
         OptString.new('HttpUsername', [true, 'Username ', 'SAP*']),
         OptString.new('HttpPassword', [true, 'Password ', '06071992'])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def run_host(ip)
@@ -61,38 +62,36 @@ class MetasploitModule < Msf::Auxiliary
     data << '</env:Envelope>'
     print_status("[SAP] #{ip}:#{rport} - sending SOAP RFC_PING request")
     begin
-      res = send_request_cgi({
-        'uri' => '/sap/bc/soap/rfc',
-        'method' => 'POST',
-        'cookie' => "sap-usercontext=sap-language=EN&sap-client=#{client}",
-        'data' => data,
-        'authorization' => basic_auth(datastore['HttpUsername'], datastore['HttpPassword']),
-        'ctype'  => 'text/xml; charset=UTF-8',
-        'headers' => {
-          'SOAPAction' => 'urn:sap-com:document:sap:rfc:functions'
-        },
-        'encode_params' => false,
-        'vars_get' => {
-          'sap-client'    => client,
-          'sap-language'  => 'EN'
-        }
-      })
-      if res and res.code != 500 and res.code != 200
-        if res and res.body =~ /<h1>Logon failed<\/h1>/
+      res = send_request_cgi('uri' => '/sap/bc/soap/rfc',
+                             'method' => 'POST',
+                             'cookie' => "sap-usercontext=sap-language=EN&sap-client=#{client}",
+                             'data' => data,
+                             'authorization' => basic_auth(datastore['HttpUsername'], datastore['HttpPassword']),
+                             'ctype' => 'text/xml; charset=UTF-8',
+                             'headers' => {
+                               'SOAPAction' => 'urn:sap-com:document:sap:rfc:functions'
+                             },
+                             'encode_params' => false,
+                             'vars_get' => {
+                               'sap-client' => client,
+                               'sap-language' => 'EN'
+                             })
+      if res && (res.code != 500) && (res.code != 200)
+        if res && res.body =~ /<h1>Logon failed<\/h1>/
           print_error("[SAP] #{ip}:#{rport} - login failed!")
         else
           print_error("[SAP] #{ip}:#{rport} - something went wrong!")
         end
         return
-      elsif res and res.body =~ /Response/
+      elsif res && res.body =~ /Response/
         print_good("[SAP] #{ip}:#{rport} - RFC service is alive")
         report_note(
-          :host => ip,
-          :proto => 'tcp',
-          :port => rport,
-          :sname => 'sap',
-          :type => 'sap.services.available',
-          :data => "The Remote Function Call (RFC) Service is available through the SOAP service."
+          host: ip,
+          proto: 'tcp',
+          port: rport,
+          sname: 'sap',
+          type: 'sap.services.available',
+          data: "The Remote Function Call (RFC) Service is available through the SOAP service."
         )
         return
       else

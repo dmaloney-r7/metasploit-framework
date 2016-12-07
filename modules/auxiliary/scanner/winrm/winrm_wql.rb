@@ -1,30 +1,27 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 require 'rex/proto/ntlm/message'
 
-
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::WinRM
   include Msf::Auxiliary::Report
-
 
   include Msf::Auxiliary::Scanner
 
   def initialize
     super(
       'Name'           => 'WinRM WQL Query Runner',
-      'Description'    => %q{
+      'Description'    => %q(
         This module runs WQL queries against remote WinRM Services.
         Authentication is required. Currently only works with NTLM auth.
         Please note in order to use this module, the 'AllowUnencrypted'
         winrm option must be set.
-      },
+      ),
       'Author'         => [ 'thelightcosine' ],
       'License'        => MSF_LICENSE
     )
@@ -35,9 +32,9 @@ class MetasploitModule < Msf::Auxiliary
         OptString.new('USERNAME', [ true, "The username to authenticate as"]),
         OptString.new('PASSWORD', [ true, "The password to authenticate with"]),
         OptString.new('NAMESPACE', [true, 'The WMI namespace to use for queries', '/root/cimv2/'])
-      ], self.class)
+      ], self.class
+    )
   end
-
 
   def run_host(ip)
     resp = send_winrm_request(winrm_wql_msg(datastore['WQL']))
@@ -51,7 +48,7 @@ class MetasploitModule < Msf::Auxiliary
     end
 
     unless resp.code == 200
-      print_error "Got unexpected response from #{ip}: \n #{resp.to_s}"
+      print_error "Got unexpected response from #{ip}: \n #{resp}"
       return
     end
     resp_tbl = parse_wql_response(resp)
@@ -59,10 +56,7 @@ class MetasploitModule < Msf::Auxiliary
     path = store_loot("winrm.wql_results", "text/csv", ip, resp_tbl.to_csv, "winrm_wql_results.csv", "WinRM WQL Query Results")
     print_status "Results saved to #{path}"
   end
-
 end
 
-=begin
-To set the AllowUncrypted option:
-winrm set winrm/config/service @{AllowUnencrypted="true"}
-=end
+# To set the AllowUncrypted option:
+# winrm set winrm/config/service @{AllowUnencrypted="true"}

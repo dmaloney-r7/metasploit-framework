@@ -1,10 +1,10 @@
+# frozen_string_literal: true
 # -*- coding:binary -*-
 require 'spec_helper'
 
 require 'rex/proto/kerberos'
 
 RSpec.describe Rex::Proto::Kerberos::Model::PreAuthEncTimeStamp do
-
   subject(:pre_auth_enc_time_stamp) do
     described_class.new
   end
@@ -40,10 +40,10 @@ RSpec.describe Rex::Proto::Kerberos::Model::PreAuthEncTimeStamp do
         @value=#<OpenSSL::BN:0x007ff9c3830288>>]>]>
 =end
   let(:time_stamp_raw) do
-    "\x30\x1a\xa0\x11\x18\x0f\x32\x30" +
-    "\x31\x34\x31\x32\x30\x39\x30\x31" +
-    "\x30\x39\x30\x39\x5a\xa1\x05\x02" +
-    "\x03\x08\xfc\xc8"
+    "\x30\x1a\xa0\x11\x18\x0f\x32\x30" \
+      "\x31\x34\x31\x32\x30\x39\x30\x31" \
+      "\x30\x39\x30\x39\x5a\xa1\x05\x02" \
+      "\x03\x08\xfc\xc8"
   end
 
   let(:msg_type) { 1 }
@@ -88,5 +88,4 @@ RSpec.describe Rex::Proto::Kerberos::Model::PreAuthEncTimeStamp do
       expect(pre_auth_enc_time_stamp.pa_time_stamp.to_s).to eq('2014-12-09 01:09:09 UTC')
     end
   end
-
 end

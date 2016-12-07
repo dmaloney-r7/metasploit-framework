@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,29 +7,28 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Post
-
   include Msf::Post::File
   include Msf::Post::Windows::Priv
 
-  def initialize(info={})
+  def initialize(info = {})
     super(update_info(info,
-        'Name'          => 'Multi Manage File Compressor',
-        'Description'   => %q{
-          This module zips a file or a directory. On Linux, it uses the zip command.
-          On Windows, it will try to use remote target's 7Zip if found. If not, it falls
-          back to its own VBScript.
-        },
-        'License'       => MSF_LICENSE,
-        'Author'        => [ 'sinn3r' ],
-        'Platform'      => [ 'win', 'linux' ],
-        'SessionTypes'  => [ 'meterpreter', 'shell' ]
-    ))
+                      'Name'          => 'Multi Manage File Compressor',
+                      'Description'   => %q(
+                        This module zips a file or a directory. On Linux, it uses the zip command.
+                        On Windows, it will try to use remote target's 7Zip if found. If not, it falls
+                        back to its own VBScript.
+                      ),
+                      'License'       => MSF_LICENSE,
+                      'Author'        => [ 'sinn3r' ],
+                      'Platform'      => [ 'win', 'linux' ],
+                      'SessionTypes'  => [ 'meterpreter', 'shell' ]))
 
     register_options(
       [
         OptString.new('DESTINATION', [true, 'The destination path']),
         OptString.new('SOURCE', [true, 'The directory or file to compress'])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def get_program_file_path
@@ -49,9 +49,7 @@ class MetasploitModule < Msf::Post
     computer_name = get_env('COMPUTERNAME')
     print_status("Searching for PID for #{computer_name}\\\\#{username}")
     session.sys.process.processes.each do |p|
-      if p['user'] == "#{computer_name}\\#{username}"
-        return p['pid']
-      end
+      return p['pid'] if p['user'] == "#{computer_name}\\#{username}"
     end
 
     nil
@@ -138,6 +136,4 @@ class MetasploitModule < Msf::Post
       linux_zip
     end
   end
-
 end
-

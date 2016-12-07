@@ -1,11 +1,10 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
-
 
 ###
 #
@@ -16,8 +15,6 @@ require 'msf/core'
 #
 ###
 class MetasploitModule < Msf::Nop
-
-
   def initialize
     super(
       'Name'        => 'Simple',
@@ -30,12 +27,11 @@ class MetasploitModule < Msf::Nop
     register_advanced_options(
       [
         OptBool.new('RandomNops', [ false, "Generate a random NOP sled", true ])
-      ], self.class)
+      ], self.class
+    )
   end
 
-
   def generate_sled(length, opts)
-
     badchars = opts['BadChars'] || ''
     random   = opts['Random']   || datastore['RandomNops']
 
@@ -53,11 +49,8 @@ class MetasploitModule < Msf::Nop
       0xe1a0b00b
     ]
 
-    if random
-      return ([nops[rand(nops.length)]].pack("V*") * (length/4))
-    end
+    return ([nops[rand(nops.length)]].pack("V*") * (length / 4)) if random
 
-    return ([nops[0]].pack("V*") * (length/4))
+    ([nops[0]].pack("V*") * (length / 4))
   end
-
 end

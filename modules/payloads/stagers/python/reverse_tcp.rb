@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -10,7 +11,6 @@ require 'msf/base/sessions/command_shell'
 require 'msf/base/sessions/command_shell_options'
 
 module MetasploitModule
-
   CachedSize = 362
 
   include Msf::Payload::Stager
@@ -18,15 +18,13 @@ module MetasploitModule
 
   def initialize(info = {})
     super(merge_info(info,
-      'Name'        => 'Python Reverse TCP Stager',
-      'Description' => 'Connect back to the attacker',
-      'Author'      => 'Spencer McIntyre',
-      'License'     => MSF_LICENSE,
-      'Platform'    => 'python',
-      'Arch'        => ARCH_PYTHON,
-      'Handler'     => Msf::Handler::ReverseTcp,
-      'Stager'      => {'Payload' => ""}
-    ))
+                     'Name'        => 'Python Reverse TCP Stager',
+                     'Description' => 'Connect back to the attacker',
+                     'Author'      => 'Spencer McIntyre',
+                     'License'     => MSF_LICENSE,
+                     'Platform'    => 'python',
+                     'Arch'        => ARCH_PYTHON,
+                     'Handler'     => Msf::Handler::ReverseTcp,
+                     'Stager'      => { 'Payload' => "" }))
   end
-
 end

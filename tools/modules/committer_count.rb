@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 
 # The committer_count.rb is a way to tell who's been active over the last
 # given period. It's of course, quite coarse -- someone with 10 commits in a day
@@ -30,16 +31,16 @@ end
 def parse_date(date)
   case date
   when /([0-9]+)y(ear)?s?/
-    seconds = $1.to_i* (60*60*24*365.25)
+    seconds = Regexp.last_match(1).to_i * (60 * 60 * 24 * 365.25)
     calc_date = (Time.now - seconds).strftime("%Y-%m-%d")
   when /([0-9]+)m(onth)?s?/
-    seconds = $1.to_i* (60*60*24*(365.25 / 12))
+    seconds = Regexp.last_match(1).to_i * (60 * 60 * 24 * (365.25 / 12))
     calc_date = (Time.now - seconds).strftime("%Y-%m-%d")
   when /([0-9]+)w(eek)?s?/
-    seconds = $1.to_i* (60*60*24*7)
+    seconds = Regexp.last_match(1).to_i * (60 * 60 * 24 * 7)
     calc_date = (Time.now - seconds).strftime("%Y-%m-%d")
   when /([0-9]+)d(ay)?s?/
-    seconds = $1.to_i* (60*60*24)
+    seconds = Regexp.last_match(1).to_i * (60 * 60 * 24)
     calc_date = (Time.now - seconds).strftime("%Y-%m-%d")
   else
     calc_date = Time.new(date).strftime("%Y-%m-%d")
@@ -53,7 +54,7 @@ calc_date = parse_date(date)
   parsed_line = line.match(/^([^\s+]+)\s(.{7,})\s'(.*)'\s(.*)[\r\n]*$/)
   next unless parsed_line
   break if calc_date == parsed_line[1]
-  @recent_history << GitLogLine.new(*parsed_line[1,4])
+  @recent_history << GitLogLine.new(*parsed_line[1, 4])
 end
 
 @recent_history.each do |logline|
@@ -64,7 +65,6 @@ end
 puts "Commits since #{calc_date}"
 puts "-" * 50
 
-@commits_by_author.sort_by {|k,v| v.size}.reverse.each do |k,v|
-  puts "%-25s %3d" % [k,v.size]
+@commits_by_author.sort_by { |_k, v| v.size }.reverse.each do |k, v|
+  puts "%-25s %3d" % [k, v.size]
 end
-

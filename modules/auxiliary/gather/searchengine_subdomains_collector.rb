@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -11,13 +12,13 @@ class MetasploitModule < Msf::Auxiliary
 
   def initialize(info = {})
     super(update_info(info,
-      'Name' => 'Search Engine Subdomains Collector',
-      'Description' => %q(
-        This module can be used to gather subdomains about a domain
-        from Yahoo, Bing.
-      ),
-      'Author' => [ 'Nixawk' ],
-      'License' => MSF_LICENSE))
+                      'Name' => 'Search Engine Subdomains Collector',
+                      'Description' => %q(
+                        This module can be used to gather subdomains about a domain
+                        from Yahoo, Bing.
+                      ),
+                      'Author' => [ 'Nixawk' ],
+                      'License' => MSF_LICENSE))
 
     register_options(
       [
@@ -25,7 +26,8 @@ class MetasploitModule < Msf::Auxiliary
         OptBool.new('IP_SEARCH', [ false, "Enable ip of subdomains to locate subdomains", true]),
         OptBool.new('ENUM_BING', [ true, "Enable Bing Search Subdomains", true]),
         OptBool.new('ENUM_YAHOO', [ true, "Enable Yahoo Search Subdomains", true])
-      ], self.class)
+      ], self.class
+    )
 
     deregister_options('RHOST', 'RPORT', 'VHOST', 'SSL', 'Proxies')
   end
@@ -87,7 +89,8 @@ class MetasploitModule < Msf::Auxiliary
             'setlang' => 'en-us',
             'first' => num,
             'q' => dork
-          })
+          }
+        )
 
         next unless resp && resp.code == 200
         html = resp.get_html_document
@@ -122,7 +125,8 @@ class MetasploitModule < Msf::Auxiliary
             'pz' => 100,
             'p' => dork,
             'b' => num
-          })
+          }
+        )
 
         next unless resp && resp.code == 200
         html = resp.get_html_document

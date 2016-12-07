@@ -1,14 +1,12 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 
-
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Auxiliary::Report
   include Msf::Exploit::Remote::Tcp
 
@@ -31,9 +29,9 @@ class MetasploitModule < Msf::Auxiliary
     register_options(
       [
         Opt::RHOST,
-        Opt::RPORT,
-      ], self.class)
-
+        Opt::RPORT
+      ], self.class
+    )
   end
 
   def run
@@ -41,33 +39,30 @@ class MetasploitModule < Msf::Auxiliary
 
     case action.name
     when 'Continuous Port Sweep'
-      while (true)
+      loop do
         1.upto(65535) do |port|
           datastore['RPORT'] = port
-          prober()
+          prober
         end
       end
     end
   end
 
   def prober
-    begin
-      connect
-      disconnect
-      report_host(:host => datastore['RHOST'])
-      report_service(
-        :host  => datastore['RHOST'],
-        :port  => datastore['RPORT'],
-        :proto => 'tcp'
-      )
-    rescue ::Exception => e
-      case e.to_s
-      when /connection was refused/
-        report_host(:host => datastore['RHOST'])
-      else
-        print_status(e.to_s)
-      end
+    connect
+    disconnect
+    report_host(host: datastore['RHOST'])
+    report_service(
+      host: datastore['RHOST'],
+      port: datastore['RPORT'],
+      proto: 'tcp'
+    )
+  rescue ::Exception => e
+    case e.to_s
+    when /connection was refused/
+      report_host(host: datastore['RHOST'])
+    else
+      print_status(e.to_s)
     end
   end
-
 end

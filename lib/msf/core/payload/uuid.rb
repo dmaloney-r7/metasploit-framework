@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding => binary -*-
 
 require 'msf/core'
@@ -9,23 +10,21 @@ require 'rex/text'
 # unique ID values used by payloads.
 #
 class Msf::Payload::UUID
-
-
   #
   # Constants
   #
 
   Architectures = {
-     0 => nil,
-     1 => ARCH_X86,
-     2 => ARCH_X64, # removed ARCH_X86_64, now consistent across the board
-     3 => ARCH_X64,
-     4 => ARCH_MIPS,
-     5 => ARCH_MIPSLE,
-     6 => ARCH_MIPSBE,
-     7 => ARCH_PPC,
-     8 => ARCH_PPC64,
-     9 => ARCH_CBEA,
+    0 => nil,
+    1 => ARCH_X86,
+    2 => ARCH_X64, # removed ARCH_X86_64, now consistent across the board
+    3 => ARCH_X64,
+    4 => ARCH_MIPS,
+    5 => ARCH_MIPSLE,
+    6 => ARCH_MIPSBE,
+    7 => ARCH_PPC,
+    8 => ARCH_PPC64,
+    9 => ARCH_CBEA,
     10 => ARCH_CBEA64,
     11 => ARCH_SPARC,
     12 => ARCH_ARMLE,
@@ -39,19 +38,19 @@ class Msf::Payload::UUID
     20 => ARCH_PYTHON,
     21 => ARCH_NODEJS,
     22 => ARCH_FIREFOX
-  }
+  }.freeze
 
   Platforms = {
-     0 => nil,
-     1 => 'windows',
-     2 => 'netware',
-     3 => 'android',
-     4 => 'java',
-     5 => 'ruby',
-     6 => 'linux',
-     7 => 'cisco',
-     8 => 'solaris',
-     9 => 'osx',
+    0 => nil,
+    1 => 'windows',
+    2 => 'netware',
+    3 => 'android',
+    4 => 'java',
+    5 => 'ruby',
+    6 => 'linux',
+    7 => 'cisco',
+    8 => 'solaris',
+    9 => 'osx',
     10 => 'bsd',
     11 => 'openbsd',
     12 => 'bsdi',
@@ -66,7 +65,7 @@ class Msf::Payload::UUID
     21 => 'python',
     22 => 'nodejs',
     23 => 'firefox'
-  }
+  }.freeze
 
   # The raw length of the UUID structure
   RawLength = 16
@@ -75,8 +74,8 @@ class Msf::Payload::UUID
   UriLength = 22
 
   # Validity constraints for UUID timestamps in UTC
-  TimestampMaxFuture = Time.now.utc.to_i + (30*24*3600) # Up to 30 days in the future
-  TimestampMaxPast   = 1420070400                       # Since 2015-01-01 00:00:00 UTC
+  TimestampMaxFuture = Time.now.utc.to_i + (30 * 24 * 3600) # Up to 30 days in the future
+  TimestampMaxPast   = 1420070400 # Since 2015-01-01 00:00:00 UTC
 
   #
   # Class Methods
@@ -94,15 +93,13 @@ class Msf::Payload::UUID
   # @option opts [Fixnum] :xor2 An optional 8-bit XOR ID for obfuscation
   # @return [String] The encoded payoad UUID as a binary string
   #
-  def self.generate_raw(opts={})
+  def self.generate_raw(opts = {})
     plat_id = find_platform_id(opts[:platform]) || 0
     arch_id = find_architecture_id(opts[:arch]) || 0
     tstamp  = opts[:timestamp] || Time.now.utc.to_i
     puid    = opts[:puid]
 
-    if opts[:seed]
-      puid = seed_to_puid(opts[:seed])
-    end
+    puid = seed_to_puid(opts[:seed]) if opts[:seed]
 
     puid ||= Rex::Text.rand_text(8)
 
@@ -153,7 +150,7 @@ class Msf::Payload::UUID
   # @return [String] The 8-byte payload ID
   #
   def self.seed_to_puid(seed)
-    Rex::Text.sha1_raw(seed)[12,8]
+    Rex::Text.sha1_raw(seed)[12, 8]
   end
 
   #
@@ -171,7 +168,7 @@ class Msf::Payload::UUID
     if uuid[:timestamp] > TimestampMaxFuture ||
        uuid[:timestamp] < TimestampMaxPast   ||
        (uuid[:arch].nil? && uuid[:platform].nil?)
-       return { puid: uuid[:puid] }
+      return { puid: uuid[:puid] }
     end
     uuid
   end
@@ -185,7 +182,6 @@ class Msf::Payload::UUID
   def self.parse_uri(uri)
     parse_raw(Rex::Text.decode_base64url(uri))
   end
-
 
   #
   # Look up the numeric platform ID given a string or PlatformList as input
@@ -201,13 +197,11 @@ class Msf::Payload::UUID
 
     # Map a platform abbreviation to the real name
     name = platform ? Msf::Platform.find_platform(platform) : nil
-    if name && name.respond_to?(:realname)
-      name = name.realname.downcase
-    end
+    name = name.realname.downcase if name && name.respond_to?(:realname)
 
-    ( Platforms.keys.select{ |k|
+    (Platforms.keys.select do |k|
       Platforms[k] == name
-    }.first || Platforms[0] ).to_i
+    end.first || Platforms[0]).to_i
   end
 
   #
@@ -217,10 +211,10 @@ class Msf::Payload::UUID
   # @return [Fixnum] The integer value of this architecture
   #
   def self.find_architecture_id(name)
-    name = name.first if name.kind_of? ::Array
-    ( Architectures.keys.select{ |k|
+    name = name.first if name.is_a? ::Array
+    (Architectures.keys.select do |k|
       Architectures[k] == name
-    }.first || Architectures[0] ).to_i
+    end.first || Architectures[0]).to_i
   end
 
   def self.find_platform_name(num)
@@ -235,7 +229,7 @@ class Msf::Payload::UUID
   # Instance methods
   #
 
-  def initialize(opts=nil)
+  def initialize(opts = nil)
     opts = load_new if opts.nil?
     opts = load_uri(opts[:uri]) if opts[:uri]
     opts = load_raw(opts[:raw]) if opts[:raw]
@@ -247,9 +241,7 @@ class Msf::Payload::UUID
     self.xor1      = opts[:xor1]
     self.xor2      = opts[:xor2]
 
-    if opts[:seed]
-      self.puid = self.class.seed_to_puid(opts[:seed])
-    end
+    self.puid = self.class.seed_to_puid(opts[:seed]) if opts[:seed]
 
     # Generate some sensible defaults
     self.puid ||= Rex::Text.rand_text(8)
@@ -279,7 +271,7 @@ class Msf::Payload::UUID
   end
 
   def load_new
-   self.class.parse_raw(self.class.generate_raw())
+    self.class.parse_raw(self.class.generate_raw)
   end
 
   #
@@ -288,12 +280,12 @@ class Msf::Payload::UUID
   # @return [String] The human-readable version of the UUID data
   #
   def to_s
-    arch_id   = self.class.find_architecture_id(self.arch).to_s
-    plat_id   = self.class.find_platform_id(self.platform).to_s
+    arch_id   = self.class.find_architecture_id(arch).to_s
+    plat_id   = self.class.find_platform_id(platform).to_s
     [
-      self.puid_hex,
-      [ self.arch     || "noarch",     arch_id ].join("="),
-      [ self.platform || "noplatform", plat_id ].join("="),
+      puid_hex,
+      [ arch     || "noarch",     arch_id ].join("="),
+      [ platform || "noplatform", plat_id ].join("="),
       Time.at(self.timestamp.to_i).utc.strftime("%Y-%m-%dT%H:%M:%SZ")
     ].join("/")
   end
@@ -305,10 +297,8 @@ class Msf::Payload::UUID
     # mini-patch for x86 so that it renders x64 instead. This is
     # mostly to keep various external modules happy.
     arch = self.arch
-    if arch == ARCH_X86_64
-        arch = ARCH_X64
-    end
-    "#{arch}/#{self.platform}"
+    arch = ARCH_X64 if arch == ARCH_X86_64
+    "#{arch}/#{platform}"
   end
 
   #
@@ -318,10 +308,10 @@ class Msf::Payload::UUID
   #
   def to_h
     {
-        puid: self.puid,
-        arch: self.arch, platform: self.platform,
-        timestamp: self.timestamp,
-        xor1: self.xor1, xor2: self.xor2
+      puid: self.puid,
+      arch: arch, platform: platform,
+      timestamp: self.timestamp,
+      xor1: self.xor1, xor2: self.xor2
     }
   end
 
@@ -331,7 +321,7 @@ class Msf::Payload::UUID
   # @return [String] The 16-byte raw encoded version of the UUID
   #
   def to_raw
-    self.class.generate_raw(self.to_h)
+    self.class.generate_raw(to_h)
   end
 
   #
@@ -340,7 +330,7 @@ class Msf::Payload::UUID
   # @return [String] The 22-byte URI encoded version of the UUID
   #
   def to_uri
-    Rex::Text.encode_base64url(self.to_raw)
+    Rex::Text.encode_base64url(to_raw)
   end
 
   #
@@ -369,10 +359,8 @@ class Msf::Payload::UUID
       return
     end
 
-    arch_id   = self.class.find_architecture_id(arch_str)
-    if arch_id == 0
-      raise ArgumentError, "Invalid architecture: '#{arch_str}'"
-    end
+    arch_id = self.class.find_architecture_id(arch_str)
+    raise ArgumentError, "Invalid architecture: '#{arch_str}'" if arch_id == 0
 
     arch_name = self.class.find_architecture_name(arch_id)
     @arch = arch_name
@@ -385,9 +373,7 @@ class Msf::Payload::UUID
     end
 
     plat_id = self.class.find_platform_id(plat_str)
-    if plat_id == 0
-      raise ArgumentError, "Invalid platform: '#{plat_str}'"
-    end
+    raise ArgumentError, "Invalid platform: '#{plat_str}'" if plat_id == 0
 
     plat_name = self.class.find_platform_name(plat_id)
     @platform = plat_name

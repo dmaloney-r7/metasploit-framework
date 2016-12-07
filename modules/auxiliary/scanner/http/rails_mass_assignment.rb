@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -8,7 +9,6 @@ require 'msf/core'
 require 'uri'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::WmapScanUniqueQuery
   include Msf::Auxiliary::Scanner
@@ -16,22 +16,21 @@ class MetasploitModule < Msf::Auxiliary
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'          => 'Ruby On Rails Attributes Mass Assignment Scanner',
-      'Description'   => %q{
-        This module scans Ruby On Rails sites for
-        models with attributes not protected by attr_protected or attr_accessible.
-        After attempting to assign a non-existent field, the default rails with
-        active_record setup will raise an ActiveRecord::UnknownAttributeError
-        exeption, and reply with HTTP code 500.
-      },
+                      'Name'          => 'Ruby On Rails Attributes Mass Assignment Scanner',
+                      'Description'   => %q(
+                        This module scans Ruby On Rails sites for
+                        models with attributes not protected by attr_protected or attr_accessible.
+                        After attempting to assign a non-existent field, the default rails with
+                        active_record setup will raise an ActiveRecord::UnknownAttributeError
+                        exeption, and reply with HTTP code 500.
+                      ),
 
-      'References'     =>
-        [
-          [ 'URL', 'http://guides.rubyonrails.org/security.html#mass-assignment' ]
-        ],
-      'Author'       => [ 'Gregory Man <man.gregory[at]gmail.com>' ],
-      'License'      => MSF_LICENSE
-    ))
+                      'References' =>
+                        [
+                          [ 'URL', 'http://guides.rubyonrails.org/security.html#mass-assignment' ]
+                        ],
+                      'Author'       => [ 'Gregory Man <man.gregory[at]gmail.com>' ],
+                      'License'      => MSF_LICENSE))
 
     register_options(
       [
@@ -39,8 +38,9 @@ class MetasploitModule < Msf::Auxiliary
         OptString.new('PATH', [ true, "The path to test mass assignment", '/users/1']),
         OptString.new('QUERY', [ false, "HTTP URI Query", nil]),
         OptString.new('DATA', [ false, "HTTP Body Data", '']),
-        OptString.new('COOKIE',[ false, "HTTP Cookies", ''])
-      ], self.class)
+        OptString.new('COOKIE', [ false, "HTTP Cookies", ''])
+      ], self.class
+    )
   end
 
   def run_host(ip)
@@ -62,12 +62,12 @@ class MetasploitModule < Msf::Auxiliary
 
   def get_base_params(parsed_query_string)
     base_params_names = []
-    parsed_query_string.each do |key, val|
+    parsed_query_string.each do |key, _val|
       key.gsub(/(.*)\[(\w*)\]$/) do
-        base_params_names << $1
+        base_params_names << Regexp.last_match(1)
       end
     end
-    return base_params_names.uniq
+    base_params_names.uniq
   end
 
   def check_data(ip, parsed_data, base_params)
@@ -77,32 +77,31 @@ class MetasploitModule < Msf::Auxiliary
       query.merge!(test_param)
 
       resp = send_request_cgi({
-        'uri'       => normalize_uri(datastore['PATH']),
-        'vars_get'  => datastore['METHOD'] == 'POST' ? queryparse(datastore['QUERY'].to_s) : query,
-        'method'    => datastore['METHOD'],
-        'ctype'     => 'application/x-www-form-urlencoded',
-        'cookie'    => datastore['COOKIE'],
-        'data'      => datastore['METHOD'] == 'POST' ? query.to_query : datastore['DATA']
-      }, 20)
+                                'uri' => normalize_uri(datastore['PATH']),
+                                'vars_get'  => datastore['METHOD'] == 'POST' ? queryparse(datastore['QUERY'].to_s) : query,
+                                'method'    => datastore['METHOD'],
+                                'ctype'     => 'application/x-www-form-urlencoded',
+                                'cookie'    => datastore['COOKIE'],
+                                'data'      => datastore['METHOD'] == 'POST' ? query.to_query : datastore['DATA']
+                              }, 20)
 
-      if resp and resp.code == 500
-        print_good("#{ip} - Possible attributes mass assignment in attribute #{param}[...] at #{datastore['PATH']}")
-        report_web_vuln(
-          :host   => rhost,
-          :port   => rport,
-          :vhost  => vhost,
-          :ssl    => ssl,
-          :path   => "#{datastore['PATH']}",
-          :method => datastore['METHOD'],
-          :pname  => param,
-          :proof  => "rails mass assignment",
-          :risk   => 2,
-          :confidence   => 80,
-          :category     => 'Rails',
-          :description  => "Possible attributes mass assignment in attribute #{param}[...]",
-          :name   => 'Ruby On Rails Attributes Mass Assignment'
-        )
-      end
+      next unless resp && (resp.code == 500)
+      print_good("#{ip} - Possible attributes mass assignment in attribute #{param}[...] at #{datastore['PATH']}")
+      report_web_vuln(
+        host: rhost,
+        port: rport,
+        vhost: vhost,
+        ssl: ssl,
+        path: datastore['PATH'].to_s,
+        method: datastore['METHOD'],
+        pname: param,
+        proof: "rails mass assignment",
+        risk: 2,
+        confidence: 80,
+        category: 'Rails',
+        description: "Possible attributes mass assignment in attribute #{param}[...]",
+        name: 'Ruby On Rails Attributes Mass Assignment'
+      )
     end
   end
 end

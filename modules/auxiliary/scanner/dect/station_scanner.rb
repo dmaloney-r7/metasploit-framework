@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::DECT_COA
 
   def initialize
@@ -16,13 +16,11 @@ class MetasploitModule < Msf::Auxiliary
       'Author'         => [ 'DK <privilegedmode[at]gmail.com>' ],
       'License'        => MSF_LICENSE
     )
-
   end
-
 
   def print_results
     print_line("RFPI\t\tChannel")
-    @base_stations.each do |rfpi, data|
+    @base_stations.each do |_rfpi, data|
       print_line("#{data['rfpi']}\t#{data['channel']}")
     end
   end
@@ -41,12 +39,12 @@ class MetasploitModule < Msf::Auxiliary
       fp_scan_mode
       print_status("Scanning...")
 
-      while(true)
-        data = poll_coa()
+      loop do
+        data = poll_coa
 
-        if (data)
+        if data
           parsed_data = parse_station(data)
-          if (not @base_stations.key?(parsed_data['rfpi']))
+          unless @base_stations.key?(parsed_data['rfpi'])
             print_status("Found New RFPI: #{parsed_data['rfpi']}")
             @base_stations[parsed_data['rfpi']] = parsed_data
           end
@@ -55,12 +53,12 @@ class MetasploitModule < Msf::Auxiliary
         next_channel
 
         vprint_status("Switching to channel: #{channel}")
-        select(nil,nil,nil,1)
+        select(nil, nil, nil, 1)
       end
     ensure
       print_status("Closing interface")
-      stop_coa()
-      close_coa()
+      stop_coa
+      close_coa
     end
 
     print_results

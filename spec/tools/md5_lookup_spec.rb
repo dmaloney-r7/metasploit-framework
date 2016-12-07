@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 load Metasploit::Framework.root.join('tools/password/md5_lookup.rb').to_path
 require 'spec_helper'
 
@@ -5,7 +6,6 @@ require 'rex/proto/http/response'
 require 'stringio'
 
 RSpec.describe Md5LookupUtility do
-
   #
   # Init some data
   #
@@ -27,11 +27,11 @@ RSpec.describe Md5LookupUtility do
   end
 
   let(:good_json_response) do
-    %Q|{ "status":true, "result":"test", "message":"" }|
+    %({ "status":true, "result":"test", "message":"" })
   end
 
   let(:bad_json_response) do
-    %Q|{ "status":false, "result":"", "message":"not found" }|
+    %({ "status":false, "result":"", "message":"not found" })
   end
 
   let(:db_source) do
@@ -48,9 +48,9 @@ RSpec.describe Md5LookupUtility do
 
   let(:options) do
     {
-      :databases => [db_source],
-      :outfile   => output_file,
-      :input     => input_file
+      databases: [db_source],
+      outfile: output_file,
+      input: input_file
     }
   end
 
@@ -66,7 +66,7 @@ RSpec.describe Md5LookupUtility do
   end
 
   def set_send_request_cgi(body)
-    allow(subject).to receive(:send_request_cgi) do |opts|
+    allow(subject).to receive(:send_request_cgi) do |_opts|
       set_expected_response(body)
     end
   end
@@ -75,9 +75,7 @@ RSpec.describe Md5LookupUtility do
   # Tests start here
   #
 
-
   describe Md5LookupUtility::Disclaimer do
-
     let(:group_name)   { 'MD5Lookup' }
     let(:setting_name) { 'waiver' }
     let(:data)         { true }
@@ -87,10 +85,10 @@ RSpec.describe Md5LookupUtility do
       ini = Rex::Parser::Ini.new(t_path)
       allow(ini).to receive(:to_file).with(any_args)
       allow(Rex::Parser::Ini).to receive(:new).and_return(ini)
-      return ini
+      ini
     end
 
-    def stub_load(with_setting=true)
+    def stub_load(with_setting = true)
       if with_setting
         ini = stub_save
         disclamer.save_waiver
@@ -99,7 +97,7 @@ RSpec.describe Md5LookupUtility do
       end
 
       allow(Rex::Parser::Ini).to receive(:new).and_return(ini)
-      return ini
+      ini
     end
 
     subject(:disclamer) do
@@ -121,7 +119,7 @@ RSpec.describe Md5LookupUtility do
         it 'saves the wavier setting' do
           ini = stub_save
           disclamer.save_waiver
-          expect(ini[group_name]).to eq({setting_name=>true})
+          expect(ini[group_name]).to eq(setting_name => true)
         end
       end
     end
@@ -147,19 +145,16 @@ RSpec.describe Md5LookupUtility do
         it 'saves the setting' do
           ini = stub_save
           disclamer.send(:save_setting, setting_name, data)
-          expect(ini[group_name]).to eq({setting_name=>true})
+          expect(ini[group_name]).to eq(setting_name => true)
         end
       end
     end
 
     describe '#load_setting' do
     end
-
   end
 
-
   describe Md5LookupUtility::Md5Lookup do
-
     describe '.new' do
       it 'returns a Md5LookupUtility::Md5Lookup instance' do
         expect(subject).to be_a(Md5LookupUtility::Md5Lookup)
@@ -167,7 +162,6 @@ RSpec.describe Md5LookupUtility do
     end
 
     describe '#lookup' do
-
       context 'when a hash is found' do
         it 'returns the cracked result' do
           set_send_request_cgi(good_json_response)
@@ -198,19 +192,16 @@ RSpec.describe Md5LookupUtility do
         end
       end
     end
-
   end
 
-
   describe Md5LookupUtility::Driver do
-
-    let(:expected_result) {
+    let(:expected_result) do
       {
-        :hash         => input_data,
-        :cracked_hash => good_result,
-        :credit       => db_source
+        hash: input_data,
+        cracked_hash: good_result,
+        credit: db_source
       }
-    }
+    end
 
     before(:example) do
       expect(Md5LookupUtility::OptsConsole).to receive(:parse).with(any_args).and_return(options)
@@ -257,7 +248,7 @@ RSpec.describe Md5LookupUtility do
           allow(search_engine).to receive(:lookup).and_return(good_result)
           allow(Md5LookupUtility::Md5Lookup).to receive(:new).and_return(search_engine)
 
-          expect{ |b| subject.send(:get_hash_results, input_file, [db_source], &b) }.to yield_with_args(expected_result)
+          expect { |b| subject.send(:get_hash_results, input_file, [db_source], &b) }.to yield_with_args(expected_result)
         end
       end
     end
@@ -265,7 +256,7 @@ RSpec.describe Md5LookupUtility do
     describe '#extract_hashes' do
       context 'when a MD5 file is supplied' do
         it 'yields the MD5 hash' do
-          expect{ |b| subject.send(:extract_hashes, input_file, &b) }.to yield_with_args(input_data)
+          expect { |b| subject.send(:extract_hashes, input_file, &b) }.to yield_with_args(input_data)
         end
       end
 
@@ -275,7 +266,7 @@ RSpec.describe Md5LookupUtility do
         end
 
         it 'yields nothing' do
-          expect{ |b| subject.send(:extract_hashes, input_file, &b) }.not_to yield_control
+          expect { |b| subject.send(:extract_hashes, input_file, &b) }.not_to yield_control
         end
       end
     end
@@ -283,7 +274,7 @@ RSpec.describe Md5LookupUtility do
     describe '#is_md5_format?' do
       context 'when a valid MD5 is given' do
         it 'returns true' do
-          expect(subject.send(:is_md5_format?,input_data)).to be_truthy
+          expect(subject.send(:is_md5_format?, input_data)).to be_truthy
         end
       end
 
@@ -293,9 +284,7 @@ RSpec.describe Md5LookupUtility do
         end
       end
     end
-
   end
-
 
   describe Md5LookupUtility::OptsConsole do
     let(:valid_argv) { "-i #{input_file} -d all -o #{output_file}".split }
@@ -334,15 +323,13 @@ RSpec.describe Md5LookupUtility do
         end
 
         it 'raises an OptionParser::MissingArgument error' do
-          expect{subject.parse(invalid_argv)}.to raise_error(OptionParser::MissingArgument)
+          expect { subject.parse(invalid_argv) }.to raise_error(OptionParser::MissingArgument)
         end
       end
-
     end
 
-
     describe '.extract_db_names' do
-      let(:list) {'i337,invalid'}
+      let(:list) { 'i337,invalid' }
       context 'when database symbols \'i337\' and \'invalid\' are given' do
         it 'returns i337.net in an array' do
           db_names = subject.extract_db_names(list)
@@ -364,5 +351,4 @@ RSpec.describe Md5LookupUtility do
       end
     end
   end
-
 end

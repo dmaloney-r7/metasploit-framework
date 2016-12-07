@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 module Msf::Module::Author
   #
   # Attributes
@@ -5,7 +6,7 @@ module Msf::Module::Author
 
   # @!attribute author
   #   The array of zero or more authors.
-  attr_reader   :author
+  attr_reader :author
 
   #
   # Instance Methods
@@ -15,7 +16,7 @@ module Msf::Module::Author
   # Return a comma separated list of author for this module.
   #
   def author_to_s
-    author.collect { |author| author.to_s }.join(", ")
+    author.collect(&:to_s).join(", ")
   end
 
   #

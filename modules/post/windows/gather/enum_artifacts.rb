@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -9,33 +10,32 @@ require 'yaml'
 require 'msf/core/auxiliary/report'
 
 class MetasploitModule < Msf::Post
-
   include Msf::Auxiliary::Report
   include Msf::Post::File
   include Msf::Post::Windows::Registry
 
-  def initialize(info={})
-    super( update_info( info,
-      'Name'          => 'Windows Gather File and Registry Artifacts Enumeration',
-      'Description'   => %q{
-        This module will check the file system and registry for particular artifacts. The
-        list of artifacts is read from data/post/enum_artifacts_list.txt or a user specified file. Any
-        matches are written to the loot. },
-      'License'       => MSF_LICENSE,
-      'Author'        => [ 'averagesecurityguy <stephen[at]averagesecurityguy.info>' ],
-      'Platform'      => [ 'win' ],
-      'SessionTypes'  => [ 'meterpreter' ]
-    ))
+  def initialize(info = {})
+    super(update_info(info,
+                      'Name'          => 'Windows Gather File and Registry Artifacts Enumeration',
+                      'Description'   => %q(
+                        This module will check the file system and registry for particular artifacts. The
+                        list of artifacts is read from data/post/enum_artifacts_list.txt or a user specified file. Any
+                        matches are written to the loot. ),
+                      'License'       => MSF_LICENSE,
+                      'Author'        => [ 'averagesecurityguy <stephen[at]averagesecurityguy.info>' ],
+                      'Platform'      => [ 'win' ],
+                      'SessionTypes'  => [ 'meterpreter' ]))
 
     register_options(
       [
-        OptPath.new( 'ARTIFACTS',
-          [
-            true,
-            'Full path to artifacts file.',
-            ::File.join(Msf::Config.data_directory, 'post', 'enum_artifacts_list.txt')
-          ])
-      ], self.class)
+        OptPath.new('ARTIFACTS',
+                    [
+                      true,
+                      'Full path to artifacts file.',
+                      ::File.join(Msf::Config.data_directory, 'post', 'enum_artifacts_list.txt')
+                    ])
+      ], self.class
+    )
   end
 
   def run
@@ -44,7 +44,7 @@ class MetasploitModule < Msf::Post
 
     # Load artifacts from yaml file. Artifacts are organized by what they
     # are evidence of.
-    yaml = YAML::load_file(datastore['ARTIFACTS'])
+    yaml = YAML.load_file(datastore['ARTIFACTS'])
     yaml.each_key do |key|
       print_status("Searching for artifacts of #{key}")
       files = yaml[key]['files']
@@ -52,23 +52,21 @@ class MetasploitModule < Msf::Post
       found = []
 
       # Process file entries
-      vprint_status("Processing #{files.length.to_s} file entries for #{key}.")
+      vprint_status("Processing #{files.length} file entries for #{key}.")
 
       files.each do |file|
         digest = file_remote_digestmd5(file['name'])
         # if the file doesn't exist then digest will be nil
-        next if digest == nil
-        if digest == file['csum'] then found << file['name'] end
+        next if digest.nil?
+        found << file['name'] if digest == file['csum']
       end
 
       # Process registry entries
-      vprint_status("Processing #{regs.length.to_s} registry entries for #{key}.")
+      vprint_status("Processing #{regs.length} registry entries for #{key}.")
 
       regs.each do |reg|
         rdata = registry_getvaldata(reg['key'], reg['val'])
-        if rdata.to_s == reg['data']
-          found << reg['key'] + '\\' + reg['val']
-        end
+        found << reg['key'] + '\\' + reg['val'] if rdata.to_s == reg['data']
       end
 
       # Did we find anything? If so store it in the evidence hash to be
@@ -96,5 +94,4 @@ class MetasploitModule < Msf::Post
     f = store_loot('enumerated.artifacts', 'text/plain', session, str, name)
     print_status("#{name} stored in: #{f}")
   end
-
 end

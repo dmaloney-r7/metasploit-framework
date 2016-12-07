@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'msf/core'
 require 'rex'
 require 'msf/core/post/common'
@@ -5,34 +6,33 @@ require 'msf/core/post/windows/registry'
 require 'msf/core/post/windows/netapi'
 
 class MetasploitModule < Msf::Post
-
   include Msf::Post::Common
   include Msf::Post::Windows::Registry
   include Msf::Post::Windows::NetAPI
   include Msf::Post::Windows::Accounts
 
-  def initialize(info={})
-    super( update_info( info,
-      'Name'	       => 'Windows Gather Enumerate Active Domain Users',
-      'Description'  => %q{
-          This module will enumerate computers included in the primary Domain and attempt
-          to list all locations the targeted user has sessions on. If a the HOST option is specified
-          the module will target only that host. If the HOST is specified and USER is set to nil, all users
-          logged into that host will be returned.'
-        },
-        'License'      => MSF_LICENSE,
-        'Author'       => [
-          'Etienne Stalmans <etienne[at]sensepost.com>',
-          'Ben Campbell'
-        ],
-        'Platform'     => [ 'win' ],
-        'SessionTypes' => [ 'meterpreter' ]
-    ))
+  def initialize(info = {})
+    super(update_info(info,
+                      'Name'	       => 'Windows Gather Enumerate Active Domain Users',
+                      'Description' => %q(
+                          This module will enumerate computers included in the primary Domain and attempt
+                          to list all locations the targeted user has sessions on. If a the HOST option is specified
+                          the module will target only that host. If the HOST is specified and USER is set to nil, all users
+                          logged into that host will be returned.'
+                        ),
+                      'License'      => MSF_LICENSE,
+                      'Author'       => [
+                        'Etienne Stalmans <etienne[at]sensepost.com>',
+                        'Ben Campbell'
+                      ],
+                      'Platform'     => [ 'win' ],
+                      'SessionTypes' => [ 'meterpreter' ]))
     register_options(
       [
         OptString.new('USER', [false, 'Target User for NetSessionEnum']),
-        OptString.new('HOST', [false, 'Target a specific host']),
-      ], self.class)
+        OptString.new('HOST', [false, 'Target a specific host'])
+      ], self.class
+    )
   end
 
   def run
@@ -75,7 +75,7 @@ class MetasploitModule < Msf::Post
       fail_with(Failure::BadConfig, "Invalid options, either HOST or USER must be specified.")
     end
 
-    if sessions.nil? or sessions.count == 0
+    if sessions.nil? || (sessions.count == 0)
       fail_with(Failure::Unknown, "No sessions found")
     else
       print_status("#{sessions.count} session(s) identified")
@@ -87,6 +87,4 @@ class MetasploitModule < Msf::Post
       end
     end
   end
-
 end
-

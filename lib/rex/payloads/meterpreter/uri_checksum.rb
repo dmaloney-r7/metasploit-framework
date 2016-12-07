@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 require 'msf/core/payload/uuid'
 
@@ -5,7 +6,6 @@ module Rex
   module Payloads
     module Meterpreter
       module UriChecksum
-
         #
         # Define 8-bit checksums for matching URLs
         # These are based on charset frequency
@@ -40,7 +40,6 @@ module Rex
         # @param uri [String] The URI string from the HTTP request
         # @return [Hash] The attributes extracted from the URI
         def process_uri_resource(uri)
-
           # Ignore non-base64url characters in the URL
           uri_bare = uri.gsub(/[^a-zA-Z0-9_\-]/, '')
 
@@ -65,8 +64,8 @@ module Rex
         # @param uuid [Msf::Payload::UUID] A valid UUID object
         # @param len [Fixnum] An optional URI length value, including the leading slash
         # @return [String] The URI string for connections
-        def generate_uri_uuid(sum, uuid, len=nil)
-          curl_uri_len = URI_CHECKSUM_UUID_MIN_LEN+rand(URI_CHECKSUM_CONN_MAX_LEN-URI_CHECKSUM_UUID_MIN_LEN)
+        def generate_uri_uuid(sum, uuid, len = nil)
+          curl_uri_len = URI_CHECKSUM_UUID_MIN_LEN + rand(URI_CHECKSUM_CONN_MAX_LEN - URI_CHECKSUM_UUID_MIN_LEN)
           curl_prefix  = uuid.to_uri
 
           if len
@@ -75,7 +74,7 @@ module Rex
           end
 
           if curl_uri_len < URI_CHECKSUM_UUID_MIN_LEN
-            raise ArgumentError, "Length must be #{URI_CHECKSUM_UUID_MIN_LEN+1} bytes or greater"
+            raise ArgumentError, "Length must be #{URI_CHECKSUM_UUID_MIN_LEN + 1} bytes or greater"
           end
 
           # Pad out the URI and make the checksum match the specified sum
@@ -88,7 +87,7 @@ module Rex
         # @param len [Fixnum] The length of the URI to generate
         # @param prefix [String] The optional prefix to use to build the URI
         # @return [String] The URI string that checksums to the given value
-        def generate_uri_checksum(sum, len=5, prefix="")
+        def generate_uri_checksum(sum, len = 5, prefix = "")
           # Lengths shorter than 4 bytes are unable to match all possible checksums
           # Lengths of exactly 4 are relatively slow to find for high checksum values
           # Lengths of 5 or more bytes find a matching checksum fairly quickly (~80ms)
@@ -96,7 +95,7 @@ module Rex
             raise ArgumentError, "Length must be #{URI_CHECKSUM_MIN_LEN} bytes or greater"
           end
 
-          gen_len = len-prefix.length
+          gen_len = len - prefix.length
           if gen_len < URI_CHECKSUM_MIN_LEN
             raise ArgumentError, "Prefix must be at least {URI_CHECKSUM_MIN_LEN} bytes smaller than total length"
           end
@@ -111,7 +110,7 @@ module Rex
 
           # The rand_text_base64url() method becomes a bottleneck at around 40 bytes
           # Calculating a static prefix flattens out the average runtime for longer URIs
-          prefix << Rex::Text.rand_text_base64url(gen_len-20)
+          prefix << Rex::Text.rand_text_base64url(gen_len - 20)
 
           loop do
             uri = prefix + Rex::Text.rand_text_base64url(20)
@@ -124,10 +123,8 @@ module Rex
         # @param mode [Symbol] The mode symbol to lookup (:connect, :init_native, :init_python, :init_java)
         # @return [Fixnum] The URI checksum value corresponding with the mode
         def uri_checksum_lookup(mode)
-          sum = URI_CHECKSUM_MODES.keys.select{|ksum| URI_CHECKSUM_MODES[ksum] == mode}.first
-          unless sum
-            raise ArgumentError, "Unknown checksum mode: #{mode}"
-          end
+          sum = URI_CHECKSUM_MODES.keys.select { |ksum| URI_CHECKSUM_MODES[ksum] == mode }.first
+          raise ArgumentError, "Unknown checksum mode: #{mode}" unless sum
           sum
         end
       end

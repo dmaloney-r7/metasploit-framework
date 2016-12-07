@@ -1,4 +1,5 @@
-RSpec.shared_examples_for 'Msf::DBManager#update_module_details with module' do |options={}|
+# frozen_string_literal: true
+RSpec.shared_examples_for 'Msf::DBManager#update_module_details with module' do |options = {}|
   options.assert_valid_keys(:reference_name, :type)
 
   reference_name = options.fetch(:reference_name)
@@ -18,9 +19,9 @@ RSpec.shared_examples_for 'Msf::DBManager#update_module_details with module' do 
     end
 
     it 'should not raise error' do
-      expect {
+      expect do
         update_module_details
-      }.to_not raise_error
+      end.to_not raise_error
     end
   end
 end

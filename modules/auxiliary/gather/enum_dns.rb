@@ -1,4 +1,5 @@
 
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -12,21 +13,21 @@ class MetasploitModule < Msf::Auxiliary
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'DNS Record Scanner and Enumerator',
-      'Description'    => %q(
-        This module can be used to gather information about a domain from a
-        given DNS server by performing various DNS queries such as zone
-        transfers, reverse lookups, SRV record bruteforcing, and other techniques.
-    ),
-      'Author'         => [
-        'Carlos Perez <carlos_perez[at]darkoperator.com>',
-        'Nixawk'
-      ],
-      'License'        => MSF_LICENSE,
-      'References' 	   => [
-        ['CVE', '1999-0532'],
-        ['OSVDB', '492']
-      ]))
+                      'Name'           => 'DNS Record Scanner and Enumerator',
+                      'Description'    => %q(
+                        This module can be used to gather information about a domain from a
+                        given DNS server by performing various DNS queries such as zone
+                        transfers, reverse lookups, SRV record bruteforcing, and other techniques.
+                    ),
+                      'Author'         => [
+                        'Carlos Perez <carlos_perez[at]darkoperator.com>',
+                        'Nixawk'
+                      ],
+                      'License'        => MSF_LICENSE,
+                      'References' 	   => [
+                        ['CVE', '1999-0532'],
+                        ['OSVDB', '492']
+                      ]))
 
     register_options(
       [
@@ -47,7 +48,8 @@ class MetasploitModule < Msf::Auxiliary
         OptAddressRange.new('IPRANGE', [false, "The target address range or CIDR identifier"]),
         OptInt.new('THREADS', [false, 'Threads for ENUM_BRT', 1]),
         OptPath.new('WORDLIST', [false, 'Wordlist of subdomains', ::File.join(Msf::Config.data_directory, 'wordlists', 'namelist.txt')])
-      ], self.class)
+      ], self.class
+    )
 
     register_advanced_options(
       [
@@ -55,7 +57,8 @@ class MetasploitModule < Msf::Auxiliary
         OptInt.new('RETRY', [false, 'Number of times to try to resolve a record if no response is received', 2]),
         OptInt.new('RETRY_INTERVAL', [false, 'Number of seconds to wait before doing a retry', 2]),
         OptBool.new('TCP_DNS', [false, 'Run queries over TCP', false])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def run
@@ -85,11 +88,11 @@ class MetasploitModule < Msf::Auxiliary
   def dns_query(domain, type)
     begin
       nameserver = datastore['NS']
-      if nameserver.blank?
-        dns = Net::DNS::Resolver.new
-      else
-        dns = Net::DNS::Resolver.new(nameservers: ::Rex::Socket.resolv_to_dotted(nameserver))
-      end
+      dns = if nameserver.blank?
+              Net::DNS::Resolver.new
+            else
+              Net::DNS::Resolver.new(nameservers: ::Rex::Socket.resolv_to_dotted(nameserver))
+            end
       dns.use_tcp = datastore['TCP_DNS']
       dns.udp_timeout = datastore['TIMEOUT']
       dns.retry_number = datastore['RETRY']
@@ -133,7 +136,13 @@ class MetasploitModule < Msf::Auxiliary
 
       rescue ::Timeout::Error
       ensure
-        t.each { |x| x.kill rescue nil }
+        t.each do |x|
+          begin
+                       x.kill
+                     rescue
+                       nil
+                     end
+        end
       end
     end
     records
@@ -165,7 +174,13 @@ class MetasploitModule < Msf::Auxiliary
 
       rescue ::Timeout::Error
       ensure
-        t.each { |x| x.kill rescue nil }
+        t.each do |x|
+          begin
+                       x.kill
+                     rescue
+                       nil
+                     end
+        end
       end
     end
     records
@@ -196,7 +211,7 @@ class MetasploitModule < Msf::Auxiliary
     records
   end
 
-  def get_a(domain, type='DNS A records')
+  def get_a(domain, type = 'DNS A records')
     resp = dns_query(domain, 'A')
     return if resp.blank? || resp.answer.blank?
 
@@ -327,7 +342,8 @@ class MetasploitModule < Msf::Auxiliary
         'tz', 'th', 'tg', 'tk', 'to', 'tt', 'tn', 'tr', 'tm', 'tc', 'tv',
         'ug', 'ua', 'ae', 'gb', 'us', 'um', 'uy', 'uz', 'vu', 've', 'vn',
         'vg', 'vi', 'wf', 'eh', 'ye', 'yu', 'za', 'zr', 'zm', 'zw', 'int',
-        'gs', 'info', 'biz', 'su', 'name', 'coop', 'aero']
+        'gs', 'info', 'biz', 'su', 'name', 'coop', 'aero'
+      ]
 
       records = []
       tlds.each do |tld|
@@ -352,7 +368,8 @@ class MetasploitModule < Msf::Auxiliary
       nntp telnet whois h323cs h323be h323ls sipinternal sipinternaltls
       sipfederationtls jabber jabber-client jabber-server xmpp-server xmpp-client
       imap certificates crls pgpkeys pgprevokations cmp svcp crl oscp pkixrep
-      smtp hkp hkps)
+      smtp hkp hkps
+    )
 
     srv_records_data = []
     srv_record_types.each do |srv_record_type|

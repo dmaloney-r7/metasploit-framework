@@ -1,49 +1,43 @@
 
+# frozen_string_literal: true
 require 'metasploit/framework/login_scanner/http'
 
 module Metasploit
   module Framework
     module LoginScanner
-
       class SymantecWebGateway < HTTP
-
         DEFAULT_PORT  = 443
-        PRIVATE_TYPES = [ :password ]
+        PRIVATE_TYPES = [ :password ].freeze
         LOGIN_STATUS  = Metasploit::Model::Login::Status # Shorter name
-
 
         # Checks if the target is Symantec Web Gateway. The login module should call this.
         #
         # @return [Boolean] TrueClass if target is SWG, otherwise FalseClass
         def check_setup
           login_uri = normalize_uri("#{uri}/spywall/login.php")
-          res = send_request({'uri'=> login_uri})
+          res = send_request('uri' => login_uri)
 
-          if res && res.body.include?('Symantec Web Gateway')
-            return true
-          end
+          return true if res && res.body.include?('Symantec Web Gateway')
 
           false
         end
-
 
         # Returns the latest sid from Symantec Web Gateway.
         #
         # @return [String] The PHP Session ID for Symantec Web Gateway login
         def get_last_sid
-          @last_sid ||= lambda {
+          @last_sid ||= lambda do
             # We don't have a session ID. Well, let's grab one right quick from the login page.
             # This should probably only happen once (initially).
             login_uri = normalize_uri("#{uri}/spywall/login.php")
-            res = send_request({'uri' => login_uri})
+            res = send_request('uri' => login_uri)
 
             return '' unless res
 
             cookies = res.get_cookies
             @last_sid = cookies.scan(/(PHPSESSID=\w+);*/).flatten[0] || ''
-          }.call
+          end.call
         end
-
 
         # Actually doing the login. Called by #attempt_login
         #
@@ -59,22 +53,20 @@ module Metasploit
           peer      = "#{host}:#{port}"
           login_uri = normalize_uri("#{uri}/spywall/login.php")
 
-          res = send_request({
-            'uri' => login_uri,
-            'method' => 'POST',
-            'cookie' => sid,
-            'headers' => {
-              'Referer' => "#{protocol}://#{peer}/#{login_uri}"
-            },
-            'vars_post' => {
-              'USERNAME' => username,
-              'PASSWORD' => password,
-              'loginBtn' => 'Login' # Found in the HTML form
-            }
-          })
+          res = send_request('uri' => login_uri,
+                             'method' => 'POST',
+                             'cookie' => sid,
+                             'headers' => {
+                               'Referer' => "#{protocol}://#{peer}/#{login_uri}"
+                             },
+                             'vars_post' => {
+                               'USERNAME' => username,
+                               'PASSWORD' => password,
+                               'loginBtn' => 'Login' # Found in the HTML form
+                             })
 
           unless res
-            return {:status => LOGIN_STATUS::UNABLE_TO_CONNECT, :proof => res.to_s}
+            return { status: LOGIN_STATUS::UNABLE_TO_CONNECT, proof: res.to_s }
           end
 
           # After login, the application should give us a new SID
@@ -83,12 +75,11 @@ module Metasploit
           @last_sid = sid # Update our SID
 
           if res.headers['Location'].to_s.include?('executive_summary.php') && !sid.blank?
-            return {:status => LOGIN_STATUS::SUCCESSFUL, :proof => res.to_s}
+            return { status: LOGIN_STATUS::SUCCESSFUL, proof: res.to_s }
           end
 
-          {:status => LOGIN_STATUS::INCORRECT, :proof => res.to_s}
+          { status: LOGIN_STATUS::INCORRECT, proof: res.to_s }
         end
-
 
         # Attempts to login to Symantec Web Gateway. This is called first.
         #
@@ -113,9 +104,7 @@ module Metasploit
 
           Result.new(result_opts)
         end
-
       end
     end
   end
 end
-

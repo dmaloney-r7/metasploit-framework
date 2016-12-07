@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 require 'msf/core'
 
@@ -7,7 +8,6 @@ require 'msf/core'
 #
 ###
 class Msf::Encoder::XorAdditiveFeedback < Msf::Encoder::Xor
-
   def initialize(info)
     super(info)
   end
@@ -24,7 +24,7 @@ class Msf::Encoder::XorAdditiveFeedback < Msf::Encoder::Xor
     state.key  = (state.key + orig) % (1 << (decoder_key_size * 8))
 
     # Return the XOR'd block
-    return [ oblock ].pack(decoder_key_pack)
+    [ oblock ].pack(decoder_key_pack)
   end
 
   #
@@ -38,7 +38,7 @@ class Msf::Encoder::XorAdditiveFeedback < Msf::Encoder::Xor
     orig_key_bytes = key_bytes.dup
 
     # While we haven't found a valid key, keep trying the encode operation
-    while (!valid)
+    until valid
       # Initialize the state back to defaults since we're trying to find a
       # key.
       init_state(state)
@@ -51,7 +51,7 @@ class Msf::Encoder::XorAdditiveFeedback < Msf::Encoder::Xor
         # character exception with the index of the bad character in the
         # key.  Use a stub_size of zero to bypass the check to in the
         # rescue block.
-        if ((idx = has_badchars?([state.key.to_i].pack(decoder_key_pack), badchars)) != nil)
+        if (idx = has_badchars?([state.key.to_i].pack(decoder_key_pack), badchars)) != nil
           raise Msf::BadcharError.new(nil, idx, 0, nil)
         end
 
@@ -61,29 +61,28 @@ class Msf::Encoder::XorAdditiveFeedback < Msf::Encoder::Xor
       rescue Msf::BadcharError => info
         # If the decoder stub contains a bad character, then there's not
         # much we can do about it
-        if (info.index < info.stub_size)
-          raise info, "The #{self.name} decoder stub contains a bad character.", caller
+        if info.index < info.stub_size
+          raise info, "The #{name} decoder stub contains a bad character.", caller
         end
 
         # Determine the actual index to the bad character inside the
         # encoded payload by removing the decoder stub from the index and
         # modulus off the decoder's key size
-        idx = (info.index - info.stub_size) % (decoder_key_size)
+        idx = (info.index - info.stub_size) % decoder_key_size
 
         # Increment the key byte at the index that the bad character was
         # detected
         key_bytes[idx] = ((key_bytes[idx] + 1) % 255)
 
         # If we looped around, then give up.
-        if (key_bytes[idx] == orig_key_bytes[idx])
-          raise info, "The #{self.name} encoder failed to encode without bad characters.",
-              caller
+        if key_bytes[idx] == orig_key_bytes[idx]
+          raise info, "The #{name} encoder failed to encode without bad characters.",
+                caller
         end
       end
     end
 
     # Return the original key
-    return state.orig_key
+    state.orig_key
   end
-
 end

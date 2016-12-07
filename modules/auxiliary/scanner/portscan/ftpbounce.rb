@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   # Order is important here
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::Scanner
@@ -15,21 +15,21 @@ class MetasploitModule < Msf::Auxiliary
   def initialize
     super(
       'Name'        => 'FTP Bounce Port Scanner',
-      'Description' => %q{
+      'Description' => %q(
         Enumerate TCP services via the FTP bounce PORT/LIST
         method.
-      },
+      ),
       'Author'      => 'kris katterjohn',
       'License'     => MSF_LICENSE
     )
 
     register_options([
-      OptString.new('PORTS', [true, "Ports to scan (e.g. 22-25,80,110-900)", "1-10000"]),
-      OptAddress.new('BOUNCEHOST', [true, "FTP relay host"]),
-      OptPort.new('BOUNCEPORT', [true, "FTP relay port", 21]),
-      OptInt.new('DELAY', [true, "The delay between connections, per thread, in milliseconds", 0]),
-      OptInt.new('JITTER', [true, "The delay jitter factor (maximum value by which to +/- DELAY) in milliseconds.", 0])
-    ])
+                       OptString.new('PORTS', [true, "Ports to scan (e.g. 22-25,80,110-900)", "1-10000"]),
+                       OptAddress.new('BOUNCEHOST', [true, "FTP relay host"]),
+                       OptPort.new('BOUNCEPORT', [true, "FTP relay port", 21]),
+                       OptInt.new('DELAY', [true, "The delay between connections, per thread, in milliseconds", 0]),
+                       OptInt.new('JITTER', [true, "The delay jitter factor (maximum value by which to +/- DELAY) in milliseconds.", 0])
+                     ])
 
     deregister_options('RHOST', 'RPORT')
   end
@@ -49,43 +49,37 @@ class MetasploitModule < Msf::Auxiliary
 
   def run_host(ip)
     ports = Rex::Socket.portspec_crack(datastore['PORTS'])
-    if ports.empty?
-      raise Msf::OptionValidateError.new(['PORTS'])
-    end
+    raise Msf::OptionValidateError, ['PORTS'] if ports.empty?
 
     jitter_value = datastore['JITTER'].to_i
-    if jitter_value < 0
-      raise Msf::OptionValidateError.new(['JITTER'])
-    end
+    raise Msf::OptionValidateError, ['JITTER'] if jitter_value < 0
 
     delay_value = datastore['DELAY'].to_i
-    if delay_value < 0
-      raise Msf::OptionValidateError.new(['DELAY'])
-    end
+    raise Msf::OptionValidateError, ['DELAY'] if delay_value < 0
 
-    return if not connect_login
+    return unless connect_login
 
     ports.each do |port|
       # Clear out the receive buffer since we're heavily dependent
       # on the response codes.  We need to do this between every
       # port scan attempt unfortunately.
-      while true
+      loop do
         r = sock.get_once(-1, 0.25)
-        break if not r or r.empty?
+        break if !r || r.empty?
       end
 
       begin
 
         # Add the delay based on JITTER and DELAY if needs be
-        add_delay_jitter(delay_value,jitter_value)
+        add_delay_jitter(delay_value, jitter_value)
 
         host = (ip.split('.') + [port / 256, port % 256]).join(',')
         resp = send_cmd(["PORT", host])
 
         if resp =~ /^5/
-          #print_error("Got error from PORT to #{ip}:#{port}")
+          # print_error("Got error from PORT to #{ip}:#{port}")
           next
-        elsif not resp
+        elsif !resp
           next
         end
 
@@ -93,10 +87,10 @@ class MetasploitModule < Msf::Auxiliary
 
         if resp =~ /^[12]/
           print_status(" TCP OPEN #{ip}:#{port}")
-          report_service(:host => ip, :port => port)
+          report_service(host: ip, port: port)
         end
       rescue ::Exception
-        print_error("Unknown error: #{$!}")
+        print_error("Unknown error: #{$ERROR_INFO}")
       end
     end
   end

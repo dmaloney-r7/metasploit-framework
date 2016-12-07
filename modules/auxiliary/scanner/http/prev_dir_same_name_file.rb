@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,9 +7,7 @@
 require 'rex/proto/http'
 require 'msf/core'
 
-
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::WmapScanDir
   include Msf::Auxiliary::Scanner
@@ -16,21 +15,21 @@ class MetasploitModule < Msf::Auxiliary
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'   		=> 'HTTP Previous Directory File Scanner',
-      'Description'	=> %q{
-        This module identifies files in the first parent directory with same name as
-        the given directory path. Example: Test /backup/files/ will look for the
-        following files /backup/files.ext .
-      },
-      'Author' 		=> [ 'et [at] metasploit.com' ],
-      'License'		=> BSD_LICENSE))
+                      'Name' => 'HTTP Previous Directory File Scanner',
+                      'Description'	=> %q(
+                        This module identifies files in the first parent directory with same name as
+                        the given directory path. Example: Test /backup/files/ will look for the
+                        following files /backup/files.ext .
+                      ),
+                      'Author' 		=> [ 'et [at] metasploit.com' ],
+                      'License'		=> BSD_LICENSE))
 
     register_options(
       [
-        OptString.new('PATH', [ true,  "The test path. The default value will not work.", '/']),
-        OptString.new('EXT', [ true,  "Extension to include.", '.aspx']),
-      ], self.class)
-
+        OptString.new('PATH', [ true, "The test path. The default value will not work.", '/']),
+        OptString.new('EXT', [ true, "Extension to include.", '.aspx'])
+      ], self.class
+    )
   end
 
   def run_host(ip)
@@ -63,44 +62,42 @@ class MetasploitModule < Msf::Auxiliary
 
     tpath = normalize_uri(datastore['PATH'])
 
-    if tpath.eql? "/"||""
-      print_error("Blank or default PATH set.");
+    if tpath.eql? "/" || ""
+      print_error("Blank or default PATH set.")
       return
     end
 
-    if tpath[-1,1] != '/'
-      tpath += '/'
-    end
+    tpath += '/' if tpath[-1, 1] != '/'
 
     extensions << datastore['EXT']
 
-    extensions.each { |ext|
+    extensions.each do |ext|
       begin
-        testf = tpath.chop+ext
+        testf = tpath.chop + ext
 
         res = send_request_cgi({
-          'uri'  		=>  testf,
-          'method'   	=> 'GET',
-          'ctype'		=> 'text/plain'
-        }, 20)
+                                 'uri' => testf,
+                                 'method' => 'GET',
+                                 'ctype'		=> 'text/plain'
+                               }, 20)
 
-        if (res and res.code >= 200 and res.code < 300)
+        if res && (res.code >= 200) && res.code < 300
           print_status("Found #{wmap_base_url}#{testf}")
 
           report_web_vuln(
-            :host	=> ip,
-            :port	=> rport,
-            :vhost  => vhost,
-            :ssl    => ssl,
-            :path	=> testf,
-            :method => 'GET',
-            :pname  => "",
-            :proof  => "Res code: #{res.code.to_s}",
-            :risk   => 0,
-            :confidence   => 100,
-            :category     => 'file',
-            :description  => 'File found.',
-            :name   => 'file'
+            host: ip,
+            port: rport,
+            vhost: vhost,
+            ssl: ssl,
+            path: testf,
+            method: 'GET',
+            pname: "",
+            proof: "Res code: #{res.code}",
+            risk: 0,
+            confidence: 100,
+            category: 'file',
+            description: 'File found.',
+            name: 'file'
           )
 
         else
@@ -110,8 +107,6 @@ class MetasploitModule < Msf::Auxiliary
       rescue ::Rex::ConnectionRefused, ::Rex::HostUnreachable, ::Rex::ConnectionTimeout
       rescue ::Timeout::Error, ::Errno::EPIPE
       end
-
-    }
-
+    end
   end
 end

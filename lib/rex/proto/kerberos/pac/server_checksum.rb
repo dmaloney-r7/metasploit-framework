@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 module Rex
@@ -7,7 +8,6 @@ module Rex
         # This class provides a representation of a PAC_SERVER_CHECKSUM structure, which contains the
         # checksum using the key of the server.
         class ServerChecksum < Element
-
           # @!attribute version
           #   @return [Fixnum] The checksum type
           attr_accessor :checksum
@@ -23,7 +23,6 @@ module Rex
             encoded
           end
         end
-
       end
     end
   end

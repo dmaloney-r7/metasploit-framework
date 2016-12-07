@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 require 'msf/core'
 
@@ -7,7 +8,6 @@ require 'msf/core'
 #
 ###
 class Msf::Module::Target
-
   ###
   #
   # Target-specific brute force information, such as the addresses
@@ -16,7 +16,6 @@ class Msf::Module::Target
   #
   ###
   class Bruteforce < Hash
-
     #
     # Initializes a brute force target from the supplied brute forcing
     # information.
@@ -31,10 +30,10 @@ class Msf::Module::Target
     # routine.
     #
     def start_addresses
-      if (self['Start'] and self['Start'].kind_of?(Hash) == false)
-        return {'Address' => self['Start'] }
+      if self['Start'] && (self['Start'].is_a?(Hash) == false)
+        { 'Address' => self['Start'] }
       else
-        return self['Start']
+        self['Start']
       end
     end
 
@@ -43,10 +42,10 @@ class Msf::Module::Target
     # they are reached.
     #
     def stop_addresses
-      if (self['Stop'] and self['Stop'].kind_of?(Hash) == false)
-        return {'Address' => self['Stop'] }
+      if self['Stop'] && (self['Stop'].is_a?(Hash) == false)
+        { 'Address' => self['Stop'] }
       else
-        return self['Stop']
+        self['Stop']
       end
     end
 
@@ -66,11 +65,9 @@ class Msf::Module::Target
     def default_direction
       dd = self['DefaultDirection']
 
-      if (dd and dd.to_s.match(/(-1|backward)/i))
-        return -1
-      end
+      return -1 if dd && dd.to_s.match(/(-1|backward)/i)
 
-      return 1
+      1
     end
 
     #
@@ -85,9 +82,9 @@ class Msf::Module::Target
   # Serialize from an array to a Target instance.
   #
   def self.from_a(ary)
-    return nil if (ary.length < 2)
+    return nil if ary.length < 2
 
-    self.new(ary.shift, ary.shift)
+    new(ary.shift, ary.shift)
   end
 
   #
@@ -130,7 +127,7 @@ class Msf::Module::Target
   # 	can be set on a per-exploit or per-target basis.
   #
   def initialize(name, opts)
-    opts = {} if (!opts)
+    opts = {} unless opts
 
     self.name           = name
     self.platform       = opts['Platform'] ? Msf::Module::PlatformList.transform(opts['Platform']) : nil
@@ -138,15 +135,13 @@ class Msf::Module::Target
     self.ret            = opts['Ret']
     self.opts           = opts
 
-    if (opts['Arch'])
+    if opts['Arch']
       self.arch = Rex::Transformer.transform(opts['Arch'], Array,
-        [ String ], 'Arch')
+                                             [ String ], 'Arch')
     end
 
     # Does this target have brute force information?
-    if (opts['Bruteforce'])
-      self.bruteforce = Bruteforce.new(opts['Bruteforce'])
-    end
+    self.bruteforce = Bruteforce.new(opts['Bruteforce']) if opts['Bruteforce']
   end
 
   #
@@ -161,7 +156,7 @@ class Msf::Module::Target
   # result.
   #
   def bruteforce?
-    return (bruteforce != nil)
+    !bruteforce.nil?
   end
 
   ##
@@ -290,9 +285,8 @@ class Msf::Module::Target
   #
   attr_reader :bruteforce
 
-protected
+  protected
 
   attr_writer :name, :platform, :arch, :opts, :ret, :save_registers # :nodoc:
   attr_writer :bruteforce # :nodoc:
-
 end

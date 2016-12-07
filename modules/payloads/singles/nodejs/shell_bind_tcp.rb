@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -13,7 +14,6 @@ require 'msf/core/handler/bind_tcp'
 require 'msf/base/sessions/command_shell'
 
 module MetasploitModule
-
   CachedSize = 456
 
   include Msf::Payload::Single
@@ -22,17 +22,16 @@ module MetasploitModule
 
   def initialize(info = {})
     super(merge_info(info,
-      'Name'          => 'Command Shell, Bind TCP (via nodejs)',
-      'Description'   => 'Creates an interactive shell via nodejs',
-      'Author'        => ['joev'],
-      'License'       => BSD_LICENSE,
-      'Platform'      => 'nodejs',
-      'Arch'          => ARCH_NODEJS,
-      'Handler'       => Msf::Handler::BindTcp,
-      'Session'       => Msf::Sessions::CommandShell,
-      'PayloadType'   => 'nodejs',
-      'Payload'       => { 'Offsets' => {}, 'Payload' => '' }
-    ))
+                     'Name'          => 'Command Shell, Bind TCP (via nodejs)',
+                     'Description'   => 'Creates an interactive shell via nodejs',
+                     'Author'        => ['joev'],
+                     'License'       => BSD_LICENSE,
+                     'Platform'      => 'nodejs',
+                     'Arch'          => ARCH_NODEJS,
+                     'Handler'       => Msf::Handler::BindTcp,
+                     'Session'       => Msf::Sessions::CommandShell,
+                     'PayloadType'   => 'nodejs',
+                     'Payload'       => { 'Offsets' => {}, 'Payload' => '' }))
   end
 
   #

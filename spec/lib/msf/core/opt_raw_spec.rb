@@ -1,13 +1,13 @@
+# frozen_string_literal: true
 # -*- coding:binary -*-
 
 require 'spec_helper'
 require 'msf/core/option_container'
 
 RSpec.describe Msf::OptRaw do
-
   valid_values = [
-      { :value => 'foo',    :normalized => 'foo'     },
-      { :value => "file:#{File.expand_path('string_list.txt',FILE_FIXTURES_PATH)}",:normalized => "foo\nbar\nbaz" }
+    { value: 'foo', normalized: 'foo' },
+    { value: "file:#{File.expand_path('string_list.txt', FILE_FIXTURES_PATH)}", normalized: "foo\nbar\nbaz" }
   ]
   invalid_values = []
 

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,9 +7,7 @@
 require 'rex/proto/http'
 require 'msf/core'
 
-
 class MetasploitModule < Msf::Auxiliary
-
   # Exploit mixins should be called first
   include Msf::Exploit::Remote::HttpClient
   # Scanner mixin should be near last
@@ -17,21 +16,21 @@ class MetasploitModule < Msf::Auxiliary
   def initialize
     super(
       'Name'        => 'HTTP SSL/TLS Version Detection (POODLE scanner)',
-      'Description' => %q{
+      'Description' => %q(
         Check if an HTTP server supports a given version of SSL/TLS.
 
         If a web server can successfully establish an SSLv3 session, it is
         likely to be vulnerable to the POODLE attack described on
         October 14, 2014, as a patch against the attack is unlikely.
-      },
+      ),
       'Author'      => 'todb',
       'License'     => MSF_LICENSE,
       'DefaultOptions' =>
       {
         'SSL' => true,
-        'RPORT' => 443,
+        'RPORT' => 443
       },
-      'References'  =>
+      'References' =>
       [
         [ 'URL', 'http://googleonlinesecurity.blogspot.com/2014/10/this-poodle-bites-exploiting-ssl-30.html'],
         [ 'OSVDB', '113251'],
@@ -45,14 +44,13 @@ class MetasploitModule < Msf::Auxiliary
         Opt::SSLVersion
       ]
     )
-
   end
 
   # Fingerprint a single host
   def run_host(ip)
     begin
-      res = send_request_raw({ 'uri' => '/', 'method' => 'GET' })
-      fp = http_fingerprint(:response => res)
+      res = send_request_raw('uri' => '/', 'method' => 'GET')
+      fp = http_fingerprint(response: res)
       if fp
         vprint_status("#{peer} connected and fingerprinted: #{fp}")
         # TODO: Interrogate the connection itself to see what version
@@ -70,14 +68,13 @@ class MetasploitModule < Msf::Auxiliary
 
   def report_poodle_vuln(ip)
     report_vuln(
-      :host         => ip,
-      :port         => rport,
-      :proto        => 'tcp',
-      :name         => self.name,
-      :info         => "Module #{self.fullname} confirmed SSLv3 is available",
-      :refs         => self.references,
-      :exploited_at => Time.now.utc
+      host: ip,
+      port: rport,
+      proto: 'tcp',
+      name: name,
+      info: "Module #{fullname} confirmed SSLv3 is available",
+      refs: references,
+      exploited_at: Time.now.utc
     )
   end
-
 end

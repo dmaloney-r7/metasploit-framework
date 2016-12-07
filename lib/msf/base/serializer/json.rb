@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 # rubocop:disable Metrics/AbcSize
 # rubocop:disable Metrics/ClassLength
@@ -19,19 +20,19 @@ module Msf
       def self.dump_module(mod, _indent = "")
         case mod.type
         when Msf::MODULE_PAYLOAD
-          return dump_payload_module(mod)
+          dump_payload_module(mod)
         when Msf::MODULE_NOP
-          return dump_basic_module(mod)
+          dump_basic_module(mod)
         when Msf::MODULE_ENCODER
-          return dump_basic_module(mod)
+          dump_basic_module(mod)
         when Msf::MODULE_EXPLOIT
-          return dump_exploit_module(mod)
+          dump_exploit_module(mod)
         when Msf::MODULE_AUX
-          return dump_auxiliary_module(mod)
+          dump_auxiliary_module(mod)
         when Msf::MODULE_POST
-          return dump_post_module(mod)
+          dump_post_module(mod)
         else
-          return dump_basic_module(mod)
+          dump_basic_module(mod)
         end
       end
 
@@ -200,7 +201,7 @@ module Msf
       # @param mod [Msf::Module] the module.
       # @return [Array] the array of the information.
       def self.dump_references(mod)
-        if (mod.respond_to? :references) && mod.references && (mod.references.length > 0)
+        if (mod.respond_to? :references) && mod.references && !mod.references.empty?
           refs = []
           mod.references.each { |ref| refs.push(ref.to_s) }
         end

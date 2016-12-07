@@ -1,47 +1,42 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 require 'msf/core/auxiliary/jtr'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Auxiliary::JohnTheRipper
 
   def initialize
     super(
       'Name'            => 'John the Ripper Linux Password Cracker',
-      'Description'     => %Q{
+      'Description'     => %(
           This module uses John the Ripper to identify weak passwords that have been
         acquired from unshadowed passwd files from Unix systems. The module will only crack
         MD5 and DES implementations by default. Set Crypt to true to also try to crack
         Blowfish and SHA implementations. Warning: This is much slower.
-      },
+      ),
       'Author'          =>
         [
           'theLightCosine',
           'hdm'
-        ] ,
-      'License'         => MSF_LICENSE  # JtR itself is GPLv2, but this wrapper is MSF (BSD)
+        ],
+      'License'         => MSF_LICENSE # JtR itself is GPLv2, but this wrapper is MSF (BSD)
     )
 
     register_options(
       [
-        OptBool.new('Crypt',[false, 'Try crypt() format hashes(Very Slow)', false])
+        OptBool.new('Crypt', [false, 'Try crypt() format hashes(Very Slow)', false])
       ]
     )
-
   end
 
   def run
-
     formats = [ 'md5', 'des', 'bsdi']
-    if datastore['Crypt']
-      formats << 'crypt'
-    end
+    formats << 'crypt' if datastore['Crypt']
 
     cracker = new_john_cracker
 
@@ -72,13 +67,13 @@ class MetasploitModule < Msf::Auxiliary
         next if password_line.blank?
         fields = password_line.split(":")
         # If we don't have an expected minimum number of fields, this is probably not a hash line
-        next unless fields.count >=7
+        next unless fields.count >= 7
         username = fields.shift
         core_id  = fields.pop
         4.times { fields.pop }
         password = fields.join('') # Anything left must be the password. This accounts for passwords with : in them
         print_good password_line
-        create_cracked_credential( username: username, password: password, core_id: core_id)
+        create_cracked_credential(username: username, password: password, core_id: core_id)
       end
     end
   end
@@ -88,7 +83,7 @@ class MetasploitModule < Msf::Auxiliary
     Metasploit::Credential::NonreplayableHash.joins(:cores).where(metasploit_credential_cores: { workspace_id: myworkspace.id }, jtr_format: 'md5,des,bsdi,crypt').each do |hash|
       hash.cores.each do |core|
         user = core.public.username
-        hash_string = "#{hash.data}"
+        hash_string = hash.data.to_s
         id = core.id
         hashlist.puts "#{user}:#{hash_string}:::::#{id}:"
       end
@@ -97,7 +92,4 @@ class MetasploitModule < Msf::Auxiliary
     print_status "Hashes Written out to #{hashlist.path}"
     hashlist.path
   end
-
-
-
 end

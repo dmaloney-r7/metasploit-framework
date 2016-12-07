@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -8,16 +9,15 @@ require 'rex/proto/tftp'
 require 'tmpdir'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::TFTPServer
   include Msf::Auxiliary::Report
 
   def initialize
     super(
-      'Name'        => 'TFTP File Server',
-      'Description'    => %q{
+      'Name' => 'TFTP File Server',
+      'Description' => %q(
         This module provides a TFTP service
-      },
+      ),
       'Author'      => [ 'jduck', 'todb' ],
       'License'     => MSF_LICENSE,
       'Actions'     =>
@@ -35,9 +35,10 @@ class MetasploitModule < Msf::Auxiliary
       [
         OptAddress.new('SRVHOST',   [ true, "The local host to listen on.", '0.0.0.0' ]),
         OptPort.new('SRVPORT',      [ true, "The local port to listen on.", 69 ]),
-        OptPath.new('TFTPROOT',   [ true, "The TFTP root directory to serve files from", Dir.tmpdir  ]),
+        OptPath.new('TFTPROOT',   [ true, "The TFTP root directory to serve files from", Dir.tmpdir ]),
         OptPath.new('OUTPUTPATH', [ true, "The directory in which uploaded files will be written.", Dir.tmpdir ])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def srvhost
@@ -64,18 +65,15 @@ class MetasploitModule < Msf::Auxiliary
     print_status("Uploaded files will be saved in #{datastore['OUTPUTPATH']}")
 
     # Individual virtual files can be served here -
-    #@tftp.register_file("ays", "A" * 2048) # multiple of 512 on purpose
+    # @tftp.register_file("ays", "A" * 2048) # multiple of 512 on purpose
 
     @tftp.start
     add_socket(@tftp.sock)
 
     # Wait for finish..
-    while @tftp.thread.alive?
-      sleep 3
-    end
+    sleep 3 while @tftp.thread.alive?
 
     vprint_status("Stopping TFTP server")
     @tftp.stop
   end
-
 end

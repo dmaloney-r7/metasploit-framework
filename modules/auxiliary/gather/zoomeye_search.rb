@@ -1,46 +1,44 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 require 'rex/proto/http'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Auxiliary::Report
 
-
-  def initialize(info={})
+  def initialize(info = {})
     super(update_info(info,
-      'Name'        => 'ZoomEye Search',
-      'Description' => %q{
-        The module use the ZoomEye API to search ZoomEye. ZoomEye is a search
-        engine for cyberspace that lets the user find specific network
-        components(ip, services, etc.).
-      },
-      'Author'      => [ 'Nixawk' ],
-      'References'  => [
-        ['URL', 'https://github.com/zoomeye/SDK'],
-        ['URL', 'https://www.zoomeye.org/api/doc'],
-        ['URL', 'https://www.zoomeye.org/help/manual']
-      ],
-      'License'     => MSF_LICENSE
-      ))
+                      'Name'        => 'ZoomEye Search',
+                      'Description' => %q{
+                        The module use the ZoomEye API to search ZoomEye. ZoomEye is a search
+                        engine for cyberspace that lets the user find specific network
+                        components(ip, services, etc.).
+                      },
+                      'Author'      => [ 'Nixawk' ],
+                      'References'  => [
+                        ['URL', 'https://github.com/zoomeye/SDK'],
+                        ['URL', 'https://www.zoomeye.org/api/doc'],
+                        ['URL', 'https://www.zoomeye.org/help/manual']
+                      ],
+                      'License' => MSF_LICENSE))
 
-      deregister_options('RHOST', 'DOMAIN', 'DigestAuthIIS', 'NTLM::SendLM',
-            'NTLM::SendNTLM', 'VHOST', 'RPORT', 'NTLM::SendSPN', 'NTLM::UseLMKey',
-            'NTLM::UseNTLM2_session', 'NTLM::UseNTLMv2', 'SSL')
+    deregister_options('RHOST', 'DOMAIN', 'DigestAuthIIS', 'NTLM::SendLM',
+                       'NTLM::SendNTLM', 'VHOST', 'RPORT', 'NTLM::SendSPN', 'NTLM::UseLMKey',
+                       'NTLM::UseNTLM2_session', 'NTLM::UseNTLMv2', 'SSL')
 
-      register_options(
-        [
-          OptString.new('USERNAME', [true, 'The ZoomEye username']),
-          OptString.new('PASSWORD', [true, 'The ZoomEye password']),
-          OptString.new('ZOOMEYE_DORK', [true, 'The ZoomEye Dock']),
-          OptEnum.new('RESOURCE', [true, 'ZoomEye Resource Type', 'host', ['host', 'web']]),
-          OptInt.new('MAXPAGE', [true, 'Max amount of pages to collect', 1])
-        ], self.class)
+    register_options(
+      [
+        OptString.new('USERNAME', [true, 'The ZoomEye username']),
+        OptString.new('PASSWORD', [true, 'The ZoomEye password']),
+        OptString.new('ZOOMEYE_DORK', [true, 'The ZoomEye Dock']),
+        OptEnum.new('RESOURCE', [true, 'ZoomEye Resource Type', 'host', ['host', 'web']]),
+        OptInt.new('MAXPAGE', [true, 'Max amount of pages to collect', 1])
+      ], self.class
+    )
   end
 
   # Check to see if api.zoomeye.org resolves properly
@@ -61,12 +59,10 @@ class MetasploitModule < Msf::Auxiliary
     @cli = Rex::Proto::Http::Client.new('api.zoomeye.org', 443, {}, true)
     @cli.connect
 
-    data = {'username' => username, 'password' => password}
-    req = @cli.request_cgi({
-      'uri'    => '/user/login',
-      'method' => 'POST',
-      'data'   => data.to_json
-    })
+    data = { 'username' => username, 'password' => password }
+    req = @cli.request_cgi('uri' => '/user/login',
+                           'method' => 'POST',
+                           'data'   => data.to_json)
 
     res = @cli.send_recv(req)
 
@@ -93,16 +89,14 @@ class MetasploitModule < Msf::Auxiliary
     #         A comma-separated list of properties to get summary information
 
     begin
-      req = @cli.request_cgi({
-        'uri'      => "/#{resource}/search",
-        'method'   => 'GET',
-        'headers'  => { 'Authorization' => "JWT #{@zoomeye_token}" },
-        'vars_get' => {
-          'query'  => dork,
-          'page'   => page,
-          'facet'  => 'ip'
-        }
-      })
+      req = @cli.request_cgi('uri' => "/#{resource}/search",
+                             'method'   => 'GET',
+                             'headers'  => { 'Authorization' => "JWT #{@zoomeye_token}" },
+                             'vars_get' => {
+                               'query' => dork,
+                               'page'   => page,
+                               'facet'  => 'ip'
+                             })
 
       res = @cli.send_recv(req)
 
@@ -133,7 +127,7 @@ class MetasploitModule < Msf::Auxiliary
       host = match['ip']
       port = match['portinfo']['port']
 
-      report_service(:host => host, :port => port)
+      report_service(host: host, port: port)
       print_good("Host: #{host} ,PORT: #{port}")
     end
   end
@@ -143,7 +137,7 @@ class MetasploitModule < Msf::Auxiliary
       host = match['ip'][0]
       domains = match['domains']
 
-      report_host(:host => host)
+      report_host(host: host)
       print_good("Host: #{host}, Domains: #{domains}")
     end
   end

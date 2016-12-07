@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 module Rex
@@ -6,7 +7,6 @@ module Rex
       module Model
         # This class provides a representation of a Kerberos Checksum definition.
         class Checksum < Element
-
           # @!attribute type
           #   @return [Fixnum] The algorithm used to generate the checksum
           attr_accessor :type
@@ -17,7 +17,7 @@ module Rex
           # Rex::Proto::Kerberos::Model::Checksum decoding isn't supported
           #
           # @raise [NotImplementedError]
-          def decode(input)
+          def decode(_input)
             raise ::NotImplementedError, 'Checksum decoding not supported'
           end
 

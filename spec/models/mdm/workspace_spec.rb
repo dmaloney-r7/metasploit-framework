@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 RSpec.describe Mdm::Workspace, type: :model do
   subject(:workspace) do
     Mdm::Workspace.new
@@ -78,7 +79,7 @@ RSpec.describe Mdm::Workspace, type: :model do
       end
 
       subject do
-        -> {workspace.send(:valid_ip_or_range?, ip_or_range)}
+        -> { workspace.send(:valid_ip_or_range?, ip_or_range) }
       end
 
       context 'with exception from Rex::Socket::RangeWalker' do
@@ -100,7 +101,6 @@ RSpec.describe Mdm::Workspace, type: :model do
       end
     end
   end
-
 
   it_should_behave_like 'Mdm::Workspace::Boundary'
 end

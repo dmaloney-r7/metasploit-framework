@@ -1,9 +1,8 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 #
 #       $Id: Resolver.rb,v 1.11 2006/07/30 16:55:35 bluemonk Exp $
 #
-
-
 
 require 'socket'
 require 'timeout'
@@ -16,7 +15,6 @@ alias old_send send
 
 module Net # :nodoc:
   module DNS
-
     include Logger::Severity
 
     # =Name
@@ -86,7 +84,6 @@ module Net # :nodoc:
     #      % setenv RES_OPTIONS "retrans:3 retry:2 debug"
     #
     class Resolver
-
       class NextNameserver < RuntimeError
       end
 
@@ -95,24 +92,25 @@ module Net # :nodoc:
       # the description for each parameter to have an
       # explanation of its usage.
       Defaults = {
-        :config_file => "/etc/resolv.conf",
-        :log_file => $stdout,
-        :port => 53,
-        :searchlist => [],
-        :nameservers => [IPAddr.new("127.0.0.1")],
-        :domain => "",
-        :source_port => 0,
-        :source_address => IPAddr.new("0.0.0.0"),
-        :retry_interval => 5,
-        :retry_number => 4,
-        :recursive => true,
-        :defname => true,
-        :dns_search => true,
-        :use_tcp => false,
-        :ignore_truncated => false,
-        :packet_size => 512,
-        :tcp_timeout => TcpTimeout.new(120),
-        :udp_timeout => UdpTimeout.new(5)}
+        config_file: "/etc/resolv.conf",
+        log_file: $stdout,
+        port: 53,
+        searchlist: [],
+        nameservers: [IPAddr.new("127.0.0.1")],
+        domain: "",
+        source_port: 0,
+        source_address: IPAddr.new("0.0.0.0"),
+        retry_interval: 5,
+        retry_number: 4,
+        recursive: true,
+        defname: true,
+        dns_search: true,
+        use_tcp: false,
+        ignore_truncated: false,
+        packet_size: 512,
+        tcp_timeout: TcpTimeout.new(120),
+        udp_timeout: UdpTimeout.new(5)
+      }.freeze
 
       # Create a new resolver object.
       #
@@ -205,7 +203,7 @@ module Net # :nodoc:
       # Net::DNS::Resolver Perl module.
       #
       def initialize(config = {})
-        raise ResolverArgumentError, "Argument has to be Hash" unless config.kind_of? Hash
+        raise ResolverArgumentError, "Argument has to be Hash" unless config.is_a? Hash
         # config.key_downcase!
         @config = Defaults.merge config
         @raw = false
@@ -222,8 +220,6 @@ module Net # :nodoc:
         # 4) defaults (and /etc/resolv.conf for config)
         #------------------------------------------------------------
 
-
-
         #------------------------------------------------------------
         # Parsing config file
         #------------------------------------------------------------
@@ -237,10 +233,10 @@ module Net # :nodoc:
         #------------------------------------------------------------
         # Parsing arguments
         #------------------------------------------------------------
-        config.each do |key,val|
-          next if key == :log_file or key == :config_file
+        config.each do |key, _val|
+          next if (key == :log_file) || (key == :config_file)
           begin
-            eval "self.#{key.to_s} = val"
+            eval "self.#{key} = val"
           rescue NoMethodError
             raise ResolverArgumentError, "Option #{key} not valid"
           end
@@ -276,7 +272,7 @@ module Net # :nodoc:
           @config[:searchlist] = [arg] if valid? arg
           @logger.info "Searchlist changed to value #{@config[:searchlist].inspect}"
         when Array
-          @config[:searchlist] = arg if arg.all? {|x| valid? x}
+          @config[:searchlist] = arg if arg.all? { |x| valid? x }
           @logger.info "Searchlist changed to value #{@config[:searchlist].inspect}"
         else
           raise ResolverArgumentError, "Wrong argument format, neither String nor Array"
@@ -295,7 +291,7 @@ module Net # :nodoc:
         end
         arr
       end
-      alias_method :nameserver, :nameservers
+      alias nameserver nameservers
 
       # Set the list of resolver nameservers
       # +arg+ can be a single ip address or an array of addresses
@@ -345,7 +341,7 @@ module Net # :nodoc:
           raise ResolverArgumentError, "Wrong argument format, neither String, Array nor IPAddr"
         end
       end
-      alias_method("nameserver=","nameservers=")
+      alias nameserver= nameservers=
 
       # Return a string with the default domain
       #
@@ -381,7 +377,7 @@ module Net # :nodoc:
       # The default is port 53.
       #
       def port=(num)
-        if (0..65535).include? num
+        if (0..65535).cover? num
           @config[:port] = num
           @logger.info "Port number changed to #{num}"
         else
@@ -410,10 +406,8 @@ module Net # :nodoc:
       # underlaying layers.
       #
       def source_port=(num)
-        unless root?
-          raise ResolverPermissionError, "Are you root?"
-        end
-        if (0..65535).include?(num)
+        raise ResolverPermissionError, "Are you root?" unless root?
+        if (0..65535).cover?(num)
           @config[:source_port] = num
         else
           raise ResolverArgumentError, "Wrong port number #{num}"
@@ -461,9 +455,9 @@ module Net # :nodoc:
         end
 
         begin
-          port = rand(64000)+1024
+          port = rand(64000) + 1024
           @logger.warn "Try to determine state of source address #{addr} with port #{port}"
-          a = TCPServer.new(addr.to_s,port)
+          a = TCPServer.new(addr.to_s, port)
         rescue SystemCallError => e
           case e.errno
           when 98 # Port already in use!
@@ -524,14 +518,14 @@ module Net # :nodoc:
       # Default 4 times
       #
       def retry_number=(num)
-        if num.kind_of? Integer and num > 0
+        if num.is_a?(Integer) && num > 0
           @config[:retry_number] = num
           @logger.info "Retrasmissions number changed to #{num}"
         else
           raise ResolverArgumentError, "Retry value must be a positive integer"
         end
       end
-      alias_method('retry=', 'retry_number=')
+      alias retry= retry_number=
 
       # This method will return true if the resolver is configured to
       # perform recursive queries.
@@ -543,8 +537,8 @@ module Net # :nodoc:
       def recursive?
         @config[:recursive]
       end
-      alias_method :recurse, :recursive?
-      alias_method :recursive, :recursive?
+      alias recurse recursive?
+      alias recursive recursive?
 
       # Sets whether or not the resolver should perform recursive
       # queries. Default is true.
@@ -553,14 +547,14 @@ module Net # :nodoc:
       #
       def recursive=(bool)
         case bool
-        when TrueClass,FalseClass
+        when TrueClass, FalseClass
           @config[:recursive] = bool
           @logger.info("Recursive state changed to #{bool}")
         else
           raise ResolverArgumentError, "Argument must be boolean"
         end
       end
-      alias_method :recurse=, :recursive=
+      alias recurse= recursive=
 
       # Return a string rapresenting the resolver state, suitable
       # for printing on the screen.
@@ -571,13 +565,13 @@ module Net # :nodoc:
       def state
         str = ";; RESOLVER state:\n;; "
         i = 1
-        @config.each do |key,val|
-          if key == :log_file or key == :config_file
-            str << "#{key}: #{val} \t"
-            else
-            str << "#{key}: #{eval(key.to_s)} \t"
-          end
-          str << "\n;; " if i % 2 == 0
+        @config.each do |key, val|
+          str << if (key == :log_file) || (key == :config_file)
+                   "#{key}: #{val} \t"
+                 else
+                   "#{key}: #{eval(key.to_s)} \t"
+                 end
+          str << "\n;; " if i.even?
           i += 1
         end
         str
@@ -605,7 +599,7 @@ module Net # :nodoc:
       #
       def defname=(bool)
         case bool
-        when TrueClass,FalseClass
+        when TrueClass, FalseClass
           @config[:defname] = bool
           @logger.info("Defname state changed to #{bool}")
         else
@@ -617,7 +611,7 @@ module Net # :nodoc:
       def dns_search
         @config[:dns_search]
       end
-      alias_method :dnsrch, :dns_search
+      alias dnsrch dns_search
 
       # Set the flag +dns_search+ in a boolean state. If +dns_search+
       # is true, when using the Resolver#search method will be applied
@@ -625,22 +619,22 @@ module Net # :nodoc:
       #
       def dns_search=(bool)
         case bool
-        when TrueClass,FalseClass
+        when TrueClass, FalseClass
           @config[:dns_search] = bool
           @logger.info("DNS search state changed to #{bool}")
         else
           raise ResolverArgumentError, "Argument must be boolean"
         end
       end
-      alias_method("dnsrch=","dns_search=")
+      alias dnsrch= dns_search=
 
       # Get the state of the use_tcp flag.
       #
       def use_tcp?
         @config[:use_tcp]
       end
-      alias_method :usevc, :use_tcp?
-      alias_method :use_tcp, :use_tcp?
+      alias usevc use_tcp?
+      alias use_tcp use_tcp?
 
       # If +use_tcp+ is true, the resolver will perform all queries
       # using TCP virtual circuits instead of UDP datagrams, which
@@ -654,7 +648,7 @@ module Net # :nodoc:
       #
       def use_tcp=(bool)
         case bool
-        when TrueClass,FalseClass
+        when TrueClass, FalseClass
           @config[:use_tcp] = bool
           @logger.info("Use tcp flag changed to #{bool}")
         else
@@ -666,11 +660,11 @@ module Net # :nodoc:
       def ignore_truncated?
         @config[:ignore_truncated]
       end
-      alias_method :ignore_truncated, :ignore_truncated?
+      alias ignore_truncated ignore_truncated?
 
       def ignore_truncated=(bool)
         case bool
-        when TrueClass,FalseClass
+        when TrueClass, FalseClass
           @config[:ignore_truncated] = bool
           @logger.info("Ignore truncated flag changed to #{bool}")
         else
@@ -779,7 +773,7 @@ module Net # :nodoc:
       # Note that this will destroy the precedent logger.
       #
       def logger=(logger)
-        if logger.kind_of? Logger
+        if logger.is_a? Logger
           @logger.close
           @logger = logger
         else
@@ -833,29 +827,27 @@ module Net # :nodoc:
       # Returns a Net::DNS::Packet object. If you need to examine the response packet
       # whether it contains any answers or not, use the send() method instead.
       #
-      def search(name,type=Net::DNS::A,cls=Net::DNS::IN)
-
+      def search(name, type = Net::DNS::A, cls = Net::DNS::IN)
         # If the name contains at least one dot then try it as is first.
         if name.include? "."
           @logger.debug "Search(#{name},#{Net::DNS::RR::Types.new(type)},#{Net::DNS::RR::Classes.new(cls)})"
-          ans = query(name,type,cls)
+          ans = query(name, type, cls)
           return ans if ans && ans.header && ans.header.anCount > 0
         end
 
         # If the name doesn't end in a dot then apply the search list.
-        if name !~ /\.$/ and @config[:dns_search]
+        if name !~ /\.$/ && @config[:dns_search]
           @config[:searchlist].each do |domain|
             newname = name + "." + domain
             @logger.debug "Search(#{newname},#{Net::DNS::RR::Types.new(type)},#{Net::DNS::RR::Classes.new(cls)})"
-            ans = query(newname,type,cls)
+            ans = query(newname, type, cls)
             return ans if ans && ans.header && ans.header.anCount > 0
           end
         end
 
         # Finally, if the name has no dots then try it as is.
         @logger.debug "Search(#{name},#{Net::DNS::RR::Types.new(type)},#{Net::DNS::RR::Classes.new(cls)})"
-        query(name+".",type,cls)
-
+        query(name + ".", type, cls)
       end
 
       # Performs a DNS query for the given name; the search list
@@ -882,20 +874,18 @@ module Net # :nodoc:
       # packet whether it contains any answers or not, use the Resolver#send
       # method instead.
       #
-      def query(name,type=Net::DNS::A,cls=Net::DNS::IN)
-
+      def query(name, type = Net::DNS::A, cls = Net::DNS::IN)
         # If the name doesn't contain any dots then append the default domain.
-        if name !~ /\./ and name !~ /:/ and @config[:defnames]
+        if name !~ /\./ && name !~ /:/ && @config[:defnames]
           name += "." + @config[:domain]
         end
 
         @logger.debug "Query(#{name},#{Net::DNS::RR::Types.new(type)},#{Net::DNS::RR::Classes.new(cls)})"
         begin
-          send(name,type,cls)
+          send(name, type, cls)
         rescue ::NoResponseError
           return
         end
-
       end
 
       # Performs a DNS query for the given name.  Neither the
@@ -926,18 +916,18 @@ module Net # :nodoc:
       # Use +packet.header.ancount+ or +packet.answer+ to find out if there
       # were any records in the answer section.
       #
-      def send(argument,type=Net::DNS::A,cls=Net::DNS::IN)
-        if @config[:nameservers].size == 0
+      def send(argument, type = Net::DNS::A, cls = Net::DNS::IN)
+        if @config[:nameservers].empty?
           raise ResolverError, "No nameservers specified!"
         end
 
         method = :send_udp
 
-        if argument.kind_of? Net::DNS::Packet
-          packet = argument
-        else
-          packet = make_query_packet(argument,type,cls)
-        end
+        packet = if argument.is_a? Net::DNS::Packet
+                   argument
+                 else
+                   make_query_packet(argument, type, cls)
+                 end
 
         # Store packet_data for performance improvements,
         # so methods don't keep on calling Packet#data
@@ -975,37 +965,37 @@ module Net # :nodoc:
           end
         end
 
-        ans = self.old_send(method,packet,packet_data)
+        ans = old_send(method, packet, packet_data)
 
         unless ans
           @logger.fatal "No response from nameservers list: aborting"
           raise NoResponseError
         end
 
-        @logger.info "Received #{ans[0].size} bytes from #{ans[1][2]+":"+ans[1][1].to_s}"
-        response = Net::DNS::Packet.parse(ans[0],ans[1])
+        @logger.info "Received #{ans[0].size} bytes from #{ans[1][2] + ':' + ans[1][1].to_s}"
+        response = Net::DNS::Packet.parse(ans[0], ans[1])
 
-        if response.header.truncated? and not ignore_truncated?
+        if response.header.truncated? && !ignore_truncated?
           @logger.warn "Packet truncated, retrying using TCP"
           self.use_tcp = true
           begin
-            return send(argument,type,cls)
+            return send(argument, type, cls)
           ensure
             self.use_tcp = false
           end
         end
 
-        return response
+        response
       end
 
       #
       # Performs a zone transfer for the zone passed as a parameter.
       #
-    # Returns a list of Net::DNS::Packet (not answers!)
+      # Returns a list of Net::DNS::Packet (not answers!)
       #
-      def axfr(name,cls=Net::DNS::IN)
+      def axfr(name, cls = Net::DNS::IN)
         @logger.info "Requested AXFR transfer, zone #{name} class #{cls}"
-        if @config[:nameservers].size == 0
+        if @config[:nameservers].empty?
           raise ResolverError, "No nameservers specified!"
         end
 
@@ -1027,17 +1017,15 @@ module Net # :nodoc:
 
         answers = []
         soa = 0
-        self.old_send(method, packet, packet_data) do |ans|
-          @logger.info "Received #{ans[0].size} bytes from #{ans[1][2]+":"+ans[1][1].to_s}"
+        old_send(method, packet, packet_data) do |ans|
+          @logger.info "Received #{ans[0].size} bytes from #{ans[1][2] + ':' + ans[1][1].to_s}"
 
           begin
-            return unless (response = Net::DNS::Packet.parse(ans[0],ans[1]))
+            return unless (response = Net::DNS::Packet.parse(ans[0], ans[1]))
             return if response.answer.empty?
             if response.answer[0].type == "SOA"
               soa += 1
-              if soa >= 2
-                break
-              end
+              break if soa >= 2
             end
             answers << response
           rescue NameError => e
@@ -1049,7 +1037,7 @@ module Net # :nodoc:
           raise NoResponseError
         end
 
-        return answers
+        answers
       end
 
       #
@@ -1064,12 +1052,12 @@ module Net # :nodoc:
       #   res = Net::DNS::Resolver.new
       #   res.mx("google.com")
       #
-      def mx(name,cls=Net::DNS::IN)
+      def mx(name, cls = Net::DNS::IN)
         arr = []
         send(name, Net::DNS::MX, cls).answer.each do |entry|
           arr << entry if entry.type == 'MX'
         end
-        return arr.sort_by {|a| a.preference}
+        arr.sort_by(&:preference)
       end
 
       private
@@ -1084,15 +1072,15 @@ module Net # :nodoc:
           self.nameservers = arr[1]
         else
           IO.foreach(@config[:config_file]) do |line|
-            line.gsub!(/\s*[;#].*/,"")
+            line.gsub!(/\s*[;#].*/, "")
             next unless line =~ /\S/
             case line
             when /^\s*domain\s+(\S+)/
-              self.domain = $1
+              self.domain = Regexp.last_match(1)
             when /^\s*search\s+(.*)/
-              self.searchlist = $1.split(" ")
+              self.searchlist = Regexp.last_match(1).split(" ")
             when /^\s*nameserver\s+(.*)/
-              self.nameservers = $1.split(" ")
+              self.nameservers = Regexp.last_match(1).split(" ")
             end
           end
         end
@@ -1106,12 +1094,10 @@ module Net # :nodoc:
         if ENV['RES_SEARCHLIST']
           self.searchlist = ENV['RES_SEARCHLIST'].split(" ")
         end
-        if ENV['LOCALDOMAIN']
-          self.domain = ENV['LOCALDOMAIN']
-        end
+        self.domain = ENV['LOCALDOMAIN'] if ENV['LOCALDOMAIN']
         if ENV['RES_OPTIONS']
           ENV['RES_OPTIONS'].split(" ").each do |opt|
-            name,val = opt.split(":")
+            name, val = opt.split(":")
             begin
               eval("self.#{name} = #{val}")
             rescue NoMethodError
@@ -1131,7 +1117,7 @@ module Net # :nodoc:
         @config[:nameservers] << arr
       end
 
-      def make_query_packet(string,type,cls)
+      def make_query_packet(string, type, cls)
         case string
         when IPAddr
           name = string.reverse
@@ -1149,34 +1135,30 @@ module Net # :nodoc:
         end
 
         # Create the packet
-        packet = Net::DNS::Packet.new(name,type,cls)
+        packet = Net::DNS::Packet.new(name, type, cls)
 
-        if packet.query?
-          packet.header.recursive = @config[:recursive] ? 1 : 0
-        end
+        packet.header.recursive = @config[:recursive] ? 1 : 0 if packet.query?
 
         # DNSSEC and TSIG stuff to be inserted here
 
         packet
-
       end
 
-      def send_tcp(packet,packet_data)
-
+      def send_tcp(_packet, packet_data)
         ans = nil
         length = [packet_data.size].pack("n")
 
         @config[:nameservers].each do |ns|
           begin
-            socket = Socket.new(Socket::AF_INET,Socket::SOCK_STREAM,0)
-            socket.bind(Socket.pack_sockaddr_in(@config[:source_port],@config[:source_address].to_s))
+            socket = Socket.new(Socket::AF_INET, Socket::SOCK_STREAM, 0)
+            socket.bind(Socket.pack_sockaddr_in(@config[:source_port], @config[:source_address].to_s))
 
-            sockaddr = Socket.pack_sockaddr_in(@config[:port],ns.to_s)
+            sockaddr = Socket.pack_sockaddr_in(@config[:port], ns.to_s)
 
             @config[:tcp_timeout].timeout do
               socket.connect(sockaddr)
               @logger.info "Contacting nameserver #{ns} port #{@config[:port]}"
-              socket.write(length+packet_data)
+              socket.write(length + packet_data)
               got_something = false
               loop do
                 buffer = ""
@@ -1185,9 +1167,9 @@ module Net # :nodoc:
                 rescue ::Errno::ECONNRESET
                   ans = ""
                 end
-                if ans.size == 0
+                if ans.empty?
                   if got_something
-                    break #Proper exit from loop
+                    break # Proper exit from loop
                   else
                     @logger.warn "Connection reset to nameserver #{ns}, trying next."
                     raise NextNameserver
@@ -1203,9 +1185,9 @@ module Net # :nodoc:
                   raise NextNameserver
                 end
 
-                while (buffer.size < len)
+                while buffer.size < len
                   left = len - buffer.size
-                  temp,from = socket.recvfrom(left)
+                  temp, from = socket.recvfrom(left)
                   buffer += temp
                 end
 
@@ -1214,10 +1196,10 @@ module Net # :nodoc:
                   raise NextNameserver
                 end
                 if block_given?
-                  yield [buffer,["",@config[:port],ns.to_s,ns.to_s]]
+                  yield [buffer, ["", @config[:port], ns.to_s, ns.to_s]]
                   break
                 else
-                  return [buffer,["",@config[:port],ns.to_s,ns.to_s]]
+                  return [buffer, ["", @config[:port], ns.to_s, ns.to_s]]
                 end
               end
             end
@@ -1230,12 +1212,12 @@ module Net # :nodoc:
             socket.close
           end
         end
-        return nil
+        nil
       end
 
-      def send_udp(packet,packet_data)
+      def send_udp(_packet, packet_data)
         socket = UDPSocket.new
-        socket.bind(@config[:source_address].to_s,@config[:source_port])
+        socket.bind(@config[:source_address].to_s, @config[:source_port])
 
         ans = nil
         response = ""
@@ -1243,7 +1225,7 @@ module Net # :nodoc:
           begin
             @config[:udp_timeout].timeout do
               @logger.info "Contacting nameserver #{ns} port #{@config[:port]}"
-              socket.send(packet_data,0,ns.to_s,@config[:port])
+              socket.send(packet_data, 0, ns.to_s, @config[:port])
               ans = socket.recvfrom(@config[:packet_size])
             end
             break if ans
@@ -1262,7 +1244,6 @@ module Net # :nodoc:
           true
         end
       end
-
     end # class Resolver
   end # module DNS
 end # module Net
@@ -1283,15 +1264,14 @@ module ExtendHash # :nodoc:
   #      #=> {"test"=>1,"foobar"=>2}
   #
   def key_downcase!
-    hsh = Hash.new
-    self.each do |key,val|
+    hsh = {}
+    each do |key, val|
       hsh[key.downcase] = val
     end
-    self.replace(hsh)
+    replace(hsh)
   end
 end
 
 class Hash # :nodoc:
   include ExtendHash
 end
-

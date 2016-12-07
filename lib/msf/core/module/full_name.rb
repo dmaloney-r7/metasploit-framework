@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # @note {Msf::Module::ModuleInfo#name} is unrelated to {#fullname} and should instead be thought of as the title or
 #   summary of the module.
 #
@@ -9,7 +10,6 @@ module Msf::Module::FullName
     #
     # Attributes
     #
-
 
     # @attribute refname
     #   The module's name that is assigned to it by the framework

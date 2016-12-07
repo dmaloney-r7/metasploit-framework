@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 namespace :db do
   # Add onto the task so that after adding Rails.application.paths['db/migrate']
   task :load_config do

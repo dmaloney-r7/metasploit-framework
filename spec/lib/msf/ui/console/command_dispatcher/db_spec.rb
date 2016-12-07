@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'spec_helper'
 
 require 'msf/ui'
@@ -108,62 +109,62 @@ RSpec.describe Msf::Ui::Console::CommandDispatcher::Db do
         it "should show a user that matches the given expression" do
           db.cmd_creds("-u", username)
           expect(@output).to eq([
-            "Credentials",
-            "===========",
-            "",
-            "host  origin  service  public    private   realm  private_type",
-            "----  ------  -------  ------    -------   -----  ------------",
-            "                       thisuser  thispass         Password"
-          ])
+                                  "Credentials",
+                                  "===========",
+                                  "",
+                                  "host  origin  service  public    private   realm  private_type",
+                                  "----  ------  -------  ------    -------   -----  ------------",
+                                  "                       thisuser  thispass         Password"
+                                ])
         end
 
         it 'should match a regular expression' do
           subject.cmd_creds("-u", "^#{username}$")
           expect(@output).to eq([
-            "Credentials",
-            "===========",
-            "",
-            "host  origin  service  public    private   realm  private_type",
-            "----  ------  -------  ------    -------   -----  ------------",
-            "                       thisuser  thispass         Password"
-          ])
+                                  "Credentials",
+                                  "===========",
+                                  "",
+                                  "host  origin  service  public    private   realm  private_type",
+                                  "----  ------  -------  ------    -------   -----  ------------",
+                                  "                       thisuser  thispass         Password"
+                                ])
         end
 
         it 'should return nothing for a non-matching regular expression' do
           subject.cmd_creds("-u", "^#{nomatch_username}$")
           expect(@output).to eq([
-            "Credentials",
-            "===========",
-            "",
-            "host  origin  service  public  private  realm  private_type",
-            "----  ------  -------  ------  -------  -----  ------------"
-          ])
+                                  "Credentials",
+                                  "===========",
+                                  "",
+                                  "host  origin  service  public  private  realm  private_type",
+                                  "----  ------  -------  ------  -------  -----  ------------"
+                                ])
         end
 
         context "and when the username is blank" do
           it "should show a user that matches the given expression" do
             db.cmd_creds("-u", blank_username)
             expect(@output).to eq([
-              "Credentials",
-              "===========",
-              "",
-              "host  origin  service  public  private        realm  private_type",
-              "----  ------  -------  ------  -------        -----  ------------",
-              "                               nonblank_pass         Password"
-            ])
+                                    "Credentials",
+                                    "===========",
+                                    "",
+                                    "host  origin  service  public  private        realm  private_type",
+                                    "----  ------  -------  ------  -------        -----  ------------",
+                                    "                               nonblank_pass         Password"
+                                  ])
           end
         end
         context "and when the password is blank" do
           it "should show a user that matches the given expression" do
             db.cmd_creds("-P", blank_password)
             expect(@output).to eq([
-              "Credentials",
-              "===========",
-              "",
-              "host  origin  service  public         private  realm  private_type",
-              "----  ------  -------  ------         -------  -----  ------------",
-              "                       nonblank_user                  Password"
-            ])
+                                    "Credentials",
+                                    "===========",
+                                    "",
+                                    "host  origin  service  public         private  realm  private_type",
+                                    "----  ------  -------  ------         -------  -----  ------------",
+                                    "                       nonblank_user                  Password"
+                                  ])
           end
         end
       end
@@ -173,24 +174,24 @@ RSpec.describe Msf::Ui::Console::CommandDispatcher::Db do
           it "should return a blank set" do
             db.cmd_creds("-u", nomatch_username)
             expect(@output).to eq([
-              "Credentials",
-              "===========",
-              "",
-              "host  origin  service  public  private  realm  private_type",
-              "----  ------  -------  ------  -------  -----  ------------"
-            ])
+                                    "Credentials",
+                                    "===========",
+                                    "",
+                                    "host  origin  service  public  private  realm  private_type",
+                                    "----  ------  -------  ------  -------  -----  ------------"
+                                  ])
           end
         end
         context "due to a nonmatching password" do
           it "should return a blank set" do
             db.cmd_creds("-P", nomatch_password)
             expect(@output).to eq([
-              "Credentials",
-              "===========",
-              "",
-              "host  origin  service  public  private  realm  private_type",
-              "----  ------  -------  ------  -------  -----  ------------"
-            ])
+                                    "Credentials",
+                                    "===========",
+                                    "",
+                                    "host  origin  service  public  private  realm  private_type",
+                                    "----  ------  -------  ------  -------  -----  ------------"
+                                  ])
           end
         end
       end
@@ -222,33 +223,31 @@ RSpec.describe Msf::Ui::Console::CommandDispatcher::Db do
                              workspace: framework.db.workspace)
         end
 
-=begin
-        # Somehow this is hitting a unique constraint on Cores with the same
-        # Public, even though it has a different Private. Skip for now
-        let!(:ntlm_core) do
-          priv = FactoryGirl.create(:metasploit_credential_ntlm_hash, data: ntlm_hash)
-          FactoryGirl.create(:metasploit_credential_core,
-                             origin: FactoryGirl.create(:metasploit_credential_origin_import),
-                             private: priv,
-                             public: pub,
-                             realm: nil,
-                             workspace: framework.db.workspace)
-        end
-        let!(:nonreplayable_core) do
-          priv = FactoryGirl.create(:metasploit_credential_nonreplayable_hash, data: 'asdf')
-          FactoryGirl.create(:metasploit_credential_core,
-                             origin: FactoryGirl.create(:metasploit_credential_origin_import),
-                             private: priv,
-                             public: pub,
-                             realm: nil,
-                             workspace: framework.db.workspace)
-        end
-=end
+        #         # Somehow this is hitting a unique constraint on Cores with the same
+        #         # Public, even though it has a different Private. Skip for now
+        #         let!(:ntlm_core) do
+        #           priv = FactoryGirl.create(:metasploit_credential_ntlm_hash, data: ntlm_hash)
+        #           FactoryGirl.create(:metasploit_credential_core,
+        #                              origin: FactoryGirl.create(:metasploit_credential_origin_import),
+        #                              private: priv,
+        #                              public: pub,
+        #                              realm: nil,
+        #                              workspace: framework.db.workspace)
+        #         end
+        #         let!(:nonreplayable_core) do
+        #           priv = FactoryGirl.create(:metasploit_credential_nonreplayable_hash, data: 'asdf')
+        #           FactoryGirl.create(:metasploit_credential_core,
+        #                              origin: FactoryGirl.create(:metasploit_credential_origin_import),
+        #                              private: priv,
+        #                              public: pub,
+        #                              realm: nil,
+        #                              workspace: framework.db.workspace)
+        #         end
 
         after(:example) do
-          #ntlm_core.destroy
+          # ntlm_core.destroy
           password_core.destroy
-          #nonreplayable_core.destroy
+          # nonreplayable_core.destroy
         end
 
         context "password" do
@@ -256,13 +255,13 @@ RSpec.describe Msf::Ui::Console::CommandDispatcher::Db do
             db.cmd_creds("-t", "password")
             # Table matching really sucks
             expect(@output).to eq([
-              "Credentials",
-              "===========",
-              "",
-              "host  origin  service  public    private   realm  private_type",
-              "----  ------  -------  ------    -------   -----  ------------",
-              "                       thisuser  thispass         Password"
-            ])
+                                    "Credentials",
+                                    "===========",
+                                    "",
+                                    "host  origin  service  public    private   realm  private_type",
+                                    "----  ------  -------  ------    -------   -----  ------------",
+                                    "                       thisuser  thispass         Password"
+                                  ])
           end
         end
 
@@ -278,20 +277,19 @@ RSpec.describe Msf::Ui::Console::CommandDispatcher::Db do
               "",
               "host  service  public    private                                                            realm  private_type",
               "----  -------  ------    -------                                                            -----  ------------",
-              "               thisuser  #{ntlm_hash                                                     }         NTLM hash"
+              "               thisuser  #{ntlm_hash}         NTLM hash"
             ]
           end
         end
-
       end
     end
 
     describe "add-password" do
       context "when no core exists" do
         it "should add a Core" do
-          expect {
+          expect do
             subject.cmd_creds("add-password", username, password)
-          }.to change{ Metasploit::Credential::Core.count }.by 1
+          end.to change { Metasploit::Credential::Core.count }.by 1
         end
       end
       context "when a core already exists" do
@@ -306,13 +304,12 @@ RSpec.describe Msf::Ui::Console::CommandDispatcher::Db do
                              workspace: framework.db.workspace)
         end
         it "should not add a Core" do
-          expect {
+          expect do
             subject.cmd_creds("add-password", username, password)
-          }.to_not change{ Metasploit::Credential::Core.count }
+          end.to_not change { Metasploit::Credential::Core.count }
         end
       end
     end
-
   end
 
   describe "#cmd_db_export" do
@@ -418,7 +415,6 @@ RSpec.describe Msf::Ui::Console::CommandDispatcher::Db do
         ]
       end
     end
-
   end
 
   describe "#cmd_notes" do
@@ -441,10 +437,8 @@ RSpec.describe Msf::Ui::Console::CommandDispatcher::Db do
           "  notes -t smb.fingerprint 10.1.1.34 10.1.20.41",
           "  notes -S 'nmap.nse.(http|rtsp)' --sort type,output"
         ]
-
       end
     end
-
   end
 
   describe "#cmd_services" do
@@ -470,10 +464,10 @@ RSpec.describe Msf::Ui::Console::CommandDispatcher::Db do
     end
     describe "-p" do
       before(:example) do
-        host = FactoryGirl.create(:mdm_host, :workspace => framework.db.workspace, :address => "192.168.0.1")
-        FactoryGirl.create(:mdm_service, :host => host, :port => 1024, name: 'Service1', proto: 'udp')
-        FactoryGirl.create(:mdm_service, :host => host, :port => 1025, name: 'Service2', proto: 'tcp')
-        FactoryGirl.create(:mdm_service, :host => host, :port => 1026, name: 'Service3', proto: 'udp')
+        host = FactoryGirl.create(:mdm_host, workspace: framework.db.workspace, address: "192.168.0.1")
+        FactoryGirl.create(:mdm_service, host: host, port: 1024, name: 'Service1', proto: 'udp')
+        FactoryGirl.create(:mdm_service, host: host, port: 1025, name: 'Service2', proto: 'tcp')
+        FactoryGirl.create(:mdm_service, host: host, port: 1026, name: 'Service3', proto: 'udp')
       end
       it "should list services that are on a given port" do
         db.cmd_services "-p", "1024,1025"
@@ -490,13 +484,13 @@ RSpec.describe Msf::Ui::Console::CommandDispatcher::Db do
     end
     describe "-np" do
       before(:example) do
-        host = FactoryGirl.create(:mdm_host, :workspace => framework.db.workspace, :address => "192.168.0.1")
-        FactoryGirl.create(:mdm_service, :host => host, :port => 1024)
-        FactoryGirl.create(:mdm_service, :host => host, :port => 1025)
-        FactoryGirl.create(:mdm_service, :host => host, :port => 1026)
+        host = FactoryGirl.create(:mdm_host, workspace: framework.db.workspace, address: "192.168.0.1")
+        FactoryGirl.create(:mdm_service, host: host, port: 1024)
+        FactoryGirl.create(:mdm_service, host: host, port: 1025)
+        FactoryGirl.create(:mdm_service, host: host, port: 1026)
       end
       it "should list services that are not on a given port" do
-        skip {
+        skip do
           db.cmd_services "-np", "1024"
 
           expect(@output).to =~ [
@@ -508,7 +502,7 @@ RSpec.describe Msf::Ui::Console::CommandDispatcher::Db do
             "192.168.0.1  1025  snmp         open   ",
             "192.168.0.1  1026  snmp         open   "
           ]
-        }
+        end
       end
     end
   end
@@ -532,7 +526,6 @@ RSpec.describe Msf::Ui::Console::CommandDispatcher::Db do
         ]
       end
     end
-
   end
 
   describe "#cmd_workspace" do

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,32 +8,30 @@ require 'msf/core'
 require 'net/ssh'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Auxiliary::Scanner
   include Msf::Auxiliary::Report
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'        => 'Cerberus FTP Server SFTP Username Enumeration',
-      'Description' => %q{
-        This module uses a dictionary to brute force valid usernames from
-        Cerberus FTP server via SFTP.  This issue affects all versions of
-        the software older than 6.0.9.0 or 7.0.0.2 and is caused by a discrepancy
-        in the way the SSH service handles failed logins for valid and invalid
-        users.  This issue was discovered by Steve Embling.
-      },
-      'Author'      => [
-        'Steve Embling', # Discovery
-        'Matt Byrne <attackdebris[at]gmail.com>' # Metasploit module
-      ],
-      'References'     =>
-        [
-          [ 'URL',  'http://xforce.iss.net/xforce/xfdb/93546' ],
-          [ 'BID', '67707']
-        ],
-      'License'     => MSF_LICENSE,
-      'DisclosureDate' => 'May 27 2014'
-    ))
+                      'Name'        => 'Cerberus FTP Server SFTP Username Enumeration',
+                      'Description' => %q(
+                        This module uses a dictionary to brute force valid usernames from
+                        Cerberus FTP server via SFTP.  This issue affects all versions of
+                        the software older than 6.0.9.0 or 7.0.0.2 and is caused by a discrepancy
+                        in the way the SSH service handles failed logins for valid and invalid
+                        users.  This issue was discovered by Steve Embling.
+                      ),
+                      'Author' => [
+                        'Steve Embling', # Discovery
+                        'Matt Byrne <attackdebris[at]gmail.com>' # Metasploit module
+                      ],
+                      'References' =>
+                        [
+                          [ 'URL', 'http://xforce.iss.net/xforce/xfdb/93546' ],
+                          [ 'BID', '67707']
+                        ],
+                      'License' => MSF_LICENSE,
+                      'DisclosureDate' => 'May 27 2014'))
 
     register_options(
       [
@@ -40,7 +39,8 @@ class MetasploitModule < Msf::Auxiliary
         Opt::RPORT(22),
         OptPath.new(
           'USER_FILE',
-          [true, 'Files containing usernames, one per line', nil])
+          [true, 'Files containing usernames, one per line', nil]
+        )
       ], self.class
     )
 
@@ -48,13 +48,16 @@ class MetasploitModule < Msf::Auxiliary
       [
         OptInt.new(
           'RETRY_NUM',
-          [true , 'The number of attempts to connect to a SSH server for each user', 3]),
+          [true, 'The number of attempts to connect to a SSH server for each user', 3]
+        ),
         OptInt.new(
           'SSH_TIMEOUT',
-          [true, 'Specify the maximum time to negotiate a SSH session', 10]),
+          [true, 'Specify the maximum time to negotiate a SSH session', 10]
+        ),
         OptBool.new(
           'SSH_DEBUG',
-          [true, 'Enable SSH debugging output (Extreme verbosity!)', false])
+          [true, 'Enable SSH debugging output (Extreme verbosity!)', false]
+        )
       ]
     )
   end
@@ -112,7 +115,7 @@ class MetasploitModule < Msf::Auxiliary
       proxies:      datastore['Proxies']
     }
 
-    opt_hash.merge!(verbose: :debug) if datastore['SSH_DEBUG']
+    opt_hash[:verbose] = :debug if datastore['SSH_DEBUG']
     transport = Net::SSH::Transport::Session.new(ip, opt_hash)
     auth = Net::SSH::Authentication::Session.new(transport, opt_hash)
 
@@ -135,7 +138,7 @@ class MetasploitModule < Msf::Auxiliary
     end
   end
 
-  def do_report(ip, user, port)
+  def do_report(ip, user, _port)
     service_data = {
       address: ip,
       port: rport,
@@ -147,18 +150,18 @@ class MetasploitModule < Msf::Auxiliary
     credential_data = {
       origin_type: :service,
       module_fullname: fullname,
-      username: user,
+      username: user
     }.merge(service_data)
 
     login_data = {
       core: create_credential(credential_data),
-      status: Metasploit::Model::Login::Status::UNTRIED,
+      status: Metasploit::Model::Login::Status::UNTRIED
     }.merge(service_data)
 
     create_credential_login(login_data)
   end
 
-  def peer(rhost=nil)
+  def peer(rhost = nil)
     "#{rhost}:#{rport} SSH -"
   end
 
@@ -166,7 +169,7 @@ class MetasploitModule < Msf::Auxiliary
     users = nil
     if File.readable? datastore['USER_FILE']
       users = File.new(datastore['USER_FILE']).read.split
-      users.each {|u| u.downcase!}
+      users.each(&:downcase!)
       users.uniq!
     else
       raise ArgumentError, "Cannot read file #{datastore['USER_FILE']}"
@@ -181,7 +184,7 @@ class MetasploitModule < Msf::Auxiliary
 
     while (attempt_num <= retry_num) && (ret.nil? || ret == :connection_error)
       if attempt_num > 0
-        Rex.sleep(2 ** attempt_num)
+        Rex.sleep(2**attempt_num)
         vprint_status("#{peer(ip)} Retrying '#{user}' due to connection error")
       end
 
@@ -220,4 +223,3 @@ class MetasploitModule < Msf::Auxiliary
     end
   end
 end
-

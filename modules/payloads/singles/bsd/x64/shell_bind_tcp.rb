@@ -1,14 +1,13 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 require 'msf/core/handler/bind_tcp'
 
 module MetasploitModule
-
   CachedSize = 136
 
   include Msf::Payload::Single
@@ -17,25 +16,25 @@ module MetasploitModule
 
   def initialize(info = {})
     super(merge_info(info,
-      'Name'          => 'BSD x64 Shell Bind TCP',
-      'Description'   => 'Bind an arbitrary command to an arbitrary port',
-      'Author'        => [
-        'nemo <nemo[at]felinemenace.org>',
-        'joev'
-      ],
-      'License'       => MSF_LICENSE,
-      'Platform'      => 'bsd',
-      'Arch'          => ARCH_X64,
-      'Handler'       => Msf::Handler::BindTcp,
-      'Session'       => Msf::Sessions::CommandShellUnix
-    ))
+                     'Name'          => 'BSD x64 Shell Bind TCP',
+                     'Description'   => 'Bind an arbitrary command to an arbitrary port',
+                     'Author'        => [
+                       'nemo <nemo[at]felinemenace.org>',
+                       'joev'
+                     ],
+                     'License'       => MSF_LICENSE,
+                     'Platform'      => 'bsd',
+                     'Arch'          => ARCH_X64,
+                     'Handler'       => Msf::Handler::BindTcp,
+                     'Session'       => Msf::Sessions::CommandShellUnix))
 
     # exec payload options
     register_options(
       [
-        OptString.new('CMD',  [ true,  "The command string to execute", "/bin/sh" ]),
+        OptString.new('CMD', [ true, "The command string to execute", "/bin/sh" ]),
         Opt::LPORT(4444)
-    ], self.class)
+      ], self.class
+    )
   end
 
   # build the shellcode payload dynamically based on the user-provided CMD

@@ -1,23 +1,24 @@
+# frozen_string_literal: true
 module Msf::DBManager::Workspace
   #
   # Creates a new workspace in the database
   #
   def add_workspace(name)
-  ::ActiveRecord::Base.connection_pool.with_connection {
-    ::Mdm::Workspace.where(name: name).first_or_create
-  }
+    ::ActiveRecord::Base.connection_pool.with_connection do
+      ::Mdm::Workspace.where(name: name).first_or_create
+    end
   end
 
   def default_workspace
-  ::ActiveRecord::Base.connection_pool.with_connection {
-    ::Mdm::Workspace.default
-  }
+    ::ActiveRecord::Base.connection_pool.with_connection do
+      ::Mdm::Workspace.default
+    end
   end
 
   def find_workspace(name)
-  ::ActiveRecord::Base.connection_pool.with_connection {
-    ::Mdm::Workspace.find_by_name(name)
-  }
+    ::ActiveRecord::Base.connection_pool.with_connection do
+      ::Mdm::Workspace.find_by_name(name)
+    end
   end
 
   def workspace
@@ -29,8 +30,8 @@ module Msf::DBManager::Workspace
   end
 
   def workspaces
-  ::ActiveRecord::Base.connection_pool.with_connection {
-    ::Mdm::Workspace.order('updated_at asc').load
-  }
+    ::ActiveRecord::Base.connection_pool.with_connection do
+      ::Mdm::Workspace.order('updated_at asc').load
+    end
   end
 end

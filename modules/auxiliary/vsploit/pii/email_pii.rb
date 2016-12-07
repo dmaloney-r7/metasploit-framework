@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   #
   # This module sends pii via an attacker smtp machine
   #
@@ -15,23 +15,22 @@ class MetasploitModule < Msf::Auxiliary
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'VSploit Email PII',
-      'Description'    => %q{
-          This auxiliary reads from a file and sends data which
-      should be flagged via an internal or external SMTP server.
-      },
-      'License'        => MSF_LICENSE,
-      'Author'         =>  ['willis']
-    ))
-      register_options(
-        [
-          OptString.new('RHOST', [true, "SMTP server address",'127.0.0.1']),
-          OptString.new('RPORT', [true, "SMTP server port",'25'])
-        ], self.class)
+                      'Name'           => 'VSploit Email PII',
+                      'Description'    => %q(
+                          This auxiliary reads from a file and sends data which
+                      should be flagged via an internal or external SMTP server.
+                      ),
+                      'License' => MSF_LICENSE,
+                      'Author' => ['willis']))
+    register_options(
+      [
+        OptString.new('RHOST', [true, "SMTP server address", '127.0.0.1']),
+        OptString.new('RPORT', [true, "SMTP server port", '25'])
+      ], self.class
+    )
   end
 
   def run
-
     msg = Rex::MIME::Message.new
     msg.mime_defaults
     msg.subject = datastore['SUBJECT']

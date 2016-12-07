@@ -1,18 +1,19 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 #
 # Provides some sanity checks against the ruby build and version
 #
 
-if(RUBY_PLATFORM == 'java')
+if RUBY_PLATFORM == 'java'
   require 'socket'
   s = Socket.new(::Socket::AF_INET, ::Socket::SOCK_STREAM, ::Socket::IPPROTO_TCP)
-  if(not s.respond_to?('bind'))
+  unless s.respond_to?('bind')
     $stderr.puts "*** JRuby 1.5.0+ is required to use Metasploit with jRuby"
     exit(0)
   end
 
   $stderr.puts "*** Warning: JRuby support is still incomplete, few things will work properly!"
-  trap Signal::list['INT'] do
+  trap Signal.list['INT'] do
     Thread.main.raise Interrupt.new
   end
 

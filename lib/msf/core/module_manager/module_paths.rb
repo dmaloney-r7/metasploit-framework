@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 #
 # Gems
@@ -16,7 +17,7 @@ module Msf::ModuleManager::ModulePaths
   # @param [Hash] opts
   # @option opts [Array] whitelist An array of regex patterns to search for specific modules
   # @return (see Msf::Modules::Loader::Base#load_modules)
-  def add_module_path(path, opts={})
+  def add_module_path(path, opts = {})
     nested_paths = []
 
     # remove trailing file separator
@@ -37,17 +38,17 @@ module Msf::ModuleManager::ModulePaths
 
     # Load all of the modules from the nested paths
     count_by_type = {}
-    nested_paths.each { |path|
-      path_count_by_type = load_modules(path, opts.merge({:force => false}))
+    nested_paths.each do |path|
+      path_count_by_type = load_modules(path, opts.merge(force: false))
 
       # merge hashes
       path_count_by_type.each do |type, path_count|
         accumulated_count = count_by_type.fetch(type, 0)
         count_by_type[type] = accumulated_count + path_count
       end
-    }
+    end
 
-    return count_by_type
+    count_by_type
   end
 
   #

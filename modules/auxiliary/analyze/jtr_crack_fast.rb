@@ -1,20 +1,19 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 require 'msf/core/auxiliary/jtr'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Auxiliary::JohnTheRipper
 
   def initialize
     super(
       'Name'        => 'John the Ripper Password Cracker (Fast Mode)',
-      'Description' => %Q{
+      'Description' => %{
           This module uses John the Ripper to identify weak passwords that have been
         acquired as hashed files (loot) or raw LANMAN/NTLM hashes (hashdump). The goal
         of this module is to find trivial passwords in a short amount of time. To
@@ -23,7 +22,7 @@ class MetasploitModule < Msf::Auxiliary
         from hashdump and uses the standard wordlist and rules.
       },
       'Author'      => 'hdm',
-      'License'     => MSF_LICENSE  # JtR itself is GPLv2, but this wrapper is MSF (BSD)
+      'License'     => MSF_LICENSE # JtR itself is GPLv2, but this wrapper is MSF (BSD)
     )
   end
 
@@ -37,7 +36,7 @@ class MetasploitModule < Msf::Auxiliary
     cracker.wordlist = wordlist.path
     cracker.hash_path = hash_file
 
-    ['lm','nt'].each do |format|
+    ['lm', 'nt'].each do |format|
       # dupe our original cracker so we can safely change options between each run
       cracker_instance = cracker.dup
       cracker_instance.format = format
@@ -82,12 +81,12 @@ class MetasploitModule < Msf::Auxiliary
 
         fields = password_line.split(":")
         # If we don't have an expected minimum number of fields, this is probably not a hash line
-        next unless fields.count >=7
+        next unless fields.count >= 7
         username = fields.shift
         core_id = fields.pop
 
         # pop off dead space here
-        2.times{ fields.pop }
+        2.times { fields.pop }
 
         # get the NT and LM hashes
         nt_hash = fields.pop
@@ -112,17 +111,17 @@ class MetasploitModule < Msf::Auxiliary
         end
 
         print_good "#{username}:#{password}:#{core_id}"
-        create_cracked_credential( username: username, password: password, core_id: core_id)
+        create_cracked_credential(username: username, password: password, core_id: core_id)
       end
     end
   end
 
   def hash_file
     hashlist = Rex::Quickfile.new("hashes_tmp")
-    Metasploit::Credential::NTLMHash.joins(:cores).where(metasploit_credential_cores: { workspace_id: myworkspace.id } ).each do |hash|
+    Metasploit::Credential::NTLMHash.joins(:cores).where(metasploit_credential_cores: { workspace_id: myworkspace.id }).each do |hash|
       hash.cores.each do |core|
         user = core.public.username
-        hash_string = "#{hash.data}"
+        hash_string = hash.data.to_s
         id = core.id
         hashlist.puts "#{user}:#{id}:#{hash_string}:::#{id}"
       end

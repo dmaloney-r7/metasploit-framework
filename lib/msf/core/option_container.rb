@@ -1,7 +1,7 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 module Msf
-
   autoload :Opt, 'msf/core/opt'
 
   autoload :OptBase, 'msf/core/opt_base'
@@ -39,7 +39,6 @@ module Msf
   # * {OptRegexp}  - Valid Ruby regular expression
   #
   class OptionContainer < Hash
-
     #
     # Merges in the supplied options and converts them to a OptBase
     # as necessary.
@@ -54,17 +53,15 @@ module Msf
     # Return the value associated with the supplied name.
     #
     def [](name)
-      return get(name)
+      get(name)
     end
 
     #
     # Return the option associated with the supplied name.
     #
     def get(name)
-      begin
-        return fetch(name)
-      rescue
-      end
+      return fetch(name)
+    rescue
     end
 
     #
@@ -72,12 +69,11 @@ module Msf
     # excluding advanced (and evasions).
     #
     def has_options?
-      each_option { |name, opt|
-        return true if (opt.advanced? == false)
+      each_option do |_name, opt|
+        return true if opt.advanced? == false
+      end
 
-      }
-
-      return false
+      false
     end
 
     #
@@ -85,11 +81,11 @@ module Msf
     # options.
     #
     def has_advanced_options?
-      each_option { |name, opt|
-        return true if (opt.advanced? == true)
-      }
+      each_option do |_name, opt|
+        return true if opt.advanced? == true
+      end
 
-      return false
+      false
     end
 
     #
@@ -97,11 +93,11 @@ module Msf
     # options.
     #
     def has_evasion_options?
-      each_option { |name, opt|
-        return true if (opt.evasion? == true)
-      }
+      each_option do |_name, opt|
+        return true if opt.evasion? == true
+      end
 
-      return false
+      false
     end
 
     #
@@ -109,9 +105,9 @@ module Msf
     #
     def remove_option(name)
       delete(name)
-      sorted.each_with_index { |e, idx|
-        sorted[idx] = nil if (e[0] == name)
-      }
+      sorted.each_with_index do |e, idx|
+        sorted[idx] = nil if e[0] == name
+      end
       sorted.delete(nil)
     end
 
@@ -119,9 +115,9 @@ module Msf
     # Adds one or more options.
     #
     def add_options(opts, owner = nil, advanced = false, evasion = false)
-      return false if (opts == nil)
+      return false if opts.nil?
 
-      if (opts.kind_of?(Array))
+      if opts.is_a?(Array)
         add_options_array(opts, owner, advanced, evasion)
       else
         add_options_hash(opts, owner, advanced, evasion)
@@ -132,47 +128,47 @@ module Msf
     # Add options from a hash of names.
     #
     def add_options_hash(opts, owner = nil, advanced = false, evasion = false)
-      opts.each_pair { |name, opt|
+      opts.each_pair do |name, opt|
         add_option(opt, name, owner, advanced, evasion)
-      }
+      end
     end
 
     #
     # Add options from an array of option instances or arrays.
     #
     def add_options_array(opts, owner = nil, advanced = false, evasion = false)
-      opts.each { |opt|
+      opts.each do |opt|
         add_option(opt, nil, owner, advanced, evasion)
-      }
+      end
     end
 
     #
     # Adds an option.
     #
     def add_option(option, name = nil, owner = nil, advanced = false, evasion = false)
-      if (option.kind_of?(Array))
+      if option.is_a?(Array)
         option = option.shift.new(name, option)
-      elsif (!option.kind_of?(OptBase))
+      elsif !option.is_a?(OptBase)
         raise ArgumentError,
-          "The option named #{name} did not come in a compatible format.",
-          caller
+              "The option named #{name} did not come in a compatible format.",
+              caller
       end
 
       option.advanced = advanced
       option.evasion  = evasion
       option.owner    = owner
 
-      self.store(option.name, option)
+      store(option.name, option)
 
       # Re-calculate the sorted list
-      self.sorted = self.sort
+      self.sorted = sort
     end
 
     #
     # Alias to add advanced options that sets the proper state flag.
     #
     def add_advanced_options(opts, owner = nil)
-      return false if (opts == nil)
+      return false if opts.nil?
 
       add_options(opts, owner, true)
     end
@@ -181,7 +177,7 @@ module Msf
     # Alias to add evasion options that sets the proper state flag.
     #
     def add_evasion_options(opts, owner = nil)
-      return false if (opts == nil)
+      return false if opts.nil?
 
       add_options(opts, owner, false, true)
     end
@@ -193,11 +189,11 @@ module Msf
     def validate(datastore)
       errors = []
 
-      each_pair { |name, option|
-        if (!option.valid?(datastore[name]))
+      each_pair do |name, option|
+        if !option.valid?(datastore[name])
           errors << name
           # If the option is valid, normalize its format to the correct type.
-        elsif ((val = option.normalize(datastore[name])) != nil)
+        elsif (val = option.normalize(datastore[name])) != nil
           # This *will* result in a module that previously used the
           # global datastore to have its local datastore set, which
           # means that changing the global datastore and re-running
@@ -207,14 +203,14 @@ module Msf
           # things in corner cases.
           datastore[name] = val
         end
-      }
-
-      if (errors.empty? == false)
-        raise OptionValidateError.new(errors),
-          "One or more options failed to validate", caller
       end
 
-      return true
+      if errors.empty? == false
+        raise OptionValidateError.new(errors),
+              "One or more options failed to validate", caller
+      end
+
+      true
     end
 
     #
@@ -224,14 +220,14 @@ module Msf
     def options_used_to_s(datastore)
       used = ''
 
-      each_pair { |name, option|
-        next if (datastore[name] == nil)
+      each_pair do |name, _option|
+        next if datastore[name].nil?
 
-        used += ", " if (used.length > 0)
+        used += ", " unless used.empty?
         used += "#{name}=#{datastore[name]}"
-      }
+      end
 
-      return used
+      used
     end
 
     #
@@ -247,7 +243,7 @@ module Msf
     #
     def each(&block)
       list = []
-      self.keys.sort.each do |sidx|
+      keys.sort.each do |sidx|
         list << [sidx, self[sidx]]
       end
       list.each(&block)
@@ -258,13 +254,11 @@ module Msf
     # returns the sorted results.
     #
     def merge_sort(other_container)
-      result = self.dup
+      result = dup
 
-      other_container.each { |name, opt|
-        if (result.get(name) == nil)
-          result[name] = opt
-        end
-      }
+      other_container.each do |name, opt|
+        result[name] = opt if result.get(name).nil?
+      end
 
       result.sort
     end
@@ -277,7 +271,5 @@ module Msf
     protected
 
     attr_writer :sorted # :nodoc:
-
   end
-
 end

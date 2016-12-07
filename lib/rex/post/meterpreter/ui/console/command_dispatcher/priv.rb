@@ -1,62 +1,59 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 require 'rex/post/meterpreter'
 
 module Rex
-module Post
-module Meterpreter
-module Ui
+  module Post
+    module Meterpreter
+      module Ui
+        ###
+        #
+        # Privilege escalation extension user interface.
+        #
+        ###
+        class Console::CommandDispatcher::Priv
+          require 'rex/post/meterpreter/ui/console/command_dispatcher/priv/elevate'
+          require 'rex/post/meterpreter/ui/console/command_dispatcher/priv/passwd'
+          require 'rex/post/meterpreter/ui/console/command_dispatcher/priv/timestomp'
 
-###
-#
-# Privilege escalation extension user interface.
-#
-###
-class Console::CommandDispatcher::Priv
+          Klass = Console::CommandDispatcher::Priv
 
-  require 'rex/post/meterpreter/ui/console/command_dispatcher/priv/elevate'
-  require 'rex/post/meterpreter/ui/console/command_dispatcher/priv/passwd'
-  require 'rex/post/meterpreter/ui/console/command_dispatcher/priv/timestomp'
+          Dispatchers =
+            [
+              Klass::Elevate,
+              Klass::Passwd,
+              Klass::Timestomp
+            ].freeze
 
-  Klass = Console::CommandDispatcher::Priv
+          include Console::CommandDispatcher
 
-  Dispatchers =
-    [
-      Klass::Elevate,
-      Klass::Passwd,
-      Klass::Timestomp,
-    ]
+          #
+          # Initializes an instance of the priv command interaction.
+          #
+          def initialize(shell)
+            super
 
-  include Console::CommandDispatcher
+            Dispatchers.each do |d|
+              shell.enstack_dispatcher(d)
+            end
+          end
 
-  #
-  # Initializes an instance of the priv command interaction.
-  #
-  def initialize(shell)
-    super
+          #
+          # List of supported commands.
+          #
+          def commands
+            {
+            }
+          end
 
-    Dispatchers.each { |d|
-      shell.enstack_dispatcher(d)
-    }
+          #
+          # Name for this dispatcher
+          #
+          def name
+            "Privilege Escalation"
+          end
+          end
+        end
+    end
   end
-
-  #
-  # List of supported commands.
-  #
-  def commands
-    {
-    }
-  end
-
-  #
-  # Name for this dispatcher
-  #
-  def name
-    "Privilege Escalation"
-  end
-
-end
-
-end
-end
-end
 end

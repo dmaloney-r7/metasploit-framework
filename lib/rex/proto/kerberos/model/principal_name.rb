@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 module Rex
@@ -7,7 +8,6 @@ module Rex
         # This class provides a representation of a principal, an asset (e.g., a
         # workstation user or a network server) on a network.
         class PrincipalName < Element
-
           # @!attribute name_type
           #   @return [Fixnum] The type of name
           attr_accessor :name_type

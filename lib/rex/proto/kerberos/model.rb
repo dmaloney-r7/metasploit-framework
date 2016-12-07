@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 module Rex
@@ -66,7 +67,7 @@ module Rex
           50 => ['KRB_AP_ERR_INAPP_CKSUM', 'Inappropriate type of checksum in message'],
           60 => ['KRB_ERR_GENERIC', 'Generic error'],
           61 => ['KRB_ERR_FIELD_TOOLONG', 'Field is too long for this implementation']
-        }
+        }.freeze
 
         KDC_OPTION_RESERVED        = 0
         KDC_OPTION_FORWARDABLE     = 1

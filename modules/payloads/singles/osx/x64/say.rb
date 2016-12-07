@@ -1,32 +1,31 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 
 module MetasploitModule
-
   CachedSize = 53
 
   include Msf::Payload::Single
 
   def initialize(info = {})
     super(merge_info(info,
-      'Name'          => 'OS X x64 say Shellcode',
-      'Description'   => 'Say an arbitrary string outloud using Mac OS X text2speech',
-      'Author'        => 'nemo <nemo[at]felinemenace.org>',
-      'License'       => MSF_LICENSE,
-      'Platform'      => 'osx',
-      'Arch'          => ARCH_X64
-    ))
+                     'Name'          => 'OS X x64 say Shellcode',
+                     'Description'   => 'Say an arbitrary string outloud using Mac OS X text2speech',
+                     'Author'        => 'nemo <nemo[at]felinemenace.org>',
+                     'License'       => MSF_LICENSE,
+                     'Platform'      => 'osx',
+                     'Arch'          => ARCH_X64))
 
     # exec payload options
     register_options(
       [
-        OptString.new('TEXT',  [ true,  "The text to say", "Hello\!"]),
-    ], self.class)
+        OptString.new('TEXT', [ true, "The text to say", "Hello\!"])
+      ], self.class
+    )
   end
 
   # build the shellcode payload dynamically based on the user-provided CMD

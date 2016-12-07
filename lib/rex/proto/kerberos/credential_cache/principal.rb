@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 module Rex
@@ -62,7 +63,6 @@ module Rex
 
             encoded
           end
-
         end
       end
     end

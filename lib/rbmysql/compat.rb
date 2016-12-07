@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 # Copyright (C) 2008 TOMITA Masahiro
 # mailto:tommy@tmtm.org
@@ -6,10 +7,9 @@
 
 class RbMysql
   class << self
-
     def connect(*args)
-      my = self.allocate
-      my.instance_eval{initialize}
+      my = allocate
+      my.instance_eval { initialize }
       my.connect(*args)
       my
     end
@@ -17,8 +17,8 @@ class RbMysql
     alias real_connect connect
 
     def init
-      my = self.allocate
-      my.instance_eval{initialize}
+      my = allocate
+      my.instance_eval { initialize }
       my
     end
 
@@ -61,9 +61,9 @@ class RbMysql
     res = simple_query str
     if res
       res.each do |rec|
-        rec.map!{|v| v && v.to_s}
+        rec.map! { |v| v && v.to_s }
         rec.each_index do |i|
-          @fields[i].max_length = [rec[i] ? rec[i].length : 0, @fields[i].max_length||0].max
+          @fields[i].max_length = [rec[i] ? rec[i].length : 0, @fields[i].max_length || 0].max
         end
       end
       res.data_seek 0
@@ -75,7 +75,7 @@ class RbMysql
     self.class.client_version
   end
 
-  def options(opt, val=nil)
+  def options(opt, val = nil)
     case opt
     when INIT_COMMAND
       @init_command = val
@@ -179,7 +179,7 @@ class RbMysql
     end
 
     def fetch_field_direct(n)
-      raise ClientError, "invalid argument: #{n}" if n < 0 or n >= @fields.length
+      raise ClientError, "invalid argument: #{n}" if n < 0 || (n >= @fields.length)
       @fields[n]
     end
 
@@ -189,7 +189,7 @@ class RbMysql
 
     def fetch_lengths
       return nil unless @fetched_record
-      @fetched_record.map{|c|c.nil? ? 0 : c.length}
+      @fetched_record.map { |c| c.nil? ? 0 : c.length }
     end
 
     def num_fields
@@ -211,6 +211,7 @@ class RbMysql
         "decimals"   => @decimals
       }
     end
+
     def inspect
       "#<RbMysql::Field:#{@name}>"
     end
@@ -266,4 +267,3 @@ class RbMysql
   end
   Stmt = Statement
 end
-

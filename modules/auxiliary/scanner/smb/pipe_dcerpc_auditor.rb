@@ -1,14 +1,12 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 
-
 class MetasploitModule < Msf::Auxiliary
-
   # Exploit mixins should be called first
   include Msf::Exploit::Remote::SMB::Client
   include Msf::Exploit::Remote::SMB::Client::Authenticated
@@ -29,8 +27,9 @@ class MetasploitModule < Msf::Auxiliary
     deregister_options('RPORT', 'RHOST')
     register_options(
       [
-        OptString.new('SMBPIPE', [ true,  "The pipe name to use (BROWSER)", 'BROWSER']),
-      ], self.class)
+        OptString.new('SMBPIPE', [ true, "The pipe name to use (BROWSER)", 'BROWSER'])
+      ], self.class
+    )
   end
 
   @@target_uuids = [
@@ -250,55 +249,49 @@ class MetasploitModule < Msf::Auxiliary
     [ 'fdb3a030-065f-11d1-bb9b-00a024ea5525', '1.0' ],
     [ 'ffe561b8-bf15-11cf-8c5e-08002bb49649', '2.0' ]
 
-
-]
+  ]
 
   # Fingerprint a single host
   def run_host(ip)
-
     [[139, false], [445, true]].each do |info|
+      datastore['RPORT'] = info[0]
+      datastore['SMBDirect'] = info[1]
 
-    datastore['RPORT'] = info[0]
-    datastore['SMBDirect'] = info[1]
+      begin
+        connect
+        smb_login
 
-    begin
-      connect()
-      smb_login()
-
-      @@target_uuids.each do |uuid|
-
-        handle = dcerpc_handle(
-          uuid[0], uuid[1],
-          'ncacn_np', ["\\#{datastore['SMBPIPE']}"]
-        )
-
-        begin
-          dcerpc_bind(handle)
-          print_line("UUID #{uuid[0]} #{uuid[1]} OPEN VIA #{datastore['SMBPIPE']}")
-          # Add Report
-          report_note(
-            :host	=> ip,
-            :proto => 'tcp',
-            :sname	=> 'smb',
-            :port	=> rport,
-            :type	=> "UUID #{uuid[0]} #{uuid[1]}",
-            :data	=> "UUID #{uuid[0]} #{uuid[1]} OPEN VIA #{datastore['SMBPIPE']}"
+        @@target_uuids.each do |uuid|
+          handle = dcerpc_handle(
+            uuid[0], uuid[1],
+            'ncacn_np', ["\\#{datastore['SMBPIPE']}"]
           )
-        rescue ::Rex::Proto::SMB::Exceptions::ErrorCode => e
-          #print_line("UUID #{uuid[0]} #{uuid[1]} ERROR 0x%.8x" % e.error_code)
-        rescue ::Exception => e
-          #print_line("UUID #{uuid[0]} #{uuid[1]} ERROR #{$!}")
+
+          begin
+            dcerpc_bind(handle)
+            print_line("UUID #{uuid[0]} #{uuid[1]} OPEN VIA #{datastore['SMBPIPE']}")
+            # Add Report
+            report_note(
+              host: ip,
+              proto: 'tcp',
+              sname: 'smb',
+              port: rport,
+              type: "UUID #{uuid[0]} #{uuid[1]}",
+              data: "UUID #{uuid[0]} #{uuid[1]} OPEN VIA #{datastore['SMBPIPE']}"
+            )
+          rescue ::Rex::Proto::SMB::Exceptions::ErrorCode => e
+            # print_line("UUID #{uuid[0]} #{uuid[1]} ERROR 0x%.8x" % e.error_code)
+          rescue ::Exception => e
+            # print_line("UUID #{uuid[0]} #{uuid[1]} ERROR #{$!}")
+          end
         end
+
+        disconnect
+
+        return
+      rescue ::Exception
+        print_line($ERROR_INFO.to_s)
       end
-
-      disconnect()
-
-      return
-    rescue ::Exception
-      print_line($!.to_s)
-    end
     end
   end
-
-
 end

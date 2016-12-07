@@ -1,14 +1,14 @@
+# frozen_string_literal: true
 require 'metasploit/framework/login_scanner/http'
 
 module Metasploit
   module Framework
     module LoginScanner
-
       # Chinese Caidao login scanner
       class Caidao < HTTP
         # Inherit LIKELY_PORTS, LIKELY_SERVICE_NAMES, and REALM_KEY from HTTP
         DEFAULT_PORT       = 80
-        PRIVATE_TYPES      = [ :password ]
+        PRIVATE_TYPES      = [ :password ].freeze
         LOGIN_STATUS       = Metasploit::Model::Login::Status # Shorter name
 
         # Checks if the target is Caidao Backdoor. The login module should call this.
@@ -25,11 +25,11 @@ module Metasploit
             return true
           when /asp$/mi
             @payload = 'execute("response.write(""'
-            @payload << "#{@lmark}"
+            @payload << @lmark.to_s
             @payload << '""):response.write(""'
-            @payload << "#{@flag}"
+            @payload << @flag.to_s
             @payload << '""):response.write(""'
-            @payload << "#{@rmark}"
+            @payload << @rmark.to_s
             @payload << '""):response.end")'
             return true
           when /aspx$/mi
@@ -42,7 +42,7 @@ module Metasploit
         end
 
         def set_sane_defaults
-          self.method = "POST" if self.method.nil?
+          self.method = "POST" if method.nil?
           super
         end
 
@@ -53,7 +53,7 @@ module Metasploit
         # @return [Hash]
         #   * :status [Metasploit::Model::Login::Status]
         #   * :proof [String] the HTTP response body
-        def try_login(username, password)
+        def try_login(_username, password)
           res = send_request(
             'method'  => method,
             'uri'     => uri,
@@ -61,14 +61,14 @@ module Metasploit
           )
 
           unless res
-            return { :status => LOGIN_STATUS::UNABLE_TO_CONNECT, :proof => res.to_s }
+            return { status: LOGIN_STATUS::UNABLE_TO_CONNECT, proof: res.to_s }
           end
 
           if res && res.code == 200 && res.body.to_s.include?("#{@lmark}#{@flag}#{@rmark}")
-            return { :status => Metasploit::Model::Login::Status::SUCCESSFUL, :proof => res.to_s }
+            return { status: Metasploit::Model::Login::Status::SUCCESSFUL, proof: res.to_s }
           end
 
-          { :status => Metasploit::Model::Login::Status::INCORRECT, :proof => res.to_s }
+          { status: Metasploit::Model::Login::Status::INCORRECT, proof: res.to_s }
         end
 
         # Attempts to login to Caidao Backdoor. This is called first.
@@ -85,11 +85,11 @@ module Metasploit
             protocol: 'tcp'
           }
 
-          if ssl
-            result_opts[:service_name] = 'https'
-          else
-            result_opts[:service_name] = 'http'
-          end
+          result_opts[:service_name] = if ssl
+                                         'https'
+                                       else
+                                         'http'
+                                       end
 
           begin
             result_opts.merge!(try_login(credential.public, credential.private))

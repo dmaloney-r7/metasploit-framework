@@ -1,28 +1,28 @@
 
+# frozen_string_literal: true
 require 'msf/core'
 require 'rex'
 
 lib = File.join(Msf::Config.install_root, "test", "lib")
-$:.push(lib) unless $:.include?(lib)
+$LOAD_PATH.push(lib) unless $LOAD_PATH.include?(lib)
 require 'module_test'
 
 class MetasploitModule < Msf::Post
-
   include Msf::ModuleTest::PostTest
 
-  def initialize(info={})
-    super( update_info( info,
-        'Name'          => 'Testing Meterpreter Stuff',
-        'Description'   => %q{ This module will test meterpreter API methods },
-        'License'       => MSF_LICENSE,
-        'Author'        => [ 'egypt'],
-        'Platform'      => [ 'windows', 'linux', 'java' ],
-        'SessionTypes'  => [ 'meterpreter' ]
-      ))
+  def initialize(info = {})
+    super(update_info(info,
+                      'Name'          => 'Testing Meterpreter Stuff',
+                      'Description'   => %q( This module will test meterpreter API methods ),
+                      'License'       => MSF_LICENSE,
+                      'Author'        => [ 'egypt'],
+                      'Platform'      => [ 'windows', 'linux', 'java' ],
+                      'SessionTypes'  => [ 'meterpreter' ]))
     register_options(
       [
-        OptString.new("BaseFileName" , [true, "File/dir base name", "meterpreter-test"])
-      ], self.class)
+        OptString.new("BaseFileName", [true, "File/dir base name", "meterpreter-test"])
+      ], self.class
+    )
   end
 
   #
@@ -34,18 +34,21 @@ class MetasploitModule < Msf::Post
   #
   def setup
     @old_pwd = session.fs.dir.getwd
-    stat = session.fs.file.stat("/tmp") rescue nil
-    if (stat and stat.directory?)
-      tmp = "/tmp"
-    else
-      tmp = session.fs.file.expand_path("%TEMP%")
-    end
+    stat = begin
+             session.fs.file.stat("/tmp")
+           rescue
+             nil
+           end
+    tmp = if stat && stat.directory?
+            "/tmp"
+          else
+            session.fs.file.expand_path("%TEMP%")
+          end
     vprint_status("Setup: changing working directory to #{tmp}")
     session.fs.dir.chdir(tmp)
 
     super
   end
-
 
   def test_sys_process
     vprint_status("Starting process tests")
@@ -64,19 +67,18 @@ class MetasploitModule < Msf::Post
     it "should return a list of processes" do
       ret = true
       list = session.sys.process.get_processes
-      ret &&= (list && list.length > 0)
+      ret &&= (list && !list.empty?)
       if session.commands.include? "stdapi_sys_process_getpid"
         pid ||= session.sys.process.getpid
-        process = list.find{ |p| p['pid'] == pid }
+        process = list.find { |p| p['pid'] == pid }
         vprint_status("PID info: #{process.inspect}")
-        ret &&= !(process.nil?)
+        ret &&= !process.nil?
       else
         vprint_status("Session doesn't implement getpid, skipping sanity check")
       end
 
       ret
     end
-
   end
 
   def test_sys_config
@@ -94,7 +96,7 @@ class MetasploitModule < Msf::Post
   end
 
   def test_net_config
-    unless (session.commands.include? "stdapi_net_config_get_interfaces")
+    unless session.commands.include? "stdapi_net_config_get_interfaces"
       vprint_status("This meterpreter does not implement get_interfaces, skipping tests")
       return
     end
@@ -103,19 +105,19 @@ class MetasploitModule < Msf::Post
 
     it "should return network interfaces" do
       ifaces = session.net.config.get_interfaces
-      res = !!(ifaces and ifaces.length > 0)
+      res = !!(ifaces && !ifaces.empty?)
 
       res
     end
     it "should have an interface that matches session_host" do
       ifaces = session.net.config.get_interfaces
-      res = !!(ifaces and ifaces.length > 0)
+      res = !!(ifaces && !ifaces.empty?)
 
-      res &&= !! ifaces.find { |iface|
-        iface.addrs.find { |addr|
+      res &&= !!ifaces.find do |iface|
+        iface.addrs.find do |addr|
           addr == session.session_host
-        }
-      }
+        end
+      end
 
       res
     end
@@ -124,10 +126,9 @@ class MetasploitModule < Msf::Post
       it "should return network routes" do
         routes = session.net.config.get_routes
 
-        routes and routes.length > 0
+        routes && !routes.empty?
       end
     end
-
   end
 
   def test_fs
@@ -167,10 +168,14 @@ class MetasploitModule < Msf::Post
     end
 
     it "should create and remove a dir" do
-      dir_name = "#{datastore["BaseFileName"]}-dir"
-      session.fs.dir.rmdir(dir_name) rescue nil
+      dir_name = "#{datastore['BaseFileName']}-dir"
+      begin
+        session.fs.dir.rmdir(dir_name)
+      rescue
+        nil
+      end
       res = create_directory(dir_name)
-      if (res)
+      if res
         session.fs.dir.rmdir(dir_name)
         res &&= !session.fs.dir.entries.include?(dir_name)
         vprint_status("Directory removed successfully")
@@ -180,8 +185,12 @@ class MetasploitModule < Msf::Post
     end
 
     it "should change directories" do
-      dir_name = "#{datastore["BaseFileName"]}-dir"
-      session.fs.dir.rmdir(dir_name) rescue nil
+      dir_name = "#{datastore['BaseFileName']}-dir"
+      begin
+        session.fs.dir.rmdir(dir_name)
+      rescue
+        nil
+      end
       res = create_directory(dir_name)
 
       old_wd = session.fs.dir.pwd
@@ -209,16 +218,16 @@ class MetasploitModule < Msf::Post
     it "should create and remove files" do
       res = true
       file_name = datastore["BaseFileName"]
-      res &&= session.fs.file.open(file_name, "wb") { |fd|
+      res &&= session.fs.file.open(file_name, "wb") do |fd|
         fd.write("test")
-      }
+      end
 
       vprint_status("Wrote to #{file_name}, checking contents")
-      res &&= session.fs.file.open(file_name, "rb") { |fd|
+      res &&= session.fs.file.open(file_name, "rb") do |fd|
         contents = fd.read
         vprint_status("Wrote #{contents}")
         (contents == "test")
-      }
+      end
 
       session.fs.file.rm(file_name)
       res &&= !session.fs.dir.entries.include?(file_name)
@@ -228,7 +237,7 @@ class MetasploitModule < Msf::Post
 
     it "should upload a file" do
       res = true
-      remote = "#{datastore["BaseFileName"]}-file.txt"
+      remote = "#{datastore['BaseFileName']}-file.txt"
       local  = __FILE__
       vprint_status("uploading")
       session.fs.file.upload_file(remote, local)
@@ -239,9 +248,7 @@ class MetasploitModule < Msf::Post
       if res
         fd = session.fs.file.new(remote, "rb")
         uploaded_contents = fd.read
-        until (fd.eof?)
-          uploaded_contents << fd.read
-        end
+        uploaded_contents << fd.read until fd.eof?
         fd.close
         original_contents = ::File.read(local)
 
@@ -255,11 +262,19 @@ class MetasploitModule < Msf::Post
     it "should move files" do
       res = true
       src_name = datastore["BaseFileName"]
-      dst_name = "#{datastore["BaseFileName"]}-moved"
+      dst_name = "#{datastore['BaseFileName']}-moved"
 
       # Make sure we don't have leftovers from a previous run
-      session.fs.file.rm(src_name) rescue nil
-      session.fs.file.rm(dst_name) rescue nil
+      begin
+        session.fs.file.rm(src_name)
+      rescue
+        nil
+      end
+      begin
+        session.fs.file.rm(dst_name)
+      rescue
+        nil
+      end
 
       # touch a new file
       fd = session.fs.file.open(src_name, "wb")
@@ -271,8 +286,16 @@ class MetasploitModule < Msf::Post
       res &&= !entries.include?(src_name)
 
       # clean up
-      session.fs.file.rm(src_name) rescue nil
-      session.fs.file.rm(dst_name) rescue nil
+      begin
+        session.fs.file.rm(src_name)
+      rescue
+        nil
+      end
+      begin
+        session.fs.file.rm(dst_name)
+      rescue
+        nil
+      end
 
       res
     end
@@ -280,11 +303,19 @@ class MetasploitModule < Msf::Post
     it "should copy files" do
       res = true
       src_name = datastore["BaseFileName"]
-      dst_name = "#{datastore["BaseFileName"]}-copied"
+      dst_name = "#{datastore['BaseFileName']}-copied"
 
       # Make sure we don't have leftovers from a previous run
-      session.fs.file.rm(src_name) rescue nil
-      session.fs.file.rm(dst_name) rescue nil
+      begin
+        session.fs.file.rm(src_name)
+      rescue
+        nil
+      end
+      begin
+        session.fs.file.rm(dst_name)
+      rescue
+        nil
+      end
 
       # touch a new file
       fd = session.fs.file.open(src_name, "wb")
@@ -296,15 +327,23 @@ class MetasploitModule < Msf::Post
       res &&= entries.include?(src_name)
 
       # clean up
-      session.fs.file.rm(src_name) rescue nil
-      session.fs.file.rm(dst_name) rescue nil
+      begin
+        session.fs.file.rm(src_name)
+      rescue
+        nil
+      end
+      begin
+        session.fs.file.rm(dst_name)
+      rescue
+        nil
+      end
 
       res
     end
 
     it "should do md5 and sha1 of files" do
       res = true
-      remote = "#{datastore["BaseFileName"]}-file.txt"
+      remote = "#{datastore['BaseFileName']}-file.txt"
       local  = __FILE__
       vprint_status("uploading")
       session.fs.file.upload_file(remote, local)
@@ -317,41 +356,38 @@ class MetasploitModule < Msf::Post
         local_md5  = Digest::MD5.digest(::File.read(local))
         remote_sha = session.fs.file.sha1(remote)
         local_sha  = Digest::SHA1.digest(::File.read(local))
-        vprint_status("remote md5: #{Rex::Text.to_hex(remote_md5,'')}")
-        vprint_status("local md5 : #{Rex::Text.to_hex(local_md5,'')}")
-        vprint_status("remote sha: #{Rex::Text.to_hex(remote_sha,'')}")
-        vprint_status("local sha : #{Rex::Text.to_hex(local_sha,'')}")
+        vprint_status("remote md5: #{Rex::Text.to_hex(remote_md5, '')}")
+        vprint_status("local md5 : #{Rex::Text.to_hex(local_md5, '')}")
+        vprint_status("remote sha: #{Rex::Text.to_hex(remote_sha, '')}")
+        vprint_status("local sha : #{Rex::Text.to_hex(local_sha, '')}")
         res &&= (remote_md5 == local_md5)
       end
 
       session.fs.file.rm(remote)
       res
     end
-
   end
 
-=begin
-  # Sniffer currently crashes on any OS that requires driver signing,
-  # i.e. everything vista and newer
+  #   # Sniffer currently crashes on any OS that requires driver signing,
+  #   # i.e. everything vista and newer
+  #   #
+  #   # Disable loading it for now to make it through the rest of the tests.
+  #   #
+  #   def test_sniffer
+  #     begin
+  #       session.core.use "sniffer"
+  #     rescue
+  #       # Not all meterpreters have a sniffer extension, don't count it
+  #       # against them.
+  #       return
+  #     end
   #
-  # Disable loading it for now to make it through the rest of the tests.
+  #     it "should list interfaces for sniffing" do
+  #       session.sniffer.interfaces.kind_of? Array
+  #     end
   #
-  def test_sniffer
-    begin
-      session.core.use "sniffer"
-    rescue
-      # Not all meterpreters have a sniffer extension, don't count it
-      # against them.
-      return
-    end
-
-    it "should list interfaces for sniffing" do
-      session.sniffer.interfaces.kind_of? Array
-    end
-
-    # XXX: how do we test this more thoroughly in a generic way?
-  end
-=end
+  #     # XXX: how do we test this more thoroughly in a generic way?
+  #   end
 
   def cleanup
     vprint_status("Cleanup: changing working directory back to #{@old_pwd}")
@@ -359,7 +395,7 @@ class MetasploitModule < Msf::Post
     super
   end
 
-protected
+  protected
 
   def create_directory(name)
     res = true
@@ -368,12 +404,8 @@ protected
     entries = session.fs.dir.entries
     res &&= entries.include?(name)
     res &&= session.fs.file.stat(name).directory?
-    if res
-      vprint_status("Directory created successfully")
-    end
+    vprint_status("Directory created successfully") if res
 
     res
   end
-
-
 end

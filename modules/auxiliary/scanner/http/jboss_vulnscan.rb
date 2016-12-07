@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -13,43 +14,42 @@ class MetasploitModule < Msf::Auxiliary
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'                  => 'JBoss Vulnerability Scanner',
-      'Description'           => %q(
-        This module scans a JBoss instance for a few vulnerablities.
-      ),
-      'Author'                =>
-        [
-          'Tyler Krpata',
-          'Zach Grace <@ztgrace>'
-        ],
-      'References'            =>
-        [
-          [ 'CVE', '2010-0738' ] # VERB auth bypass
-        ],
-      'License'               => BSD_LICENSE
-      ))
+                      'Name'                  => 'JBoss Vulnerability Scanner',
+                      'Description'           => %q(
+                        This module scans a JBoss instance for a few vulnerablities.
+                      ),
+                      'Author'                =>
+                        [
+                          'Tyler Krpata',
+                          'Zach Grace <@ztgrace>'
+                        ],
+                      'References'            =>
+                        [
+                          [ 'CVE', '2010-0738' ] # VERB auth bypass
+                        ],
+                      'License'               => BSD_LICENSE))
 
     register_options(
       [
-        OptString.new('VERB',  [ true,  "Verb for auth bypass testing", "HEAD"])
-      ], self.class)
+        OptString.new('VERB', [ true, "Verb for auth bypass testing", "HEAD"])
+      ], self.class
+    )
   end
 
   def run_host(ip)
     res = send_request_cgi(
-      {
-        'uri'       => "/" + Rex::Text.rand_text_alpha(12),
-        'method'    => 'GET',
-        'ctype'     => 'text/plain'
-      })
+      'uri' => "/" + Rex::Text.rand_text_alpha(12),
+      'method'    => 'GET',
+      'ctype'     => 'text/plain'
+    )
 
     if res
 
-      info = http_fingerprint(:response => res)
+      info = http_fingerprint(response: res)
       print_status(info)
 
       if res.body && />(JBoss[^<]+)/.match(res.body)
-        print_error("#{rhost}:#{rport} JBoss error message: #{$1}")
+        print_error("#{rhost}:#{rport} JBoss error message: #{Regexp.last_match(1)}")
       end
 
       apps = [
@@ -83,25 +83,22 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   def check_app(app)
-    res = send_request_cgi({
-      'uri'       => app,
-      'method'    => 'GET',
-      'ctype'     => 'text/plain'
-    })
+    res = send_request_cgi('uri' => app,
+                           'method'    => 'GET',
+                           'ctype'     => 'text/plain')
 
     if res
-      case
-      when res.code == 200
+      if res.code == 200
         print_good("#{rhost}:#{rport} #{app} does not require authentication (200)")
-      when res.code == 403
+      elsif res.code == 403
         print_status("#{rhost}:#{rport} #{app} restricted (403)")
-      when res.code == 401
+      elsif res.code == 401
         print_status("#{rhost}:#{rport} #{app} requires authentication (401): #{res.headers['WWW-Authenticate']}")
         bypass_auth(app)
         basic_auth_default_creds(app)
-      when res.code == 404
+      elsif res.code == 404
         print_status("#{rhost}:#{rport} #{app} not found (404)")
-      when res.code == 301, res.code == 302
+      elsif res.code == 301 || res.code == 302
         print_status("#{rhost}:#{rport} #{app} is redirected (#{res.code}) to #{res.headers['Location']} (not following)")
       else
         print_status("#{rhost}:#{rport} Don't know how to handle response code #{res.code}")
@@ -121,16 +118,13 @@ class MetasploitModule < Msf::Auxiliary
     username = 'admin'
     password = 'admin'
 
-    res = send_request_raw({
-      'uri'      => '/admin-console/login.seam',
-      'method'   => 'POST',
-      'version'  => '1.1',
-      'vhost'    => "#{rhost}",
-      'headers'  => { 'Content-Type'  => 'application/x-www-form-urlencoded',
-                      'Cookie'        => "JSESSIONID=#{session['jsessionid']}"
-                    },
-      'data'     => "login_form=login_form&login_form%3Aname=#{username}&login_form%3Apassword=#{password}&login_form%3Asubmit=Login&javax.faces.ViewState=#{session["viewstate"]}"
-    })
+    res = send_request_raw('uri' => '/admin-console/login.seam',
+                           'method'   => 'POST',
+                           'version'  => '1.1',
+                           'vhost'    => rhost.to_s,
+                           'headers'  => { 'Content-Type' => 'application/x-www-form-urlencoded',
+                                           'Cookie' => "JSESSIONID=#{session['jsessionid']}" },
+                           'data'     => "login_form=login_form&login_form%3Aname=#{username}&login_form%3Apassword=#{password}&login_form%3Asubmit=Login&javax.faces.ViewState=#{session['viewstate']}")
 
     # Valid creds if 302 redirected to summary.seam and not error.seam
     if res && res.code == 302 && res.headers.to_s !~ /error.seam/m && res.headers.to_s =~ /summary.seam/m
@@ -151,7 +145,7 @@ class MetasploitModule < Msf::Auxiliary
     }
 
     credential_data = {
-      module_fullname: self.fullname,
+      module_fullname: fullname,
       origin_type: :service,
       private_data: password,
       private_type: :password,
@@ -164,16 +158,12 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   def jboss_as_session_setup(rhost, rport)
-    res = send_request_raw({
-      'uri'       => '/admin-console/login.seam',
-      'method'    => 'GET',
-      'version'   => '1.1',
-      'vhost'     => "#{rhost}"
-    })
+    res = send_request_raw('uri' => '/admin-console/login.seam',
+                           'method'    => 'GET',
+                           'version'   => '1.1',
+                           'vhost'     => rhost.to_s)
 
-    unless res
-      return nil
-    end
+    return nil unless res
 
     begin
       viewstate = /javax.faces.ViewState" value="(.*)" auto/.match(res.body).captures[0]
@@ -189,11 +179,11 @@ class MetasploitModule < Msf::Auxiliary
   def bypass_auth(app)
     print_status("#{rhost}:#{rport} Check for verb tampering (HEAD)")
 
-    res = send_request_raw({
-      'uri'       => app,
+    res = send_request_raw(
+      'uri' => app,
       'method'    => datastore['VERB'],
       'version'   => '1.0' # 1.1 makes the head request wait on timeout for some reason
-    })
+    )
 
     if res && res.code == 200
       print_good("#{rhost}:#{rport} Got authentication bypass via HTTP verb tampering")
@@ -203,12 +193,10 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   def basic_auth_default_creds(app)
-    res = send_request_cgi({
-      'uri'       => app,
-      'method'    => 'GET',
-      'ctype'     => 'text/plain',
-      'authorization' => basic_auth('admin', 'admin')
-    })
+    res = send_request_cgi('uri' => app,
+                           'method'    => 'GET',
+                           'ctype'     => 'text/plain',
+                           'authorization' => basic_auth('admin', 'admin'))
 
     if res && res.code == 200
       print_good("#{rhost}:#{rport} Authenticated using admin:admin at #{app}")
@@ -230,6 +218,6 @@ class MetasploitModule < Msf::Auxiliary
       return :down
     end
     sock.close
-    return :up
+    :up
   end
 end

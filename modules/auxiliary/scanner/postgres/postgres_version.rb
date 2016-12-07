@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -5,9 +6,7 @@
 
 require 'msf/core'
 
-
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::Postgres
   include Msf::Auxiliary::Scanner
   include Msf::Auxiliary::Report
@@ -15,17 +14,16 @@ class MetasploitModule < Msf::Auxiliary
   # Creates an instance of this module.
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'PostgreSQL Version Probe',
-      'Description'    => %q{
-        Enumerates the verion of PostgreSQL servers.
-      },
-      'Author'         => [ 'todb' ],
-      'License'        => MSF_LICENSE,
-      'References'     =>
-        [
-          [ 'URL', 'http://www.postgresql.org' ]
-        ]
-    ))
+                      'Name'           => 'PostgreSQL Version Probe',
+                      'Description'    => %q(
+                        Enumerates the verion of PostgreSQL servers.
+                      ),
+                      'Author'         => [ 'todb' ],
+                      'License'        => MSF_LICENSE,
+                      'References'     =>
+                        [
+                          [ 'URL', 'http://www.postgresql.org' ]
+                        ]))
 
     register_options([ ], self.class) # None needed.
 
@@ -34,10 +32,10 @@ class MetasploitModule < Msf::Auxiliary
 
   # Loops through each host in turn. Note the current IP address is both
   # ip and datastore['RHOST']
-  def run_host(ip)
+  def run_host(_ip)
     user = datastore['USERNAME']
     pass = postgres_password
-    do_fingerprint(user,pass,datastore['DATABASE'])
+    do_fingerprint(user, pass, datastore['DATABASE'])
   end
 
   # Alias for RHOST
@@ -76,15 +74,15 @@ class MetasploitModule < Msf::Auxiliary
     create_credential_login(login_data)
   end
 
-  def do_fingerprint(user=nil,pass=nil,database=nil)
+  def do_fingerprint(user = nil, pass = nil, database = nil)
     begin
       msg = "#{rhost}:#{rport} Postgres -"
       password = pass || postgres_password
       vprint_status("#{msg} Trying username:'#{user}' with password:'#{password}' against #{rhost}:#{rport} on database '#{database}'")
       result = postgres_fingerprint(
-        :db => database,
-        :username => user,
-        :password => password
+        db: database,
+        username: user,
+        password: password
       )
       if result[:auth]
         vprint_good "#{rhost}:#{rport} Postgres - Logged in to '#{database}' with '#{user}':'#{password}'"
@@ -98,31 +96,31 @@ class MetasploitModule < Msf::Auxiliary
 
       # Reporting
       report_service(
-        :host => rhost,
-        :port => rport,
-        :name => "postgres",
-        :info => result.values.first
+        host: rhost,
+        port: rport,
+        name: "postgres",
+        info: result.values.first
       )
 
-      if self.postgres_conn
+      if postgres_conn
         report_cred(
           ip: rhost,
           port: rport,
           service_name: 'postgres',
           user: user,
           password: password,
-          proof: "postgres_conn = #{self.postgres_conn.inspect}"
+          proof: "postgres_conn = #{postgres_conn.inspect}"
         )
       end
 
       if result[:unknown]
         report_note(
-          :host => rhost,
-          :proto => 'tcp',
-          :sname => 'postgres',
-          :port => rport,
-          :ntype => 'postgresql.fingerprint',
-          :data => "Unknown Pre-Auth fingerprint: #{result[:unknown]}"
+          host: rhost,
+          proto: 'tcp',
+          sname: 'postgres',
+          port: rport,
+          ntype: 'postgresql.fingerprint',
+          data: "Unknown Pre-Auth fingerprint: #{result[:unknown]}"
         )
       end
 
@@ -130,10 +128,8 @@ class MetasploitModule < Msf::Auxiliary
       postgres_logout
 
     rescue Rex::ConnectionError
-      vprint_error "#{rhost}:#{rport} Connection Error: #{$!}"
+      vprint_error "#{rhost}:#{rport} Connection Error: #{$ERROR_INFO}"
       return :done
     end
-
   end
-
 end

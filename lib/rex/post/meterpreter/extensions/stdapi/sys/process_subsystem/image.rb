@@ -1,129 +1,125 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 require 'rex/post/meterpreter/client'
 require 'rex/post/meterpreter/extensions/stdapi/constants'
 
 module Rex
-module Post
-module Meterpreter
-module Extensions
-module Stdapi
-module Sys
-module ProcessSubsystem
+  module Post
+    module Meterpreter
+      module Extensions
+        module Stdapi
+          module Sys
+            module ProcessSubsystem
+              ###
+              #
+              # Interacts with loading, unloading, enumerating, and querying
+              # image files in the context of a given process.
+              #
+              ###
+              class Image
+                ##
+                #
+                # Constructor
+                #
+                ##
 
-###
-#
-# Interacts with loading, unloading, enumerating, and querying
-# image files in the context of a given process.
-#
-###
-class Image
+                #
+                # Initializes the image instance.
+                #
+                def initialize(process)
+                  self.process = process
+                end
 
-  ##
-  #
-  # Constructor
-  #
-  ##
+                #
+                # Returns the image base address associated with the supplied image name.
+                #
+                def [](key)
+                  each_image do |i|
+                    return i['base'] if i['name'].casecmp(key.downcase).zero?
+                  end
 
-  #
-  # Initializes the image instance.
-  #
-  def initialize(process)
-    self.process = process
-  end
+                  nil
+                end
 
-  #
-  # Returns the image base address associated with the supplied image name.
-  #
-  def [](key)
-    each_image { |i|
-      if (i['name'].downcase == key.downcase)
-        return i['base']
-      end
-    }
+                #
+                # Loads an image file into the context of the process.
+                #
+                def load(image_path)
+                  request = Packet.create_request('stdapi_sys_process_image_load')
 
-    return nil
-  end
+                  request.add_tlv(TLV_TYPE_HANDLE, process.handle)
+                  request.add_tlv(TLV_TYPE_IMAGE_FILE_PATH, image_path)
 
-  #
-  # Loads an image file into the context of the process.
-  #
-  def load(image_path)
-    request = Packet.create_request('stdapi_sys_process_image_load')
+                  response = process.client.send_request(request)
 
-    request.add_tlv(TLV_TYPE_HANDLE, process.handle)
-    request.add_tlv(TLV_TYPE_IMAGE_FILE_PATH, image_path)
+                  response.get_tlv_value(TLV_TYPE_IMAGE_BASE)
+                end
 
-    response = process.client.send_request(request)
+                #
+                # Returns the address of the procedure that is found in the supplied
+                # library.
+                #
+                def get_procedure_address(image_file, procedure)
+                  request = Packet.create_request('stdapi_sys_process_image_get_proc_address')
 
-    return response.get_tlv_value(TLV_TYPE_IMAGE_BASE)
-  end
+                  request.add_tlv(TLV_TYPE_HANDLE, process.handle)
+                  request.add_tlv(TLV_TYPE_IMAGE_FILE, image_file)
+                  request.add_tlv(TLV_TYPE_PROCEDURE_NAME, procedure)
 
-  #
-  # Returns the address of the procedure that is found in the supplied
-  # library.
-  #
-  def get_procedure_address(image_file, procedure)
-    request = Packet.create_request('stdapi_sys_process_image_get_proc_address')
+                  response = process.client.send_request(request)
 
-    request.add_tlv(TLV_TYPE_HANDLE, process.handle)
-    request.add_tlv(TLV_TYPE_IMAGE_FILE, image_file)
-    request.add_tlv(TLV_TYPE_PROCEDURE_NAME, procedure)
+                  response.get_tlv_value(TLV_TYPE_PROCEDURE_ADDRESS)
+                end
 
-    response = process.client.send_request(request)
+                #
+                # Unloads an image file that is loaded into the address space of the
+                # process by its base address.
+                #
+                def unload(base)
+                  request = Packet.create_request('stdapi_sys_process_image_unload')
 
-    return response.get_tlv_value(TLV_TYPE_PROCEDURE_ADDRESS)
-  end
+                  request.add_tlv(TLV_TYPE_HANDLE, process.handle)
+                  request.add_tlv(TLV_TYPE_IMAGE_BASE, base)
 
-  #
-  # Unloads an image file that is loaded into the address space of the
-  # process by its base address.
-  #
-  def unload(base)
-    request = Packet.create_request('stdapi_sys_process_image_unload')
+                  response = process.client.send_request(request)
 
-    request.add_tlv(TLV_TYPE_HANDLE, process.handle)
-    request.add_tlv(TLV_TYPE_IMAGE_BASE, base)
+                  true
+                end
 
-    response = process.client.send_request(request)
+                #
+                # Enumerates through each image in the process.
+                #
+                def each_image(&block)
+                  get_images.each(&block)
+                end
 
-    return true
-  end
+                #
+                # Returns an array of images in the process with hash objects that
+                # have keys for 'name', 'path', and 'base'.
+                #
+                def get_images
+                  request = Packet.create_request('stdapi_sys_process_image_get_images')
+                  images  = []
 
-  #
-  # Enumerates through each image in the process.
-  #
-  def each_image(&block)
-    get_images.each(&block)
-  end
+                  request.add_tlv(TLV_TYPE_HANDLE, process.handle)
 
-  #
-  # Returns an array of images in the process with hash objects that
-  # have keys for 'name', 'path', and 'base'.
-  #
-  def get_images
-    request = Packet.create_request('stdapi_sys_process_image_get_images')
-    images  = []
+                  response = process.client.send_request(request)
 
-    request.add_tlv(TLV_TYPE_HANDLE, process.handle)
+                  response.each(TLV_TYPE_IMAGE_GROUP) do |i|
+                    images <<
+                      {
+                        'name' => i.get_tlv_value(TLV_TYPE_IMAGE_NAME),
+                        'base' => i.get_tlv_value(TLV_TYPE_IMAGE_BASE),
+                        'path' => i.get_tlv_value(TLV_TYPE_IMAGE_FILE_PATH)
+                      }
+                  end
 
-    response = process.client.send_request(request)
+                  images
+                end
 
-    response.each(TLV_TYPE_IMAGE_GROUP) { |i|
-      images <<
-        {
-          'name' => i.get_tlv_value(TLV_TYPE_IMAGE_NAME),
-          'base' => i.get_tlv_value(TLV_TYPE_IMAGE_BASE),
-          'path' => i.get_tlv_value(TLV_TYPE_IMAGE_FILE_PATH)
-        }
-    }
+                protected
 
-    return images
-  end
-
-protected
-  attr_accessor :process # :nodoc:
-
-end
-
-end; end; end; end; end; end; end
+                attr_accessor :process # :nodoc:
+              end
+            end; end; end; end; end; end; end

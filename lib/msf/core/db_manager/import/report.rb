@@ -1,8 +1,9 @@
+# frozen_string_literal: true
 module Msf::DBManager::Import::Report
   # @param report [REXML::Element] to be imported
   # @param args [Hash]
   # @param base_dir [String]
-  def import_report(report, args, base_dir)
+  def import_report(report, args, _base_dir)
     tmp = args[:ifd][:zip_tmp]
     report_info = {}
 
@@ -11,12 +12,10 @@ module Msf::DBManager::Import::Report
       node_value = e.text
 
       # These need to be converted back to arrays:
-      array_attrs = %w|addresses file-formats options sections|
-      if array_attrs.member? node_name
-        node_value = JSON.parse(node_value)
-      end
+      array_attrs = %w(addresses file-formats options sections)
+      node_value = JSON.parse(node_value) if array_attrs.member? node_name
       # Don't restore these values:
-      skip_nodes = %w|id workspace-id artifacts|
+      skip_nodes = %w(id workspace-id artifacts)
       next if skip_nodes.member? node_name
 
       report_info[node_name.parameterize.underscore.to_sym] = node_value
@@ -31,7 +30,7 @@ module Msf::DBManager::Import::Report
     report.elements.at('artifacts').elements.each do |artifact|
       artifact_opts = {}
       artifact.elements.each do |attr|
-        skip_nodes = %w|id accessed-at|
+        skip_nodes = %w(id accessed-at)
         next if skip_nodes.member? attr.name
 
         symboled_attr = attr.name.parameterize.underscore.to_sym

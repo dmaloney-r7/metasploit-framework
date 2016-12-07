@@ -1,15 +1,14 @@
+# frozen_string_literal: true
 require 'spec_helper'
 require 'rex/post/meterpreter'
 require 'rex/post/meterpreter/extensions/stdapi/ui'
 
 RSpec.describe Rex::Post::Meterpreter::Extensions::Stdapi::UI do
-
   it "should be available" do
     expect(described_class).to eq(Rex::Post::Meterpreter::Extensions::Stdapi::UI)
   end
 
   describe "#screenshot" do
-
     before(:example) do
       @client = double("client")
     end
@@ -26,8 +25,5 @@ RSpec.describe Rex::Post::Meterpreter::Extensions::Stdapi::UI do
     it 'should have an instance variable' do
       expect(ui.instance_variables).to include(:@client)
     end
-
   end
-
 end
-

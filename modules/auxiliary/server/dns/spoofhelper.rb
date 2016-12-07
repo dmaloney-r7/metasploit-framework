@@ -1,27 +1,24 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 require 'resolv'
 
-
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Auxiliary::Report
-
 
   def initialize
     super(
-      'Name'        => 'DNS Spoofing Helper Service',
-      'Description'    => %q{
+      'Name' => 'DNS Spoofing Helper Service',
+      'Description' => %q(
         This module provides a DNS service that returns TXT
       records indicating information about the querying service.
       Based on Dino Dai Zovi DNS code from Karma.
 
-      },
+      ),
       'Author'      => ['hdm', 'ddz'],
       'License'     => MSF_LICENSE,
       'Actions'     =>
@@ -38,24 +35,22 @@ class MetasploitModule < Msf::Auxiliary
     register_options(
       [
         OptAddress.new('SRVHOST',   [ true, "The local host to listen on.", '0.0.0.0' ]),
-        OptPort.new('SRVPORT',      [ true, "The local port to listen on.", 53 ]),
-      ], self.class)
+        OptPort.new('SRVPORT',      [ true, "The local port to listen on.", 53 ])
+      ], self.class
+    )
   end
-
 
   def run
     @targ = datastore['TARGETHOST']
 
-    if(@targ and @targ.strip.length == 0)
-      @targ = nil
-    end
+    @targ = nil if @targ && @targ.strip.empty?
 
     @port = datastore['SRVPORT'].to_i
 
     # MacOS X workaround
     ::Socket.do_not_reverse_lookup = true
 
-    @sock = ::UDPSocket.new()
+    @sock = ::UDPSocket.new
     @sock.setsockopt(::Socket::SOL_SOCKET, ::Socket::SO_REUSEADDR, 1)
     @sock.bind(datastore['SRVHOST'], @port)
     @run = true
@@ -65,15 +60,13 @@ class MetasploitModule < Msf::Auxiliary
       while @run
         reply = false
         packet, addr = @sock.recvfrom(65535)
-        if (packet.length == 0)
-          break
-        end
+        break if packet.empty?
 
         names = []
         request = Resolv::DNS::Message.decode(packet)
 
-        request.each_question {|name, typeclass|
-          tc_s = typeclass.to_s().gsub(/^Resolv::DNS::Resource::/, "")
+        request.each_question do |name, typeclass|
+          tc_s = typeclass.to_s.gsub(/^Resolv::DNS::Resource::/, "")
 
           request.qr = 1
           request.ra = 1
@@ -82,16 +75,16 @@ class MetasploitModule < Msf::Auxiliary
           case tc_s
           when 'IN::TXT'
             print_status("#{Time.now} PASSED #{addr[3]}:#{addr[1]} XID #{request.id} #{name}")
-            answer = Resolv::DNS::Resource::IN::TXT.new("#{addr[3]}:#{addr[1]} #{names.join(",")}")
+            answer = Resolv::DNS::Resource::IN::TXT.new("#{addr[3]}:#{addr[1]} #{names.join(',')}")
             request.add_answer(name, 1, answer)
             reply = true
           end
-        }
+        end
 
-        if(reply)
-          @sock.send(request.encode(), 0, addr[3], addr[1])
+        if reply
+          @sock.send(request.encode, 0, addr[3], addr[1])
         else
-          print_status("#{Time.now} IGNORE #{addr[3]}:#{addr[1]} XID #{request.id} #{names.join(",")}")
+          print_status("#{Time.now} IGNORE #{addr[3]}:#{addr[1]} XID #{request.id} #{names.join(',')}")
         end
       end
 
@@ -102,5 +95,4 @@ class MetasploitModule < Msf::Auxiliary
       @sock.close
     end
   end
-
 end

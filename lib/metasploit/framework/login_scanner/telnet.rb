@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'metasploit/framework/telnet/client'
 require 'metasploit/framework/login_scanner/base'
 require 'metasploit/framework/login_scanner/rex_socket'
@@ -9,16 +10,15 @@ module Metasploit
       # It is responsible for taking a single target, and a list of credentials
       # and attempting them. It then saves the results.
       class Telnet
-
         include Metasploit::Framework::LoginScanner::Base
         include Metasploit::Framework::LoginScanner::RexSocket
         include Metasploit::Framework::Telnet::Client
 
         CAN_GET_SESSION      = true
         DEFAULT_PORT         = 23
-        LIKELY_PORTS         = [ DEFAULT_PORT ]
-        LIKELY_SERVICE_NAMES = [ 'telnet' ]
-        PRIVATE_TYPES        = [ :password ]
+        LIKELY_PORTS         = [ DEFAULT_PORT ].freeze
+        LIKELY_SERVICE_NAMES = [ 'telnet' ].freeze
+        PRIVATE_TYPES        = [ :password ].freeze
         REALM_KEY            = nil
 
         # @!attribute verbosity
@@ -42,25 +42,25 @@ module Metasploit
         validates :banner_timeout,
                   presence: true,
                   numericality: {
-                      only_integer:             true,
-                      greater_than_or_equal_to: 1
+                    only_integer:             true,
+                    greater_than_or_equal_to: 1
                   }
 
         validates :telnet_timeout,
                   presence: true,
                   numericality: {
-                      only_integer:             true,
-                      greater_than_or_equal_to: 1
+                    only_integer:             true,
+                    greater_than_or_equal_to: 1
                   }
 
         # (see {Base#attempt_login})
         def attempt_login(credential)
           result_options = {
-              credential: credential,
-              host: host,
-              port: port,
-              protocol: 'tcp',
-              service_name: 'telnet'
+            credential: credential,
+            host: host,
+            port: port,
+            protocol: 'tcp',
+            service_name: 'telnet'
           }
 
           begin
@@ -68,24 +68,20 @@ module Metasploit
               result_options[:status] = Metasploit::Model::Login::Status::UNABLE_TO_CONNECT
             else
               if busy_message?
-                self.sock.close unless self.sock.closed?
+                sock.close unless sock.closed?
                 result_options[:status] = Metasploit::Model::Login::Status::UNABLE_TO_CONNECT
               end
             end
 
             unless result_options[:status]
-              if pre_login
-                pre_login.call(self)
-              end
+              pre_login&.call(self)
 
-              unless password_prompt?
-                send_user(credential.public)
-              end
+              send_user(credential.public) unless password_prompt?
 
               recvd_sample = @recvd.dup
               # Allow for slow echos
               1.upto(10) do
-                recv_telnet(self.sock, 0.10) unless @recvd.nil? || password_prompt?(@recvd)
+                recv_telnet(sock, 0.10) unless @recvd.nil? || password_prompt?(@recvd)
               end
 
               if password_prompt?(credential.public)
@@ -93,15 +89,15 @@ module Metasploit
 
                 # Allow for slow echos
                 1.upto(10) do
-                  recv_telnet(self.sock, 0.10) if @recvd == recvd_sample
+                  recv_telnet(sock, 0.10) if @recvd == recvd_sample
                 end
               end
 
-              if login_succeeded?
-                result_options[:status] = Metasploit::Model::Login::Status::SUCCESSFUL
-              else
-                result_options[:status] = Metasploit::Model::Login::Status::INCORRECT
-              end
+              result_options[:status] = if login_succeeded?
+                                          Metasploit::Model::Login::Status::SUCCESSFUL
+                                        else
+                                          Metasploit::Model::Login::Status::INCORRECT
+                                        end
 
             end
           rescue ::EOFError, Errno::ECONNRESET, Rex::ConnectionError, Rex::ConnectionTimeout, ::Timeout::Error
@@ -133,8 +129,7 @@ module Metasploit
           @parent.print_error(message)
         end
 
-        alias_method :print_bad, :print_error
-
+        alias print_bad print_error
       end
     end
   end

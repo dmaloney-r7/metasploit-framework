@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::Ftp
   include Msf::Auxiliary::Scanner
   include Msf::Auxiliary::Report
@@ -21,28 +21,27 @@ class MetasploitModule < Msf::Auxiliary
 
     register_options(
       [
-        Opt::RPORT(21),
-      ], self.class)
+        Opt::RPORT(21)
+      ], self.class
+    )
   end
 
-  def run_host(target_host)
-
+  def run_host(_target_host)
     begin
 
-    res = connect(true, false)
+      res = connect(true, false)
 
-    if(banner)
-      banner_sanitized = Rex::Text.to_hex_ascii(self.banner.to_s)
-      print_status("FTP Banner: '#{banner_sanitized}'")
-      report_service(:host => rhost, :port => rport, :name => "ftp", :info => banner_sanitized)
-    end
+      if banner
+        banner_sanitized = Rex::Text.to_hex_ascii(banner.to_s)
+        print_status("FTP Banner: '#{banner_sanitized}'")
+        report_service(host: rhost, port: rport, name: "ftp", info: banner_sanitized)
+      end
 
-    disconnect
+      disconnect
 
     rescue ::Interrupt
-      raise $!
+      raise $ERROR_INFO
     rescue ::Rex::ConnectionError, ::IOError
     end
-
   end
 end

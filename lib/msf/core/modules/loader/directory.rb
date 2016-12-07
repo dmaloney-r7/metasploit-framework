@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 require 'msf/core/modules/loader'
@@ -29,14 +30,14 @@ class Msf::Modules::Loader::Directory < Msf::Modules::Loader::Base
   # @yieldparam [String] type The type correlated with the directory under path.
   # @yieldparam module_reference_name (see Msf::Modules::Loader::Base#each_module_reference_name)
   # @return (see Msf::Modules::Loader::Base#each_module_reference_name)
-  def each_module_reference_name(path, opts={})
+  def each_module_reference_name(path, opts = {})
     whitelist = opts[:whitelist] || []
     ::Dir.foreach(path) do |entry|
       full_entry_path = ::File.join(path, entry)
       type = entry.singularize
 
-      unless ::File.directory?(full_entry_path) and
-             module_manager.type_enabled? type
+      unless ::File.directory?(full_entry_path) &&
+             module_manager.type_enabled?(type)
         next
       end
 
@@ -44,16 +45,15 @@ class Msf::Modules::Loader::Directory < Msf::Modules::Loader::Base
 
       # Try to load modules from all the files in the supplied path
       Rex::Find.find(full_entry_path) do |entry_descendant_path|
-        if module_path?(entry_descendant_path)
-          entry_descendant_pathname = Pathname.new(entry_descendant_path)
-          relative_entry_descendant_pathname = entry_descendant_pathname.relative_path_from(full_entry_pathname)
-          relative_entry_descendant_path = relative_entry_descendant_pathname.to_s
+        next unless module_path?(entry_descendant_path)
+        entry_descendant_pathname = Pathname.new(entry_descendant_path)
+        relative_entry_descendant_pathname = entry_descendant_pathname.relative_path_from(full_entry_pathname)
+        relative_entry_descendant_path = relative_entry_descendant_pathname.to_s
 
-          # The module_reference_name doesn't have a file extension
-          module_reference_name = module_reference_name_from_path(relative_entry_descendant_path)
+        # The module_reference_name doesn't have a file extension
+        module_reference_name = module_reference_name_from_path(relative_entry_descendant_path)
 
-          yield path, type, module_reference_name
-        end
+        yield path, type, module_reference_name
       end
     end
   end

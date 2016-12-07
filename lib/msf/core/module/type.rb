@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 module Msf::Module::Type
   extend ActiveSupport::Concern
 

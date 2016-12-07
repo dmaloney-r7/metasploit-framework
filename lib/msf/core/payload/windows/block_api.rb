@@ -1,22 +1,18 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 require 'msf/core'
 
 module Msf
+  ###
+  #
+  # Basic block_api stubs for Windows ARCH_X86 payloads
+  #
+  ###
 
-
-###
-#
-# Basic block_api stubs for Windows ARCH_X86 payloads
-#
-###
-
-
-module Payload::Windows::BlockApi
-
-  def asm_block_api(opts={})
-
-    raw = %q^
+  module Payload::Windows::BlockApi
+    def asm_block_api(_opts = {})
+      raw = %q^
 
     api_call:
       pushad                    ; We preserve all the registers for the caller, bar EAX and ECX.
@@ -104,9 +100,5 @@ module Payload::Windows::BlockApi
       jmp.i8 next_mod           ; Process this module
     ^
   end
-
-
+    end
 end
-
-end
-

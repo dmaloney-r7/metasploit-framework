@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -8,7 +9,6 @@ require 'msf/core/handler/bind_tcp'
 require 'msf/core/payload/php/bind_tcp'
 
 module MetasploitModule
-
   CachedSize = 1361
 
   include Msf::Payload::Stager
@@ -20,15 +20,14 @@ module MetasploitModule
 
   def initialize(info = {})
     super(merge_info(info,
-      'Name'        => 'Bind TCP Stager IPv6 with UUID Support',
-      'Description' => 'Listen for a connection over IPv6 with UUID Support',
-      'Author'      => [ 'egypt', 'OJ Reeves' ],
-      'License'     => MSF_LICENSE,
-      'Platform'    => 'php',
-      'Arch'        => ARCH_PHP,
-      'Handler'     => Msf::Handler::BindTcp,
-      'Stager'      => { 'Payload' => "" }
-    ))
+                     'Name'        => 'Bind TCP Stager IPv6 with UUID Support',
+                     'Description' => 'Listen for a connection over IPv6 with UUID Support',
+                     'Author'      => [ 'egypt', 'OJ Reeves' ],
+                     'License'     => MSF_LICENSE,
+                     'Platform'    => 'php',
+                     'Arch'        => ARCH_PHP,
+                     'Handler'     => Msf::Handler::BindTcp,
+                     'Stager'      => { 'Payload' => "" }))
   end
 
   def use_ipv6
@@ -38,5 +37,4 @@ module MetasploitModule
   def include_send_uuid
     true
   end
-
 end

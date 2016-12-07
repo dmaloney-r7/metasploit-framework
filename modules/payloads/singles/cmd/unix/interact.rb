@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -9,7 +10,6 @@ require 'msf/base/sessions/command_shell'
 require 'msf/base/sessions/command_shell_options'
 
 module MetasploitModule
-
   CachedSize = 0
 
   include Msf::Payload::Single
@@ -17,22 +17,20 @@ module MetasploitModule
 
   def initialize(info = {})
     super(merge_info(info,
-      'Name'          => 'Unix Command, Interact with Established Connection',
-      'Description'   => 'Interacts with a shell on an established socket connection',
-      'Author'        => 'hdm',
-      'License'       => MSF_LICENSE,
-      'Platform'      => 'unix',
-      'Arch'          => ARCH_CMD,
-      'Handler'       => Msf::Handler::FindShell,
-      'Session'       => Msf::Sessions::CommandShell,
-      'PayloadType'   => 'cmd_interact',
-      'RequiredCmd'   => 'generic',
-      'Payload'       =>
-        {
-          'Offsets' => { },
-          'Payload' => ''
-        }
-      ))
+                     'Name'          => 'Unix Command, Interact with Established Connection',
+                     'Description'   => 'Interacts with a shell on an established socket connection',
+                     'Author'        => 'hdm',
+                     'License'       => MSF_LICENSE,
+                     'Platform'      => 'unix',
+                     'Arch'          => ARCH_CMD,
+                     'Handler'       => Msf::Handler::FindShell,
+                     'Session'       => Msf::Sessions::CommandShell,
+                     'PayloadType'   => 'cmd_interact',
+                     'RequiredCmd'   => 'generic',
+                     'Payload'       =>
+                       {
+                         'Offsets' => {},
+                         'Payload' => ''
+                       }))
   end
-
 end

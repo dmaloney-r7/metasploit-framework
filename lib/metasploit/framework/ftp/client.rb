@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'metasploit/framework/tcp/client'
 
 module Metasploit
@@ -27,37 +28,37 @@ module Metasploit
         #
         # This method handles establishing datasocket for data channel
         #
-        def data_connect(mode = nil, nsock = self.sock)
+        def data_connect(mode = nil, nsock = sock)
           if mode
-            res = send_cmd([ 'TYPE' , mode ], true, nsock)
-            return nil if not res =~ /^200/
+            res = send_cmd([ 'TYPE', mode ], true, nsock)
+            return nil unless res =~ /^200/
           end
 
           # force datasocket to renegotiate
-          self.datasocket.shutdown if self.datasocket != nil
+          datasocket&.shutdown
 
           res = send_cmd(['PASV'], true, nsock)
-          return nil if not res =~ /^227/
+          return nil unless res =~ /^227/
 
           # 227 Entering Passive Mode (127,0,0,1,196,5)
           if res =~ /\((\d+)\,(\d+),(\d+),(\d+),(\d+),(\d+)/
             # convert port to FTP syntax
-            datahost = "#{$1}.#{$2}.#{$3}.#{$4}"
-            dataport = ($5.to_i * 256) + $6.to_i
+            datahost = "#{Regexp.last_match(1)}.#{Regexp.last_match(2)}.#{Regexp.last_match(3)}.#{Regexp.last_match(4)}"
+            dataport = (Regexp.last_match(5).to_i * 256) + Regexp.last_match(6).to_i
             self.datasocket = Rex::Socket::Tcp.create(
               'PeerHost' => datahost,
               'PeerPort' => dataport,
               'Context'  => { 'Msf' => framework, 'MsfExploit' => framework_module }
             )
           end
-          self.datasocket
+          datasocket
         end
 
         #
         # This method handles disconnecting our data channel
         #
         def data_disconnect
-          self.datasocket.shutdown
+          datasocket.shutdown
           self.datasocket = nil
         end
 
@@ -65,34 +66,28 @@ module Metasploit
         # Connect and login to the remote FTP server using the credentials
         # that have been supplied in the exploit options.
         #
-        def connect_login(user,pass,global = true)
+        def connect_login(user, pass, global = true)
           ftpsock = connect(global)
 
-          if !(user and pass)
-            return false
-          end
+          return false unless user && pass
 
           res = send_user(user, ftpsock)
 
-          if (res !~ /^(331|2)/)
-            return false
-          end
+          return false if res !~ /^(331|2)/
 
-          if (pass)
+          if pass
             res = send_pass(pass, ftpsock)
-            if (res !~ /^2/)
-              return false
-            end
+            return false if res !~ /^2/
           end
 
-          return true
+          true
         end
 
         #
         # This method logs in as the supplied user by transmitting the FTP
         # 'USER <user>' command.
         #
-        def send_user(user, nsock = self.sock)
+        def send_user(user, nsock = sock)
           raw_send("USER #{user}\r\n", nsock)
           recv_ftp_resp(nsock)
         end
@@ -101,7 +96,7 @@ module Metasploit
         # This method completes user authentication by sending the supplied
         # password using the FTP 'PASS <pass>' command.
         #
-        def send_pass(pass, nsock = self.sock)
+        def send_pass(pass, nsock = sock)
           raw_send("PASS #{pass}\r\n", nsock)
           recv_ftp_resp(nsock)
         end
@@ -109,7 +104,7 @@ module Metasploit
         #
         # This method sends a QUIT command.
         #
-        def send_quit(nsock = self.sock)
+        def send_quit(nsock = sock)
           raw_send("QUIT\r\n", nsock)
           recv_ftp_resp(nsock)
         end
@@ -117,13 +112,11 @@ module Metasploit
         #
         # This method sends one command with zero or more parameters
         #
-        def send_cmd(args, recv = true, nsock = self.sock)
+        def send_cmd(args, recv = true, nsock = sock)
           cmd = args.join(" ") + "\r\n"
           ret = raw_send(cmd, nsock)
-          if (recv)
-            return recv_ftp_resp(nsock)
-          end
-          return ret
+          return recv_ftp_resp(nsock) if recv
+          ret
         end
 
         #
@@ -135,28 +128,26 @@ module Metasploit
         #
         # NOTE: This function always waits for a response from the server.
         #
-        def send_cmd_data(args, data, mode = 'a', nsock = self.sock)
+        def send_cmd_data(args, data, mode = 'a', nsock = sock)
           type = nil
           # implement some aliases for various commands
-          if (args[0] =~ /^DIR$/i || args[0] =~ /^LS$/i)
-            # TODO || args[0] =~ /^MDIR$/i || args[0] =~ /^MLS$/i
+          if args[0] =~ /^DIR$/i || args[0] =~ /^LS$/i
+            # TODO: || args[0] =~ /^MDIR$/i || args[0] =~ /^MLS$/i
             args[0] = "LIST"
             type = "get"
-          elsif (args[0] =~ /^GET$/i)
+          elsif args[0] =~ /^GET$/i
             args[0] = "RETR"
             type = "get"
-          elsif (args[0] =~ /^PUT$/i)
+          elsif args[0] =~ /^PUT$/i
             args[0] = "STOR"
             type = "put"
           end
 
           # fall back if it's not a supported data command
-          if not type
-            return send_cmd(args, true, nsock)
-          end
+          return send_cmd(args, true, nsock) unless type
 
           # Set the transfer mode and connect to the remove server
-          return nil if not data_connect(mode)
+          return nil unless data_connect(mode)
 
           # Our pending command should have got a connection now.
           res = send_cmd(args, true, nsock)
@@ -164,15 +155,15 @@ module Metasploit
           return nil unless res =~ /^(150|125) /
 
           # dispatch to the proper method
-          if (type == "get")
+          if type == "get"
             # failed listings jsut disconnect..
             begin
-              data = self.datasocket.get_once(-1, ftp_timeout)
+              data = datasocket.get_once(-1, ftp_timeout)
             rescue ::EOFError
               data = nil
             end
           else
-            sent = self.datasocket.put(data)
+            sent = datasocket.put(data)
           end
 
           # close data channel so command channel updates
@@ -180,7 +171,7 @@ module Metasploit
 
           # get status of transfer
           ret = nil
-          if (type == "get")
+          if type == "get"
             ret = recv_ftp_resp(nsock)
             ret = [ ret, data ]
           else
@@ -194,7 +185,7 @@ module Metasploit
         # This method transmits a FTP command and waits for a response.  If one is
         # received, it is returned to the caller.
         #
-        def raw_send_recv(cmd, nsock = self.sock)
+        def raw_send_recv(cmd, nsock = sock)
           nsock.put(cmd)
           nsock.get_once(-1, ftp_timeout)
         end
@@ -202,17 +193,17 @@ module Metasploit
         #
         # This method reads an FTP response based on FTP continuation stuff
         #
-        def recv_ftp_resp(nsock = self.sock)
+        def recv_ftp_resp(nsock = sock)
           found_end = false
           resp = ""
           left = ""
-          if !@ftpbuff.empty?
+          unless @ftpbuff.empty?
             left << @ftpbuff
             @ftpbuff = ""
           end
-          while true
+          loop do
             data = nsock.get_once(-1, ftp_timeout)
-            if not data
+            unless data
               @ftpbuff << resp
               @ftpbuff << left
               return data
@@ -223,24 +214,22 @@ module Metasploit
 
             # handle the end w/o newline case
             enlidx = got.rindex(0x0a.chr)
-            if enlidx != (got.length-1)
-              if not enlidx
+            if enlidx != (got.length - 1)
+              if !enlidx
                 left << got
                 next
               else
-                left << got.slice!((enlidx+1)..got.length)
+                left << got.slice!((enlidx + 1)..got.length)
               end
             end
 
             # split into lines
             rarr = got.split(/\r?\n/)
             rarr.each do |ln|
-              if not found_end
+              if !found_end
                 resp << ln
                 resp << "\r\n"
-                if ln.length > 3 and ln[3,1] == ' '
-                  found_end = true
-                end
+                found_end = true if ln.length > 3 && (ln[3, 1] == ' ')
               else
                 left << ln
                 left << "\r\n"
@@ -256,15 +245,13 @@ module Metasploit
         #
         # This method transmits a FTP command and does not wait for a response
         #
-        def raw_send(cmd, nsock = self.sock)
+        def raw_send(cmd, nsock = sock)
           nsock.put(cmd)
         end
 
         def ftp_timeout
           raise NotImplementedError
         end
-
-
 
         protected
 
@@ -273,8 +260,6 @@ module Metasploit
         # to connect or connect_login.
         #
         attr_accessor :banner, :datasocket
-
-
       end
     end
   end

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 ##
 #
@@ -9,30 +10,28 @@
 
 module Net # :nodoc:
   module DNS
-    
     # Version of the library
     VERSION = "0.4"
-  
+
     # Packet size in bytes
     PACKETSZ = 512
-    
-    # Size of the header 
+
+    # Size of the header
     HFIXEDSZ = 12
-    
+
     # Size of the question portion (type and class)
     QFIXEDSZ = 4
-    
+
     # Size of an RR portion (type,class,lenght and ttl)
     RRFIXEDSZ = 10
-    
+
     # Size of an int 32 bit
     INT32SZ = 4
-    
+
     # Size of a short int
     INT16SZ = 2
 
     module QueryTypes
-    
       SIGZERO   = 0
       A         = 1
       NS        = 2
@@ -89,30 +88,26 @@ module Net # :nodoc:
       MAILB     = 253
       MAILA     = 254
       ANY       = 255
-
     end
-    
+
     module QueryClasses
-    
       # Internet class
       IN        = 1
-      
+
       # Chaos class
       CH        = 3
-    
+
       # Hesiod class
       HS        = 4
-      
+
       # None class
       NONE      = 254
-      
+
       # Any class
       ANY       = 255
-      
     end
-    
+
     include QueryTypes
     include QueryClasses
-
   end # module DNS
 end # module Net

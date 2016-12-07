@@ -1,8 +1,8 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
-
 
 require 'msf/core'
 require 'rex/proto/ntlm/message'
@@ -11,7 +11,6 @@ require 'metasploit/framework/login_scanner'
 require 'metasploit/framework/login_scanner/winrm'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::WinRM
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::AuthBrute
@@ -37,7 +36,6 @@ class MetasploitModule < Msf::Auxiliary
     )
   end
 
-
   def run_host(ip)
     cred_collection = Metasploit::Framework::CredentialCollection.new(
       blank_passwords: datastore['BLANK_PASSWORDS'],
@@ -47,7 +45,7 @@ class MetasploitModule < Msf::Auxiliary
       userpass_file: datastore['USERPASS_FILE'],
       username: datastore['USERNAME'],
       user_as_pass: datastore['USER_AS_PASS'],
-      realm: datastore['DOMAIN'],
+      realm: datastore['DOMAIN']
     )
 
     cred_collection = prepend_db_passwords(cred_collection)
@@ -61,15 +59,13 @@ class MetasploitModule < Msf::Auxiliary
       bruteforce_speed: datastore['BRUTEFORCE_SPEED'],
       connection_timeout: 10,
       framework: framework,
-      framework_module: self,
+      framework_module: self
     )
 
     scanner.scan! do |result|
       credential_data = result.to_h
-      credential_data.merge!(
-          module_fullname: self.fullname,
-          workspace_id: myworkspace_id
-      )
+      credential_data[:module_fullname] = fullname
+      credential_data[:workspace_id] = myworkspace_id
       if result.success?
         credential_core = create_credential(credential_data)
         credential_data[:core] = credential_core
@@ -81,17 +77,12 @@ class MetasploitModule < Msf::Auxiliary
         vprint_error "#{ip}:#{rport} - LOGIN FAILED: #{result.credential} (#{result.status}: #{result.proof})"
       end
     end
-
   end
-
 
   def test_request
-    return winrm_wql_msg("Select Name,Status from Win32_Service")
+    winrm_wql_msg("Select Name,Status from Win32_Service")
   end
-
 end
 
-=begin
-To set the AllowUncrypted option:
-winrm set winrm/config/service @{AllowUnencrypted="true"}
-=end
+# To set the AllowUncrypted option:
+# winrm set winrm/config/service @{AllowUnencrypted="true"}

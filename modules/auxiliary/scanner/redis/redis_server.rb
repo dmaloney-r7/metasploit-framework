@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -12,13 +13,13 @@ class MetasploitModule < Msf::Auxiliary
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'         => 'Redis Command Execute Scanner',
-      'Description'  => %q(
-        This module locates Redis endpoints by attempting to run a specified
-        Redis command.
-      ),
-      'Author'       => [ 'iallison <ian[at]team-allison.com>', 'Nixawk' ],
-      'License'      => MSF_LICENSE))
+                      'Name'         => 'Redis Command Execute Scanner',
+                      'Description'  => %q(
+                        This module locates Redis endpoints by attempting to run a specified
+                        Redis command.
+                      ),
+                      'Author'       => [ 'iallison <ian[at]team-allison.com>', 'Nixawk' ],
+                      'License'      => MSF_LICENSE))
 
     register_options(
       [

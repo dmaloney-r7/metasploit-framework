@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'anemone'
 require 'optparse'
 require 'ostruct'
@@ -12,7 +13,7 @@ rescue
   puts <<-INFO
 Usage:
   anemone url-list [options] <url>
-    
+
 Synopsis:
   Crawls a site starting at the given URL, and outputs the URL of each page
   in the domain as they are encountered.
@@ -28,8 +29,7 @@ opts = OptionParser.new
 opts.on('-r', '--relative') { options.relative = true }
 opts.parse!(ARGV)
 
-Anemone.crawl(root, :discard_page_bodies => true) do |anemone|
-  
+Anemone.crawl(root, discard_page_bodies: true) do |anemone|
   anemone.on_every_page do |page|
     if options.relative
       puts page.url.path
@@ -37,5 +37,4 @@ Anemone.crawl(root, :discard_page_bodies => true) do |anemone|
       puts page.url
     end
   end
-  
 end

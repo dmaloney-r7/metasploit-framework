@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 module Rex
@@ -63,9 +64,7 @@ module Rex
           # @raise [RuntimeError] if decryption doesn't succeed
           # @raise [NotImplementedError] if encryption isn't supported
           def decrypt(key, msg_type)
-            if cipher.nil? || cipher.empty?
-              return ''
-            end
+            return '' if cipher.nil? || cipher.empty?
 
             res = ''
             case etype
@@ -163,7 +162,6 @@ module Rex
           def decode_cipher(input)
             input.value[0].value
           end
-
         end
       end
     end

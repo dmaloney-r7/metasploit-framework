@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 module Msf::Module::Arch
   #
   # Attributes
@@ -5,7 +6,7 @@ module Msf::Module::Arch
 
   # @!attribute arch
   #   The array of zero or more architectures.
-  attr_reader   :arch
+  attr_reader :arch
 
   #
   # Instance Methods
@@ -15,10 +16,10 @@ module Msf::Module::Arch
   # Return whether or not the module supports the supplied architecture.
   #
   def arch?(what)
-    if (what == ARCH_ANY)
+    if what == ARCH_ANY
       true
     else
-      arch.index(what) != nil
+      !arch.index(what).nil?
     end
   end
 

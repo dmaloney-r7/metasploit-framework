@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -8,7 +9,6 @@ require 'msf/core'
 require 'rex/proto/proxy/socks4a'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Auxiliary::Report
 
   def initialize
@@ -30,9 +30,10 @@ class MetasploitModule < Msf::Auxiliary
 
     register_options(
       [
-        OptString.new( 'SRVHOST', [ true,  "The address to listen on", '0.0.0.0' ] ),
-        OptPort.new( 'SRVPORT', [ true,  "The port to listen on.", 1080 ] )
-      ], self.class )
+        OptString.new('SRVHOST', [ true, "The address to listen on", '0.0.0.0' ]),
+        OptPort.new('SRVPORT', [ true, "The port to listen on.", 1080 ])
+      ], self.class
+    )
   end
 
   def setup
@@ -43,8 +44,8 @@ class MetasploitModule < Msf::Auxiliary
 
   def cleanup
     @mutex.synchronize do
-      if( @socks4a )
-        print_status( "Stopping the socks4a proxy server" )
+      if @socks4a
+        print_status("Stopping the socks4a proxy server")
         @socks4a.stop
         @socks4a = nil
       end
@@ -56,16 +57,15 @@ class MetasploitModule < Msf::Auxiliary
     opts = {
       'ServerHost' => datastore['SRVHOST'],
       'ServerPort' => datastore['SRVPORT'],
-      'Context' => {'Msf' => framework, 'MsfExploit' => self}
+      'Context' => { 'Msf' => framework, 'MsfExploit' => self }
     }
 
-    @socks4a = Rex::Proto::Proxy::Socks4a.new( opts )
+    @socks4a = Rex::Proto::Proxy::Socks4a.new(opts)
 
-    print_status( "Starting the socks4a proxy server" )
+    print_status("Starting the socks4a proxy server")
 
     @socks4a.start
 
     @socks4a.join
   end
-
 end

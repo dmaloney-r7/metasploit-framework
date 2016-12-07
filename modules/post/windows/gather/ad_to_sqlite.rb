@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -27,11 +28,11 @@ class MetasploitModule < Msf::Post
     ))
 
     register_options([
-      OptString.new('GROUP_FILTER', [false, 'Additional LDAP filters to use when searching for initial groups', '']),
-      OptBool.new('SHOW_USERGROUPS', [true, 'Show the user/group membership in a greppable form to the console.', false]),
-      OptBool.new('SHOW_COMPUTERS', [true, 'Show basic computer information in a greppable form to the console.', false]),
-      OptInt.new('THREADS', [true, 'Number of threads to spawn to gather membership of each group.', 20])
-    ], self.class)
+                       OptString.new('GROUP_FILTER', [false, 'Additional LDAP filters to use when searching for initial groups', '']),
+                       OptBool.new('SHOW_USERGROUPS', [true, 'Show the user/group membership in a greppable form to the console.', false]),
+                       OptBool.new('SHOW_COMPUTERS', [true, 'Show basic computer information in a greppable form to the console.', false]),
+                       OptInt.new('THREADS', [true, 'Number of threads to spawn to gather membership of each group.', 20])
+                     ], self.class)
   end
 
   # Entry point
@@ -45,11 +46,11 @@ class MetasploitModule < Msf::Post
     vprint_status "Retrieving AD Groups"
     begin
       group_fields = ['distinguishedName', 'objectSid', 'samAccountType', 'sAMAccountName', 'whenChanged', 'whenCreated', 'description', 'groupType', 'adminCount', 'comment', 'managedBy', 'cn']
-      if datastore['GROUP_FILTER'].nil? || datastore['GROUP_FILTER'].empty?
-        group_query = "(objectClass=group)"
-      else
-        group_query = "(&(objectClass=group)(#{datastore['GROUP_FILTER']}))"
-      end
+      group_query = if datastore['GROUP_FILTER'].nil? || datastore['GROUP_FILTER'].empty?
+                      "(objectClass=group)"
+                    else
+                      "(&(objectClass=group)(#{datastore['GROUP_FILTER']}))"
+                    end
       groups = query(group_query, max_search, group_fields)
     rescue ::RuntimeError, ::Rex::Post::Meterpreter::RequestError => e
       print_error("Error(Group): #{e.message}")
@@ -128,18 +129,17 @@ class MetasploitModule < Msf::Post
                                 # DISTRIBUTION is in fact the inverse of SECURITY...:)
                                 g_GT_GROUP_DISTRIBUTION: (grouptype_int & 0x80000000).zero? ? 1 : 0,
                                 # Now add sAMAccountType constants
-                                g_SAM_DOMAIN_OBJECT: (sat_int == 0) ? 1 : 0,
-                                g_SAM_GROUP_OBJECT: (sat_int == 0x10000000) ? 1 : 0,
-                                g_SAM_NON_SECURITY_GROUP_OBJECT: (sat_int == 0x10000001) ? 1 : 0,
-                                g_SAM_ALIAS_OBJECT: (sat_int == 0x20000000) ? 1 : 0,
-                                g_SAM_NON_SECURITY_ALIAS_OBJECT: (sat_int == 0x20000001) ? 1 : 0,
-                                g_SAM_NORMAL_USER_ACCOUNT: (sat_int == 0x30000000) ? 1 : 0,
-                                g_SAM_MACHINE_ACCOUNT: (sat_int == 0x30000001) ? 1 : 0,
-                                g_SAM_TRUST_ACCOUNT: (sat_int == 0x30000002) ? 1 : 0,
-                                g_SAM_APP_BASIC_GROUP: (sat_int == 0x40000000) ? 1 : 0,
-                                g_SAM_APP_QUERY_GROUP: (sat_int == 0x40000001) ? 1 : 0,
-                                g_SAM_ACCOUNT_TYPE_MAX: (sat_int == 0x7fffffff) ? 1 : 0
-                              }
+                                g_SAM_DOMAIN_OBJECT: sat_int == 0 ? 1 : 0,
+                                g_SAM_GROUP_OBJECT: sat_int == 0x10000000 ? 1 : 0,
+                                g_SAM_NON_SECURITY_GROUP_OBJECT: sat_int == 0x10000001 ? 1 : 0,
+                                g_SAM_ALIAS_OBJECT: sat_int == 0x20000000 ? 1 : 0,
+                                g_SAM_NON_SECURITY_ALIAS_OBJECT: sat_int == 0x20000001 ? 1 : 0,
+                                g_SAM_NORMAL_USER_ACCOUNT: sat_int == 0x30000000 ? 1 : 0,
+                                g_SAM_MACHINE_ACCOUNT: sat_int == 0x30000001 ? 1 : 0,
+                                g_SAM_TRUST_ACCOUNT: sat_int == 0x30000002 ? 1 : 0,
+                                g_SAM_APP_BASIC_GROUP: sat_int == 0x40000000 ? 1 : 0,
+                                g_SAM_APP_QUERY_GROUP: sat_int == 0x40000001 ? 1 : 0,
+                                g_SAM_ACCOUNT_TYPE_MAX: sat_int == 0x7fffffff ? 1 : 0 }
             run_sqlite_query(db, 'ad_groups', sql_param_group)
 
             # Go through each group user
@@ -223,24 +223,22 @@ class MetasploitModule < Msf::Post
                                  # servers on the network.
                                  u_ADS_UF_TRUSTED_TO_AUTHENTICATE_FOR_DELEGATION: (uac_int & 0x01000000).zero? ? 0 : 1,
                                  # Now add sAMAccountType constants
-                                 u_SAM_DOMAIN_OBJECT: (sat_int == 0) ? 1 : 0,
-                                 u_SAM_GROUP_OBJECT: (sat_int == 0x10000000) ? 1 : 0,
-                                 u_SAM_NON_SECURITY_GROUP_OBJECT: (sat_int == 0x10000001) ? 1 : 0,
-                                 u_SAM_ALIAS_OBJECT: (sat_int == 0x20000000) ? 1 : 0,
-                                 u_SAM_NON_SECURITY_ALIAS_OBJECT: (sat_int == 0x20000001) ? 1 : 0,
-                                 u_SAM_NORMAL_USER_ACCOUNT: (sat_int == 0x30000000) ? 1 : 0,
-                                 u_SAM_MACHINE_ACCOUNT: (sat_int == 0x30000001) ? 1 : 0,
-                                 u_SAM_TRUST_ACCOUNT: (sat_int == 0x30000002) ? 1 : 0,
-                                 u_SAM_APP_BASIC_GROUP: (sat_int == 0x40000000) ? 1 : 0,
-                                 u_SAM_APP_QUERY_GROUP: (sat_int == 0x40000001) ? 1 : 0,
-                                 u_SAM_ACCOUNT_TYPE_MAX: (sat_int == 0x7fffffff) ? 1 : 0
-                               }
+                                 u_SAM_DOMAIN_OBJECT: sat_int == 0 ? 1 : 0,
+                                 u_SAM_GROUP_OBJECT: sat_int == 0x10000000 ? 1 : 0,
+                                 u_SAM_NON_SECURITY_GROUP_OBJECT: sat_int == 0x10000001 ? 1 : 0,
+                                 u_SAM_ALIAS_OBJECT: sat_int == 0x20000000 ? 1 : 0,
+                                 u_SAM_NON_SECURITY_ALIAS_OBJECT: sat_int == 0x20000001 ? 1 : 0,
+                                 u_SAM_NORMAL_USER_ACCOUNT: sat_int == 0x30000000 ? 1 : 0,
+                                 u_SAM_MACHINE_ACCOUNT: sat_int == 0x30000001 ? 1 : 0,
+                                 u_SAM_TRUST_ACCOUNT: sat_int == 0x30000002 ? 1 : 0,
+                                 u_SAM_APP_BASIC_GROUP: sat_int == 0x40000000 ? 1 : 0,
+                                 u_SAM_APP_QUERY_GROUP: sat_int == 0x40000001 ? 1 : 0,
+                                 u_SAM_ACCOUNT_TYPE_MAX: sat_int == 0x7fffffff ? 1 : 0 }
               run_sqlite_query(db, 'ad_users', sql_param_user)
 
               # Now associate the user with the group
               sql_param_mapping = { user_rid: user_rid,
-                                    group_rid: group_rid
-                                  }
+                                    group_rid: group_rid }
               run_sqlite_query(db, 'ad_mapping', sql_param_mapping)
             end
 
@@ -340,18 +338,17 @@ class MetasploitModule < Msf::Post
                                # servers on the network.
                                c_ADS_UF_TRUSTED_TO_AUTHENTICATE_FOR_DELEGATION: (uac_int & 0x01000000).zero? ? 0 : 1,
                                # Now add the sAMAccountType objects
-                               c_SAM_DOMAIN_OBJECT: (sat_int == 0) ? 1 : 0,
-                               c_SAM_GROUP_OBJECT: (sat_int == 0x10000000) ? 1 : 0,
-                               c_SAM_NON_SECURITY_GROUP_OBJECT: (sat_int == 0x10000001) ? 1 : 0,
-                               c_SAM_ALIAS_OBJECT: (sat_int == 0x20000000) ? 1 : 0,
-                               c_SAM_NON_SECURITY_ALIAS_OBJECT: (sat_int == 0x20000001) ? 1 : 0,
-                               c_SAM_NORMAL_USER_ACCOUNT: (sat_int == 0x30000000) ? 1 : 0,
-                               c_SAM_MACHINE_ACCOUNT: (sat_int == 0x30000001) ? 1 : 0,
-                               c_SAM_TRUST_ACCOUNT: (sat_int == 0x30000002) ? 1 : 0,
-                               c_SAM_APP_BASIC_GROUP: (sat_int == 0x40000000) ? 1 : 0,
-                               c_SAM_APP_QUERY_GROUP: (sat_int == 0x40000001) ? 1 : 0,
-                               c_SAM_ACCOUNT_TYPE_MAX: (sat_int == 0x7fffffff) ? 1 : 0
-                         }
+                               c_SAM_DOMAIN_OBJECT: sat_int == 0 ? 1 : 0,
+                               c_SAM_GROUP_OBJECT: sat_int == 0x10000000 ? 1 : 0,
+                               c_SAM_NON_SECURITY_GROUP_OBJECT: sat_int == 0x10000001 ? 1 : 0,
+                               c_SAM_ALIAS_OBJECT: sat_int == 0x20000000 ? 1 : 0,
+                               c_SAM_NON_SECURITY_ALIAS_OBJECT: sat_int == 0x20000001 ? 1 : 0,
+                               c_SAM_NORMAL_USER_ACCOUNT: sat_int == 0x30000000 ? 1 : 0,
+                               c_SAM_MACHINE_ACCOUNT: sat_int == 0x30000001 ? 1 : 0,
+                               c_SAM_TRUST_ACCOUNT: sat_int == 0x30000002 ? 1 : 0,
+                               c_SAM_APP_BASIC_GROUP: sat_int == 0x40000000 ? 1 : 0,
+                               c_SAM_APP_QUERY_GROUP: sat_int == 0x40000001 ? 1 : 0,
+                               c_SAM_ACCOUNT_TYPE_MAX: sat_int == 0x7fffffff ? 1 : 0 }
         run_sqlite_query(db, 'ad_computers', sql_param_computer)
         print_line "Computer [#{sql_param_computer[:c_cn]}][#{sql_param_computer[:c_dNSHostName]}][#{sql_param_computer[:c_rid]}]" if datastore['SHOW_COMPUTERS']
       end

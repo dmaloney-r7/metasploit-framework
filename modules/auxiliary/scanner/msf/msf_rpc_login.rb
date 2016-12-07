@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::AuthBrute
   include Msf::Auxiliary::Scanner
@@ -14,11 +14,11 @@ class MetasploitModule < Msf::Auxiliary
   def initialize
     super(
       'Name'          => 'Metasploit RPC Interface Login Utility',
-      'Description'   => %q{
+      'Description'   => %q(
         This module simply attempts to login to a
         Metasploit RPC interface using a specific
         user/pass.
-      },
+      ),
       'Author'         => [ 'Vlatko Kosturjak <kost[at]linux.hr>' ],
       'License'        => MSF_LICENSE
     )
@@ -29,9 +29,9 @@ class MetasploitModule < Msf::Auxiliary
         OptString.new('USERNAME', [true, "A specific username to authenticate as. Default is msf", "msf"]),
         OptBool.new('BLANK_PASSWORDS', [false, "Try blank passwords for all users", false]),
         OptBool.new('SSL', [ true, "Negotiate SSL for outgoing connections", true])
-      ], self.class)
+      ], self.class
+    )
     register_autofilter_ports([3790])
-
   end
 
   @@loaded_msfrpc = false
@@ -41,8 +41,7 @@ class MetasploitModule < Msf::Auxiliary
   rescue LoadError
   end
 
-  def run_host(ip)
-
+  def run_host(_ip)
     unless @@loaded_msfrpc
       print_error("You don't have 'msgpack', please install that gem manually.")
       return
@@ -50,14 +49,14 @@ class MetasploitModule < Msf::Auxiliary
 
     begin
       @rpc = Msf::RPC::Client.new(
-        :host => datastore['RHOST'],
-        :port => datastore['RPORT'],
-        :ssl  => datastore['SSL']
+        host: datastore['RHOST'],
+        port: datastore['RPORT'],
+        ssl: datastore['SSL']
       )
     rescue ::Interrupt
-      raise $!
+      raise $ERROR_INFO
     rescue ::Exception => e
-      vprint_error("#{datastore['SSL'].to_s} Cannot create RPC client : #{e.to_s}")
+      vprint_error("#{datastore['SSL']} Cannot create RPC client : #{e}")
       return
     end
 
@@ -93,7 +92,7 @@ class MetasploitModule < Msf::Auxiliary
     create_credential_login(login_data)
   end
 
-  def do_login(user='msf', pass='msf')
+  def do_login(user = 'msf', pass = 'msf')
     vprint_status("Trying username:'#{user}' with password:'#{pass}'")
     begin
       res = @rpc.login(user, pass)
@@ -110,8 +109,8 @@ class MetasploitModule < Msf::Auxiliary
         @rpc.close
         return :next_user
       end
-    rescue  => e
-      vprint_status("#{datastore['SSL'].to_s} - Bad login")
+    rescue => e
+      vprint_status("#{datastore['SSL']} - Bad login")
       @rpc.close
       return :skip_pass
     end

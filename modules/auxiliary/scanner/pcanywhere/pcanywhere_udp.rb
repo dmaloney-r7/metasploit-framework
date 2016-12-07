@@ -1,14 +1,12 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 
-
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::UDPScanner
 
@@ -25,9 +23,10 @@ class MetasploitModule < Msf::Auxiliary
     )
 
     register_options(
-    [
-      Opt::RPORT(5632)
-    ], self.class)
+      [
+        Opt::RPORT(5632)
+      ], self.class
+    )
   end
 
   def scanner_prescan(batch)
@@ -40,38 +39,32 @@ class MetasploitModule < Msf::Auxiliary
     scanner_send("ST", ip, datastore['RPORT'])
   end
 
-  def scanner_postscan(batch)
+  def scanner_postscan(_batch)
     @results.keys.each do |ip|
       data = @results[ip]
       info = ""
 
-      if data[:name]
-        info << "Name: #{data[:name]} "
-      end
+      info << "Name: #{data[:name]} " if data[:name]
 
-      if data[:stat]
-        info << "- #{data[:stat]} "
-      end
+      info << "- #{data[:stat]} " if data[:stat]
 
-      if data[:caps]
-        info << "( #{data[:caps]} ) "
-      end
+      info << "( #{data[:caps]} ) " if data[:caps]
 
-      report_service(:host => ip, :port => datastore['RPORT'], :proto => 'udp', :name => "pcanywhere_stat", :info => info)
-      report_note(:host => ip, :port => datastore['RPORT'], :proto => 'udp', :name => "pcanywhere_stat", :update => :unique, :ntype => "pcanywhere.status", :data => data )
+      report_service(host: ip, port: datastore['RPORT'], proto: 'udp', name: "pcanywhere_stat", info: info)
+      report_note(host: ip, port: datastore['RPORT'], proto: 'udp', name: "pcanywhere_stat", update: :unique, ntype: "pcanywhere.status", data: data)
       print_status("#{ip}:#{datastore['RPORT']} #{info}")
     end
   end
 
-  def scanner_process(data, shost, sport)
+  def scanner_process(data, shost, _sport)
     case data
     when /^NR(........................)(........)/
 
-      name = $1.dup
-      caps = $2.dup
+      name = Regexp.last_match(1).dup
+      caps = Regexp.last_match(2).dup
 
-      name = name.gsub(/_+$/, '').gsub("\x00", '').strip
-      caps = caps.gsub(/_+$/, '').gsub("\x00", '').strip
+      name = name.gsub(/_+$/, '').delete("\x00").strip
+      caps = caps.gsub(/_+$/, '').delete("\x00").strip
 
       @results[shost] ||= {}
       @results[shost][:name] = name
@@ -79,22 +72,16 @@ class MetasploitModule < Msf::Auxiliary
 
     when /^ST(.+)/
       @results[shost] ||= {}
-      buff = $1.dup
+      buff = Regexp.last_match(1).dup
       stat = 'Unknown'
 
-      if buff[2,1].unpack("C")[0] == 67
-        stat = "Available"
-      end
+      stat = "Available" if buff[2, 1].unpack("C")[0] == 67
 
-      if buff[2,1].unpack("C")[0] == 11
-        stat = "Busy"
-      end
+      stat = "Busy" if buff[2, 1].unpack("C")[0] == 11
 
       @results[shost][:stat] = stat
     else
       print_error("#{shost} Unknown: #{data.inspect}")
     end
-
   end
-
 end

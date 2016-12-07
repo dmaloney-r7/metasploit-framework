@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -13,26 +14,25 @@ class MetasploitModule < Msf::Post
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'         => 'Windows Gather Active Directory BitLocker Recovery',
-      'Description'  => %q{
-        This module will enumerate BitLocker recovery passwords in the default AD
-        directory. This module does require Domain Admin or other delegated privileges.
-      },
-      'License'      => MSF_LICENSE,
-      'Author'       => ['Ben Campbell <ben.campbell[at]mwrinfosecurity.com>'],
-      'Platform'     => ['win'],
-      'SessionTypes' => ['meterpreter'],
-      'References'   =>
-        [
-          ['URL', 'https://technet.microsoft.com/en-us/library/cc771778%28v=ws.10%29.aspx']
-        ]
-    ))
+                      'Name'         => 'Windows Gather Active Directory BitLocker Recovery',
+                      'Description'  => %q(
+                        This module will enumerate BitLocker recovery passwords in the default AD
+                        directory. This module does require Domain Admin or other delegated privileges.
+                      ),
+                      'License'      => MSF_LICENSE,
+                      'Author'       => ['Ben Campbell <ben.campbell[at]mwrinfosecurity.com>'],
+                      'Platform'     => ['win'],
+                      'SessionTypes' => ['meterpreter'],
+                      'References'   =>
+                        [
+                          ['URL', 'https://technet.microsoft.com/en-us/library/cc771778%28v=ws.10%29.aspx']
+                        ]))
 
     register_options([
-      OptBool.new('STORE_LOOT', [true, 'Store file in loot.', true]),
-      OptString.new('FIELDS', [true, 'FIELDS to retrieve.', 'distinguishedName,msFVE-RecoveryPassword']),
-      OptString.new('FILTER', [true, 'Search filter.', '(objectClass=msFVE-RecoveryInformation)'])
-    ], self.class)
+                       OptBool.new('STORE_LOOT', [true, 'Store file in loot.', true]),
+                       OptString.new('FIELDS', [true, 'FIELDS to retrieve.', 'distinguishedName,msFVE-RecoveryPassword']),
+                       OptString.new('FILTER', [true, 'Search filter.', '(objectClass=msFVE-RecoveryInformation)'])
+                     ], self.class)
   end
 
   def run

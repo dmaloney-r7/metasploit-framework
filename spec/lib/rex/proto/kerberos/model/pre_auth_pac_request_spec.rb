@@ -1,10 +1,10 @@
+# frozen_string_literal: true
 # -*- coding:binary -*-
 require 'spec_helper'
 
 require 'rex/proto/kerberos'
 
 RSpec.describe Rex::Proto::Kerberos::Model::PreAuthPacRequest do
-
   subject(:pre_auth_pac_request) do
     described_class.new
   end

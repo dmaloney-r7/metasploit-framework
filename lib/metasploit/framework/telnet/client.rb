@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'metasploit/framework/tcp/client'
 
 module Metasploit
@@ -84,7 +85,7 @@ module Metasploit
         # message is read in and stored in the 'banner' attribute. This method has the
         # benefit of handling telnet option negotiation.
         #
-        def connect(global = true, verbose = true)
+        def connect(global = true, _verbose = true)
           @trace = ''
           @recvd = ''
           fd = super(global)
@@ -93,12 +94,12 @@ module Metasploit
           # Wait for a banner to arrive...
           begin
             Timeout.timeout(banner_timeout) do
-              while(true)
+              loop do
                 buff = recv(fd)
-                self.banner << buff if buff
-                if(self.banner =~ @login_regex or self.banner =~ @password_regex)
+                banner << buff if buff
+                if banner =~ @login_regex || banner =~ @password_regex
                   break
-                elsif self.banner =~ @busy_regex
+                elsif banner =~ @busy_regex
                   # It's about to drop connection anyway -- seen on HP JetDirect telnet server
                   break
                 end
@@ -107,7 +108,7 @@ module Metasploit
           rescue ::Timeout::Error
           end
 
-          self.banner.strip!
+          banner.strip!
 
           # Return the file descriptor to the caller
           fd
@@ -124,10 +125,10 @@ module Metasploit
           rescue Rex::ConnectionRefused
             return :refused
           end
-          return :connected
+          :connected
         end
 
-        def recv(fd=self.sock, timeout=telnet_timeout)
+        def recv(fd = sock, timeout = telnet_timeout)
           recv_telnet(fd, timeout.to_f)
         end
 
@@ -138,12 +139,11 @@ module Metasploit
         # login prompt, a password prompt, or a working shell.
         #
         def recv_telnet(fd, timeout)
-
           data = ''
 
           begin
             data = fd.get_once(-1, timeout)
-            return nil if not data or data.length == 0
+            return nil if !data || data.empty?
 
             # combine CR+NULL into CR
             data.gsub!(/#{CR}#{NULL}/no, CR)
@@ -155,37 +155,37 @@ module Metasploit
           [#{IAC}#{AO}#{AYT}#{DM}#{IP}#{NOP}]|[#{DO}#{DONT}#{WILL}#{WONT}]
           [#{OPT_BINARY}-#{OPT_NEW_ENVIRON}#{OPT_EXOPL}]|#{SB}[^#{IAC}]*#{IAC}#{SE}
           )/xno) do
-              m = $1
+              m = Regexp.last_match(1)
 
               if m == IAC
                 IAC
               elsif m == AYT
                 fd.write("YES" + EOL)
                 ''
-              elsif m[0,1] == DO
-                if(m[1,1] == OPT_BINARY)
+              elsif m[0, 1] == DO
+                if m[1, 1] == OPT_BINARY
                   fd.write(IAC + WILL + OPT_BINARY)
                 else
-                  fd.write(IAC + WONT + m[1,1])
+                  fd.write(IAC + WONT + m[1, 1])
                 end
                 ''
-              elsif m[0,1] == DONT
-                fd.write(IAC + WONT + m[1,1])
+              elsif m[0, 1] == DONT
+                fd.write(IAC + WONT + m[1, 1])
                 ''
-              elsif m[0,1] == WILL
-                if m[1,1] == OPT_BINARY
+              elsif m[0, 1] == WILL
+                if m[1, 1] == OPT_BINARY
                   fd.write(IAC + DO + OPT_BINARY)
                   # Disable Echo
-                elsif m[1,1] == OPT_ECHO
+                elsif m[1, 1] == OPT_ECHO
                   fd.write(IAC + DONT + OPT_ECHO)
-                elsif m[1,1] == OPT_SGA
+                elsif m[1, 1] == OPT_SGA
                   fd.write(IAC + DO + OPT_SGA)
                 else
-                  fd.write(IAC + DONT + m[1,1])
+                  fd.write(IAC + DONT + m[1, 1])
                 end
                 ''
-              elsif m[0,1] == WONT
-                fd.write(IAC + DONT + m[1,1])
+              elsif m[0, 1] == WONT
+                fd.write(IAC + DONT + m[1, 1])
                 ''
               else
                 ''
@@ -213,7 +213,6 @@ module Metasploit
         def telnet_timeout
           raise NotImplementedError
         end
-
       end
     end
   end

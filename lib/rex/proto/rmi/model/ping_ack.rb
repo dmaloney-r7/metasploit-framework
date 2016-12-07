@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 module Rex
@@ -7,7 +8,6 @@ module Rex
         # This class provides a representation of an RMI PingAck stream. A PingAck is the acknowledgement
         # for a Ping message.
         class PingAck < Element
-
           # @!attribute stream_id
           #   @return [Fixnum] the input stream id
           attr_accessor :stream_id

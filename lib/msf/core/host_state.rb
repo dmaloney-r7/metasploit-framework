@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # The states that a host can be in.
 module Msf::HostState
   # The host is alive.

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::Smtp
   include Msf::Auxiliary::Scanner
   include Msf::Auxiliary::Report
@@ -22,34 +22,33 @@ class MetasploitModule < Msf::Auxiliary
       'References'  =>
         [
           ['URL', 'http://www.ietf.org/rfc/rfc2821.txt'],
-          ['URL', 'https://svn.nmap.org/nmap/scripts/smtp-open-relay.nse'],
+          ['URL', 'https://svn.nmap.org/nmap/scripts/smtp-open-relay.nse']
         ],
       'Author'      =>
         [
           'Campbell Murray',
-          'xistence <xistence[at]0x90.nl>',
+          'xistence <xistence[at]0x90.nl>'
         ],
       'License'     => MSF_LICENSE
     )
 
     register_options(
       [
-        OptBool.new('EXTENDED', [true, 'Do all the 16 extended checks', false]),
-      ], self.class)
+        OptBool.new('EXTENDED', [true, 'Do all the 16 extended checks', false])
+      ], self.class
+    )
   end
 
-  def run_host(ip)
+  def run_host(_ip)
     begin
       connect
       banner_sanitized = Rex::Text.to_hex_ascii(banner.to_s)
       print_status("SMTP #{banner_sanitized}")
-      report_service(:host => rhost, :port => rport, :name => "smtp", :info => banner)
+      report_service(host: rhost, port: rport, name: "smtp", info: banner)
 
       if datastore['EXTENDED']
 
-        if banner_sanitized =~ /220 (.*) /
-          serverhost = $1
-        end
+        serverhost = Regexp.last_match(1) if banner_sanitized =~ /220 (.*) /
 
         mailfromuser = datastore['MAILFROM'].split("@").first
         mailfromdomain = datastore['MAILFROM'].split("@").last
@@ -86,19 +85,19 @@ class MetasploitModule < Msf::Auxiliary
       connect
 
       res = raw_send_recv("EHLO X\r\n")
-      vprint_status("#{res.inspect}")
+      vprint_status(res.inspect.to_s)
 
       res = raw_send_recv("#{mailfrom}\r\n")
-      vprint_status("#{res.inspect}")
+      vprint_status(res.inspect.to_s)
 
       res = raw_send_recv("#{mailto}\r\n")
-      vprint_status("#{res.inspect}")
+      vprint_status(res.inspect.to_s)
 
       res = raw_send_recv("DATA\r\n")
-      vprint_status("#{res.inspect}")
+      vprint_status(res.inspect.to_s)
 
-      res = raw_send_recv("#{Rex::Text.rand_text_alpha(rand(10)+5)}\r\n.\r\n")
-      vprint_status("#{res.inspect}")
+      res = raw_send_recv("#{Rex::Text.rand_text_alpha(rand(10) + 5)}\r\n.\r\n")
+      vprint_status(res.inspect.to_s)
 
       if res =~ /250/
         if testnumber.nil?

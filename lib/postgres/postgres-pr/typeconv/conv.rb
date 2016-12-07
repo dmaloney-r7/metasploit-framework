@@ -1,6 +1,7 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 module Postgres
   module Conversion
-    class ConversionError < Exception; end
+    class ConversionError < RuntimeError; end
   end
 end

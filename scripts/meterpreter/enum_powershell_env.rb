@@ -1,19 +1,19 @@
+# frozen_string_literal: true
 ##
 # WARNING: Metasploit no longer maintains or accepts meterpreter scripts.
 # If you'd like to imporve this script, please try to port it as a post
 # module instead. Thank you.
 ##
 
-
-#Meterpreter script for enumerating Microsoft Powershell settings.
-#Provided by Carlos Perez at carlos_perez[at]darkoperator[dot]com
+# Meterpreter script for enumerating Microsoft Powershell settings.
+# Provided by Carlos Perez at carlos_perez[at]darkoperator[dot]com
 @client = client
 
 @@exec_opts = Rex::Parser::Arguments.new(
-  "-h" => [ false,"Help menu." ]
+  "-h" => [ false, "Help menu." ]
 )
 
-@@exec_opts.parse(args) { |opt, idx, val|
+@@exec_opts.parse(args) do |opt, _idx, _val|
   case opt
   when "-h"
     print_line("enum_scripting_env -- Enumerates PowerShell and WSH Configurations")
@@ -21,8 +21,8 @@
     print_line(@@exec_opts.usage)
     raise Rex::Script::Completed
   end
-}
-#Support Functions
+end
+# Support Functions
 #-------------------------------------------------------------------------------
 def enum_users
   os = @client.sys.config.sysinfo['OS']
@@ -55,33 +55,31 @@ def enum_users
     userinfo['userappdata'] = path4users + uservar + profilepath
     users << userinfo
   end
-  return users
+  users
 end
-
-
 
 #-------------------------------------------------------------------------------
 def enum_powershell
-  #Check if PowerShell is Installed
+  # Check if PowerShell is Installed
   if registry_enumkeys("HKLM\\SOFTWARE\\Microsoft\\").include?("PowerShell")
     print_status("Powershell is Installed on this system.")
-    powershell_version = registry_getvaldata("HKLM\\SOFTWARE\\Microsoft\\PowerShell\\1\\PowerShellEngine","PowerShellVersion")
+    powershell_version = registry_getvaldata("HKLM\\SOFTWARE\\Microsoft\\PowerShell\\1\\PowerShellEngine", "PowerShellVersion")
     print_status("Version: #{powershell_version}")
-    #Get PowerShell Execution Policy
+    # Get PowerShell Execution Policy
     begin
-      powershell_policy = registry_getvaldata("HKLM\\SOFTWARE\\Microsoft\\PowerShell\\1\\ShellIds\\Microsoft.PowerShell","ExecutionPolicy")
+      powershell_policy = registry_getvaldata("HKLM\\SOFTWARE\\Microsoft\\PowerShell\\1\\ShellIds\\Microsoft.PowerShell", "ExecutionPolicy")
     rescue
       powershell_policy = "Restricted"
     end
     print_status("Execution Policy: #{powershell_policy}")
-    powershell_path = registry_getvaldata("HKLM\\SOFTWARE\\Microsoft\\PowerShell\\1\\ShellIds\\Microsoft.PowerShell","Path")
+    powershell_path = registry_getvaldata("HKLM\\SOFTWARE\\Microsoft\\PowerShell\\1\\ShellIds\\Microsoft.PowerShell", "Path")
     print_status("Path: #{powershell_path}")
     if registry_enumkeys("HKLM\\SOFTWARE\\Microsoft\\PowerShell\\1").include?("PowerShellSnapIns")
       print_status("Powershell Snap-Ins:")
       registry_enumkeys("HKLM\\SOFTWARE\\Microsoft\\PowerShell\\1\\PowerShellSnapIns").each do |si|
         print_status("\tSnap-In: #{si}")
         registry_enumvals("HKLM\\SOFTWARE\\Microsoft\\PowerShell\\1\\PowerShellSnapIns\\#{si}").each do |v|
-          print_status("\t\t#{v}: #{registry_getvaldata("HKLM\\SOFTWARE\\Microsoft\\PowerShell\\1\\PowerShellSnapIns\\#{si}",v)}")
+          print_status("\t\t#{v}: #{registry_getvaldata("HKLM\\SOFTWARE\\Microsoft\\PowerShell\\1\\PowerShellSnapIns\\#{si}", v)}")
         end
       end
     else
@@ -101,26 +99,23 @@ def enum_powershell
     enum_users.each do |u|
       print_status("Checking #{u['username']}")
       begin
-      @client.fs.dir.foreach(u["userappdata"]) do |p|
-        next if p =~ /^(\.|\.\.)$/
-        if p =~ /Microsoft.PowerShell_profile.ps1/
-          ps_profile = session.fs.file.new("#{u["userappdata"]}Microsoft.PowerShell_profile.ps1", "rb")
-          until ps_profile.eof?
-            tmpout << ps_profile.read
-          end
-          ps_profile.close
-          if tmpout.length == 1
-            print_status("Profile for #{u["username"]} not empty, it contains:")
-            tmpout.each do |l|
-              print_status("\t#{l.strip}")
+        @client.fs.dir.foreach(u["userappdata"]) do |p|
+          next if p =~ /^(\.|\.\.)$/
+          if p =~ /Microsoft.PowerShell_profile.ps1/
+            ps_profile = session.fs.file.new("#{u['userappdata']}Microsoft.PowerShell_profile.ps1", "rb")
+            tmpout << ps_profile.read until ps_profile.eof?
+            ps_profile.close
+            if tmpout.length == 1
+              print_status("Profile for #{u['username']} not empty, it contains:")
+              tmpout.each do |l|
+                print_status("\t#{l.strip}")
+              end
             end
           end
         end
-      end
       rescue
       end
     end
-
 
   end
 end

@@ -1,14 +1,12 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 
-
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
   include Msf::Exploit::Remote::VIMSoap
@@ -16,9 +14,9 @@ class MetasploitModule < Msf::Auxiliary
   def initialize
     super(
       'Name'           => 'VMWare Power Off Virtual Machine',
-      'Description'    => %Q{
+      'Description'    => %(
         This module will log into the Web API of VMWare and try to power off
-        a specified Virtual Machine.},
+        a specified Virtual Machine.),
       'Author'         => ['theLightCosine'],
       'License'        => MSF_LICENSE,
       'DefaultOptions' => { 'SSL' => true }
@@ -30,7 +28,8 @@ class MetasploitModule < Msf::Auxiliary
         OptString.new('USERNAME', [ true, "The username to Authenticate with.", 'root' ]),
         OptString.new('PASSWORD', [ true, "The password to Authenticate with.", 'password' ]),
         OptString.new('VM', [true, "The VM to try to Power Off"])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def run
@@ -56,7 +55,7 @@ class MetasploitModule < Msf::Auxiliary
       end
     else
       print_error "Login Failure on #{datastore['RHOST']}"
-      return
+      nil
     end
   end
 end

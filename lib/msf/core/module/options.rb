@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # Register, deregister, and validate {#options}.
 module Msf::Module::Options
   #
@@ -6,7 +7,7 @@ module Msf::Module::Options
 
   # @attribute [r] options
   #   The module-specific options.
-  attr_reader   :options
+  attr_reader :options
 
   #
   # Instance Methods
@@ -18,7 +19,7 @@ module Msf::Module::Options
   # container.
   #
   def validate
-    self.options.validate(self.datastore)
+    options.validate(datastore)
   end
 
   protected
@@ -28,10 +29,10 @@ module Msf::Module::Options
   # and data store.
   #
   def deregister_options(*names)
-    names.each { |name|
-      self.options.remove_option(name)
-      self.datastore.delete(name)
-    }
+    names.each do |name|
+      options.remove_option(name)
+      datastore.delete(name)
+    end
   end
 
   attr_writer :options
@@ -41,7 +42,7 @@ module Msf::Module::Options
   #
   def register_advanced_options(options, owner = self.class)
     self.options.add_advanced_options(options, owner)
-    self.datastore.import_options(self.options, 'self', true)
+    datastore.import_options(self.options, 'self', true)
     import_defaults(false)
   end
 
@@ -50,7 +51,7 @@ module Msf::Module::Options
   #
   def register_evasion_options(options, owner = self.class)
     self.options.add_evasion_options(options, owner)
-    self.datastore.import_options(self.options, 'self', true)
+    datastore.import_options(self.options, 'self', true)
     import_defaults(false)
   end
 
@@ -59,7 +60,7 @@ module Msf::Module::Options
   #
   def register_options(options, owner = self.class)
     self.options.add_options(options, owner)
-    self.datastore.import_options(self.options, 'self', true)
+    datastore.import_options(self.options, 'self', true)
     import_defaults(false)
   end
 end

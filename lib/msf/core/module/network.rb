@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 module Msf::Module::Network
   #
   # The default communication subsystem for this module.  We may need to move
@@ -20,13 +21,13 @@ module Msf::Module::Network
   # Returns the address of the last target host (rough estimate)
   #
   def target_host
-    self.respond_to?('rhost') ? rhost : self.datastore['RHOST']
+    respond_to?('rhost') ? rhost : datastore['RHOST']
   end
 
   #
   # Returns the address of the last target port (rough estimate)
   #
   def target_port
-    self.respond_to?('rport') ? rport : self.datastore['RPORT']
+    respond_to?('rport') ? rport : datastore['RPORT']
   end
 end

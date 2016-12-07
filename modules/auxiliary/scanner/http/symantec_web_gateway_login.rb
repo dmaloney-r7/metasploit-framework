@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -8,37 +9,35 @@ require 'metasploit/framework/login_scanner/symantec_web_gateway'
 require 'metasploit/framework/credential_collection'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::AuthBrute
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::Scanner
 
-  def initialize(info={})
+  def initialize(info = {})
     super(update_info(info,
-      'Name'        => 'Symantec Web Gateway Login Utility',
-      'Description' => %q{
-        This module will attempt to authenticate to a Symantec Web Gateway.
-      },
-      'Author'      => [ 'sinn3r' ],
-      'License'     => MSF_LICENSE,
-      'DefaultOptions' =>
-        {
-          'RPORT'      => 443,
-          'SSL'        => true,
-        }
-    ))
+                      'Name'        => 'Symantec Web Gateway Login Utility',
+                      'Description' => %q(
+                        This module will attempt to authenticate to a Symantec Web Gateway.
+                      ),
+                      'Author'      => [ 'sinn3r' ],
+                      'License'     => MSF_LICENSE,
+                      'DefaultOptions' =>
+                        {
+                          'RPORT'      => 443,
+                          'SSL'        => true
+                        }))
 
     register_options(
       [
         OptString.new('USERNAME', [false, 'The username to specify for authentication', '']),
         OptString.new('PASSWORD', [false, 'The password to specify for authentication', ''])
-      ], self.class)
+      ], self.class
+    )
   end
 
-
   def scanner(ip)
-    @scanner ||= lambda {
+    @scanner ||= lambda do
       cred_collection = Metasploit::Framework::CredentialCollection.new(
         blank_passwords: datastore['BLANK_PASSWORDS'],
         pass_file:       datastore['PASS_FILE'],
@@ -59,10 +58,10 @@ class MetasploitModule < Msf::Auxiliary
           connection_timeout: 5,
           http_username:      datastore['HttpUsername'],
           http_password:      datastore['HttpPassword']
-        ))
-    }.call
+        )
+      )
+    end.call
   end
-
 
   def report_good_cred(ip, port, result)
     service_data = {
@@ -74,11 +73,11 @@ class MetasploitModule < Msf::Auxiliary
     }
 
     credential_data = {
-      module_fullname: self.fullname,
+      module_fullname: fullname,
       origin_type: :service,
       private_data: result.credential.private,
       private_type: :password,
-      username: result.credential.public,
+      username: result.credential.public
     }.merge(service_data)
 
     login_data = {
@@ -90,7 +89,6 @@ class MetasploitModule < Msf::Auxiliary
 
     create_credential_login(login_data)
   end
-
 
   def report_bad_cred(ip, rport, result)
     invalidate_login(
@@ -106,33 +104,30 @@ class MetasploitModule < Msf::Auxiliary
     )
   end
 
-
   # Attempts to login
   def bruteforce(ip)
     scanner(ip).scan! do |result|
       case result.status
       when Metasploit::Model::Login::Status::SUCCESSFUL
-        print_brute(:level => :good, :ip => ip, :msg => "Success: '#{result.credential}'")
+        print_brute(level: :good, ip: ip, msg: "Success: '#{result.credential}'")
         report_good_cred(ip, rport, result)
       when Metasploit::Model::Login::Status::UNABLE_TO_CONNECT
-        vprint_brute(:level => :verror, :ip => ip, :msg => result.proof)
+        vprint_brute(level: :verror, ip: ip, msg: result.proof)
         report_bad_cred(ip, rport, result)
       when Metasploit::Model::Login::Status::INCORRECT
-        vprint_brute(:level => :verror, :ip => ip, :msg => "Failed: '#{result.credential}'")
+        vprint_brute(level: :verror, ip: ip, msg: "Failed: '#{result.credential}'")
         report_bad_cred(ip, rport, result)
       end
     end
   end
 
-
   # Start here
   def run_host(ip)
     unless scanner(ip).check_setup
-      print_brute(:level => :error, :ip => ip, :msg => 'Target is not Symantec Web Gateway')
+      print_brute(level: :error, ip: ip, msg: 'Target is not Symantec Web Gateway')
       return
     end
 
     bruteforce(ip)
   end
-
 end

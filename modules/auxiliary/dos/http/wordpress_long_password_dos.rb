@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://www.metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -41,7 +42,8 @@ class MetasploitModule < Msf::Auxiliary
         OptInt.new('TIMEOUT', [true, 'The maximum time in seconds to wait for each request to finish', 5]),
         OptString.new('USERNAME', [true, 'The username to send the requests with', '']),
         OptBool.new('VALIDATE_USER', [true, 'Validate the specified username', true])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def rlimit
@@ -123,13 +125,13 @@ class MetasploitModule < Msf::Auxiliary
       end
 
       starting_thread = 1
-      while starting_thread < rlimit do
+      while starting_thread < rlimit
         ubound = [rlimit - (starting_thread - 1), thread_count].min
         print_status("Executing requests #{starting_thread} - #{(starting_thread + ubound) - 1}...")
 
         threads = []
         1.upto(ubound) do |i|
-          threads << framework.threads.spawn("Module(#{self.refname})-request#{(starting_thread - 1) + i}", false, i) do |i|
+          threads << framework.threads.spawn("Module(#{refname})-request#{(starting_thread - 1) + i}", false, i) do |i|
             begin
               wordpress_login(username, Rex::Text.rand_text_alpha(plength), timeout)
             rescue => e

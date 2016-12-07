@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Encoder
-
   # Has some issues, but overall it's pretty good
   # - printf(1) may not be available
   # - requires: "\x7c\x73\x68\x5c\x78"
@@ -34,46 +34,41 @@ class MetasploitModule < Msf::Encoder
       'EncoderType'      => Msf::Encoder::Type::PrintfPHPMagicQuotes)
   end
 
-
   #
   # Encodes the payload
   #
   def encode_block(state, buf)
-
     # Skip encoding for empty badchars
-    if(state.badchars.length == 0)
-      return buf
-    end
+    return buf if state.badchars.empty?
 
     # If backslash is bad, we are screwed.
-    if (state.badchars.include?("\\")) or
-      (state.badchars.include?("|")) or
-      # We must have at least ONE of these two..
-      (state.badchars.include?("x") and state.badchars.include?("0"))
+    if state.badchars.include?("\\") ||
+       state.badchars.include?("|") ||
+       # We must have at least ONE of these two..
+       (state.badchars.include?("x") && state.badchars.include?("0"))
       raise EncodingError
     end
 
     # Now we build a string of the original payload with bad characters
     # into \0<NNN> or \x<HH>
-    if (state.badchars.include?('x'))
-      hex = buf.unpack('C*').collect { |c| "\\0%o" % c }.join
-    else
-      hex = buf.unpack('C*').collect { |c| "\\x%x" % c }.join
-    end
+    hex = if state.badchars.include?('x')
+            buf.unpack('C*').collect { |c| "\\0%o" % c }.join
+          else
+            buf.unpack('C*').collect { |c| "\\x%x" % c }.join
+          end
 
     # Build the final output
     ret = "printf"
 
     # Special case: <SPACE>, try to use ${IFS}
-    if (state.badchars.include?(" "))
-      ret << '${IFS}'
-    else
-      ret << " "
-    end
+    ret << if state.badchars.include?(" ")
+             '${IFS}'
+           else
+             " "
+           end
 
     ret << hex << "|sh"
 
-    return ret
+    ret
   end
-
 end

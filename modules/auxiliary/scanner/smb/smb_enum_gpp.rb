@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -19,17 +20,17 @@ class MetasploitModule < Msf::Auxiliary
   def initialize
     super(
       'Name'        => 'SMB Group Policy Preference Saved Passwords Enumeration',
-      'Description' => %Q{
+      'Description' => %(
         This module enumerates files from target domain controllers and connects to them via SMB.
         It then looks for Group Policy Preference XML files containing local/domain user accounts
         and passwords and decrypts them using Microsofts public AES key. This module has been
         tested successfully on a Win2k8 R2 Domain Controller.
-      },
-      'Author'      =>
+      ),
+      'Author' =>
         [
-          'Joshua D. Abraham <jabra[at]praetorian.com>',
+          'Joshua D. Abraham <jabra[at]praetorian.com>'
         ],
-      'References'    =>
+      'References' =>
         [
           ['MSB', 'MS14-025'],
           ['URL', 'http://msdn.microsoft.com/en-us/library/cc232604(v=prot.13)'],
@@ -37,13 +38,13 @@ class MetasploitModule < Msf::Auxiliary
           ['URL', 'http://blogs.technet.com/grouppolicy/archive/2009/04/22/passwords-in-group-policy-preferences-updated.aspx'],
           ['URL', 'https://labs.portcullis.co.uk/blog/are-you-considering-using-microsoft-group-policy-preferences-think-again/']
         ],
-      'License'     => MSF_LICENSE
+      'License' => MSF_LICENSE
     )
     register_options([
-      OptString.new('SMBSHARE', [true, 'The name of the share on the server', 'SYSVOL']),
-      OptString.new('RPORT', [true, 'The Target port', 445]),
-      OptBool.new('STORE', [true, 'Store the enumerated files in loot.', true])
-    ], self.class)
+                       OptString.new('SMBSHARE', [true, 'The name of the share on the server', 'SYSVOL']),
+                       OptString.new('RPORT', [true, 'The Target port', 445]),
+                       OptBool.new('STORE', [true, 'Store the enumerated files in loot.', true])
+                     ], self.class)
   end
 
   def check_path(ip, path)
@@ -62,7 +63,7 @@ class MetasploitModule < Msf::Auxiliary
       when 'STATUS_OBJECT_PATH_NOT_FOUND'
         vprint_error("Object PATH \\\\#{ip}\\#{datastore['SMBSHARE']}\\#{path} NOT found!")
       when 'STATUS_ACCESS_DENIED'
-       vprint_error("Host reports access denied.")
+        vprint_error("Host reports access denied.")
       when 'STATUS_BAD_NETWORK_NAME'
         vprint_error("Host is NOT connected to #{datastore['SMBDomain']}!")
       when 'STATUS_INSUFF_SERVER_RESOURCES'
@@ -96,7 +97,7 @@ class MetasploitModule < Msf::Auxiliary
         private_data: password,
         private_type: :password,
         realm_key: Metasploit::Model::Realm::Key::ACTIVE_DIRECTORY_DOMAIN,
-        realm_value: domain,
+        realm_value: domain
       }
     else
       credential_data = {
@@ -120,7 +121,7 @@ class MetasploitModule < Msf::Auxiliary
   def parse_xml(ip, path, xml_file)
     mxml = xml_file[:xml]
     print_status "Parsing file: \\\\#{ip}\\#{datastore['SMBSHARE']}\\#{path}"
-    file_type = File.basename(xml_file[:path].gsub("\\","/"))
+    file_type = File.basename(xml_file[:path].tr("\\", "/"))
     results = Rex::Parser::GPP.parse(mxml)
     tables = Rex::Parser::GPP.create_tables(results, file_type, xml_file[:domain], xml_file[:dc])
 
@@ -147,9 +148,9 @@ class MetasploitModule < Msf::Auxiliary
 
     path_elements = path.split('\\')
     ret_obj = {
-      :dc   => ip,
-      :path => path,
-      :xml  => data
+      dc: ip,
+      path: path,
+      xml: data
     }
     ret_obj[:domain] = path_elements[0]
 
@@ -181,7 +182,7 @@ class MetasploitModule < Msf::Auxiliary
       sub_folder_listing = simple.client.find_first("#{corp_domain}\\Policies\\*")
       sub_folders = []
       sub_folder_listing.each_key do |key|
-        next if key == '.' ||  key == '..'
+        next if key == '.' || key == '..'
         sub_folders << key
       end
 
@@ -198,7 +199,7 @@ class MetasploitModule < Msf::Auxiliary
       )
       sub_folders.each do |i|
         gpp_locations.each do |gpp_l|
-          check_path(ip,"#{corp_domain}\\Policies\\#{i}#{gpp_l}")
+          check_path(ip, "#{corp_domain}\\Policies\\#{i}#{gpp_l}")
         end
       end
     rescue ::Exception => e

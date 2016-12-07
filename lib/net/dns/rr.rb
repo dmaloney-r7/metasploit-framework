@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 #
 #       $Id: RR.rb,v 1.19 2006/07/28 07:33:36 bluemonk Exp $
@@ -7,14 +8,12 @@ require 'net/dns/names/names'
 require 'net/dns/rr/types'
 require 'net/dns/rr/classes'
 
-
-%w[a ns mx cname txt hinfo soa ptr aaaa mr srv].each do |file|
+%w(a ns mx cname txt hinfo soa ptr aaaa mr srv).each do |file|
   require "net/dns/rr/#{file}"
 end
 
 module Net # :nodoc:
   module DNS
-
     # =Name
     #
     # Net::DNS::RR - DNS Resource Record class
@@ -141,9 +140,7 @@ module Net # :nodoc:
           raise RRArgumentError, "Invalid argument, must be a RR string or an hash of values"
         end
 
-        if @type.to_s == "ANY"
-          @cls = Net::DNS::RR::Classes.new("IN")
-        end
+        @cls = Net::DNS::RR::Classes.new("IN") if @type.to_s == "ANY"
 
         build_pack
         set_type
@@ -158,10 +155,10 @@ module Net # :nodoc:
       # This method is used when parsing a binary packet by the Packet
       # class.
       #
-      def RR.parse(data)
+      def self.parse(data)
         o = allocate
-        obj,offset = o.send(:new_from_binary, data, 0)
-        return obj
+        obj, offset = o.send(:new_from_binary, data, 0)
+        obj
       end
 
       # Same as RR.parse, but takes an entire packet binary data to
@@ -171,9 +168,9 @@ module Net # :nodoc:
       # Return an instance of appropriate class and the offset
       # pointing at the end of the data parsed.
       #
-      def RR.parse_packet(data,offset)
+      def self.parse_packet(data, offset)
         o = allocate
-        o.send(:new_from_binary,data,offset)
+        o.send(:new_from_binary, data, offset)
       end
 
       # Return the RR object in binary data format, suitable
@@ -186,12 +183,13 @@ module Net # :nodoc:
       #
       # TO FIX in one of the future releases
       #
-      def comp_data(offset,compnames)
-        type,cls = @type.to_i, @cls.to_i
-        str,offset,names = dn_comp(@name,offset,compnames)
-        str += [type,cls,@ttl,@rdlength].pack("n2 N n")
+      def comp_data(offset, compnames)
+        type = @type.to_i
+        cls = @cls.to_i
+        str, offset, names = dn_comp(@name, offset, compnames)
+        str += [type, cls, @ttl, @rdlength].pack("n2 N n")
         offset += Net::DNS::RRFIXEDSZ
-        return str,offset,names
+        [str, offset, names]
       end
 
       # Return the RR object in binary data format, suitable
@@ -201,9 +199,10 @@ module Net # :nodoc:
       #   puts "RR is #{raw_data.size} bytes long"
       #
       def data
-        type,cls = @type.to_i, @cls.to_i
+        type = @type.to_i
+        cls = @cls.to_i
         str = pack_name(@name)
-        return str + [type,cls,@ttl,@rdlength].pack("n2 N n") + get_data
+        str + [type, cls, @ttl, @rdlength].pack("n2 N n") + get_data
       end
 
       # Canonical inspect method
@@ -216,7 +215,7 @@ module Net # :nodoc:
         # Returns the preformatted string
         if @name.size < 24
           [@name, @ttl.to_s, @cls.to_s, @type.to_s,
-            data].pack("A24 A8 A8 A8 A*")
+           data].pack("A24 A8 A8 A8 A*")
         else
           to_a.join("   ")
         end
@@ -229,7 +228,7 @@ module Net # :nodoc:
       #     #=> "example.com.            7200    IN      MX      10 mailhost.example.com."
       #
       def to_s
-        "#{self.inspect}"
+        inspect.to_s
       end
 
       # Returns an array with all the fields for the RR record.
@@ -239,7 +238,7 @@ module Net # :nodoc:
       #     #=> ["example.com.",7200,"IN","MX","10 mailhost.example.com."]
       #
       def to_a
-        [@name,@ttl,@cls.to_s,@type.to_s,get_inspect]
+        [@name, @ttl, @cls.to_s, @type.to_s, get_inspect]
       end
 
       # Type accessor
@@ -258,33 +257,32 @@ module Net # :nodoc:
       # New RR with argument in string form
       #---
       def new_from_string(rrstring)
-
         unless rrstring =~ RR_REGEXP
           raise RRArgumentError,
-          "Format error for RR string (maybe CLASS and TYPE not valid?)"
+                "Format error for RR string (maybe CLASS and TYPE not valid?)"
         end
 
         # Name of RR - mandatory
         begin
-          @name = $1.downcase
+          @name = Regexp.last_match(1).downcase
         rescue NoMethodError
           raise RRArgumentError, "Missing name field in RR string #{rrstring}"
         end
 
         # Time to live for RR, default 3 hours
-        @ttl = $2 ? $2.to_i : 10800
+        @ttl = Regexp.last_match(2) ? Regexp.last_match(2).to_i : 10800
 
         # RR class, default to IN
-        @cls = Net::DNS::RR::Classes.new $3
+        @cls = Net::DNS::RR::Classes.new Regexp.last_match(3)
 
         # RR type, default to A
-        @type = Net::DNS::RR::Types.new $4
+        @type = Net::DNS::RR::Types.new Regexp.last_match(4)
 
         # All the rest is data
-        @rdata = $5 ? $5.strip : ""
+        @rdata = Regexp.last_match(5) ? Regexp.last_match(5).strip : ""
 
         if self.class == Net::DNS::RR
-          (eval "Net::DNS::RR::#@type").new(rrstring)
+          (eval "Net::DNS::RR::#{@type}").new(rrstring)
         else
           subclass_new_from_string(@rdata)
           self.class
@@ -292,25 +290,24 @@ module Net # :nodoc:
       end
 
       def new_from_hash(args)
-
         # Name field is mandatory
-        unless args.has_key? :name
+        unless args.key? :name
           raise RRArgumentError, "RR argument error: need at least RR name"
         end
 
         @name  = args[:name].downcase
         @ttl   = args[:ttl] ? args[:ttl].to_i : 10800 # Default 3 hours
         @type  = Net::DNS::RR::Types.new args[:type]
-        @cls  = Net::DNS::RR::Classes.new args[:cls]
+        @cls = Net::DNS::RR::Classes.new args[:cls]
 
         @rdata = args[:rdata] ? args[:rdata].strip : ""
         @rdlength = args[:rdlength] || @rdata.size
 
         if self.class == Net::DNS::RR
-          (eval "Net::DNS::RR::#@type").new(args)
+          (eval "Net::DNS::RR::#{@type}").new(args)
         else
-          hash = args - [:name,:ttl,:type,:cls]
-          if hash.has_key? :rdata
+          hash = args - [:name, :ttl, :type, :cls]
+          if hash.key? :rdata
             subclass_new_from_string(hash[:rdata])
           else
             subclass_new_from_hash(hash)
@@ -319,43 +316,50 @@ module Net # :nodoc:
         end
       end # new_from_hash
 
-      def new_from_binary(data,offset)
+      def new_from_binary(data, offset)
         if self.class == Net::DNS::RR
-          temp = dn_expand(data,offset)[1]
+          temp = dn_expand(data, offset)[1]
           type = Net::DNS::RR::Types.new data.unpack("@#{temp} n")[0]
           return unless Net::DNS::RR.const_defined?(type.to_s)
-          (eval "Net::DNS::RR::#{type}").parse_packet(data,offset)
+          (eval "Net::DNS::RR::#{type}").parse_packet(data, offset)
         else
-          @name,offset = dn_expand(data,offset)
-          rrtype,cls,@ttl,@rdlength = data.unpack("@#{offset} n2 N n")
+          @name, offset = dn_expand(data, offset)
+          rrtype, cls, @ttl, @rdlength = data.unpack("@#{offset} n2 N n")
           @type = Net::DNS::RR::Types.new rrtype
           @cls = Net::DNS::RR::Classes.new cls
           offset += RRFIXEDSZ
-          offset = subclass_new_from_binary(data,offset)
+          offset = subclass_new_from_binary(data, offset)
           build_pack
           set_type
-          return [self,offset]
+          [self, offset]
         end
-#      rescue StandardError => err
-#        raise RRDataError, "Caught exception, maybe packet malformed: #{err}"
+        #      rescue StandardError => err
+        #        raise RRDataError, "Caught exception, maybe packet malformed: #{err}"
       end
 
       # Methods to be overridden by subclasses
       def subclass_new_from_array(arr)
       end
+
       def subclass_new_from_string(str)
       end
+
       def subclass_new_from_hash(hash)
       end
-      def subclass_new_from_binary(data,offset)
+
+      def subclass_new_from_binary(data, offset)
       end
+
       def build_pack
       end
+
       def set_type
       end
+
       def get_inspect
         @rdata
       end
+
       def get_data
         @rdata
       end
@@ -363,16 +367,14 @@ module Net # :nodoc:
       # NEW new method :)
       def self.new(*args)
         o = allocate
-        obj = o.send(:initialize,*args)
+        obj = o.send(:initialize, *args)
         if self == Net::DNS::RR
           return obj
         else
           return o
         end
       end
-
     end # class RR
-
   end # module DNS
 end # module Net
 
@@ -382,7 +384,6 @@ class RRDataError < StandardError # :nodoc:
 end
 
 module ExtendHash # :nodoc:
-
   # Performs a sort of group difference
   # operation on hashes or arrays
   #
@@ -395,9 +396,9 @@ module ExtendHash # :nodoc:
   def -(oth)
     case oth
     when Hash
-      delete_if {|k,v| oth.has_key? k}
+      delete_if { |k, _v| oth.key? k }
     when Array
-      delete_if {|k,v| oth.include? k}
+      delete_if { |k, _v| oth.include? k }
     end
   end
 end

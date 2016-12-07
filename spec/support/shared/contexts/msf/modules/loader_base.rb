@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding:binary -*-
 RSpec.shared_context "Msf::Modules::Loader::Base" do
   let(:parent_path) do

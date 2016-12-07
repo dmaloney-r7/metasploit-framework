@@ -1,5 +1,6 @@
+# frozen_string_literal: true
 module Msf::DBManager::Import::Amap
-  def import_amap_log(args={}, &block)
+  def import_amap_log(args = {}, &block)
     data = args[:data]
     wspace = args[:wspace] || workspace
     bl = validate_ips(args[:blacklist]) ? args[:blacklist].split : []
@@ -7,29 +8,27 @@ module Msf::DBManager::Import::Amap
     data.each_line do |line|
       next if line =~ /^#/
       next if line !~ /^Protocol on ([^:]+):([^\x5c\x2f]+)[\x5c\x2f](tcp|udp) matches (.*)$/n
-      addr   = $1
+      addr = Regexp.last_match(1)
       next if bl.include? addr
-      port   = $2.to_i
-      proto  = $3.downcase
-      name   = $4
-      host = find_or_create_host(:workspace => wspace, :host => addr, :state => Msf::HostState::Alive, :task => args[:task])
-      next if not host
-      yield(:address,addr) if block
+      port   = Regexp.last_match(2).to_i
+      proto  = Regexp.last_match(3).downcase
+      name   = Regexp.last_match(4)
+      host = find_or_create_host(workspace: wspace, host: addr, state: Msf::HostState::Alive, task: args[:task])
+      next unless host
+      yield(:address, addr) if block
       info = {
-        :workspace => wspace,
-        :task => args[:task],
-        :host => host,
-        :proto => proto,
-        :port => port
+        workspace: wspace,
+        task: args[:task],
+        host: host,
+        proto: proto,
+        port: port
       }
-      if name != "unidentified"
-        info[:name] = name
-      end
+      info[:name] = name if name != "unidentified"
       service = find_or_create_service(info)
     end
   end
 
-  def import_amap_log_file(args={})
+  def import_amap_log_file(args = {})
     filename = args[:filename]
     wspace = args[:wspace] || workspace
     data = ""
@@ -39,15 +38,15 @@ module Msf::DBManager::Import::Amap
 
     case import_filetype_detect(data)
     when :amap_log
-      import_amap_log(args.merge(:data => data))
+      import_amap_log(args.merge(data: data))
     when :amap_mlog
-      import_amap_mlog(args.merge(:data => data))
+      import_amap_mlog(args.merge(data: data))
     else
-      raise Msf::DBImportError.new("Could not determine file type")
+      raise Msf::DBImportError, "Could not determine file type"
     end
   end
 
-  def import_amap_mlog(args={}, &block)
+  def import_amap_mlog(args = {}, &block)
     data = args[:data]
     wspace = args[:wspace] || workspace
     bl = validate_ips(args[:blacklist]) ? args[:blacklist].split : []
@@ -57,7 +56,7 @@ module Msf::DBManager::Import::Amap
       r = line.split(':')
       next if r.length < 6
 
-      addr   = r[0]
+      addr = r[0]
       next if bl.include? addr
       port   = r[1].to_i
       proto  = r[2].downcase
@@ -65,19 +64,17 @@ module Msf::DBManager::Import::Amap
       name   = r[5]
       next if status != "open"
 
-      host = find_or_create_host(:workspace => wspace, :host => addr, :state => Msf::HostState::Alive, :task => args[:task])
-      next if not host
-      yield(:address,addr) if block
+      host = find_or_create_host(workspace: wspace, host: addr, state: Msf::HostState::Alive, task: args[:task])
+      next unless host
+      yield(:address, addr) if block
       info = {
-        :workspace => wspace,
-        :task => args[:task],
-        :host => host,
-        :proto => proto,
-        :port => port
+        workspace: wspace,
+        task: args[:task],
+        host: host,
+        proto: proto,
+        port: port
       }
-      if name != "unidentified"
-        info[:name] = name
-      end
+      info[:name] = name if name != "unidentified"
       service = find_or_create_service(info)
     end
   end

@@ -1,8 +1,9 @@
+# frozen_string_literal: true
 require 'rex/parser/retina_xml'
 
 module Msf::DBManager::Import::Retina
   # Process Retina XML
-  def import_retina_xml(args={}, &block)
+  def import_retina_xml(args = {}, &block)
     data = args[:data]
     wspace = args[:wspace] || workspace
     bl = validate_ips(args[:blacklist]) ? args[:blacklist].split : []
@@ -11,34 +12,28 @@ module Msf::DBManager::Import::Retina
     msg << "This makes it impossible to correlate exploits to discovered vulnerabilities\n"
     msg << "in a reliable fashion."
 
-    yield(:warning,msg) if block
+    yield(:warning, msg) if block
 
     parser = Rex::Parser::RetinaXMLStreamParser.new
-    parser.on_found_host = Proc.new do |host|
+    parser.on_found_host = proc do |host|
       hobj = nil
       data = {
-        :workspace => wspace,
-        :task      => args[:task]
+        workspace: wspace,
+        task: args[:task]
       }
       addr = host['address']
-      next if not addr
+      next unless addr
 
       next if bl.include? addr
       data[:host] = addr
 
-      if host['mac']
-        data[:mac] = host['mac']
-      end
+      data[:mac] = host['mac'] if host['mac']
 
       data[:state] = Msf::HostState::Alive
 
-      if host['hostname']
-        data[:name] = host['hostname']
-      end
+      data[:name] = host['hostname'] if host['hostname']
 
-      if host['netbios']
-        data[:name] = host['netbios']
-      end
+      data[:name] = host['netbios'] if host['netbios']
 
       yield(:address, data[:host]) if block
 
@@ -49,29 +44,29 @@ module Msf::DBManager::Import::Retina
       # Import OS fingerprint
       if host["os"]
         note = {
-            :workspace => wspace,
-            :host      => addr,
-            :type      => 'host.os.retina_fingerprint',
-            :task      => args[:task],
-            :data      => {
-                :os => host["os"]
-            }
+          workspace: wspace,
+          host: addr,
+          type: 'host.os.retina_fingerprint',
+          task: args[:task],
+          data: {
+            os: host["os"]
+          }
         }
         report_note(note)
       end
 
       # Import vulnerabilities
       host['vulns'].each do |vuln|
-        refs = vuln['refs'].map{|v| v.join("-")}
+        refs = vuln['refs'].map { |v| v.join("-") }
         refs << "RETINA-#{vuln['rthid']}" if vuln['rthid']
 
         vuln_info = {
-            :workspace => wspace,
-            :host      => addr,
-            :name      => vuln['name'],
-            :info      => vuln['description'],
-            :refs      => refs,
-            :task      => args[:task]
+          workspace: wspace,
+          host: addr,
+          name: vuln['name'],
+          info: vuln['description'],
+          refs: refs,
+          task: args[:task]
         }
 
         report_vuln(vuln_info)
@@ -82,7 +77,7 @@ module Msf::DBManager::Import::Retina
   end
 
   # Process a Retina XML file
-  def import_retina_xml_file(args={})
+  def import_retina_xml_file(args = {})
     filename = args[:filename]
     wspace = args[:wspace] || workspace
 
@@ -90,6 +85,6 @@ module Msf::DBManager::Import::Retina
     ::File.open(filename, 'rb') do |f|
       data = f.read(f.stat.size)
     end
-    import_retina_xml(args.merge(:data => data))
+    import_retina_xml(args.merge(data: data))
   end
 end

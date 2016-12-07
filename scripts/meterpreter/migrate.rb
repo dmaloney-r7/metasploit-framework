@@ -1,16 +1,14 @@
+# frozen_string_literal: true
 ##
 # WARNING: Metasploit no longer maintains or accepts meterpreter scripts.
 # If you'd like to imporve this script, please try to port it as a post
 # module instead. Thank you.
 ##
 
-
-
 #
 # Simple example script that migrates to a specific process by name.
 # This is meant as an illustration.
 #
-
 
 spawn = false
 kill = false
@@ -20,12 +18,12 @@ target_name = nil
 opts = Rex::Parser::Arguments.new(
   "-h" => [ false, "Help menu." ],
   "-f" => [ false, "Launch a process and migrate into the new process"],
-  "-p" => [ true , "PID to migrate to."],
+  "-p" => [ true, "PID to migrate to."],
   "-k" => [ false, "Kill original process."],
   "-n" => [ true, "Migrate into the first process with this executable name (explorer.exe)" ]
 )
 
-opts.parse(args) { |opt, idx, val|
+opts.parse(args) do |opt, _idx, val|
   case opt
   when "-f"
     spawn = true
@@ -42,19 +40,19 @@ opts.parse(args) { |opt, idx, val|
     print_line(opts.usage)
     raise Rex::Script::Completed
   end
-}
+end
 
 # Creates a temp notepad.exe to migrate to depending the architecture.
-def create_temp_proc()
+def create_temp_proc
   # Use the system path for executable to run
   cmd = "notepad.exe"
   # run hidden
-  proc = client.sys.process.execute(cmd, nil, {'Hidden' => true })
-  return proc.pid
+  proc = client.sys.process.execute(cmd, nil, 'Hidden' => true)
+  proc.pid
 end
 
 # In case no option is provided show help
-if args.length == 0
+if args.empty?
   print_line(opts.usage)
   raise Rex::Script::Completed
 end
@@ -71,9 +69,9 @@ if client.platform =~ /win32|win64/
     target_pid = create_temp_proc
   end
 
-  if target_name and not target_pid
+  if target_name && !target_pid
     target_pid = client.sys.process[target_name]
-    if not target_pid
+    unless target_pid
       print_status("Could not identify the process ID for #{target_name}")
       raise Rex::Script::Completed
     end

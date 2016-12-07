@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,7 +8,6 @@ require 'msf/core'
 require 'rex/proto/rfb'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::Tcp
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::Scanner
@@ -19,7 +19,7 @@ class MetasploitModule < Msf::Auxiliary
       'References'  =>
         [
           ['URL', 'http://en.wikipedia.org/wiki/RFB'],
-          ['URL', 'http://en.wikipedia.org/wiki/Vnc'],
+          ['URL', 'http://en.wikipedia.org/wiki/Vnc']
         ],
       'Author'      =>
         [
@@ -32,7 +32,8 @@ class MetasploitModule < Msf::Auxiliary
     register_options(
       [
         Opt::RPORT(5900)
-      ], self.class)
+      ], self.class
+    )
   end
 
   def run_host(target_host)
@@ -47,11 +48,11 @@ class MetasploitModule < Msf::Auxiliary
       ver = "#{vnc.majver}.#{vnc.minver}"
       print_status("#{target_host}:#{rport} - VNC server protocol version: #{ver}")
       svc = report_service(
-        :host => rhost,
-        :port => rport,
-        :proto => 'tcp',
-        :name => 'vnc',
-        :info => "VNC protocol version #{ver}"
+        host: rhost,
+        port: rport,
+        proto: 'tcp',
+        name: 'vnc',
+        info: "VNC protocol version #{ver}"
       )
 
       type = vnc.negotiate_authentication
@@ -62,26 +63,24 @@ class MetasploitModule < Msf::Auxiliary
 
       # Show the allowed security types
       sec_type = []
-      vnc.auth_types.each { |type|
+      vnc.auth_types.each do |type|
         sec_type << Rex::Proto::RFB::AuthType.to_s(type)
-      }
-      print_status("#{target_host}:#{rport} - VNC server security types supported: #{sec_type.join(",")}")
+      end
+      print_status("#{target_host}:#{rport} - VNC server security types supported: #{sec_type.join(',')}")
 
-      if (vnc.auth_types.include? Rex::Proto::RFB::AuthType::None)
+      if vnc.auth_types.include? Rex::Proto::RFB::AuthType::None
         print_good("#{target_host}:#{rport} - VNC server security types includes None, free access!")
         report_vuln(
-          {
-            :host         => rhost,
-            :service      => svc,
-            :name         => self.name,
-            :info         => "Module #{self.fullname} identified the VNC 'none' security type: #{sec_type.join(", ")}",
-            :refs         => self.references,
-            :exploited_at => Time.now.utc
-          })
+          host: rhost,
+          service: svc,
+          name: name,
+          info: "Module #{fullname} identified the VNC 'none' security type: #{sec_type.join(', ')}",
+          refs: references,
+          exploited_at: Time.now.utc
+        )
       end
     ensure
       disconnect
     end
-
   end
 end

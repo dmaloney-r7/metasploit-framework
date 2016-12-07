@@ -1,8 +1,9 @@
+# frozen_string_literal: true
 module Msf::DBManager::Import::MetasploitFramework::Zip
   # Imports loot, tasks, and reports from an MSF ZIP report.
   # XXX: This function is stupidly long. It needs to be refactored.
-  def import_msf_collateral(args={}, &block)
-    data = ::File.open(args[:filename], "rb") {|f| f.read(f.stat.size)}
+  def import_msf_collateral(args = {}, &block)
+    data = ::File.open(args[:filename], "rb") { |f| f.read(f.stat.size) }
     wspace = args[:wspace] || args['wspace'] || workspace
     bl = validate_ips(args[:blacklist]) ? args[:blacklist].split : []
     basedir = args[:basedir] || args['basedir'] || ::File.join(Msf::Config.data_directory, "msf")
@@ -32,28 +33,27 @@ module Msf::DBManager::Import::MetasploitFramework::Zip
     else
       m_ver = nil
     end
-    unless m_ver and btag
-      raise Msf::DBImportError.new("Unsupported Metasploit XML document format")
+    unless m_ver && btag
+      raise Msf::DBImportError, "Unsupported Metasploit XML document format"
     end
 
     host_info = {}
 
     doc.each do |node|
-      if ['host', 'loot', 'task', 'report'].include?(node.name)
-        unless node.inner_xml.empty?
-          send("parse_zip_#{node.name}", Nokogiri::XML(node.outer_xml).at("./#{node.name}"), wspace, bl, allow_yaml, btag, args, basedir, host_info, &block)
-        end
+      next unless ['host', 'loot', 'task', 'report'].include?(node.name)
+      unless node.inner_xml.empty?
+        send("parse_zip_#{node.name}", Nokogiri::XML(node.outer_xml).at("./#{node.name}"), wspace, bl, allow_yaml, btag, args, basedir, host_info, &block)
       end
     end
   end
 
   # Parses host Nokogiri::XML::Element
-  def parse_zip_host(host, wspace, bl, allow_yaml, btag, args, basedir, host_info, &block)
+  def parse_zip_host(host, _wspace, _bl, _allow_yaml, _btag, _args, _basedir, host_info)
     host_info[host.at("id").text.to_s.strip] = nils_for_nulls(host.at("address").text.to_s.strip) unless host.at('address').nil?
   end
 
   # Parses loot Nokogiri::XML::Element
-  def parse_zip_loot(loot, wspace, bl, allow_yaml, btag, args, basedir, host_info, &block)
+  def parse_zip_loot(loot, _wspace, bl, allow_yaml, _btag, args, basedir, host_info, &block)
     return 0 if bl.include? host_info[loot.at("host-id").text.to_s.strip]
     loot_info              = {}
     loot_info[:host]       = host_info[loot.at("host-id").text.to_s.strip]
@@ -68,8 +68,8 @@ module Msf::DBManager::Import::MetasploitFramework::Zip
     loot_info[:orig_path]  = nils_for_nulls(loot.at("path").text.to_s.strip)
     loot_info[:task]       = args[:task]
     tmp = args[:ifd][:zip_tmp]
-    loot_info[:orig_path].gsub!(/^\./,tmp) if loot_info[:orig_path]
-    if !loot.at("service-id").text.to_s.strip.empty?
+    loot_info[:orig_path]&.gsub!(/^\./, tmp)
+    unless loot.at("service-id").text.to_s.strip.empty?
       unless loot.at("service-id").text.to_s.strip == "NULL"
         loot_info[:service] = loot.at("service-id").text.to_s.strip
       end
@@ -78,16 +78,16 @@ module Msf::DBManager::Import::MetasploitFramework::Zip
     # Only report loot if we actually have it.
     # TODO: Copypasta. Separate this out.
     if ::File.exist? loot_info[:orig_path]
-      loot_dir = ::File.join(basedir,"loot")
+      loot_dir = ::File.join(basedir, "loot")
       loot_file = ::File.split(loot_info[:orig_path]).last
       if ::File.exist? loot_dir
-        unless (::File.directory?(loot_dir) && ::File.writable?(loot_dir))
-          raise Msf::DBImportError.new("Could not move files to #{loot_dir}")
+        unless ::File.directory?(loot_dir) && ::File.writable?(loot_dir)
+          raise Msf::DBImportError, "Could not move files to #{loot_dir}"
         end
       else
         ::FileUtils.mkdir_p(loot_dir)
       end
-      new_loot = ::File.join(loot_dir,loot_file)
+      new_loot = ::File.join(loot_dir, loot_file)
       loot_info[:path] = new_loot
       if ::File.exist?(new_loot)
         ::File.unlink new_loot # Delete it, and don't report it.
@@ -100,7 +100,7 @@ module Msf::DBManager::Import::MetasploitFramework::Zip
   end
 
   # Parses task Nokogiri::XML::Element
-  def parse_zip_task(task, wspace, bl, allow_yaml, btag, args, basedir, host_info, &block)
+  def parse_zip_task(task, _wspace, _bl, allow_yaml, _btag, args, basedir, _host_info, &block)
     task_info = {}
     task_info[:workspace] = args[:wspace]
     # Should user be imported (original) or declared (the importing user)?
@@ -112,32 +112,32 @@ module Msf::DBManager::Import::MetasploitFramework::Zip
     task_info[:prog] = nils_for_nulls(task.at("progress").text.to_s.strip).to_i
     task_info[:created_at] = nils_for_nulls(task.at("created-at").text.to_s.strip)
     task_info[:updated_at] = nils_for_nulls(task.at("updated-at").text.to_s.strip)
-    if !task.at("completed-at").text.to_s.empty?
+    unless task.at("completed-at").text.to_s.empty?
       task_info[:completed_at] = nils_for_nulls(task.at("completed-at").text.to_s.strip)
     end
-    if !task.at("error").text.to_s.empty?
+    unless task.at("error").text.to_s.empty?
       task_info[:error] = nils_for_nulls(task.at("error").text.to_s.strip)
     end
-    if !task.at("result").text.to_s.empty?
+    unless task.at("result").text.to_s.empty?
       task_info[:result] = nils_for_nulls(task.at("result").text.to_s.strip)
     end
     task_info[:orig_path] = nils_for_nulls(task.at("path").text.to_s.strip)
     tmp = args[:ifd][:zip_tmp]
-    task_info[:orig_path].gsub!(/^\./,tmp) if task_info[:orig_path]
+    task_info[:orig_path]&.gsub!(/^\./, tmp)
 
     # Only report a task if we actually have it.
     # TODO: Copypasta. Separate this out.
     if ::File.exist? task_info[:orig_path]
-      tasks_dir = ::File.join(basedir,"tasks")
+      tasks_dir = ::File.join(basedir, "tasks")
       task_file = ::File.split(task_info[:orig_path]).last
       if ::File.exist? tasks_dir
-        unless (::File.directory?(tasks_dir) && ::File.writable?(tasks_dir))
-          raise Msf::DBImportError.new("Could not move files to #{tasks_dir}")
+        unless ::File.directory?(tasks_dir) && ::File.writable?(tasks_dir)
+          raise Msf::DBImportError, "Could not move files to #{tasks_dir}"
         end
       else
         ::FileUtils.mkdir_p(tasks_dir)
       end
-      new_task = ::File.join(tasks_dir,task_file)
+      new_task = ::File.join(tasks_dir, task_file)
       task_info[:path] = new_task
       if ::File.exist?(new_task)
         ::File.unlink new_task # Delete it, and don't report it.
@@ -150,7 +150,7 @@ module Msf::DBManager::Import::MetasploitFramework::Zip
   end
 
   # Parses report Nokogiri::XML::Element
-  def parse_zip_report(report, wspace, bl, allow_yaml, btag, args, basedir, host_info, &block)
+  def parse_zip_report(report, _wspace, _bl, _allow_yaml, _btag, args, basedir, _host_info)
     import_report(report, args, basedir)
   end
 
@@ -161,15 +161,15 @@ module Msf::DBManager::Import::MetasploitFramework::Zip
   # be reused. If target files exist, they will be overwritten.
   #
   # XXX: Refactor so it's not quite as sanity-blasting.
-  def import_msf_zip(args={}, &block)
+  def import_msf_zip(args = {}, &block)
     data = args[:data]
     wspace = args[:wspace] || workspace
     bl = validate_ips(args[:blacklist]) ? args[:blacklist].split : []
 
-    new_tmp = ::File.join(Dir::tmpdir,"msf","imp_#{Rex::Text::rand_text_alphanumeric(4)}",@import_filedata[:zip_basename])
+    new_tmp = ::File.join(Dir.tmpdir, "msf", "imp_#{Rex::Text.rand_text_alphanumeric(4)}", @import_filedata[:zip_basename])
     if ::File.exist? new_tmp
-      unless (::File.directory?(new_tmp) && ::File.writable?(new_tmp))
-        raise Msf::DBImportError.new("Could not extract zip file to #{new_tmp}")
+      unless ::File.directory?(new_tmp) && ::File.writable?(new_tmp)
+        raise Msf::DBImportError, "Could not extract zip file to #{new_tmp}"
       end
     else
       FileUtils.mkdir_p(new_tmp)
@@ -177,41 +177,39 @@ module Msf::DBManager::Import::MetasploitFramework::Zip
     @import_filedata[:zip_tmp] = new_tmp
 
     # Grab the list of unique basedirs over all entries.
-    @import_filedata[:zip_tmp_subdirs] = @import_filedata[:zip_entry_names].map {|x| ::File.split(x)}.map {|x| x[0]}.uniq.reject {|x| x == "."}
+    @import_filedata[:zip_tmp_subdirs] = @import_filedata[:zip_entry_names].map { |x| ::File.split(x) }.map { |x| x[0] }.uniq.reject { |x| x == "." }
 
     # mkdir all of the base directories we just pulled out, if they don't
     # already exist
-    @import_filedata[:zip_tmp_subdirs].each {|sub|
-      tmp_subdirs = ::File.join(@import_filedata[:zip_tmp],sub)
+    @import_filedata[:zip_tmp_subdirs].each do |sub|
+      tmp_subdirs = ::File.join(@import_filedata[:zip_tmp], sub)
       if File.exist? tmp_subdirs
-        unless (::File.directory?(tmp_subdirs) && File.writable?(tmp_subdirs))
+        unless ::File.directory?(tmp_subdirs) && File.writable?(tmp_subdirs)
           # if it exists but we can't write to it, give up
-          raise Msf::DBImportError.new("Could not extract zip file to #{tmp_subdirs}")
+          raise Msf::DBImportError, "Could not extract zip file to #{tmp_subdirs}"
         end
       else
         ::FileUtils.mkdir(tmp_subdirs)
       end
-    }
+    end
 
     data.entries.each do |e|
       target = ::File.join(@import_filedata[:zip_tmp], e.name)
-      data.extract(e,target)
+      data.extract(e, target)
 
-      if target =~ /\.xml\z/
-        target_data = ::File.open(target, "rb") {|f| f.read 1024}
-        if import_filetype_detect(target_data) == :msf_xml
-          @import_filedata[:zip_extracted_xml] = target
-        end
+      next unless target =~ /\.xml\z/
+      target_data = ::File.open(target, "rb") { |f| f.read 1024 }
+      if import_filetype_detect(target_data) == :msf_xml
+        @import_filedata[:zip_extracted_xml] = target
       end
     end
 
     # Import any creds if there are some in the import file
     Dir.entries(@import_filedata[:zip_tmp]).each do |entry|
-      if entry =~ /^.*#{Regexp.quote(Metasploit::Credential::Exporter::Core::CREDS_DUMP_FILE_IDENTIFIER)}.*/
-        manifest_file_path = File.join(@import_filedata[:zip_tmp], entry, Metasploit::Credential::Importer::Zip::MANIFEST_FILE_NAME)
-        if File.exist? manifest_file_path
-          import_msf_cred_dump(manifest_file_path, wspace)
-        end
+      next unless entry =~ /^.*#{Regexp.quote(Metasploit::Credential::Exporter::Core::CREDS_DUMP_FILE_IDENTIFIER)}.*/
+      manifest_file_path = File.join(@import_filedata[:zip_tmp], entry, Metasploit::Credential::Importer::Zip::MANIFEST_FILE_NAME)
+      if File.exist? manifest_file_path
+        import_msf_cred_dump(manifest_file_path, wspace)
       end
     end
 

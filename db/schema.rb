@@ -1,4 +1,5 @@
 # encoding: UTF-8
+# frozen_string_literal: true
 # This file is auto-generated from the current state of the database. Instead
 # of editing this file, please use the migrations feature of Active Record to
 # incrementally modify your database, and then regenerate this schema definition.
@@ -12,7 +13,6 @@
 # It's strongly recommended that you check this file into your version control system.
 
 ActiveRecord::Schema.define(version: 20161107203710) do
-
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -95,7 +95,7 @@ ActiveRecord::Schema.define(version: 20161107203710) do
     t.datetime "updated_at",                              null: false
     t.string   "user",        limit: 2048
     t.string   "pass",        limit: 4096
-    t.boolean  "active",                   default: true
+    t.boolean  "active", default: true
     t.string   "proof",       limit: 4096
     t.string   "ptype",       limit: 256
     t.integer  "source_id"
@@ -131,7 +131,7 @@ ActiveRecord::Schema.define(version: 20161107203710) do
   end
 
   create_table "exploited_hosts", force: :cascade do |t|
-    t.integer  "host_id",                   null: false
+    t.integer  "host_id", null: false
     t.integer  "service_id"
     t.string   "session_uuid", limit: 8
     t.string   "name",         limit: 2048
@@ -153,7 +153,7 @@ ActiveRecord::Schema.define(version: 20161107203710) do
 
   create_table "hosts", force: :cascade do |t|
     t.datetime "created_at"
-    t.inet     "address",                                         null: false
+    t.inet     "address", null: false
     t.string   "mac"
     t.string   "comm"
     t.string   "name"
@@ -163,10 +163,10 @@ ActiveRecord::Schema.define(version: 20161107203710) do
     t.string   "os_sp"
     t.string   "os_lang"
     t.string   "arch"
-    t.integer  "workspace_id",                                    null: false
+    t.integer  "workspace_id", null: false
     t.datetime "updated_at"
     t.text     "purpose"
-    t.string   "info",                  limit: 65536
+    t.string   "info", limit: 65536
     t.text     "comments"
     t.text     "scope"
     t.text     "virtual_host"
@@ -196,7 +196,7 @@ ActiveRecord::Schema.define(version: 20161107203710) do
     t.datetime "updated_at",                  null: false
     t.integer  "workspace_id", default: 1,    null: false
     t.integer  "task_id"
-    t.boolean  "enabled",      default: true
+    t.boolean  "enabled", default: true
     t.text     "owner"
     t.text     "payload"
     t.text     "address"
@@ -206,7 +206,7 @@ ActiveRecord::Schema.define(version: 20161107203710) do
   end
 
   create_table "loots", force: :cascade do |t|
-    t.integer  "workspace_id",               default: 1, null: false
+    t.integer  "workspace_id", default: 1, null: false
     t.integer  "host_id"
     t.integer  "service_id"
     t.string   "ltype",         limit: 512
@@ -260,7 +260,7 @@ ActiveRecord::Schema.define(version: 20161107203710) do
     t.integer  "core_id",           null: false
     t.integer  "service_id",        null: false
     t.string   "access_level"
-    t.string   "status",            null: false
+    t.string   "status", null: false
     t.datetime "last_attempted_at"
     t.datetime "created_at",        null: false
     t.datetime "updated_at",        null: false
@@ -278,7 +278,7 @@ ActiveRecord::Schema.define(version: 20161107203710) do
   add_index "metasploit_credential_origin_cracked_passwords", ["metasploit_credential_core_id"], name: "originating_credential_cores", using: :btree
 
   create_table "metasploit_credential_origin_imports", force: :cascade do |t|
-    t.text     "filename",   null: false
+    t.text     "filename", null: false
     t.integer  "task_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
@@ -445,10 +445,10 @@ ActiveRecord::Schema.define(version: 20161107203710) do
   create_table "nexpose_consoles", force: :cascade do |t|
     t.datetime "created_at",                  null: false
     t.datetime "updated_at",                  null: false
-    t.boolean  "enabled",      default: true
+    t.boolean  "enabled", default: true
     t.text     "owner"
     t.text     "address"
-    t.integer  "port",         default: 3780
+    t.integer  "port", default: 3780
     t.text     "username"
     t.text     "password"
     t.text     "status"
@@ -460,8 +460,8 @@ ActiveRecord::Schema.define(version: 20161107203710) do
 
   create_table "notes", force: :cascade do |t|
     t.datetime "created_at"
-    t.string   "ntype",        limit: 512
-    t.integer  "workspace_id",             default: 1, null: false
+    t.string   "ntype", limit: 512
+    t.integer  "workspace_id", default: 1, null: false
     t.integer  "service_id"
     t.integer  "host_id"
     t.datetime "updated_at"
@@ -477,7 +477,7 @@ ActiveRecord::Schema.define(version: 20161107203710) do
   create_table "profiles", force: :cascade do |t|
     t.datetime "created_at",                null: false
     t.datetime "updated_at",                null: false
-    t.boolean  "active",     default: true
+    t.boolean  "active", default: true
     t.text     "name"
     t.text     "owner"
     t.binary   "settings"
@@ -486,16 +486,16 @@ ActiveRecord::Schema.define(version: 20161107203710) do
   create_table "refs", force: :cascade do |t|
     t.integer  "ref_id"
     t.datetime "created_at"
-    t.string   "name",       limit: 512
+    t.string   "name", limit: 512
     t.datetime "updated_at"
   end
 
   add_index "refs", ["name"], name: "index_refs_on_name", using: :btree
 
   create_table "report_templates", force: :cascade do |t|
-    t.integer  "workspace_id",              default: 1, null: false
+    t.integer  "workspace_id", default: 1, null: false
     t.string   "created_by"
-    t.string   "path",         limit: 1024
+    t.string   "path", limit: 1024
     t.text     "name"
     t.datetime "created_at",                            null: false
     t.datetime "updated_at",                            null: false
@@ -505,13 +505,13 @@ ActiveRecord::Schema.define(version: 20161107203710) do
     t.integer  "workspace_id",               default: 1, null: false
     t.string   "created_by"
     t.string   "rtype"
-    t.string   "path",          limit: 1024
+    t.string   "path", limit: 1024
     t.text     "options"
     t.datetime "created_at",                             null: false
     t.datetime "updated_at",                             null: false
     t.datetime "downloaded_at"
     t.integer  "task_id"
-    t.string   "name",          limit: 63
+    t.string   "name", limit: 63
   end
 
   create_table "routes", force: :cascade do |t|
@@ -523,8 +523,8 @@ ActiveRecord::Schema.define(version: 20161107203710) do
   create_table "services", force: :cascade do |t|
     t.integer  "host_id"
     t.datetime "created_at"
-    t.integer  "port",                  null: false
-    t.string   "proto",      limit: 16, null: false
+    t.integer  "port", null: false
+    t.string   "proto", limit: 16, null: false
     t.string   "state"
     t.string   "name"
     t.datetime "updated_at"
@@ -556,7 +556,7 @@ ActiveRecord::Schema.define(version: 20161107203710) do
     t.integer  "port"
     t.string   "platform"
     t.text     "datastore"
-    t.datetime "opened_at",     null: false
+    t.datetime "opened_at", null: false
     t.datetime "closed_at"
     t.string   "close_reason"
     t.integer  "local_id"
@@ -568,7 +568,7 @@ ActiveRecord::Schema.define(version: 20161107203710) do
 
   create_table "tags", force: :cascade do |t|
     t.integer  "user_id"
-    t.string   "name",           limit: 1024
+    t.string   "name", limit: 1024
     t.text     "desc"
     t.boolean  "report_summary",              default: false, null: false
     t.boolean  "report_detail",               default: false, null: false
@@ -606,11 +606,11 @@ ActiveRecord::Schema.define(version: 20161107203710) do
   end
 
   create_table "tasks", force: :cascade do |t|
-    t.integer  "workspace_id",              default: 1, null: false
+    t.integer  "workspace_id", default: 1, null: false
     t.string   "created_by"
     t.string   "module"
     t.datetime "completed_at"
-    t.string   "path",         limit: 1024
+    t.string   "path", limit: 1024
     t.string   "info"
     t.string   "description"
     t.integer  "progress"
@@ -619,7 +619,7 @@ ActiveRecord::Schema.define(version: 20161107203710) do
     t.datetime "created_at",                            null: false
     t.datetime "updated_at",                            null: false
     t.text     "result"
-    t.string   "module_uuid",  limit: 8
+    t.string   "module_uuid", limit: 8
     t.binary   "settings"
   end
 
@@ -634,8 +634,8 @@ ActiveRecord::Schema.define(version: 20161107203710) do
     t.string   "email"
     t.string   "phone"
     t.string   "company"
-    t.string   "prefs",             limit: 524288
-    t.boolean  "admin",                            default: true, null: false
+    t.string   "prefs", limit: 524288
+    t.boolean  "admin", default: true, null: false
   end
 
   create_table "vuln_attempts", force: :cascade do |t|
@@ -681,7 +681,7 @@ ActiveRecord::Schema.define(version: 20161107203710) do
     t.datetime "created_at"
     t.string   "name"
     t.datetime "updated_at"
-    t.string   "info",               limit: 65536
+    t.string   "info", limit: 65536
     t.datetime "exploited_at"
     t.integer  "vuln_detail_count",                default: 0
     t.integer  "vuln_attempt_count",               default: 0
@@ -702,7 +702,7 @@ ActiveRecord::Schema.define(version: 20161107203710) do
     t.datetime "created_at",               null: false
     t.datetime "updated_at",               null: false
     t.text     "path"
-    t.string   "method",      limit: 1024
+    t.string   "method", limit: 1024
     t.text     "params"
     t.text     "query"
   end
@@ -715,7 +715,7 @@ ActiveRecord::Schema.define(version: 20161107203710) do
     t.datetime "updated_at",  null: false
     t.text     "path"
     t.text     "query"
-    t.integer  "code",        null: false
+    t.integer  "code", null: false
     t.text     "cookie"
     t.text     "auth"
     t.text     "ctype"
@@ -733,7 +733,7 @@ ActiveRecord::Schema.define(version: 20161107203710) do
     t.integer  "service_id",              null: false
     t.datetime "created_at",              null: false
     t.datetime "updated_at",              null: false
-    t.string   "vhost",      limit: 2048
+    t.string   "vhost", limit: 2048
     t.text     "comments"
     t.text     "options"
   end
@@ -747,18 +747,18 @@ ActiveRecord::Schema.define(version: 20161107203710) do
     t.datetime "created_at",               null: false
     t.datetime "updated_at",               null: false
     t.text     "path",                     null: false
-    t.string   "method",      limit: 1024, null: false
+    t.string   "method", limit: 1024, null: false
     t.text     "params"
     t.text     "pname"
-    t.integer  "risk",                     null: false
-    t.string   "name",        limit: 1024, null: false
+    t.integer  "risk", null: false
+    t.string   "name", limit: 1024, null: false
     t.text     "query"
     t.text     "category",                 null: false
     t.integer  "confidence",               null: false
     t.text     "description"
     t.text     "blame"
     t.binary   "request"
-    t.binary   "proof",                    null: false
+    t.binary   "proof", null: false
     t.string   "owner"
     t.text     "payload"
   end
@@ -772,12 +772,12 @@ ActiveRecord::Schema.define(version: 20161107203710) do
     t.inet     "address"
     t.integer  "port"
     t.integer  "ssl"
-    t.string   "meth",       limit: 32
+    t.string   "meth", limit: 32
     t.text     "path"
     t.text     "headers"
     t.text     "query"
     t.text     "body"
-    t.string   "respcode",   limit: 16
+    t.string   "respcode", limit: 16
     t.text     "resphead"
     t.text     "response"
     t.datetime "created_at"
@@ -809,5 +809,4 @@ ActiveRecord::Schema.define(version: 20161107203710) do
     t.boolean  "limit_to_network",                default: false, null: false
     t.boolean  "import_fingerprint",              default: false
   end
-
 end

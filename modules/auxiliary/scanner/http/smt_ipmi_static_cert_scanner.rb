@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::Tcp
   include Msf::Auxiliary::Scanner
   include Msf::Auxiliary::Report
@@ -29,7 +29,6 @@ class MetasploitModule < Msf::Auxiliary
     -----END RSA PRIVATE KEY-----
   EOF
 
-
   def initialize
     super(
       'Name'        => 'Supermicro Onboard IPMI Static SSL Certificate Scanner',
@@ -40,7 +39,7 @@ class MetasploitModule < Msf::Auxiliary
         This module has been on a Supermicro Onboard IPMI (X9SCL/X9SCM) with firmware
         version SMT_X9_214.
       },
-      'Author'       =>
+      'Author' =>
         [
           'hdm', # Discovery and analysis
           'juan' # Metasploit module
@@ -56,14 +55,15 @@ class MetasploitModule < Msf::Auxiliary
 
     register_options(
       [
-        Opt::RPORT(443),
-      ], self.class)
+        Opt::RPORT(443)
+      ], self.class
+    )
   end
 
   # Fingerprint a single host
   def run_host(ip)
-    connect(true, {"SSL" => true}) #Force SSL
-    cert  = OpenSSL::X509::Certificate.new(sock.peer_cert)
+    connect(true, "SSL" => true) # Force SSL
+    cert = OpenSSL::X509::Certificate.new(sock.peer_cert)
     disconnect
 
     unless cert
@@ -79,21 +79,18 @@ class MetasploitModule < Msf::Auxiliary
       # Report with the the SSL Private Key hash for the host
       digest = OpenSSL::Digest::SHA1.new(pkey.public_key.to_der).to_s.scan(/../).join(":")
       report_note(
-        :host  => ip,
-        :proto => 'tcp',
-        :port  => rport,
-        :type  => 'supermicro.ipmi.ssl.certificate.pkey_hash',
-        :data  => digest
+        host: ip,
+        proto: 'tcp',
+        port: rport,
+        type: 'supermicro.ipmi.ssl.certificate.pkey_hash',
+        data: digest
       )
 
-      report_vuln({
-        :host  => rhost,
-        :port  => rport,
-        :proto => 'tcp',
-        :name  => "Supermicro Onboard IPMI Static SSL Certificate",
-        :refs  => self.references
-      })
+      report_vuln(host: rhost,
+                  port: rport,
+                  proto: 'tcp',
+                  name: "Supermicro Onboard IPMI Static SSL Certificate",
+                  refs: references)
     end
   end
-
 end

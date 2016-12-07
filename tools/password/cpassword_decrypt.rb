@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 
 ##
 # This module requires Metasploit: http://metasploit.com/download
@@ -37,7 +38,7 @@ while File.symlink?(msfbase)
   msfbase = File.expand_path(File.readlink(msfbase), File.dirname(msfbase))
 end
 
-$:.unshift(File.expand_path(File.join(File.dirname(msfbase), '..', '..', 'lib')))
+$LOAD_PATH.unshift(File.expand_path(File.join(File.dirname(msfbase), '..', '..', 'lib')))
 
 gem 'rex-text'
 
@@ -45,7 +46,6 @@ require 'msfenv'
 require 'rex'
 
 class CPassword
-
   #
   # Decrypts the AES-encrypted cpassword string
   # @param encrypted_data [String] The encrypted cpassword
@@ -60,7 +60,7 @@ class CPassword
     decoded = Rex::Text.decode_base64(epassword)
 
     # Decryption
-    key  = ''
+    key = ''
     key << "\x4e\x99\x06\xe8\xfc\xb6\x6c\xc9\xfa\xf4\x93\x10\x62\x0f\xfe\xe8\xf4\x96\xe8\x06\xcc"
     key << "\x05\x79\x90\x20\x9b\x09\xa4\x33\xb6\x6c\x1b"
     begin
@@ -79,7 +79,6 @@ class CPassword
   end
 end
 
-
 #
 # Shows script usage
 #
@@ -88,30 +87,26 @@ def usage
   exit
 end
 
-
 #
 # Prints a status message
 #
-def print_status(msg='')
+def print_status(msg = '')
   $stderr.puts "[*] #{msg}"
 end
-
 
 #
 # Prints an error message
 #
-def print_error(msg='')
+def print_error(msg = '')
   $stderr.puts "[-] #{msg}"
 end
-
 
 #
 # Prints a good message
 #
-def print_good(msg='')
+def print_good(msg = '')
   $stderr.puts "[+] #{msg}"
 end
-
 
 #
 # main
@@ -120,7 +115,7 @@ if __FILE__ == $PROGRAM_NAME
   pass = ARGV.shift
 
   # Input check
-  usage if pass.nil? or pass.empty?
+  usage if pass.nil? || pass.empty?
 
   cpasswd = CPassword.new
   pass = cpasswd.decrypt(pass)

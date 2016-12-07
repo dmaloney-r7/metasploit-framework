@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 source 'https://rubygems.org'
 # Add default group gems to `metasploit-framework.gemspec`:
 #   spec.add_runtime_dependency '<name>', [<version requirements>]
@@ -39,7 +40,7 @@ group :test do
   # cucumber extension for testing command line applications, like msfconsole
   gem 'aruba'
   # cucumber + automatic database cleaning with database_cleaner
-  gem 'cucumber-rails', :require => false
+  gem 'cucumber-rails', require: false
   gem 'shoulda-matchers'
   # Manipulate Time.now in specs
   gem 'timecop'

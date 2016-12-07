@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 # Copyright (C) 2008 TOMITA Masahiro
 # mailto:tommy@tmtm.org
@@ -7,7 +8,9 @@ require "#{File.dirname __FILE__}/error"
 class RbMysql
   class Charset
     def initialize(number, name, csname)
-      @number, @name, @csname = number, name, csname
+      @number = number
+      @name = name
+      @csname = csname
     end
     attr_reader :number, :name, :csname
 
@@ -97,8 +100,8 @@ class RbMysql
       [ 92, "geostd8",  "geostd8_general_ci",   true ],
       [ 93, "geostd8",  "geostd8_bin",          false],
       [ 94, "latin1",   "latin1_spanish_ci",    false],
-      [ 95, "cp932",    "cp932_japanese_ci"  ,  true ],
-      [ 96, "cp932",    "cp932_bin"          ,  false],
+      [ 95, "cp932",    "cp932_japanese_ci", true ],
+      [ 96, "cp932",    "cp932_bin", false],
       [ 97, "eucjpms",  "eucjpms_japanese_ci",  true ],
       [ 98, "eucjpms",  "eucjpms_bin",          false],
       [128, "ucs2",     "ucs2_unicode_ci",      false],
@@ -138,12 +141,12 @@ class RbMysql
       [207, "utf8",     "utf8_roman_ci",        false],
       [208, "utf8",     "utf8_persian_ci",      false],
       [209, "utf8",     "utf8_esperanto_ci",    false],
-      [210, "utf8",     "utf8_hungarian_ci",    false],
-    ]
+      [210, "utf8",     "utf8_hungarian_ci",    false]
+    ].freeze
 
-    NUMBER_TO_CHARSET = {}
-    COLLATION_TO_CHARSET = {}
-    CHARSET_DEFAULT = {}
+    NUMBER_TO_CHARSET = {}.freeze
+    COLLATION_TO_CHARSET = {}.freeze
+    CHARSET_DEFAULT = {}.freeze
     CHARSETS.each do |number, csname, clname, default|
       cs = Charset.new number, csname, clname
       NUMBER_TO_CHARSET[number] = cs
@@ -201,8 +204,8 @@ class RbMysql
         "tis620"   => nil,
         "ucs2"     => Encoding::UTF_16BE,
         "ujis"     => Encoding::EucJP_ms,
-        "utf8"     => Encoding::UTF_8,
-      }
+        "utf8"     => Encoding::UTF_8
+      }.freeze
 
       def self.to_binary(value)
         value.dup.force_encoding Encoding::ASCII_8BIT
@@ -219,7 +222,7 @@ class RbMysql
 
       # convert encoding to corrensponding to MySQL charset
       def convert(value)
-        if value.is_a? String and value.encoding != Encoding::ASCII_8BIT
+        if value.is_a?(String) && (value.encoding != Encoding::ASCII_8BIT)
           value = value.encode encoding
         end
         value
@@ -227,9 +230,7 @@ class RbMysql
 
       # convert encoding from MySQL charset to Ruby
       def force_encoding(value)
-        if value.is_a? String
-          value = value.dup.force_encoding encoding
-        end
+        value = value.dup.force_encoding encoding if value.is_a? String
         value
       end
 
@@ -254,4 +255,3 @@ class RbMysql
     end
   end
 end
-

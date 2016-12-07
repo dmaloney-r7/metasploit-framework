@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -8,7 +9,6 @@ require 'metasploit/framework/credential_collection'
 require 'metasploit/framework/login_scanner/octopusdeploy'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::AuthBrute
@@ -17,10 +17,10 @@ class MetasploitModule < Msf::Auxiliary
   def initialize
     super(
       'Name'           => 'Octopus Deploy Login Utility',
-      'Description'    => %q{
+      'Description'    => %q(
         This module simply attempts to login to a Octopus Deploy server using a specific
         username and password. It has been confirmed to work on version 3.4.4
-      },
+      ),
       'Author'         => [ 'James Otten <jamesotten1[at]gmail.com>' ],
       'License'        => MSF_LICENSE
     )
@@ -29,7 +29,8 @@ class MetasploitModule < Msf::Auxiliary
       [
         Opt::RPORT(80),
         OptString.new('TARGETURI', [true, 'URI for login. Default is /api/users/login', '/api/users/login'])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def run_host(ip)
@@ -57,10 +58,8 @@ class MetasploitModule < Msf::Auxiliary
 
     scanner.scan! do |result|
       credential_data = result.to_h
-      credential_data.merge!(
-        module_fullname: fullname,
-        workspace_id: myworkspace_id
-      )
+      credential_data[:module_fullname] = fullname
+      credential_data[:workspace_id] = myworkspace_id
 
       if result.success?
         credential_core = create_credential(credential_data)

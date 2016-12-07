@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # Events that can occur in the host/service database.
 module Msf::DatabaseEvent
   # Called when a new client is added to the database.  The client

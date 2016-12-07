@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -31,7 +32,8 @@ class MetasploitModule < Msf::Auxiliary
         OptString.new('HttpUsername', [ true, 'The username to test', 'root' ]),
         OptString.new('HttpPassword', [ true, 'The password to test', '5iveL!fe' ]),
         OptString.new('TARGETURI', [true, 'The path to GitLab', '/'])
-      ], self.class)
+      ], self.class
+    )
 
     register_autofilter_ports([ 80, 443 ])
 
@@ -41,9 +43,9 @@ class MetasploitModule < Msf::Auxiliary
   def run_host(ip)
     uri = normalize_uri(target_uri.path.to_s, 'users', 'sign_in')
     res = send_request_cgi(
-                            'method' => 'GET',
-                            'cookie' => 'request_method=GET',
-                            'uri'    => uri
+      'method' => 'GET',
+      'cookie' => 'request_method=GET',
+      'uri'    => uri
     )
 
     if res && res.body && res.body.include?('user[email]')
@@ -77,10 +79,8 @@ class MetasploitModule < Msf::Auxiliary
 
     scanner.scan! do |result|
       credential_data = result.to_h
-      credential_data.merge!(
-          module_fullname: fullname,
-          workspace_id: myworkspace_id
-      )
+      credential_data[:module_fullname] = fullname
+      credential_data[:workspace_id] = myworkspace_id
       if result.success?
         credential_core = create_credential(credential_data)
         credential_data[:core] = credential_core

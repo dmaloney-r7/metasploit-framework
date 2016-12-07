@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::Telnet
   include Msf::Auxiliary::Scanner
   include Msf::Auxiliary::Report
@@ -19,10 +19,11 @@ class MetasploitModule < Msf::Auxiliary
       'License'     => MSF_LICENSE
     )
     register_options(
-    [
-      Opt::RPORT(23),
-      OptInt.new('TIMEOUT', [true, 'Timeout for the Telnet probe', 30])
-    ], self.class)
+      [
+        Opt::RPORT(23),
+        OptInt.new('TIMEOUT', [true, 'Timeout for the Telnet probe', 30])
+      ], self.class
+    )
   end
 
   def to
@@ -37,7 +38,7 @@ class MetasploitModule < Msf::Auxiliary
         # This makes db_services look a lot nicer.
         banner_santized = Rex::Text.to_hex_ascii(banner.to_s)
         print_status("#{ip}:#{rport} TELNET #{banner_santized}")
-        report_service(:host => rhost, :port => rport, :name => "telnet", :info => banner_santized)
+        report_service(host: rhost, port: rport, name: "telnet", info: banner_santized)
       end
     rescue ::Rex::ConnectionError
     rescue Timeout::Error

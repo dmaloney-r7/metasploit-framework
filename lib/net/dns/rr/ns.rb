@@ -1,17 +1,16 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 ##
 #
 # Net::DNS::RR::NS
 #
-#       $Id: NS.rb,v 1.8 2006/07/28 07:33:36 bluemonk Exp $     
+#       $Id: NS.rb,v 1.8 2006/07/28 07:33:36 bluemonk Exp $
 #
 ##
 
 module Net
   module DNS
-    
     class RR
-      
       #------------------------------------------------------------
       # RR type NS
       #------------------------------------------------------------
@@ -19,9 +18,9 @@ module Net
         attr_reader :nsdname
 
         private
-        
+
         def check_name(name)
-          unless name =~ /(\w\.?)+\s*$/ and name =~ /[a-zA-Z]/
+          unless name =~ /(\w\.?)+\s*$/ && name =~ /[a-zA-Z]/
             raise RRArgumentError, "NS Domain Name not valid: #{name}"
           end
           name
@@ -41,11 +40,11 @@ module Net
         end
 
         def get_inspect
-          "#@nsdname"
+          @nsdname.to_s
         end
-          
+
         def subclass_new_from_hash(args)
-          if args.has_key? :nsdname
+          if args.key? :nsdname
             @nsdname = check_name args[:nsdname]
           else
             raise RRArgumentError, ":nsdname field is mandatory but missing"
@@ -56,13 +55,11 @@ module Net
           @nsdname = check_name(str)
         end
 
-        def subclass_new_from_binary(data,offset)
-          @nsdname,offset = dn_expand(data,offset)
-          return offset
+        def subclass_new_from_binary(data, offset)
+          @nsdname, offset = dn_expand(data, offset)
+          offset
         end
-        
       end # class NS
-      
     end # class RR
   end # module DNS
 end # module Net

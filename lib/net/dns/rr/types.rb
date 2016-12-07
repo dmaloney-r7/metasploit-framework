@@ -1,14 +1,12 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 module Net # :nodoc:
   module DNS
-
     class RR
-
       #
       # This is an auxiliary class to hadle RR type field in a DNS packet.
       #
       class Types
-
         # :nodoc:
         Types = { # :nodoc:
           'SIGZERO'   => 0,       # RFC2931 consider this a pseudo type
@@ -70,7 +68,7 @@ module Net # :nodoc:
           'MAILB'     => 253,     # RFC 1035 (MB, MG, MR)
           'MAILA'     => 254,     # RFC 1035 (obsolete - see MX)
           'ANY'       => 255,     # RFC 1035
-        }
+        }.freeze
 
         # The default value when type is nil in Resource Records
         @@default = Types["A"]
@@ -78,7 +76,7 @@ module Net # :nodoc:
         # Be able to control the default type to assign when
         # type is +nil+. Default to +A+
         def self.default=(str)
-          if Types.has_key? str
+          if Types.key? str
             @@default = Types[str]
           else
             raise TypeArgumentError, "Unknown type #{str}"
@@ -89,9 +87,9 @@ module Net # :nodoc:
         def self.valid?(type)
           case type
           when String
-            return Types.has_key?(type)
-          when Fixnum
-            return Types.invert.has_key?(type)
+            Types.key?(type)
+          when Integer
+            Types.invert.key?(type)
           else
             raise TypeArgumentError, "Wrong type class: #{type.class}"
           end
@@ -101,9 +99,9 @@ module Net # :nodoc:
         # given the numeric value
         def self.to_str(type)
           case type
-          when Fixnum
-            if Types.invert.has_key? type
-              return Types.invert[type]
+          when Integer
+            if Types.invert.key? type
+              Types.invert[type]
             else
               raise TypeArgumentError, "Unknown type number #{type}"
             end
@@ -126,7 +124,7 @@ module Net # :nodoc:
           when String
             # type in the form "A" or "NS"
             new_from_string(type.upcase)
-          when Fixnum
+          when Integer
             # type in numeric form
             new_from_num(type)
           when nil
@@ -171,7 +169,7 @@ module Net # :nodoc:
             new_from_num(Regexp.last_match(1).to_i)
           else
             # String with name of type
-            if Types.has_key? type
+            if Types.key? type
               @str = type
               @num = Types[type]
             else
@@ -184,7 +182,7 @@ module Net # :nodoc:
         # *PRIVATE* method
         def new_from_num(type)
           raise TypeArgumentError, "Invalid type #{type}" if type < 0 || type > 0xFFFF
-          if Types.invert.has_key? type
+          if Types.invert.key? type
             @num = type
             @str = Types.invert[type]
           else
@@ -192,9 +190,7 @@ module Net # :nodoc:
             @str = "TYPE#{type}"
           end
         end
-
       end # class Types
-
     end # class RR
   end # module DNS
 end # module Net

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -28,7 +29,8 @@ class MetasploitModule < Msf::Post
     register_options(
       [
         OptPath.new('WALLPAPER_FILE', [true, 'The local wallpaper file to set on the remote session'])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def upload_wallpaper(tempdir, file)

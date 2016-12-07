@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -8,24 +9,22 @@ require 'rex'
 require 'rex/google/geolocation'
 
 class MetasploitModule < Msf::Post
+  def initialize(info = {})
+    super(update_info(info,
+                      'Name'          => 'Multiplatform WLAN Enumeration and Geolocation',
+                      'Description'   => %q( Enumerate wireless networks visible to the target device.
+                      Optionally geolocate the target by gathering local wireless networks and
+                      performing a lookup against Google APIs.),
+                      'License'       => MSF_LICENSE,
+                      'Author'        => [ 'Tom Sellers <tom[at]fadedcode.net>'],
+                      'Platform'      => %w(osx win linux bsd solaris),
+                      'SessionTypes'  => [ 'meterpreter', 'shell' ]))
 
-  def initialize(info={})
-    super( update_info( info,
-        'Name'          => 'Multiplatform WLAN Enumeration and Geolocation',
-        'Description'   => %q{ Enumerate wireless networks visible to the target device.
-        Optionally geolocate the target by gathering local wireless networks and
-        performing a lookup against Google APIs.},
-        'License'       => MSF_LICENSE,
-        'Author'        => [ 'Tom Sellers <tom[at]fadedcode.net>'],
-        'Platform'      => %w{ osx win linux bsd solaris },
-        'SessionTypes'  => [ 'meterpreter', 'shell' ],
-      ))
-
-      register_options(
-        [
+    register_options(
+      [
         OptBool.new('GEOLOCATE', [ false, 'Use Google APIs to geolocate Linux, Windows, and OS X targets.', false])
-        ], self.class)
-
+      ], self.class
+    )
   end
 
   def get_strength(quality)
@@ -34,8 +33,7 @@ class MetasploitModule < Msf::Post
     # am using here, but in practice 95 seems to be closer.
     signal_str = quality.to_i / 2
     signal_str = (signal_str - 95).round
-    return signal_str
-
+    signal_str
   end
 
   def parse_wireless_win(listing)
@@ -44,15 +42,14 @@ class MetasploitModule < Msf::Post
 
     raw_networks.each do |network|
       details = network.match(/^SSID [\d]+ : ([^\r\n]*).*?BSSID 1[\s]+: ([\h]{2}:[\h]{2}:[\h]{2}:[\h]{2}:[\h]{2}:[\h]{2}).*?Signal[\s]+: ([\d]{1,3})%/m)
-      if !details.nil?
+      unless details.nil?
         strength = get_strength(details[3])
         wlan_list << [ details[2], details[1], strength ]
       end
     end
 
-    return wlan_list
+    wlan_list
   end
-
 
   def parse_wireless_linux(listing)
     wlan_list = []
@@ -60,12 +57,10 @@ class MetasploitModule < Msf::Post
 
     raw_networks.each do |network|
       details = network.match(/^[\d]{1,4} - Address: ([\h]{2}:[\h]{2}:[\h]{2}:[\h]{2}:[\h]{2}:[\h]{2}).*?Signal level=([\d-]{1,3}).*?ESSID:"([^"]*)/m)
-      if !details.nil?
-        wlan_list << [ details[1], details[3], details[2] ]
-      end
+      wlan_list << [ details[1], details[3], details[2] ] unless details.nil?
     end
 
-    return wlan_list
+    wlan_list
   end
 
   def parse_wireless_osx(listing)
@@ -75,12 +70,10 @@ class MetasploitModule < Msf::Post
     raw_networks.each do |network|
       network = network.strip
       details = network.match(/^(.*(?!\h\h:))[\s]*([\h]{2}:[\h]{2}:[\h]{2}:[\h]{2}:[\h]{2}:[\h]{2})[\s]*([\d-]{1,3})/)
-      if !details.nil?
-        wlan_list << [ details[2], details[1], details[3] ]
-      end
+      wlan_list << [ details[2], details[1], details[3] ] unless details.nil?
     end
 
-    return wlan_list
+    wlan_list
   end
 
   def perform_geolocation(wlan_list)
@@ -102,9 +95,7 @@ class MetasploitModule < Msf::Post
       print_status(g.to_s)
       print_status("Google Maps URL:  #{g.google_maps_url}")
     end
-
   end
-
 
   # Run Method for when run command is issued
   def run
@@ -193,6 +184,4 @@ class MetasploitModule < Msf::Post
   rescue ::Exception => e
     print_status("The following Error was encountered: #{e.class} #{e}")
   end
-
-
 end

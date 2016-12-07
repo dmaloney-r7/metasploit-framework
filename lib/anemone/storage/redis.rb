@@ -1,10 +1,10 @@
+# frozen_string_literal: true
 require 'redis'
 
 module Anemone
   module Storage
     class Redis
-
-      MARSHAL_FIELDS = %w(links visited fetched)
+      MARSHAL_FIELDS = %w(links visited fetched).freeze
 
       def initialize(opts = {})
         @redis = ::Redis.new(opts)
@@ -13,12 +13,12 @@ module Anemone
       end
 
       def [](key)
-        rkey = "#{@key_prefix}:pages:#{key.to_s}"
+        rkey = "#{@key_prefix}:pages:#{key}"
         rget(rkey)
       end
 
       def []=(key, value)
-        rkey = "#{@key_prefix}:pages:#{key.to_s}"
+        rkey = "#{@key_prefix}:pages:#{key}"
         hash = value.to_hash
         MARSHAL_FIELDS.each do |field|
           hash[field] = Marshal.dump(hash[field])
@@ -29,7 +29,7 @@ module Anemone
       end
 
       def delete(key)
-        rkey = "#{@key_prefix}:pages:#{key.to_s}"
+        rkey = "#{@key_prefix}:pages:#{key}"
         page = self[key]
         @redis.del(rkey)
         page
@@ -54,12 +54,12 @@ module Anemone
 
       def keys
         keys = []
-        self.each { |k, v| keys << k.to_s }
+        each { |k, _v| keys << k.to_s }
         keys
       end
 
       def has_key?(key)
-        rkey = "#{@key_prefix}:pages:#{key.to_s}"
+        rkey = "#{@key_prefix}:pages:#{key}"
         @redis.exists(rkey)
       end
 
@@ -72,7 +72,7 @@ module Anemone
       def load_value(hash)
         MARSHAL_FIELDS.each do |field|
           unless hash[field].nil? || hash[field] == ''
-            hash[field] = Marshal.load(hash[field]) 
+            hash[field] = Marshal.load(hash[field])
           end
         end
         Page.from_hash(hash)
@@ -80,11 +80,8 @@ module Anemone
 
       def rget(rkey)
         hash = @redis.hgetall(rkey)
-        if !!hash
-          load_value(hash)
-        end
+        load_value(hash) if !!hash
       end
-
     end
   end
 end

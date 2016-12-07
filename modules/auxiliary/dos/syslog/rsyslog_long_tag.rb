@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::Udp
   include Msf::Auxiliary::Dos
 
@@ -27,14 +27,15 @@ class MetasploitModule < Msf::Auxiliary
         [
           [ 'CVE', '2011-3200'],
           [ 'URL', 'http://www.rsyslog.com/potential-dos-with-malformed-tag/' ],
-          [ 'URL', 'https://bugzilla.redhat.com/show_bug.cgi?id=727644' ],
+          [ 'URL', 'https://bugzilla.redhat.com/show_bug.cgi?id=727644' ]
         ],
       'DisclosureDate' => 'Sep 01 2011')
 
     register_options(
       [
         Opt::RPORT(514)
-      ])
+      ]
+    )
   end
 
   def run

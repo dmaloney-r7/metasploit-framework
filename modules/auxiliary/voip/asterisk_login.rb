@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,49 +7,48 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::Tcp
   include Msf::Auxiliary::Scanner
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::AuthBrute
 
-  def initialize(info={})
+  def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Asterisk Manager Login Utility',
-      'Description'    => %q{
-        This module attempts to authenticate to an Asterisk Manager service. Please note
-        that by default, Asterisk Call Management (port 5038) only listens locally, but
-        this can be manually configured in file /etc/asterisk/manager.conf by the admin
-        on the victim machine.
-      },
-      'Author'         =>
-        [
-          'dflah_ <dflah[at]alligatorteam.org>',
-        ],
-      'References'     =>
-        [
-          ['URL', 'http://www.asterisk.org/astdocs/node201.html'], # Docs for AMI
-        ],
-      'License'     => MSF_LICENSE
-    ))
+                      'Name'           => 'Asterisk Manager Login Utility',
+                      'Description'    => %q{
+                        This module attempts to authenticate to an Asterisk Manager service. Please note
+                        that by default, Asterisk Call Management (port 5038) only listens locally, but
+                        this can be manually configured in file /etc/asterisk/manager.conf by the admin
+                        on the victim machine.
+                      },
+                      'Author'         =>
+                        [
+                          'dflah_ <dflah[at]alligatorteam.org>'
+                        ],
+                      'References'     =>
+                        [
+                          ['URL', 'http://www.asterisk.org/astdocs/node201.html'], # Docs for AMI
+                        ],
+                      'License' => MSF_LICENSE))
 
     register_options(
       [
         Opt::RPORT(5038),
         OptString.new('USER_FILE',
-          [
-            false,
-            'The file that contains a list of probable users accounts.',
-            File.join(Msf::Config.install_root, 'data', 'wordlists', 'unix_users.txt')
-          ]),
+                      [
+                        false,
+                        'The file that contains a list of probable users accounts.',
+                        File.join(Msf::Config.install_root, 'data', 'wordlists', 'unix_users.txt')
+                      ]),
 
         OptString.new('PASS_FILE',
-          [
-            false,
-            'The file that contains a list of probable passwords.',
-            File.join(Msf::Config.install_root, 'data', 'wordlists', 'unix_passwords.txt')
-          ])
-      ], self.class)
+                      [
+                        false,
+                        'The file that contains a list of probable passwords.',
+                        File.join(Msf::Config.install_root, 'data', 'wordlists', 'unix_passwords.txt')
+                      ])
+      ], self.class
+    )
   end
 
   def report_cred(opts)
@@ -78,7 +78,7 @@ class MetasploitModule < Msf::Auxiliary
     create_credential_login(login_data)
   end
 
-  def run_host(ip)
+  def run_host(_ip)
     print_status("Initializing module...")
     begin
       each_user_pass do |user, pass|
@@ -86,26 +86,26 @@ class MetasploitModule < Msf::Auxiliary
       end
     rescue ::Rex::ConnectionError
     rescue ::Exception => e
-      vprint_error("#{rhost}:#{rport} #{e.to_s} #{e.backtrace}")
+      vprint_error("#{rhost}:#{rport} #{e} #{e.backtrace}")
     end
   end
 
-  def send_manager(command='')
+  def send_manager(command = '')
     begin
       @result = ''
-      if (!@connected)
+      unless @connected
         connect
         @connected = true
-        select(nil,nil,nil,0.4)
+        select(nil, nil, nil, 0.4)
       end
       sock.put(command)
       @result = sock.get_once || ''
     rescue ::Exception => err
-      print_error("Error: #{err.to_s}")
+      print_error("Error: #{err}")
     end
   end
 
-  def do_login(user='',pass='')
+  def do_login(user = '', pass = '')
     @connected = false
     begin
       send_manager(nil) # connect Only

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 require 'rex/ui/text/output/buffer/stdout'
@@ -6,12 +7,10 @@ module Msf
   module Ui
     module Console
       module CommandDispatcher
-
         #
         # {CommandDispatcher} for commands related to background jobs in Metasploit Framework.
         #
         class Modules
-
           include Msf::Ui::Console::CommandDispatcher
 
           # Constant for a retry timeout on using modules before they're loaded
@@ -38,7 +37,7 @@ module Msf
               "reload_all" => "Reloads all modules from all defined module paths",
               "search"     => "Searches module names and descriptions",
               "show"       => "Displays modules of a given type, or all modules",
-              "use"        => "Selects a module by name",
+              "use"        => "Selects a module by name"
             }
           end
 
@@ -61,14 +60,13 @@ module Msf
             "Module"
           end
 
-
           def local_editor
             Rex::Compat.getenv('VISUAL') || Rex::Compat.getenv('EDITOR') || '/usr/bin/vim'
           end
 
           def cmd_edit_help
             msg = "Edit the currently active module"
-            msg = "#{msg} #{local_editor ? "with #{local_editor}" : "($VISUAL or $EDITOR must be set first)"}."
+            msg = "#{msg} #{local_editor ? "with #{local_editor}" : '($VISUAL or $EDITOR must be set first)'}."
             print_line "Usage: edit"
             print_line
             print_line msg
@@ -87,12 +85,11 @@ module Msf
             if active_module
               path = active_module.file_path
               print_status "Launching #{local_editor} #{path}"
-              system(local_editor,path)
+              system(local_editor, path)
             else
               print_error "Nothing to edit -- try using a module first."
             end
           end
-
 
           def cmd_advanced_help
             print_line 'Usage: advanced [mod1 mod2 ...]'
@@ -104,7 +101,7 @@ module Msf
 
           def cmd_advanced(*args)
             if args.empty?
-              if (active_module)
+              if active_module
                 show_advanced_options(active_module)
                 return true
               else
@@ -113,15 +110,15 @@ module Msf
               end
             end
 
-            args.each { |name|
+            args.each do |name|
               mod = framework.modules.create(name)
 
-              if (mod == nil)
+              if mod.nil?
                 print_error("Invalid module: #{name}")
               else
                 show_advanced_options(mod)
               end
-            }
+            end
           end
 
           def cmd_info_help
@@ -152,8 +149,8 @@ module Msf
               show_doc = true
             end
 
-            if (args.length == 0)
-              if (active_module)
+            if args.empty?
+              if active_module
                 if dump_json
                   print(Serializer::Json.dump_module(active_module) + "\n")
                 elsif show_doc
@@ -162,7 +159,7 @@ module Msf
                     print_status("Generating documentation for #{active_module.shortname}, then opening #{f.path} in a browser...")
                     Msf::Util::DocumentGenerator.spawn_module_document(active_module, f)
                   ensure
-                    f.close if f
+                    f&.close
                   end
                 else
                   print(Serializer::ReadableText.dump_module(active_module))
@@ -177,10 +174,10 @@ module Msf
               return false
             end
 
-            args.each { |name|
+            args.each do |name|
               mod = framework.modules.create(name)
 
-              if (mod == nil)
+              if mod.nil?
                 print_error("Invalid module: #{name}")
               elsif dump_json
                 print(Serializer::Json.dump_module(mod) + "\n")
@@ -190,12 +187,12 @@ module Msf
                   print_status("Generating documentation for #{mod.shortname}, then opening #{f.path} in a browser...")
                   Msf::Util::DocumentGenerator.spawn_module_document(mod, f)
                 ensure
-                  f.close if f
+                  f&.close
                 end
               else
                 print(Serializer::ReadableText.dump_module(mod))
               end
-            }
+            end
           end
 
           def cmd_options_help
@@ -208,7 +205,7 @@ module Msf
 
           def cmd_options(*args)
             if args.empty?
-              if (active_module)
+              if active_module
                 show_options(active_module)
                 return true
               else
@@ -220,7 +217,7 @@ module Msf
             args.each do |name|
               mod = framework.modules.create(name)
 
-              if (mod == nil)
+              if mod.nil?
                 print_error("Invalid module: #{name}")
               else
                 show_options(mod)
@@ -270,7 +267,7 @@ module Msf
           # Adds one or more search paths.
           #
           def cmd_loadpath(*args)
-            if (args.length == 0 or args.include? "-h")
+            if args.empty? || args.include?("-h")
               cmd_loadpath_help
               return true
             end
@@ -282,28 +279,27 @@ module Msf
             begin
               # Walk the list of supplied search paths attempting to add each one
               # along the way
-              args.each { |path|
+              args.each do |path|
                 curr_path = path
 
                 # Load modules, but do not consult the cache
-                if (counts = framework.modules.add_module_path(path))
-                  counts.each_pair { |type, count|
-                    totals[type] = (totals[type]) ? (totals[type] + count) : count
+                next unless (counts = framework.modules.add_module_path(path))
+                counts.each_pair do |type, count|
+                  totals[type] = totals[type] ? (totals[type] + count) : count
 
-                    overall += count
-                  }
+                  overall += count
                 end
-              }
+              end
             rescue NameError, RuntimeError
-              log_error("Failed to add search path #{curr_path}: #{$!}")
+              log_error("Failed to add search path #{curr_path}: #{$ERROR_INFO}")
               return true
             end
 
             added = "Loaded #{overall} modules:\n"
 
-            totals.each_pair { |type, count|
+            totals.each_pair do |type, count|
               added << "    #{count} #{type}#{count != 1 ? 's' : ''}\n"
-            }
+            end
 
             print(added)
           end
@@ -319,35 +315,31 @@ module Msf
             return [] if words.length > 1
 
             # This custom completion might better than Readline's... We'll leave it for now.
-            #tab_complete_filenames(str,words)
+            # tab_complete_filenames(str,words)
 
             paths = []
-            if (File.directory?(str))
+            if File.directory?(str)
               paths = Dir.entries(str)
-              paths = paths.map { |f|
-                if File.directory? File.join(str,f)
-                  File.join(str,f)
-                end
-              }
-              paths.delete_if { |f| f.nil? or File.basename(f) == '.' or File.basename(f) == '..' }
+              paths = paths.map do |f|
+                File.join(str, f) if File.directory? File.join(str, f)
+              end
+              paths.delete_if { |f| f.nil? || (File.basename(f) == '.') || (File.basename(f) == '..') }
             else
               d = Dir.glob(str + "*").map { |f| f if File.directory?(f) }
-              d.delete_if { |f| f.nil? or f == '.' or f == '..' }
+              d.delete_if { |f| f.nil? || (f == '.') || (f == '..') }
               # If there's only one possibility, descend to the next level
-              if (1 == d.length)
+              if 1 == d.length
                 paths = Dir.entries(d[0])
-                paths = paths.map { |f|
-                  if File.directory? File.join(d[0],f)
-                    File.join(d[0],f)
-                  end
-                }
-                paths.delete_if { |f| f.nil? or File.basename(f) == '.' or File.basename(f) == '..' }
+                paths = paths.map do |f|
+                  File.join(d[0], f) if File.directory? File.join(d[0], f)
+                end
+                paths.delete_if { |f| f.nil? || (File.basename(f) == '.') || (File.basename(f) == '..') }
               else
                 paths = d
               end
             end
             paths.sort!
-            return paths
+            paths
           end
 
           def cmd_search_help
@@ -363,7 +355,7 @@ module Msf
               'name'     => 'Modules with a matching descriptive name',
               'platform' => 'Modules affecting this platform',
               'ref'      => 'Modules with a matching ref',
-              'type'     => 'Modules of a specific type (exploit, auxiliary, or post)',
+              'type'     => 'Modules of a specific type (exploit, auxiliary, or post)'
             }.each_pair do |keyword, description|
               print_line "  #{keyword.ljust 10}:  #{description}"
             end
@@ -377,20 +369,20 @@ module Msf
           # Searches modules for specific keywords
           #
           def cmd_search(*args)
-            match   = ''
-            @@search_opts.parse(args) { |opt, idx, val|
+            match = ''
+            @@search_opts.parse(args) do |opt, _idx, val|
               case opt
-                when "-t"
-                  print_error("Deprecated option.  Use type:#{val} instead")
-                  cmd_search_help
-                  return
-                when "-h"
-                  cmd_search_help
-                  return
-                else
-                  match += val + " "
+              when "-t"
+                print_error("Deprecated option.  Use type:#{val} instead")
+                cmd_search_help
+                return
+              when "-h"
+                cmd_search_help
+                return
+              else
+                match += val + " "
               end
-            }
+            end
 
             if framework.db
               if framework.db.migrated && framework.db.modules_cached
@@ -413,18 +405,21 @@ module Msf
               framework.encoders
             ].each do |mset|
               mset.each do |m|
-                o = mset.create(m[0]) rescue nil
+                o = begin
+                      mset.create(m[0])
+                    rescue
+                      nil
+                    end
 
                 # Expected if modules are loaded without the right pre-requirements
-                next if not o
+                next unless o
 
-                if not o.search_filter(match)
+                unless o.search_filter(match)
                   tbl << [ o.fullname, o.disclosure_date.nil? ? "" : o.disclosure_date.strftime(DISCLOSURE_DATE_FORMAT), o.rank_to_s, o.name ]
                 end
               end
             end
             print_line(tbl.to_s)
-
           end
 
           # Prints table of modules matching the search_string.
@@ -446,27 +441,25 @@ module Msf
           # @param words [Array<String>] the previously completed words on the command line.  words is always
           # at least 1 when tab completion has reached this stage since the command itself has been completed
 
-          def cmd_search_tabs(str, words)
-            if words.length == 1
-              return @@search_opts.fmt.keys
-            end
+          def cmd_search_tabs(_str, words)
+            return @@search_opts.fmt.keys if words.length == 1
 
             case (words[-1])
-              when "-r"
-                return RankingName.sort.map{|r| r[1]}
-              when "-t"
-                return %w{auxiliary encoder exploit nop payload post}
+            when "-r"
+              return RankingName.sort.map { |r| r[1] }
+            when "-t"
+              return %w(auxiliary encoder exploit nop payload post)
             end
 
             []
           end
 
           def cmd_show_help
-            global_opts = %w{all encoders nops exploits payloads auxiliary plugins info options}
-            print_status("Valid parameters for the \"show\" command are: #{global_opts.join(", ")}")
+            global_opts = %w(all encoders nops exploits payloads auxiliary plugins info options)
+            print_status("Valid parameters for the \"show\" command are: #{global_opts.join(', ')}")
 
-            module_opts = %w{ missing advanced evasion targets actions }
-            print_status("Additional module-specific parameters are: #{module_opts.join(", ")}")
+            module_opts = %w(missing advanced evasion targets actions)
+            print_status("Additional module-specific parameters are: #{module_opts.join(', ')}")
           end
 
           #
@@ -474,88 +467,88 @@ module Msf
           # no type is provided.
           #
           def cmd_show(*args)
-            mod = self.active_module
+            mod = active_module
 
-            args << "all" if (args.length == 0)
+            args << "all" if args.empty?
 
-            args.each { |type|
+            args.each do |type|
               case type
-                when '-h'
-                  cmd_show_help
-                when 'all'
-                  show_encoders
-                  show_nops
-                  show_exploits
-                  show_payloads
-                  show_auxiliary
-                  show_post
-                  show_plugins
-                when 'encoders'
-                  show_encoders
-                when 'nops'
-                  show_nops
-                when 'exploits'
-                  show_exploits
-                when 'payloads'
-                  show_payloads
-                when 'auxiliary'
-                  show_auxiliary
-                when 'post'
-                  show_post
-                when 'info'
-                  cmd_info(*args[1, args.length])
-                when 'options'
-                  if (mod)
-                    show_options(mod)
-                  else
-                    show_global_options
-                  end
-                when 'missing'
-                  if (mod)
-                    show_missing(mod)
-                  else
-                    print_error("No module selected.")
-                  end
-                when 'advanced'
-                  if (mod)
-                    show_advanced_options(mod)
-                  else
-                    print_error("No module selected.")
-                  end
-                when 'evasion'
-                  if (mod)
-                    show_evasion_options(mod)
-                  else
-                    print_error("No module selected.")
-                  end
-                when 'sessions'
-                  if (active_module and active_module.respond_to?(:compatible_sessions))
-                    sessions = active_module.compatible_sessions
-                  else
-                    sessions = framework.sessions.keys.sort
-                  end
-                  print_line
-                  print(Serializer::ReadableText.dump_sessions(framework, :session_ids => sessions))
-                  print_line
-                when "plugins"
-                  show_plugins
-                when "targets"
-                  if (mod and mod.exploit?)
-                    show_targets(mod)
-                  else
-                    print_error("No exploit module selected.")
-                  end
-                when "actions"
-                  if mod && mod.kind_of?(Msf::Module::HasActions)
-                    show_actions(mod)
-                  else
-                    print_error("No module with actions selected.")
-                  end
-
+              when '-h'
+                cmd_show_help
+              when 'all'
+                show_encoders
+                show_nops
+                show_exploits
+                show_payloads
+                show_auxiliary
+                show_post
+                show_plugins
+              when 'encoders'
+                show_encoders
+              when 'nops'
+                show_nops
+              when 'exploits'
+                show_exploits
+              when 'payloads'
+                show_payloads
+              when 'auxiliary'
+                show_auxiliary
+              when 'post'
+                show_post
+              when 'info'
+                cmd_info(*args[1, args.length])
+              when 'options'
+                if mod
+                  show_options(mod)
                 else
-                  print_error("Invalid parameter \"#{type}\", use \"show -h\" for more information")
+                  show_global_options
+                end
+              when 'missing'
+                if mod
+                  show_missing(mod)
+                else
+                  print_error("No module selected.")
+                end
+              when 'advanced'
+                if mod
+                  show_advanced_options(mod)
+                else
+                  print_error("No module selected.")
+                end
+              when 'evasion'
+                if mod
+                  show_evasion_options(mod)
+                else
+                  print_error("No module selected.")
+                end
+              when 'sessions'
+                sessions = if active_module && active_module.respond_to?(:compatible_sessions)
+                             active_module.compatible_sessions
+                           else
+                             framework.sessions.keys.sort
+                           end
+                print_line
+                print(Serializer::ReadableText.dump_sessions(framework, session_ids: sessions))
+                print_line
+              when "plugins"
+                show_plugins
+              when "targets"
+                if mod && mod.exploit?
+                  show_targets(mod)
+                else
+                  print_error("No exploit module selected.")
+                end
+              when "actions"
+                if mod && mod.is_a?(Msf::Module::HasActions)
+                  show_actions(mod)
+                else
+                  print_error("No module with actions selected.")
+                end
+
+              else
+                print_error("Invalid parameter \"#{type}\", use \"show -h\" for more information")
               end
-            }
+            end
           end
 
           #
@@ -565,17 +558,17 @@ module Msf
           # @param words [Array<String>] the previously completed words on the command line.  words is always
           # at least 1 when tab completion has reached this stage since the command itself has been completed
 
-          def cmd_show_tabs(str, words)
+          def cmd_show_tabs(_str, words)
             return [] if words.length > 1
 
-            res = %w{all encoders nops exploits payloads auxiliary post plugins options}
-            if (active_module)
-              res.concat(%w{ missing advanced evasion targets actions })
-              if (active_module.respond_to? :compatible_sessions)
+            res = %w(all encoders nops exploits payloads auxiliary post plugins options)
+            if active_module
+              res.concat(%w(missing advanced evasion targets actions))
+              if active_module.respond_to? :compatible_sessions
                 res << "sessions"
               end
             end
-            return res
+            res
           end
 
           def cmd_use_help
@@ -589,7 +582,7 @@ module Msf
           # Uses a module.
           #
           def cmd_use(*args)
-            if (args.length == 0)
+            if args.empty?
               cmd_use_help
               return false
             end
@@ -611,41 +604,39 @@ module Msf
             rescue Rex::AmbiguousArgumentError => info
               print_error(info.to_s)
             rescue NameError => info
-              log_error("The supplied module name is ambiguous: #{$!}.")
+              log_error("The supplied module name is ambiguous: #{$ERROR_INFO}.")
             end
 
-            return false if (mod == nil)
+            return false if mod.nil?
 
             # Enstack the command dispatcher for this module type
             dispatcher = nil
 
             case mod.type
-              when Msf::MODULE_ENCODER
-                dispatcher = Msf::Ui::Console::CommandDispatcher::Encoder
-              when Msf::MODULE_EXPLOIT
-                dispatcher = Msf::Ui::Console::CommandDispatcher::Exploit
-              when Msf::MODULE_NOP
-                dispatcher = Msf::Ui::Console::CommandDispatcher::Nop
-              when Msf::MODULE_PAYLOAD
-                dispatcher = Msf::Ui::Console::CommandDispatcher::Payload
-              when Msf::MODULE_AUX
-                dispatcher = Msf::Ui::Console::CommandDispatcher::Auxiliary
-              when Msf::MODULE_POST
-                dispatcher = Msf::Ui::Console::CommandDispatcher::Post
-              else
-                print_error("Unsupported module type: #{mod.type}")
-                return false
+            when Msf::MODULE_ENCODER
+              dispatcher = Msf::Ui::Console::CommandDispatcher::Encoder
+            when Msf::MODULE_EXPLOIT
+              dispatcher = Msf::Ui::Console::CommandDispatcher::Exploit
+            when Msf::MODULE_NOP
+              dispatcher = Msf::Ui::Console::CommandDispatcher::Nop
+            when Msf::MODULE_PAYLOAD
+              dispatcher = Msf::Ui::Console::CommandDispatcher::Payload
+            when Msf::MODULE_AUX
+              dispatcher = Msf::Ui::Console::CommandDispatcher::Auxiliary
+            when Msf::MODULE_POST
+              dispatcher = Msf::Ui::Console::CommandDispatcher::Post
+            else
+              print_error("Unsupported module type: #{mod.type}")
+              return false
             end
 
             # If there's currently an active module, enqueque it and go back
-            if (active_module)
+            if active_module
               @previous_module = active_module
-              cmd_back()
+              cmd_back
             end
 
-            if (dispatcher != nil)
-              driver.enstack_dispatcher(dispatcher)
-            end
+            driver.enstack_dispatcher(dispatcher) unless dispatcher.nil?
 
             # Update the active module
             self.active_module = mod
@@ -667,9 +658,9 @@ module Msf
           #
           # Command to take to the previously active module
           #
-          def cmd_previous()
+          def cmd_previous
             if @previous_module
-              self.cmd_use(@previous_module.fullname)
+              cmd_use(@previous_module.fullname)
             else
               print_error("There isn't a previous module at the moment")
             end
@@ -695,13 +686,13 @@ module Msf
                 @module_name_stack.push(arg)
                 # Note new modules are appended to the array and are only module (full)names
               end
-            else #then just push the active module
+            else # then just push the active module
               if active_module
-                #print_status "Pushing the active module"
+                # print_status "Pushing the active module"
                 @module_name_stack.push(active_module.fullname)
               else
                 print_error("There isn't an active module and you didn't specify a module to push")
-                return self.cmd_pushm_help
+                cmd_pushm_help
               end
             end
           end
@@ -731,8 +722,8 @@ module Msf
           # Command to dequeque a module from the module stack
           #
           def cmd_popm(*args)
-            if (args.count > 1 or not args[0].respond_to?("to_i"))
-              return self.cmd_popm_help
+            if args.count > 1 || !args[0].respond_to?("to_i")
+              cmd_popm_help
             elsif args.count == 1
               # then pop 'n' items off the stack, but don't change the active module
               if args[0].to_i >= @module_name_stack.count
@@ -742,10 +733,10 @@ module Msf
               else
                 @module_name_stack.pop[args[0]]
               end
-            else #then just pop the array and make that the active module
+            else # then just pop the array and make that the active module
               pop = @module_name_stack.pop
               if pop
-                return self.cmd_use(pop)
+                return cmd_use(pop)
               else
                 print_error("There isn't anything to pop, the module stack is empty")
               end
@@ -788,7 +779,7 @@ module Msf
           # Reload all module paths that we are aware of
           #
           def cmd_reload_all(*args)
-            if args.length > 0
+            unless args.empty?
               cmd_reload_all_help
               return
             end
@@ -796,7 +787,7 @@ module Msf
             framework.modules.reload_modules
 
             # Check for modules that failed to load
-            if framework.modules.module_load_error_by_path.length > 0
+            unless framework.modules.module_load_error_by_path.empty?
               print_error("WARNING! The following modules could not be loaded!")
 
               framework.modules.module_load_error_by_path.each do |path, error|
@@ -804,14 +795,14 @@ module Msf
               end
             end
 
-            if framework.modules.module_load_warnings.length > 0
+            unless framework.modules.module_load_warnings.empty?
               print_warning("The following modules were loaded with warnings:")
               framework.modules.module_load_warnings.each do |path, error|
                 print_warning("\t#{path}: #{error}")
               end
             end
 
-            self.driver.run_single("banner")
+            driver.run_single("banner")
           end
 
           def cmd_back_help
@@ -825,12 +816,12 @@ module Msf
           # Pop the current dispatcher stack context, assuming it isn't pointed at
           # the core or database backend stack context.
           #
-          def cmd_back(*args)
-            if (driver.dispatcher_stack.size > 1 and
-              driver.current_dispatcher.name != 'Core' and
-              driver.current_dispatcher.name != 'Database Backend')
+          def cmd_back(*_args)
+            if driver.dispatcher_stack.size > 1 &&
+               (driver.current_dispatcher.name != 'Core') &&
+               (driver.current_dispatcher.name != 'Database Backend')
               # Reset the active module if we have one
-              if (active_module)
+              if active_module
 
                 # Do NOT reset the UI anymore
                 # active_module.reset_ui
@@ -855,7 +846,7 @@ module Msf
           #
           # Tab complete module names
           #
-          def tab_complete_module(str, words)
+          def tab_complete_module(_str, _words)
             res = []
             framework.modules.module_types.each do |mtyp|
               mset = framework.modules.module_names(mtyp)
@@ -864,7 +855,7 @@ module Msf
               end
             end
 
-            return res.sort
+            res.sort
           end
 
           #
@@ -874,7 +865,7 @@ module Msf
           def show_encoders(regex = nil, minrank = nil, opts = nil) # :nodoc:
             # If an active module has been selected and it's an exploit, get the
             # list of compatible encoders and display them
-            if (active_module and active_module.exploit? == true)
+            if active_module && (active_module.exploit? == true)
               show_module_set("Compatible Encoders", active_module.compatible_encoders, regex, minrank, opts)
             else
               show_module_set("Encoders", framework.encoders, regex, minrank, opts)
@@ -892,7 +883,7 @@ module Msf
           def show_payloads(regex = nil, minrank = nil, opts = nil) # :nodoc:
             # If an active module has been selected and it's an exploit, get the
             # list of compatible payloads and display them
-            if (active_module and active_module.exploit? == true)
+            if active_module && (active_module.exploit? == true)
               show_module_set("Compatible Payloads", active_module.compatible_payloads, regex, minrank, opts)
             else
               show_module_set("Payloads", framework.payloads, regex, minrank, opts)
@@ -909,61 +900,61 @@ module Msf
 
           def show_options(mod) # :nodoc:
             mod_opt = Serializer::ReadableText.dump_options(mod, '   ')
-            print("\nModule options (#{mod.fullname}):\n\n#{mod_opt}\n") if (mod_opt and mod_opt.length > 0)
+            print("\nModule options (#{mod.fullname}):\n\n#{mod_opt}\n") if mod_opt && !mod_opt.empty?
 
             # If it's an exploit and a payload is defined, create it and
             # display the payload's options
-            if (mod.exploit? and mod.datastore['PAYLOAD'])
+            if mod.exploit? && mod.datastore['PAYLOAD']
               p = framework.payloads.create(mod.datastore['PAYLOAD'])
 
-              if (!p)
+              unless p
                 print_error("Invalid payload defined: #{mod.datastore['PAYLOAD']}\n")
                 return
               end
 
               p.share_datastore(mod.datastore)
 
-              if (p)
+              if p
                 p_opt = Serializer::ReadableText.dump_options(p, '   ')
-                print("\nPayload options (#{mod.datastore['PAYLOAD']}):\n\n#{p_opt}\n") if (p_opt and p_opt.length > 0)
+                print("\nPayload options (#{mod.datastore['PAYLOAD']}):\n\n#{p_opt}\n") if p_opt && !p_opt.empty?
               end
             end
 
             # Print the selected target
-            if (mod.exploit? and mod.target)
+            if mod.exploit? && mod.target
               mod_targ = Serializer::ReadableText.dump_exploit_target(mod, '   ')
-              print("\nExploit target:\n\n#{mod_targ}\n") if (mod_targ and mod_targ.length > 0)
+              print("\nExploit target:\n\n#{mod_targ}\n") if mod_targ && !mod_targ.empty?
             end
 
             # Print the selected action
-            if mod.kind_of?(Msf::Module::HasActions) && mod.action
+            if mod.is_a?(Msf::Module::HasActions) && mod.action
               mod_action = Serializer::ReadableText.dump_module_action(mod, '   ')
-              print("\n#{mod.type.capitalize} action:\n\n#{mod_action}\n") if (mod_action and mod_action.length > 0)
+              print("\n#{mod.type.capitalize} action:\n\n#{mod_action}\n") if mod_action && !mod_action.empty?
             end
 
             # Uncomment this line if u want target like msf2 format
-            #print("\nTarget: #{mod.target.name}\n\n")
+            # print("\nTarget: #{mod.target.name}\n\n")
           end
 
           def show_missing(mod) # :nodoc:
             mod_opt = Serializer::ReadableText.dump_options(mod, '   ', true)
-            print("\nModule options (#{mod.fullname}):\n\n#{mod_opt}\n") if (mod_opt and mod_opt.length > 0)
+            print("\nModule options (#{mod.fullname}):\n\n#{mod_opt}\n") if mod_opt && !mod_opt.empty?
 
             # If it's an exploit and a payload is defined, create it and
             # display the payload's options
-            if (mod.exploit? and mod.datastore['PAYLOAD'])
+            if mod.exploit? && mod.datastore['PAYLOAD']
               p = framework.payloads.create(mod.datastore['PAYLOAD'])
 
-              if (!p)
+              unless p
                 print_error("Invalid payload defined: #{mod.datastore['PAYLOAD']}\n")
                 return
               end
 
               p.share_datastore(mod.datastore)
 
-              if (p)
+              if p
                 p_opt = Serializer::ReadableText.dump_options(p, '   ', true)
-                print("\nPayload options (#{mod.datastore['PAYLOAD']}):\n\n#{p_opt}\n") if (p_opt and p_opt.length > 0)
+                print("\nPayload options (#{mod.datastore['PAYLOAD']}):\n\n#{p_opt}\n") if p_opt && !p_opt.empty?
               end
             end
           end
@@ -983,9 +974,9 @@ module Msf
               [ 'MinimumRank', framework.datastore['MinimumRank'] || "0", 'The minimum rank of exploits that will run without explicit confirmation' ],
               [ 'SessionLogging', framework.datastore['SessionLogging'] || "false", 'Log all input and output for sessions' ],
               [ 'TimestampOutput', framework.datastore['TimestampOutput'] || "false", 'Prefix all console output with a timestamp' ],
-              [ 'Prompt', framework.datastore['Prompt'] || Msf::Ui::Console::Driver::DefaultPrompt.to_s.gsub(/%.../,"") , "The prompt string" ],
-              [ 'PromptChar', framework.datastore['PromptChar'] || Msf::Ui::Console::Driver::DefaultPromptChar.to_s.gsub(/%.../,""), "The prompt character" ],
-              [ 'PromptTimeFormat', framework.datastore['PromptTimeFormat'] || Time::DATE_FORMATS[:db].to_s, 'Format for timestamp escapes in prompts' ],
+              [ 'Prompt', framework.datastore['Prompt'] || Msf::Ui::Console::Driver::DefaultPrompt.to_s.gsub(/%.../, ""), "The prompt string" ],
+              [ 'PromptChar', framework.datastore['PromptChar'] || Msf::Ui::Console::Driver::DefaultPromptChar.to_s.gsub(/%.../, ""), "The prompt character" ],
+              [ 'PromptTimeFormat', framework.datastore['PromptTimeFormat'] || Time::DATE_FORMATS[:db].to_s, 'Format for timestamp escapes in prompts' ]
             ].each { |r| tbl << r }
 
             print(tbl.to_s)
@@ -993,56 +984,56 @@ module Msf
 
           def show_targets(mod) # :nodoc:
             mod_targs = Serializer::ReadableText.dump_exploit_targets(mod, '   ')
-            print("\nExploit targets:\n\n#{mod_targs}\n") if (mod_targs and mod_targs.length > 0)
+            print("\nExploit targets:\n\n#{mod_targs}\n") if mod_targs && !mod_targs.empty?
           end
 
           def show_actions(mod) # :nodoc:
             mod_actions = Serializer::ReadableText.dump_module_actions(mod, '   ')
-            print("\n#{mod.type.capitalize} actions:\n\n#{mod_actions}\n") if (mod_actions and mod_actions.length > 0)
+            print("\n#{mod.type.capitalize} actions:\n\n#{mod_actions}\n") if mod_actions && !mod_actions.empty?
           end
 
           def show_advanced_options(mod) # :nodoc:
             mod_opt = Serializer::ReadableText.dump_advanced_options(mod, '   ')
-            print("\nModule advanced options (#{mod.fullname}):\n\n#{mod_opt}\n") if (mod_opt and mod_opt.length > 0)
+            print("\nModule advanced options (#{mod.fullname}):\n\n#{mod_opt}\n") if mod_opt && !mod_opt.empty?
 
             # If it's an exploit and a payload is defined, create it and
             # display the payload's options
-            if (mod.exploit? and mod.datastore['PAYLOAD'])
+            if mod.exploit? && mod.datastore['PAYLOAD']
               p = framework.payloads.create(mod.datastore['PAYLOAD'])
 
-              if (!p)
+              unless p
                 print_error("Invalid payload defined: #{mod.datastore['PAYLOAD']}\n")
                 return
               end
 
               p.share_datastore(mod.datastore)
 
-              if (p)
+              if p
                 p_opt = Serializer::ReadableText.dump_advanced_options(p, '   ')
-                print("\nPayload advanced options (#{mod.datastore['PAYLOAD']}):\n\n#{p_opt}\n") if (p_opt and p_opt.length > 0)
+                print("\nPayload advanced options (#{mod.datastore['PAYLOAD']}):\n\n#{p_opt}\n") if p_opt && !p_opt.empty?
               end
             end
           end
 
           def show_evasion_options(mod) # :nodoc:
             mod_opt = Serializer::ReadableText.dump_evasion_options(mod, '   ')
-            print("\nModule evasion options:\n\n#{mod_opt}\n") if (mod_opt and mod_opt.length > 0)
+            print("\nModule evasion options:\n\n#{mod_opt}\n") if mod_opt && !mod_opt.empty?
 
             # If it's an exploit and a payload is defined, create it and
             # display the payload's options
-            if (mod.exploit? and mod.datastore['PAYLOAD'])
+            if mod.exploit? && mod.datastore['PAYLOAD']
               p = framework.payloads.create(mod.datastore['PAYLOAD'])
 
-              if (!p)
+              unless p
                 print_error("Invalid payload defined: #{mod.datastore['PAYLOAD']}\n")
                 return
               end
 
               p.share_datastore(mod.datastore)
 
-              if (p)
+              if p
                 p_opt = Serializer::ReadableText.dump_evasion_options(p, '   ')
-                print("\nPayload evasion options (#{mod.datastore['PAYLOAD']}):\n\n#{p_opt}\n") if (p_opt and p_opt.length > 0)
+                print("\nPayload evasion options (#{mod.datastore['PAYLOAD']}):\n\n#{p_opt}\n") if p_opt && !p_opt.empty?
               end
             end
           end
@@ -1056,50 +1047,47 @@ module Msf
               'Columns' => [ 'Name', 'Description' ]
             )
 
-            framework.plugins.each { |plugin|
+            framework.plugins.each do |plugin|
               tbl << [ plugin.name, plugin.desc ]
-            }
+            end
 
             print(tbl.to_s)
           end
 
           def show_module_set(type, module_set, regex = nil, minrank = nil, opts = nil) # :nodoc:
             tbl = generate_module_table(type)
-            module_set.sort.each { |refname, mod|
+            module_set.sort.each do |refname, mod|
               o = nil
 
               begin
                 o = mod.new
               rescue ::Exception
               end
-              next if not o
+              next unless o
 
               # handle a search string, search deep
-              if (
-              not regex or
-                o.name.match(regex) or
-                o.description.match(regex) or
-                o.refname.match(regex) or
-                o.references.map{|x| [x.ctx_id + '-' + x.ctx_val, x.to_s]}.join(' ').match(regex) or
-                o.author.to_s.match(regex)
-              )
-                if (not minrank or minrank <= o.rank)
-                  show = true
-                  if opts
-                    mod_opt_keys = o.options.keys.map { |x| x.downcase }
+              next unless !regex ||
+                          o.name.match(regex) ||
+                          o.description.match(regex) ||
+                          o.refname.match(regex) ||
+                          o.references.map { |x| [x.ctx_id + '-' + x.ctx_val, x.to_s] }.join(' ').match(regex) ||
+                          o.author.to_s.match(regex)
 
-                    opts.each do |opt,val|
-                      if !mod_opt_keys.include?(opt.downcase) || (val != nil && o.datastore[opt] != val)
-                        show = false
-                      end
-                    end
-                  end
-                  if (opts == nil or show == true)
-                    tbl << [ refname, o.disclosure_date.nil? ? "" : o.disclosure_date.strftime(DISCLOSURE_DATE_FORMAT), o.rank_to_s, o.name ]
+              next unless !minrank || (minrank <= o.rank)
+              show = true
+              if opts
+                mod_opt_keys = o.options.keys.map(&:downcase)
+
+                opts.each do |opt, val|
+                  if !mod_opt_keys.include?(opt.downcase) || (!val.nil? && o.datastore[opt] != val)
+                    show = false
                   end
                 end
               end
-            }
+              if opts.nil? || (show == true)
+                tbl << [ refname, o.disclosure_date.nil? ? "" : o.disclosure_date.strftime(DISCLOSURE_DATE_FORMAT), o.rank_to_s, o.name ]
+              end
+            end
 
             print(tbl.to_s)
           end
@@ -1113,7 +1101,6 @@ module Msf
               'Columns' => [ 'Name', 'Disclosure Date', 'Rank', 'Description' ]
             )
           end
-
         end
       end
     end

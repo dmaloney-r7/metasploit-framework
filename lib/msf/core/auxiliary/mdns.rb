@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 require 'net/dns'
 
@@ -95,7 +96,7 @@ module Msf
               data.inspect
             end
           end
-          "#{name}: (#{summarized_group.join(", ")})"
+          "#{name}: (#{summarized_group.join(', ')})"
         end
         summarized_answers.join(', ')
       end

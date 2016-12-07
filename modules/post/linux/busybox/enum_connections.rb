@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Post
-
   include Msf::Post::File
   include Msf::Post::Linux::BusyBox
 
@@ -17,15 +17,15 @@ class MetasploitModule < Msf::Post
     '/proc/net/udp',
     '/proc/net/arp',
     '/proc/fcache/*'
-  ]
+  ].freeze
 
   def initialize
     super(
       'Name'         => 'BusyBox Enumerate Connections',
-      'Description'  => %q{
+      'Description'  => %q(
         This module will be applied on a session connected to a BusyBox shell. It will
         enumerate the connections established with the router or device executing BusyBox.
-      },
+      ),
       'Author'       => 'Javier Vicente Vallejo',
       'License'      => MSF_LICENSE,
       'Platform'     => ['linux'],
@@ -37,11 +37,10 @@ class MetasploitModule < Msf::Post
     found = false
     print_status('Searching for files that store information about network connections')
     FILES.each do |f|
-      if busy_box_file_exist?(f)
-        found = true
-        print_good("Connections file found: #{f}.")
-        read_connection_file(f)
-      end
+      next unless busy_box_file_exist?(f)
+      found = true
+      print_good("Connections file found: #{f}.")
+      read_connection_file(f)
     end
 
     print_error('Any file with connections found') unless found
@@ -49,7 +48,7 @@ class MetasploitModule < Msf::Post
 
   def read_connection_file(file)
     begin
-      str_file=read_file(file)
+      str_file = read_file(file)
       vprint_line(str_file)
       p = store_loot('busybox.enum.connections', 'text/plain', session, str_file, file, 'BusyBox Device Network Established Connections')
       print_good("Connections saved to #{p}")
@@ -57,5 +56,4 @@ class MetasploitModule < Msf::Post
       print_error("Nothing read from file #{file}, file may be empty")
     end
   end
-
 end

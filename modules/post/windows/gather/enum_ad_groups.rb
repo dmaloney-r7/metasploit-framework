@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -31,9 +32,9 @@ class MetasploitModule < Msf::Post
     ))
 
     register_options([
-      OptString.new('ADDITIONAL_FIELDS', [false, 'Additional fields to retrieve, comma separated', nil]),
-      OptString.new('FILTER', [false, 'Customised LDAP filter', nil])
-    ], self.class)
+                       OptString.new('ADDITIONAL_FIELDS', [false, 'Additional fields to retrieve, comma separated', nil]),
+                       OptString.new('FILTER', [false, 'Customised LDAP filter', nil])
+                     ], self.class)
   end
 
   def run
@@ -83,11 +84,11 @@ class MetasploitModule < Msf::Post
       row = []
 
       result.each do |field|
-        if field.nil?
-          row << ""
-        else
-          row << field[:value]
-        end
+        row << if field.nil?
+                 ""
+               else
+                 field[:value]
+               end
       end
 
       results_table << row

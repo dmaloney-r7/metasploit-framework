@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'metasploit/framework/login_scanner/base'
 require 'metasploit/framework/login_scanner/rex_socket'
 require 'metasploit/framework/tcp/client'
@@ -5,7 +6,6 @@ require 'metasploit/framework/tcp/client'
 module Metasploit
   module Framework
     module LoginScanner
-
       # This is the LoginScanner class for dealing with POP3.
       # It is responsible for taking a single target, and a list of credentials
       # and attempting them. It then saves the results.
@@ -15,9 +15,9 @@ module Metasploit
         include Metasploit::Framework::Tcp::Client
 
         DEFAULT_PORT         = 110
-        LIKELY_PORTS         = [ 110, 995 ]
-        LIKELY_SERVICE_NAMES = [ 'pop3', 'pop3s' ]
-        PRIVATE_TYPES        = [ :password ]
+        LIKELY_PORTS         = [ 110, 995 ].freeze
+        LIKELY_SERVICE_NAMES = [ 'pop3', 'pop3s' ].freeze
+        PRIVATE_TYPES        = [ :password ].freeze
         REALM_KEY            = nil
 
         # This method attempts a single login with a single credential against the target
@@ -33,11 +33,11 @@ module Metasploit
             service_name: 'pop3'
           }
 
-          disconnect if self.sock
+          disconnect if sock
 
           begin
             connect
-            select([sock],nil,nil,0.4)
+            select([sock], nil, nil, 0.4)
 
             # Check to see if we recieved an OK?
             result_options[:proof] = sock.get_once
@@ -68,7 +68,7 @@ module Metasploit
             )
           end
 
-          disconnect if self.sock
+          disconnect if sock
 
           Result.new(result_options)
         end
@@ -82,10 +82,7 @@ module Metasploit
           self.max_send_size      ||= 0
           self.send_delay         ||= 0
         end
-
       end
-
     end
   end
 end
-

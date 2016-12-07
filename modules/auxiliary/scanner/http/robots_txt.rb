@@ -1,14 +1,12 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 
-
 class MetasploitModule < Msf::Auxiliary
-
   # Exploit mixins should be called first
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::WmapScanServer
@@ -20,41 +18,37 @@ class MetasploitModule < Msf::Auxiliary
     super(
       'Name'        => 'HTTP Robots.txt Content Scanner',
       'Description' => 'Detect robots.txt files and analize its content',
-      'Author'       => ['et'],
-      'License'     => MSF_LICENSE
+      'Author' => ['et'],
+      'License' => MSF_LICENSE
     )
 
     register_options(
       [
-        OptString.new('PATH', [ true,  "The test path to find robots.txt file", '/']),
+        OptString.new('PATH', [ true, "The test path to find robots.txt file", '/'])
 
-      ], self.class)
-
+      ], self.class
+    )
   end
 
   def run_host(target_host)
-
     tpath = normalize_uri(datastore['PATH'])
-    if tpath[-1,1] != '/'
-      tpath += '/'
-    end
+    tpath += '/' if tpath[-1, 1] != '/'
 
     begin
-      turl = tpath+'robots.txt'
+      turl = tpath + 'robots.txt'
 
       res = send_request_raw({
-        'uri'     => turl,
-        'method'  => 'GET',
-        'version' => '1.0',
-      }, 10)
+                               'uri' => turl,
+                               'method'  => 'GET',
+                               'version' => '1.0'
+                             }, 10)
 
-
-      if not res
+      unless res
         print_error("[#{target_host}] #{tpath}robots.txt - No response")
         return
       end
 
-      if not res.body.include?("llow:")
+      unless res.body.include?("llow:")
         vprint_status("[#{target_host}] #{tpath}robots.txt - Doesn't contain \"llow:\"")
         return
       end
@@ -65,18 +59,18 @@ class MetasploitModule < Msf::Auxiliary
       # short url regex
       aregex = /llow:[ ]{0,2}(.*?)$/i
 
-      result = res.body.scan(aregex).flatten.map{ |s| s.strip }.uniq
+      result = res.body.scan(aregex).flatten.map(&:strip).uniq
 
       vprint_status("[#{target_host}] #{tpath}robots.txt - #{result.join(', ')}")
       result.each do |u|
         report_note(
-          :host	=> target_host,
-          :port	=> rport,
-          :proto => 'tcp',
-          :sname	=> (ssl ? 'https' : 'http'),
-          :type	=> 'ROBOTS_TXT',
-          :data	=> u,
-          :update => :unique_data
+          host: target_host,
+          port: rport,
+          proto: 'tcp',
+          sname: (ssl ? 'https' : 'http'),
+          type: 'ROBOTS_TXT',
+          data: u,
+          update: :unique_data
         )
       end
 

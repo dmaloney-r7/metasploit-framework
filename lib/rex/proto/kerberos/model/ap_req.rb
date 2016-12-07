@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 module Rex
@@ -28,7 +29,7 @@ module Rex
           # Rex::Proto::Kerberos::Model::ApReq decoding isn't supported
           #
           # @raise [NotImplementedError]
-          def decode(input)
+          def decode(_input)
             raise ::NotImplementedError, 'AP-REQ decoding not supported'
           end
 

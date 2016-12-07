@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -9,35 +10,33 @@ require 'net/https'
 require 'uri'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
 
   def initialize(info = {})
     super(update_info(info,
-      'Name' => 'Shodan Search',
-      'Description' => %q{
-        This module uses the Shodan API to search Shodan. Accounts are free
-        and an API key is required to used this module. Output from the module
-        is displayed to the screen and can be saved to a file or the MSF database.
-        NOTE: SHODAN filters (i.e. port, hostname, os, geo, city) can be used in
-        queries, but there are limitations when used with a free API key. Please
-        see the Shodan site for more information.
-        Shodan website: https://www.shodan.io/
-        API: https://developer.shodan.io/api
-      },
-      'Author' =>
-        [
-          'John H Sawyer <john[at]sploitlab.com>', # InGuardians, Inc.
-          'sinn3r'  # Metasploit-fu plus other features
-        ],
-      'License' => MSF_LICENSE
-      )
+                      'Name' => 'Shodan Search',
+                      'Description' => %q{
+                        This module uses the Shodan API to search Shodan. Accounts are free
+                        and an API key is required to used this module. Output from the module
+                        is displayed to the screen and can be saved to a file or the MSF database.
+                        NOTE: SHODAN filters (i.e. port, hostname, os, geo, city) can be used in
+                        queries, but there are limitations when used with a free API key. Please
+                        see the Shodan site for more information.
+                        Shodan website: https://www.shodan.io/
+                        API: https://developer.shodan.io/api
+                      },
+                      'Author' =>
+                        [
+                          'John H Sawyer <john[at]sploitlab.com>', # InGuardians, Inc.
+                          'sinn3r' # Metasploit-fu plus other features
+                        ],
+                      'License' => MSF_LICENSE)
     )
 
     deregister_options('RHOST', 'DOMAIN', 'DigestAuthIIS', 'NTLM::SendLM',
-      'NTLM::SendNTLM', 'VHOST', 'RPORT', 'NTLM::SendSPN', 'NTLM::UseLMKey',
-      'NTLM::UseNTLM2_session', 'NTLM::UseNTLMv2')
+                       'NTLM::SendNTLM', 'VHOST', 'RPORT', 'NTLM::SendSPN', 'NTLM::UseLMKey',
+                       'NTLM::UseNTLM2_session', 'NTLM::UseNTLMv2')
 
     register_options(
       [
@@ -48,7 +47,8 @@ class MetasploitModule < Msf::Auxiliary
         OptInt.new('MAXPAGE', [true, 'Max amount of pages to collect', 1]),
         OptRegexp.new('REGEX', [true, 'Regex search for a specific IP/City/Country/Hostname', '.*'])
 
-      ], self.class)
+      ], self.class
+    )
   end
 
   # create our Shodan query function that performs the actual web request
@@ -61,7 +61,7 @@ class MetasploitModule < Msf::Auxiliary
     request = Net::HTTP::Get.new(uri.request_uri)
     res = http.request(request)
 
-    if res and res.body =~ /<title>401 Unauthorized<\/title>/
+    if res && res.body =~ /<title>401 Unauthorized<\/title>/
       fail_with(Failure::BadConfig, '401 Unauthorized. Your SHODAN_APIKEY is invalid')
     end
 
@@ -113,7 +113,7 @@ class MetasploitModule < Msf::Auxiliary
 
     if results[page]['total'].nil? || results[page]['total'] == 0
       msg = "No results."
-      if results[page]['error'].to_s.length > 0
+      unless results[page]['error'].to_s.empty?
         msg << " Error: #{results[page]['error']}"
       end
       print_error(msg)
@@ -129,7 +129,7 @@ class MetasploitModule < Msf::Auxiliary
     end
 
     # start printing out our query statistics
-    print_status("Total: #{results[page]['total']} on #{tpages} " +
+    print_status("Total: #{results[page]['total']} on #{tpages} " \
       "pages. Showing: #{maxpage} page(s)")
 
     # If search results greater than 100, loop & get all results
@@ -163,25 +163,23 @@ class MetasploitModule < Msf::Auxiliary
         hostname = host['hostnames'][0]
         data = host['data']
 
-        report_host(:host     => ip,
-                    :name     => hostname,
-                    :comments => 'Added from Shodan',
-                    :info     => host['info']
-                    ) if datastore['DATABASE']
+        report_host(host: ip,
+                    name: hostname,
+                    comments: 'Added from Shodan',
+                    info: host['info']) if datastore['DATABASE']
 
-        report_service(:host => ip,
-                       :port => port,
-                       :info => 'Added from Shodan'
-                       ) if datastore['DATABASE']
+        report_service(host: ip,
+                       port: port,
+                       info: 'Added from Shodan') if datastore['DATABASE']
 
         if ip =~ regex ||
            city =~ regex ||
            country =~ regex ||
            hostname =~ regex ||
            data =~ regex
-           # Unfortunately we cannot display the banner properly,
-           # because it messes with our output format
-           tbl << ["#{ip}:#{port}", city, country, hostname]
+          # Unfortunately we cannot display the banner properly,
+          # because it messes with our output format
+          tbl << ["#{ip}:#{port}", city, country, hostname]
         end
       end
       p += 1
@@ -189,7 +187,7 @@ class MetasploitModule < Msf::Auxiliary
 
     # Show data and maybe save it if needed
     print_line
-    print_line("#{tbl}")
+    print_line(tbl.to_s)
     save_output(tbl) if datastore['OUTFILE']
   end
 end

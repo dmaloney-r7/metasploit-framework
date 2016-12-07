@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 module Rex
@@ -104,7 +105,7 @@ module Rex
           # @raise [NotImplementedError] if there are addresses to encode
           def encode_addrs
             encoded = ''
-            if addrs.length > 0
+            unless addrs.empty?
               raise ::NotImplementedError, 'CredentialCache: Credential addresses encoding not supported'
             end
             encoded << [addrs.length].pack('N')
@@ -116,7 +117,7 @@ module Rex
           # @return [String]
           def encode_auth_data
             encoded = ''
-            if auth_data.length > 0
+            unless auth_data.empty?
               raise ::RuntimeError, 'CredentialCache: Credential auth_data encoding not supported'
             end
             encoded << [auth_data.length].pack('N')

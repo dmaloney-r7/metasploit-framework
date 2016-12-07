@@ -1,14 +1,12 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 
-
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::UDPScanner
 
@@ -21,9 +19,10 @@ class MetasploitModule < Msf::Auxiliary
     )
 
     register_options(
-    [
-      Opt::RPORT(137)
-    ], self.class)
+      [
+        Opt::RPORT(137)
+      ], self.class
+    )
   end
 
   def scanner_prescan(batch)
@@ -35,13 +34,12 @@ class MetasploitModule < Msf::Auxiliary
     scanner_send(create_netbios_status(ip), ip, datastore['RPORT'])
   end
 
-  def scanner_postscan(batch)
-
+  def scanner_postscan(_batch)
     cnt = 0
 
     # Perform a second pass based on responsive hosts
     @results.keys.each do |ip|
-      next if not @results[ip][:name]
+      next unless @results[ip][:name]
       scanner_send(create_netbios_lookup(@results[ip][:name]), ip, datastore['RPORT'])
       cnt += 1
     end
@@ -50,33 +48,30 @@ class MetasploitModule < Msf::Auxiliary
     scanner_recv(10) if cnt > 0
 
     @results.keys.each do |ip|
-
       host = @results[ip]
       user = ""
       os   = "Windows"
 
-      if (host[:user] and host[:mac] != "00:00:00:00:00:00")
+      if host[:user] && (host[:mac] != "00:00:00:00:00:00")
         user = " User:#{host[:user]}"
       end
 
-      if (host[:mac] == "00:00:00:00:00:00")
-        os = "Unix"
-      end
+      os = "Unix" if host[:mac] == "00:00:00:00:00:00"
 
       names = ""
-      if (host[:names])
-        names = " Names:(" + host[:names].map{|n| n[0]}.uniq.join(", ") + ")"
+      if host[:names]
+        names = " Names:(" + host[:names].map { |n| n[0] }.uniq.join(", ") + ")"
       end
 
       addrs = ""
-      if (host[:addrs])
-        addrs = "Addresses:(" + host[:addrs].map{|n| n[0]}.uniq.join(", ") + ")"
+      if host[:addrs]
+        addrs = "Addresses:(" + host[:addrs].map { |n| n[0] }.uniq.join(", ") + ")"
       end
 
-      if (host[:mac] != "00:00:00:00:00:00")
-        report_host(:host => ip, :mac => host[:mac])
+      if host[:mac] != "00:00:00:00:00:00"
+        report_host(host: ip, mac: host[:mac])
       else
-        report_host(:host => ip)
+        report_host(host: ip)
       end
 
       extra = ""
@@ -101,29 +96,29 @@ class MetasploitModule < Msf::Auxiliary
         virtual = 'Virtual Computer Inc'
       end
 
-      if (virtual)
+      if virtual
         extra = "Virtual Machine:#{virtual}"
         report_note(
-          :host  => ip,
-          :type  => 'host.virtual_machine',
-          :data  => {:vendor => virtual, :method => 'netbios'}
+          host: ip,
+          type: 'host.virtual_machine',
+          data: { vendor: virtual, method: 'netbios' }
         )
       end
 
-      if (host[:addrs])
+      if host[:addrs]
         aliases = []
-        host[:addrs].map{|n| n[0]}.uniq.each do |addr|
+        host[:addrs].map { |n| n[0] }.uniq.each do |addr|
           next if addr == ip
           aliases << addr
         end
 
-        if not aliases.empty?
+        unless aliases.empty?
           report_note(
-            :host  => ip,
-            :proto => 'udp',
-            :port  => 137,
-            :type  => 'netbios.addresses',
-            :data  => {:addresses => aliases}
+            host: ip,
+            proto: 'udp',
+            port: 137,
+            type: 'netbios.addresses',
+            data: { addresses: aliases }
           )
         end
       end
@@ -132,19 +127,17 @@ class MetasploitModule < Msf::Auxiliary
     end
   end
 
-
-  def scanner_process(data, shost, sport)
-
-    head = data.slice!(0,12)
+  def scanner_process(data, shost, _sport)
+    head = data.slice!(0, 12)
 
     xid, flags, quests, answers, auths, adds = head.unpack('n6')
 
     return if quests != 0
     return if answers == 0
 
-    qname = data.slice!(0,34)
-    rtype,rclass,rttl,rlen = data.slice!(0,10).unpack('nnNn')
-    buff = data.slice!(0,rlen)
+    qname = data.slice!(0, 34)
+    rtype, rclass, rttl, rlen = data.slice!(0, 10).unpack('nnNn')
+    buff = data.slice!(0, rlen)
 
     names = []
 
@@ -155,21 +148,21 @@ class MetasploitModule < Msf::Auxiliary
 
     case rtype
     when 0x21
-      rcnt = buff.slice!(0,1).unpack("C")[0]
+      rcnt = buff.slice!(0, 1).unpack("C")[0]
       1.upto(rcnt) do
-        tname = buff.slice!(0,15).gsub(/\x00.*/, '').strip
-        ttype = buff.slice!(0,1).unpack("C")[0]
-        tflag = buff.slice!(0,2).unpack('n')[0]
+        tname = buff.slice!(0, 15).gsub(/\x00.*/, '').strip
+        ttype = buff.slice!(0, 1).unpack("C")[0]
+        tflag = buff.slice!(0, 2).unpack('n')[0]
         names << [ tname, ttype, tflag ]
         hname = tname if ttype == 0x20
         uname = tname if ttype == 0x03
       end
-      maddr = buff.slice!(0,6).unpack("C*").map{|c| "%.2x" % c }.join(":")
+      maddr = buff.slice!(0, 6).unpack("C*").map { |c| "%.2x" % c }.join(":")
 
       @results[shost][:names] = names
       @results[shost][:mac]   = maddr
 
-      if (!hname and @results[shost][:names].length > 0)
+      if !hname && !@results[shost][:names].empty?
         @results[shost][:name] = @results[shost][:names][0][0]
       end
 
@@ -180,58 +173,58 @@ class MetasploitModule < Msf::Auxiliary
       names.each do |name|
         inf << name[0]
         inf << ":<%.2x>" % name[1]
-        if (name[2] & 0x8000 == 0)
-          inf << ":U :"
-        else
-          inf << ":G :"
-        end
+        inf << if name[2] & 0x8000 == 0
+                 ":U :"
+               else
+                 ":G :"
+               end
       end
       inf << maddr
 
       report_service(
-        :host  => shost,
-        :mac   => (maddr and maddr != '00:00:00:00:00:00') ? maddr : nil,
-        :host_name => (hname) ? hname.downcase : nil,
-        :port  => datastore['RPORT'],
-        :proto => 'udp',
-        :name  => 'netbios',
-        :info  => inf
+        host: shost,
+        mac: maddr && (maddr != '00:00:00:00:00:00') ? maddr : nil,
+        host_name: hname ? hname.downcase : nil,
+        port: datastore['RPORT'],
+        proto: 'udp',
+        name: 'netbios',
+        info: inf
       )
 
     when 0x20
       1.upto(rlen / 6.0) do
-        tflag = buff.slice!(0,2).unpack('n')[0]
-        taddr = buff.slice!(0,4).unpack("C*").join(".")
+        tflag = buff.slice!(0, 2).unpack('n')[0]
+        taddr = buff.slice!(0, 4).unpack("C*").join(".")
         names << [ taddr, tflag ]
       end
       @results[shost][:addrs] = names
     end
   end
 
-  def create_netbios_status(ip)
+  def create_netbios_status(_ip)
     data =
-    [rand(0xffff)].pack('n')+
-    "\x00\x00\x00\x01\x00\x00\x00\x00"+
-    "\x00\x00\x20\x43\x4b\x41\x41\x41"+
-    "\x41\x41\x41\x41\x41\x41\x41\x41"+
-    "\x41\x41\x41\x41\x41\x41\x41\x41"+
-    "\x41\x41\x41\x41\x41\x41\x41\x41"+
-    "\x41\x41\x41\x00\x00\x21\x00\x01"
+      [rand(0xffff)].pack('n') +
+      "\x00\x00\x00\x01\x00\x00\x00\x00"\
+      "\x00\x00\x20\x43\x4b\x41\x41\x41"\
+      "\x41\x41\x41\x41\x41\x41\x41\x41"\
+      "\x41\x41\x41\x41\x41\x41\x41\x41"\
+      "\x41\x41\x41\x41\x41\x41\x41\x41"\
+      "\x41\x41\x41\x00\x00\x21\x00\x01"
 
-    return data
+    data
   end
 
   def create_netbios_lookup(name)
     name = [name].pack("A15") + "\x00"
 
     data =
-    [rand(0xffff)].pack('n') +
-    "\x01\x00\x00\x01\x00\x00\x00\x00\x00\x00" +
-    "\x20" +
-    Rex::Proto::SMB::Utils.nbname_encode(name) +
-    "\x00" +
-    "\x00\x20\x00\x01"
+      [rand(0xffff)].pack('n') +
+      "\x01\x00\x00\x01\x00\x00\x00\x00\x00\x00" \
+      "\x20" +
+      Rex::Proto::SMB::Utils.nbname_encode(name) +
+      "\x00" \
+      "\x00\x20\x00\x01"
 
-    return data
+    data
   end
 end

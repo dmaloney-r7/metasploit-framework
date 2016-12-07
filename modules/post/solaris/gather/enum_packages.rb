@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,21 +8,17 @@ require 'msf/core'
 require 'rex'
 
 class MetasploitModule < Msf::Post
-
   include Msf::Post::File
   include Msf::Post::Solaris::System
 
-
-  def initialize(info={})
-    super( update_info( info,
-        'Name'          => 'Solaris Gather Installed Packages',
-        'Description'   => %q{ Post Module to enumerate installed packages on a Solaris System},
-        'License'       => MSF_LICENSE,
-        'Author'        => [ 'Carlos Perez <carlos_perez[at]darkoperator.com>'],
-        'Platform'      => [ 'solaris' ],
-        'SessionTypes'  => [ 'shell' ]
-      ))
-
+  def initialize(info = {})
+    super(update_info(info,
+                      'Name'          => 'Solaris Gather Installed Packages',
+                      'Description'   => %q( Post Module to enumerate installed packages on a Solaris System),
+                      'License'       => MSF_LICENSE,
+                      'Author'        => [ 'Carlos Perez <carlos_perez[at]darkoperator.com>'],
+                      'Platform'      => [ 'solaris' ],
+                      'SessionTypes'  => [ 'shell' ]))
   end
 
   # Run Method for when run command is issued
@@ -37,6 +34,5 @@ class MetasploitModule < Msf::Post
         print_good("\t#{p.chomp}")
       end
     end
-
   end
 end

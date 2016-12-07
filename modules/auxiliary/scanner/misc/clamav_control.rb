@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -18,7 +19,7 @@ class MetasploitModule < Msf::Auxiliary
           This module sends properly-formatted commands to the ClamAV daemon if it is in such a
           configuration.
         ),
-        'Author'         => [
+        'Author' => [
           'Alejandro Hdeza', # DISCOVER
           'bwatters-r7',     # MODULE
           'wvu'              # GUIDANCE
@@ -33,7 +34,7 @@ class MetasploitModule < Msf::Auxiliary
           [ 'VERSION',  'Description' => 'Get Version Information' ],
           [ 'SHUTDOWN', 'Description' => 'Kills ClamAV Daemon' ]
         ],
-        'DefaultAction'  => 'VERSION'
+        'DefaultAction' => 'VERSION'
       )
     )
     register_options(

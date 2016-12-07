@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,34 +7,34 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::Tcp
   include Msf::Auxiliary::Dos
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Monkey HTTPD Header Parsing Denial of Service (DoS)',
-      'Description'    => %q{
-          This module causes improper header parsing that leads to a segmentation fault
-        due to a specially crafted HTTP request. Affects version <= 1.2.0.
-      },
-      'Author'         =>
-        [
-          'Doug Prostko <dougtko[at]gmail.com>'
-        ],
-      'License'        => MSF_LICENSE,
-      'References'     =>
-        [
-          ['CVE', '2013-3843'],
-          ['OSVDB', '93853'],
-          ['BID', '60333']
-        ],
-      'DisclosureDate' => 'May 30 2013'))
+                      'Name'           => 'Monkey HTTPD Header Parsing Denial of Service (DoS)',
+                      'Description'    => %q(
+                          This module causes improper header parsing that leads to a segmentation fault
+                        due to a specially crafted HTTP request. Affects version <= 1.2.0.
+                      ),
+                      'Author'         =>
+                        [
+                          'Doug Prostko <dougtko[at]gmail.com>'
+                        ],
+                      'License'        => MSF_LICENSE,
+                      'References'     =>
+                        [
+                          ['CVE', '2013-3843'],
+                          ['OSVDB', '93853'],
+                          ['BID', '60333']
+                        ],
+                      'DisclosureDate' => 'May 30 2013'))
 
     register_options(
       [
         Opt::RPORT(2001)
-      ], self.class)
+      ], self.class
+    )
   end
 
   def dos

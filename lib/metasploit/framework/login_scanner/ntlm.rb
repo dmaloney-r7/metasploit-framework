@@ -1,9 +1,9 @@
+# frozen_string_literal: true
 require 'metasploit/framework/login_scanner'
 
 module Metasploit
   module Framework
     module LoginScanner
-
       # This Concern provides the basic accessors and validations
       # for protocols that require the use of NTLM for Authentication.
       module NTLM
@@ -53,9 +53,7 @@ module Metasploit
           validates :use_ntlmv2,
                     inclusion: { in: [true, false] }
         end
-
       end
-
     end
   end
 end

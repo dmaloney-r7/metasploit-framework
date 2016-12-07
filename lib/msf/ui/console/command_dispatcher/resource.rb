@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 #
@@ -6,24 +7,20 @@
 
 require 'rex/ui/text/output/buffer/stdout'
 
-
 module Msf
   module Ui
     module Console
       module CommandDispatcher
-
         #
         # {CommandDispatcher} for commands related to background jobs in Metasploit Framework.
         #
         class Resource
-
           include Msf::Ui::Console::CommandDispatcher
-
 
           def commands
             {
               "resource"   => "Run the commands stored in a file",
-              "makerc"     => "Save commands entered since start to a file",
+              "makerc"     => "Save commands entered since start to a file"
             }
           end
 
@@ -55,7 +52,7 @@ module Msf
               if ::File.exist?(res)
                 good_res = res
               elsif
-                # let's check to see if it's in the scripts/resource dir (like when tab completed)
+              # let's check to see if it's in the scripts/resource dir (like when tab completed)
               [
                 ::Msf::Config.script_directory + ::File::SEPARATOR + "resource",
                 ::Msf::Config.user_script_directory + ::File::SEPARATOR + "resource"
@@ -85,11 +82,11 @@ module Msf
 
           def cmd_resource_tabs(str, words)
             tabs = []
-            #return tabs if words.length > 1
-            if ( str and str =~ /^#{Regexp.escape(File::SEPARATOR)}/ )
+            # return tabs if words.length > 1
+            if str && str =~ /^#{Regexp.escape(File::SEPARATOR)}/
               # then you are probably specifying a full path so let's just use normal file completion
-              return tab_complete_filenames(str,words)
-            elsif (not words[1] or not words[1].match(/^\//))
+              return tab_complete_filenames(str, words)
+            elsif !(words[1]) || !words[1].match(/^\//)
               # then let's start tab completion in the scripts/resource directories
               begin
                 [
@@ -97,18 +94,18 @@ module Msf
                   ::Msf::Config.user_script_directory + File::SEPARATOR + "resource",
                   "."
                 ].each do |dir|
-                  next if not ::File.exist? dir
-                  tabs += ::Dir.new(dir).find_all { |e|
+                  next unless ::File.exist? dir
+                  tabs += ::Dir.new(dir).find_all do |e|
                     path = dir + File::SEPARATOR + e
-                    ::File.file?(path) and File.readable?(path)
-                  }
+                    ::File.file?(path) && File.readable?(path)
+                  end
                 end
               rescue Exception
               end
             else
-              tabs += tab_complete_filenames(str,words)
+              tabs += tab_complete_filenames(str, words)
             end
-            return tabs
+            tabs
           end
 
           def cmd_makerc_help
@@ -129,7 +126,6 @@ module Msf
             driver.save_recent_history(args[0])
           end
         end
-
       end
     end
   end

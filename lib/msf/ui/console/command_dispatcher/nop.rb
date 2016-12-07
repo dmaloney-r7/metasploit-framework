@@ -1,95 +1,90 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 require 'rex/parser/arguments'
 
 module Msf
-module Ui
-module Console
-module CommandDispatcher
+  module Ui
+    module Console
+      module CommandDispatcher
+        ###
+        #
+        # NOP module command dispatcher.
+        #
+        ###
+        class Nop
+          include Msf::Ui::Console::ModuleCommandDispatcher
 
-###
-#
-# NOP module command dispatcher.
-#
-###
-class Nop
+          @@generate_opts = Rex::Parser::Arguments.new(
+            "-b" => [ true,  "The list of characters to avoid: '\\x00\\xff'"  ],
+            "-h" => [ false, "Help banner."                                   ],
+            "-s" => [ true,  "The comma separated list of registers to save." ],
+            "-t" => [ true,  "The output type: ruby, perl, c, or raw."        ]
+          )
 
-  include Msf::Ui::Console::ModuleCommandDispatcher
+          #
+          # Returns the hash of supported commands.
+          #
+          def commands
+            super.update("generate" => "Generates a NOP sled")
+          end
 
-  @@generate_opts = Rex::Parser::Arguments.new(
-    "-b" => [ true,  "The list of characters to avoid: '\\x00\\xff'"  ],
-    "-h" => [ false, "Help banner."                                   ],
-    "-s" => [ true,  "The comma separated list of registers to save." ],
-    "-t" => [ true,  "The output type: ruby, perl, c, or raw."        ])
+          #
+          # Returns the name of the command dispatcher.
+          #
+          def name
+            "Nop"
+          end
 
-  #
-  # Returns the hash of supported commands.
-  #
-  def commands
-    super.update({
-      "generate" => "Generates a NOP sled",
-    })
-  end
+          #
+          # Generates a NOP sled.
+          #
+          def cmd_generate(*args)
+            # No arguments?  Tell them how to use it.
+            args << "-h" if args.empty?
 
-  #
-  # Returns the name of the command dispatcher.
-  #
-  def name
-    "Nop"
-  end
+            # Parse the arguments
+            badchars = nil
+            saveregs = nil
+            type     = "ruby"
+            length   = 200
 
-  #
-  # Generates a NOP sled.
-  #
-  def cmd_generate(*args)
+            @@generate_opts.parse(args) do |opt, _idx, val|
+              case opt
+              when nil
+                length = val.to_i
+              when '-b'
+                badchars = Rex::Text.hex_to_raw(val)
+              when "-c"
+                saveregs = val.split(/,\s?/)
+              when '-t'
+                type = val
+              when '-h'
+                print(
+                  "Usage: generate [options] length\n\n" \
+                  "Generates a NOP sled of a given length.\n" +
+                  @@generate_opts.usage
+                )
+                return false
+              end
+            end
 
-    # No arguments?  Tell them how to use it.
-    if (args.length == 0)
-      args << "-h"
-    end
+            # Generate the sled
+            begin
+              sled = mod.generate_simple(
+                length,
+                'BadChars'      => badchars,
+                'SaveRegisters' => saveregs,
+                'Format'        => type
+              )
+            rescue
+              log_error("Sled generation failed: #{$ERROR_INFO}.")
+              return false
+            end
 
-    # Parse the arguments
-    badchars = nil
-    saveregs = nil
-    type     = "ruby"
-    length   = 200
+            # Display generated sled
+            print(sled)
 
-    @@generate_opts.parse(args) { |opt, idx, val|
-      case opt
-        when nil
-          length = val.to_i
-        when '-b'
-          badchars = Rex::Text.hex_to_raw(val)
-        when "-c"
-          saveregs = val.split(/,\s?/)
-        when '-t'
-          type = val
-        when '-h'
-          print(
-            "Usage: generate [options] length\n\n" +
-            "Generates a NOP sled of a given length.\n" +
-            @@generate_opts.usage)
-          return false
-      end
-    }
-
-    # Generate the sled
-    begin
-      sled = mod.generate_simple(
-        length,
-        'BadChars'      => badchars,
-        'SaveRegisters' => saveregs,
-        'Format'        => type)
-    rescue
-      log_error("Sled generation failed: #{$!}.")
-      return false
-    end
-
-    # Display generated sled
-    print(sled)
-
-    return true
-  end
-
-end
-
-end end end end
+            true
+          end
+        end
+      end end end end

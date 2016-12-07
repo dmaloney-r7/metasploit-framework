@@ -1,44 +1,45 @@
+# frozen_string_literal: true
 require 'rex/parser/ini'
 
 module Rex
-module Parser
-  module WinSCP
-    PWDALG_SIMPLE_MAGIC = 0xA3
-    PWDALG_SIMPLE_FLAG = 0xFF
+  module Parser
+    module WinSCP
+      PWDALG_SIMPLE_MAGIC = 0xA3
+      PWDALG_SIMPLE_FLAG = 0xFF
 
-    def read_and_parse_ini(filename)
-      file = File.read(filename)
-      return if file.to_s.empty?
-      parse_ini(file)
-    end
-
-    def parse_protocol(fsprotocol)
-      return 'Unknown' if fsprotocol.nil?
-
-      case fsprotocol
-      when 5 then 'FTP'
-      when 0 then 'SSH'
-      else
-        'Unknown'
+      def read_and_parse_ini(filename)
+        file = File.read(filename)
+        return if file.to_s.empty?
+        parse_ini(file)
       end
-    end
 
-    def parse_ini(file)
-      results = []
-      raise RuntimeError, 'No data to parse' if file.nil? || file.empty?
+      def parse_protocol(fsprotocol)
+        return 'Unknown' if fsprotocol.nil?
 
-      ini = Rex::Parser::Ini.from_s(file)
-
-      if ini['Configuration\\Security']
-        # if a Master Password is in use we give up
-        if ini['Configuration\\Security']['UseMasterPassword'].to_i == 1
-          raise RuntimeError, 'Master Password Set, unable to recover saved passwords!'
+        case fsprotocol
+        when 5 then 'FTP'
+        when 0 then 'SSH'
+        else
+          'Unknown'
         end
       end
 
-      # Runs through each group in the ini file looking for all of the Sessions
-      ini.each_key do |group|
-        if group.include?('Sessions') && ini[group].has_key?('Password')
+      def parse_ini(file)
+        results = []
+        raise 'No data to parse' if file.nil? || file.empty?
+
+        ini = Rex::Parser::Ini.from_s(file)
+
+        if ini['Configuration\\Security']
+          # if a Master Password is in use we give up
+          if ini['Configuration\\Security']['UseMasterPassword'].to_i == 1
+            raise 'Master Password Set, unable to recover saved passwords!'
+          end
+        end
+
+        # Runs through each group in the ini file looking for all of the Sessions
+        ini.each_key do |group|
+          next unless group.include?('Sessions') && ini[group].key?('Password')
           # Decrypt our password, and report on results
           encrypted_password = ini[group]['Password']
           user = ini[group]['UserName']
@@ -54,55 +55,50 @@ module Parser
             protocol: sname
           }
         end
+
+        results
       end
 
-      results
-    end
+      # Decrypts the next character in the password sequence
+      def decrypt_next_char(pwd)
+        return 0, pwd if pwd.nil? || pwd.length <= 0
 
-    # Decrypts the next character in the password sequence
-    def decrypt_next_char(pwd)
-      if pwd.nil? || pwd.length <= 0
-        return 0, pwd
+        # Takes the first char from the encrypted password and then left shifts the returned index by 4 bits
+        a = pwd[0].hex << 4
+
+        # Takes the second char from the encrypted password
+        b = pwd[1].hex
+
+        # Adds the two results, XORs against 0xA3, NOTs it and then ANDs it with 0xFF
+        result = ~((a + b) ^ PWDALG_SIMPLE_MAGIC) & PWDALG_SIMPLE_FLAG
+
+        # Strips the first two chars off and returns our result
+        [result, pwd[2..-1]]
       end
 
-      # Takes the first char from the encrypted password and then left shifts the returned index by 4 bits
-      a = pwd[0].hex << 4
+      def decrypt_password(pwd, key)
+        flag, pwd = decrypt_next_char(pwd)
 
-      # Takes the second char from the encrypted password
-      b = pwd[1].hex
+        if flag == PWDALG_SIMPLE_FLAG
+          _, pwd = decrypt_next_char(pwd)
+          length, pwd = decrypt_next_char(pwd)
+        else
+          length = flag
+        end
 
-      # Adds the two results, XORs against 0xA3, NOTs it and then ANDs it with 0xFF
-      result = ~((a + b) ^ PWDALG_SIMPLE_MAGIC) & PWDALG_SIMPLE_FLAG
+        del, pwd = decrypt_next_char(pwd)
+        pwd = pwd[del * 2..-1]
 
-      # Strips the first two chars off and returns our result
-      return result, pwd[2..-1]
-    end
+        result = ""
+        length.times do
+          r, pwd = decrypt_next_char(pwd)
+          result << r.chr
+        end
 
-    def decrypt_password(pwd, key)
-      flag, pwd = decrypt_next_char(pwd)
+        result = result[key.length..-1] if flag == PWDALG_SIMPLE_FLAG
 
-      if flag == PWDALG_SIMPLE_FLAG
-        _, pwd = decrypt_next_char(pwd)
-        length, pwd = decrypt_next_char(pwd)
-      else
-        length = flag
+        result
       end
-
-      del, pwd = decrypt_next_char(pwd)
-      pwd = pwd[del*2..-1]
-
-      result = ""
-      length.times do
-        r, pwd = decrypt_next_char(pwd)
-        result << r.chr
-      end
-
-      if flag == PWDALG_SIMPLE_FLAG
-        result = result[key.length..-1]
-      end
-
-      result
     end
   end
-end
 end

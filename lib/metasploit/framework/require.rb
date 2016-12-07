@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # @note needs to use explicit nesting. so this file can be loaded directly without loading 'metasploit/framework', this
 #   file can be used prior to Bundler.require.
 module Metasploit
@@ -18,20 +19,16 @@ module Metasploit
       # @yieldreturn [void]
       # @return [void]
       def self.optionally(name, without_warning)
-        begin
-          require name
-        rescue LoadError
-          warn without_warning
-          warn "Bundle installed '--without #{Bundler.settings.without.join(' ')}'"
-          warn "To clear the without option do `bundle install --without ''` " \
-           "(the --without flag with an empty string) or " \
-           "`rm -rf .bundle` to remove the .bundle/config manually and " \
-           "then `bundle install`"
-        else
-          if block_given?
-            yield
-          end
-        end
+        require name
+      rescue LoadError
+        warn without_warning
+        warn "Bundle installed '--without #{Bundler.settings.without.join(' ')}'"
+        warn "To clear the without option do `bundle install --without ''` " \
+         "(the --without flag with an empty string) or " \
+         "`rm -rf .bundle` to remove the .bundle/config manually and " \
+         "then `bundle install`"
+      else
+        yield if block_given?
       end
 
       # Tries to `require 'active_record/railtie'` to define the activerecord Rails initializers and rake tasks.
@@ -66,8 +63,8 @@ module Metasploit
       # @return [void]
       def self.optionally_include_metasploit_credential_creation(including_module)
         optionally(
-            'metasploit/credential',
-            "metasploit-credential not in the bundle, so Metasploit::Credential creation will fail for #{including_module.name}"
+          'metasploit/credential',
+          "metasploit-credential not in the bundle, so Metasploit::Credential creation will fail for #{including_module.name}"
         ) do
           including_module.send(:include, Metasploit::Credential::Creation)
         end
@@ -81,8 +78,8 @@ module Metasploit
       # @return [void]
       def self.optionally_require_metasploit_db_gem_engines
         optionally(
-            'metasploit/credential',
-            'metasploit-credential not in the bundle',
+          'metasploit/credential',
+          'metasploit-credential not in the bundle'
         ) do
           require 'metasploit/credential/engine'
         end

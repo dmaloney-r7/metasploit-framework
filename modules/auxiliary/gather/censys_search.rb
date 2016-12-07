@@ -1,38 +1,36 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 require 'rex/proto/http'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Auxiliary::Report
 
-  def initialize(info={})
+  def initialize(info = {})
     super(update_info(info,
-      'Name' => 'Censys Search',
-      'Description' => %q{
-        The module use the Censys REST API to access the same data
-        accessible through web interface. The search endpoint allows searches
-        against the current data in the IPv4, Top Million Websites, and
-        Certificates indexes using the same search syntax as the primary site.
-      },
-      'Author' => [ 'Nixawk' ],
-      'References' => [
-        ['URL', 'https://censys.io/api']
-      ],
-      'License' => MSF_LICENSE
-    ))
+                      'Name' => 'Censys Search',
+                      'Description' => %q(
+                        The module use the Censys REST API to access the same data
+                        accessible through web interface. The search endpoint allows searches
+                        against the current data in the IPv4, Top Million Websites, and
+                        Certificates indexes using the same search syntax as the primary site.
+                      ),
+                      'Author' => [ 'Nixawk' ],
+                      'References' => [
+                        ['URL', 'https://censys.io/api']
+                      ],
+                      'License' => MSF_LICENSE))
 
     register_options([
-      OptString.new('CENSYS_UID', [true, 'The Censys API UID']),
-      OptString.new('CENSYS_SECRET', [true, 'The Censys API SECRET']),
-      OptString.new('CENSYS_DORK', [true, 'The Censys Search Dork']),
-      OptEnum.new('CENSYS_SEARCHTYPE', [true, 'The Censys Search Type', 'certificates', ['certificates', 'ipv4', 'websites']])
-    ], self.class)
+                       OptString.new('CENSYS_UID', [true, 'The Censys API UID']),
+                       OptString.new('CENSYS_SECRET', [true, 'The Censys API SECRET']),
+                       OptString.new('CENSYS_DORK', [true, 'The Censys Search Dork']),
+                       OptEnum.new('CENSYS_SEARCHTYPE', [true, 'The Censys Search Type', 'certificates', ['certificates', 'ipv4', 'websites']])
+                     ], self.class)
   end
 
   def basic_auth_header(username, password)
@@ -113,7 +111,7 @@ class MetasploitModule < Msf::Auxiliary
 
       ips.each do |ip|
         print_good("#{ip} - #{subject_dn}")
-        report_host(:host => ip, :info => subject_dn)
+        report_host(host: ip, info: subject_dn)
       end
     end
   end
@@ -128,7 +126,7 @@ class MetasploitModule < Msf::Auxiliary
       protocols.each do |protocol|
         print_good("#{ipv4['ip']} - #{ipv4['protocols'].join(',')}")
         port, name = protocol.split('/')
-        report_service(:host => ip, :port => port, :name => name)
+        report_service(host: ip, port: port, name: name)
       end
     end
   end
@@ -141,7 +139,7 @@ class MetasploitModule < Msf::Auxiliary
       domain = website['domain']
       ips = domain2ip(domain)
       ips.each do |ip|
-        report_host(:host =>ip)
+        report_host(host: ip)
       end
     end
   end

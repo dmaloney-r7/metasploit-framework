@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 require 'msf/scripts/meterpreter/common'
 require 'msf/scripts/meterpreter/registry'
@@ -6,10 +7,8 @@ require 'msf/scripts/meterpreter/services'
 require 'msf/scripts/meterpreter/accounts'
 
 module Msf
-module Scripts
-module Meterpreter
-
+  module Scripts
+    module Meterpreter
+      end
+  end
 end
-end
-end
-

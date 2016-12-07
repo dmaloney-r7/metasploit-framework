@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'pstore'
 require 'forwardable'
 
@@ -18,14 +19,14 @@ module Anemone
         @store.transaction { |s| s[key] }
       end
 
-      def []=(key,value)
+      def []=(key, value)
         @keys[key] = nil
         @store.transaction { |s| s[key] = value }
       end
 
       def delete(key)
         @keys.delete(key)
-        @store.transaction { |s| s.delete key}
+        @store.transaction { |s| s.delete key }
       end
 
       def each
@@ -44,7 +45,6 @@ module Anemone
       end
 
       def close; end
-
     end
   end
 end

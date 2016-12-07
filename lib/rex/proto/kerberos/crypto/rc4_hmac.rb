@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 module Rex
@@ -44,7 +45,7 @@ module Rex
           def encrypt_rc4_hmac(data, key, msg_type)
             k1 = OpenSSL::HMAC.digest('MD5', key, [msg_type].pack('V'))
 
-            data_encrypt = Rex::Text::rand_text(8) + data
+            data_encrypt = Rex::Text.rand_text(8) + data
 
             checksum = OpenSSL::HMAC.digest('MD5', k1, data_encrypt)
 

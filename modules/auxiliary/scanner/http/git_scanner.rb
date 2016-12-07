@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -18,14 +19,14 @@ class MetasploitModule < Msf::Auxiliary
         disclosure vulnerabilities that occur when a Git repository is made
         available over HTTP.
       ),
-      'Author'      => [
+      'Author' => [
         'Nixawk', # module developer
         'Jon Hart <jon_hart[at]rapid7.com>' # improved metasploit module
       ],
-      'References'  => [
+      'References' => [
         ['URL', 'https://github.com/git/git/blob/master/Documentation/technical/index-format.txt']
       ],
-      'License'     => MSF_LICENSE
+      'License' => MSF_LICENSE
     )
 
     register_options(

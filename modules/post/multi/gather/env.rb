@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,18 +8,16 @@ require 'msf/core'
 require 'rex'
 
 class MetasploitModule < Msf::Post
-
   include Msf::Post::Windows::Registry
 
-  def initialize(info={})
-    super( update_info( info,
-      'Name'          => 'Multi Gather Generic Operating System Environment Settings',
-      'Description'   => %q{ This module prints out the operating system environment variables },
-      'License'       => MSF_LICENSE,
-      'Author'        => [ 'Carlos Perez <carlos_perez[at]darkoperator.com>', 'egypt' ],
-      'Platform'      => %w{ linux win },
-      'SessionTypes'  => [ 'shell', 'meterpreter' ]
-    ))
+  def initialize(info = {})
+    super(update_info(info,
+                      'Name'          => 'Multi Gather Generic Operating System Environment Settings',
+                      'Description'   => %q( This module prints out the operating system environment variables ),
+                      'License'       => MSF_LICENSE,
+                      'Author'        => [ 'Carlos Perez <carlos_perez[at]darkoperator.com>', 'egypt' ],
+                      'Platform'      => %w(linux win),
+                      'SessionTypes'  => [ 'shell', 'meterpreter' ]))
     @ltype = 'generic.environment'
   end
 
@@ -62,10 +61,9 @@ class MetasploitModule < Msf::Post
     else
       # Don't know what it is, hope it's unix
       print_status sysinfo["OS"]
-      chan = session.sys.process.execute("/bin/sh", "-c env", {"Channelized" => true})
+      chan = session.sys.process.execute("/bin/sh", "-c env", "Channelized" => true)
       @output = chan.read
       @ltype = "unix.environment"
     end
   end
-
 end

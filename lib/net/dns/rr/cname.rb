@@ -1,17 +1,16 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 ##
 #
 # Net::DNS::RR::CNAME
 #
-#       $Id: CNAME.rb,v 1.7 2006/07/28 07:33:36 bluemonk Exp $  
+#       $Id: CNAME.rb,v 1.7 2006/07/28 07:33:36 bluemonk Exp $
 #
 ##
 
 module Net
   module DNS
-
     class RR
-      
       #------------------------------------------------------------
       # RR type CNAME
       #------------------------------------------------------------
@@ -19,9 +18,9 @@ module Net
         attr_reader :cname
 
         private
-        
+
         def check_name(name)
-          unless name =~ /(\w\.?)+\s*$/ and name =~ /[a-zA-Z]/
+          unless name =~ /(\w\.?)+\s*$/ && name =~ /[a-zA-Z]/
             raise RRArgumentError, "Canonical Name not valid: #{name}"
           end
           name
@@ -41,11 +40,11 @@ module Net
         end
 
         def get_inspect
-          "#@cname"
+          @cname.to_s
         end
 
         def subclass_new_from_hash(args)
-          if args.has_key? :cname
+          if args.key? :cname
             @cname = check_name args[:cname]
           else
             raise RRArgumentError, ":cname field is mandatory but missing"
@@ -56,13 +55,11 @@ module Net
           @cname = check_name(str)
         end
 
-        def subclass_new_from_binary(data,offset)
-          @cname,offset = dn_expand(data,offset)
-          return offset
+        def subclass_new_from_binary(data, offset)
+          @cname, offset = dn_expand(data, offset)
+          offset
         end
-        
       end # class CNAME
-       
     end # class RR
   end # module DNS
 end # module Net

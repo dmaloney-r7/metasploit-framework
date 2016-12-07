@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,24 +8,22 @@ require 'msf/core'
 require 'msf/core/auxiliary/report'
 
 class MetasploitModule < Msf::Post
-
   include Msf::Post::Windows::Registry
   include Msf::Auxiliary::Report
 
-  def initialize(info={})
-    super( update_info( info,
-      'Name'           => 'Windows Gather Forensics Duqu Registry Check',
-      'Description'    => %q{ This module searches for CVE-2011-3402 (Duqu) related registry artifacts.},
-      'License'        => MSF_LICENSE,
-      'Author'         => [ 'Marcus J. Carey <mjc[at]threatagent.com>'],
-      'Platform'       => [ 'win' ],
-      'SessionTypes'   => [ 'meterpreter' ],
-      'References'     =>
-        [
-          [ 'CVE', '2011-3402'  ],
-          [ 'URL', 'http://r-7.co/w5h7fY' ]
-        ]
-    ))
+  def initialize(info = {})
+    super(update_info(info,
+                      'Name'           => 'Windows Gather Forensics Duqu Registry Check',
+                      'Description'    => %q{ This module searches for CVE-2011-3402 (Duqu) related registry artifacts.},
+                      'License'        => MSF_LICENSE,
+                      'Author'         => [ 'Marcus J. Carey <mjc[at]threatagent.com>'],
+                      'Platform'       => [ 'win' ],
+                      'SessionTypes'   => [ 'meterpreter' ],
+                      'References'     =>
+                        [
+                          [ 'CVE', '2011-3402' ],
+                          [ 'URL', 'http://r-7.co/w5h7fY' ]
+                        ]))
   end
 
   def run
@@ -46,23 +45,21 @@ class MetasploitModule < Msf::Post
         has_key = registry_enumkeys(path)
         has_val = registry_enumvals(path)
 
-        if has_key.include?(query) or has_val.include?(query)
-          print_good("#{sysinfo['Computer']}: #{path}\\#{query} found in registry.")
-          match += 1
-          report_vuln(
-            :host          => session.session_host,
-            :name          => self.name,
-            :info          => "Module #{self.fullname} detected #{path}\\#{query} - possible CVE-2011-3402 exploitation [Duqu] artifact.",
-            :refs          => self.references,
-            :exploited_at  => Time.now.utc
-          )
-        end
+        next unless has_key.include?(query) || has_val.include?(query)
+        print_good("#{sysinfo['Computer']}: #{path}\\#{query} found in registry.")
+        match += 1
+        report_vuln(
+          host: session.session_host,
+          name: name,
+          info: "Module #{fullname} detected #{path}\\#{query} - possible CVE-2011-3402 exploitation [Duqu] artifact.",
+          refs: references,
+          exploited_at: Time.now.utc
+        )
       end
     rescue # Probably should do something here...
     end
 
-    print_status("#{sysinfo['Computer']}: #{match.to_s} artifact(s) found in registry.")
-
+    print_status("#{sysinfo['Computer']}: #{match} artifact(s) found in registry.")
   end
 
   def parse_path(artifact)
@@ -70,6 +67,6 @@ class MetasploitModule < Msf::Post
     query = parts[-1]
     parts.pop
     path = parts.join("\\")
-    return path, query
+    [path, query]
   end
 end

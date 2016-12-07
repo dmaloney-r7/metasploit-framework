@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::Tcp
   include Msf::Auxiliary::Scanner
   include Msf::Auxiliary::Report
@@ -19,12 +19,11 @@ class MetasploitModule < Msf::Auxiliary
       'License'     => MSF_LICENSE
     )
     register_options([
-      Opt::RPORT(79),
-      OptString.new('USERS_FILE',
-        [ true, 'The file that contains a list of default UNIX accounts.',
-          File.join(Msf::Config.install_root, 'data', 'wordlists', 'unix_users.txt')
-        ]
-      )], self.class)
+                       Opt::RPORT(79),
+                       OptString.new('USERS_FILE',
+                                     [ true, 'The file that contains a list of default UNIX accounts.',
+                                       File.join(Msf::Config.install_root, 'data', 'wordlists', 'unix_users.txt')])
+                     ], self.class)
   end
 
   def run_host(ip)
@@ -37,28 +36,27 @@ class MetasploitModule < Msf::Auxiliary
       finger_zero
       finger_dot
       finger_chars
-      vprint_status "#{rhost}:#{rport} - Sending finger request for user list: #{finger_user_common.join(", ")}"
+      vprint_status "#{rhost}:#{rport} - Sending finger request for user list: #{finger_user_common.join(', ')}"
       finger_list
 
     rescue ::Rex::ConnectionError
     rescue ::Exception => e
       print_error("#{e} #{e.backtrace}")
     end
-    report_service(:host => rhost, :port => rport, :name => "finger")
+    report_service(host: rhost, port: rport, name: "finger")
 
-    if(@users.empty?)
+    if @users.empty?
       print_status("#{ip}:#{rport} No users found.")
     else
-      print_good("#{ip}:#{rport} Users found: #{@users.keys.sort.join(", ")}")
+      print_good("#{ip}:#{rport} Users found: #{@users.keys.sort.join(', ')}")
       report_note(
-        :host => rhost,
-        :port => rport,
-        :type => 'finger.users',
-        :data => {:users => @users.keys}
+        host: rhost,
+        port: rport,
+        type: 'finger.users',
+        data: { users: @users.keys }
       )
     end
   end
-
 
   def finger_empty
     connect
@@ -106,23 +104,23 @@ class MetasploitModule < Msf::Auxiliary
         buff = finger_slurp_data
         ret = parse_users(buff)
         disconnect
-        break if not ret
+        break unless ret
       end
     else
-      while !finger_user_common.empty?
+      until finger_user_common.empty?
         user_batch = []
-        while user_batch.size < 8 and !finger_user_common.empty?
+        while user_batch.size < 8 && !finger_user_common.empty?
           new_user = finger_user_common.shift
           next if @users.keys.include? new_user
           user_batch << new_user
         end
         connect
-        vprint_status "#{rhost}:#{rport} - Sending finger request for #{user_batch.join(", ")}..."
-        sock.put("#{user_batch.join(" ")}\r\n")
+        vprint_status "#{rhost}:#{rport} - Sending finger request for #{user_batch.join(', ')}..."
+        sock.put("#{user_batch.join(' ')}\r\n")
         buff = finger_slurp_data
         ret = parse_users(buff)
         disconnect
-        break if not ret
+        break unless ret
       end
     end
   end
@@ -130,19 +128,19 @@ class MetasploitModule < Msf::Auxiliary
   def finger_slurp_data
     buff = ""
     begin
-      while(res = sock.get_once(-1, 5) || '')
+      while (res = sock.get_once(-1, 5) || '')
         buff << res
-        break if buff.length > (1024*1024)
+        break if buff.length > (1024 * 1024)
       end
     rescue ::Interrupt
-      raise $!
+      raise $ERROR_INFO
     rescue ::Exception
     end
     buff
   end
 
   def finger_user_common
-    if(! @common)
+    unless @common
       File.open(datastore['USERS_FILE'], "rb") do |fd|
         data = fd.read(fd.stat.size)
         @common = data.split(/\n/).compact.uniq
@@ -172,32 +170,28 @@ class MetasploitModule < Msf::Auxiliary
       # No such file or directory == valid user bad utmp
 
       # Solaris
-      if(line =~ /^([a-z0-9\.\_]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)/)
-        uid = $1
-        if ($2 != "Name")
-          @users[uid] ||= {}
-        end
+      if line =~ /^([a-z0-9\.\_]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)/
+        uid = Regexp.last_match(1)
+        @users[uid] ||= {} if Regexp.last_match(2) != "Name"
       end
 
       # IRIX
-      if(line =~ /^\s*Login name:\s*([^\s]+)\s+/i)
-        uid = $1
+      if line =~ /^\s*Login name:\s*([^\s]+)\s+/i
+        uid = Regexp.last_match(1)
         @users[uid] ||= {} if uid
       end
 
       # Debian GNU/Linux
-      if(line =~ /^\s*Username:\s*([^\s]+)\s+/i)
-        uid = $1
+      if line =~ /^\s*Username:\s*([^\s]+)\s+/i
+        uid = Regexp.last_match(1)
         @users[uid] ||= {} if uid
       end
 
-      if uid
-        print_good "#{rhost}:#{rport} - Found user: #{uid}" unless @users[uid] == :reported
-        @users[uid] = :reported
-        next
-      end
+      next unless uid
+      print_good "#{rhost}:#{rport} - Found user: #{uid}" unless @users[uid] == :reported
+      @users[uid] = :reported
+      next
     end
-    return true
+    true
   end
-
 end

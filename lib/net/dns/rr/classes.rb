@@ -1,14 +1,12 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 module Net # :nodoc:
   module DNS
-
     class RR
-
       #
       # This is an auxiliary class to hadle RR class field in a DNS packet.
       #
       class Classes
-
         # An hash with the values of each RR class stored with the
         # respective id number
         Classes = {
@@ -17,7 +15,7 @@ module Net # :nodoc:
           'HS'        => 4,       # RFC 1035
           'NONE'      => 254,     # RFC 2136
           'ANY'       => 255,     # RFC 1035
-        }
+        }.freeze
 
         # The default value when class is nil in Resource Records
         @@default = Classes["IN"]
@@ -25,7 +23,7 @@ module Net # :nodoc:
         # Be able to control the default class to assign when
         # cls argument is +nil+. Default to +IN+
         def self.default=(str)
-          if Classes.has_key? str
+          if Classes.key? str
             @@default = Classes[str]
           else
             raise ClassArgumentError, "Unknown class #{str}"
@@ -36,9 +34,9 @@ module Net # :nodoc:
         def self.valid?(cls)
           case cls
           when String
-            return Classes.has_key?(cls)
-          when Fixnum
-            return Classes.invert.has_key?(cls)
+            Classes.key?(cls)
+          when Integer
+            Classes.invert.key?(cls)
           else
             raise ClassArgumentError, "Wrong class: #{cls.class}"
           end
@@ -48,9 +46,9 @@ module Net # :nodoc:
         # given the numeric value
         def self.to_str(cls)
           case cls
-          when Fixnum
-            if Classes.invert.has_key? cls
-              return Classes.invert[cls]
+          when Integer
+            if Classes.invert.key? cls
+              Classes.invert[cls]
             else
               raise ClassArgumentError, "Unknown class number #{cls}"
             end
@@ -73,7 +71,7 @@ module Net # :nodoc:
           when String
             # type in the form "A" or "NS"
             new_from_string(cls.upcase)
-          when Fixnum
+          when Integer
             # type in numeric form
             new_from_num(cls)
           when nil
@@ -93,7 +91,7 @@ module Net # :nodoc:
             new_from_num(Regexp.last_match(1).to_i)
           else
             # String with name of class
-            if Classes.has_key? cls
+            if Classes.key? cls
               @str = cls
               @num = Classes[cls]
             else
@@ -106,7 +104,7 @@ module Net # :nodoc:
         # *PRIVATE* method
         def new_from_num(cls)
           raise ClassArgumentError, "Invalid class #{cls}" if cls < 0 || cls > 0xFFFF
-          if Classes.invert.has_key? cls
+          if Classes.invert.key? cls
             @num = cls
             @str = Classes.invert[cls]
           else
@@ -133,16 +131,13 @@ module Net # :nodoc:
           @num.to_i
         end
 
-
         # Should be used only for testing purpouses
         def to_str
           @num.to_s
         end
 
         private :new_from_num, :new_from_string
-
       end # class Classes
-
     end # class RR
   end # module DNS
 end # module Net

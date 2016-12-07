@@ -1,12 +1,11 @@
+# frozen_string_literal: true
 require 'metasploit/framework/login_scanner/http'
 
 module Metasploit
   module Framework
     module LoginScanner
-
       # IP Board login scanner
       class IPBoard < HTTP
-
         # @!attribute http_username
         # @return [String]
         attr_accessor :http_username
@@ -18,46 +17,46 @@ module Metasploit
         # (see Base#attempt_login)
         def attempt_login(credential)
           http_client = Rex::Proto::Http::Client.new(
-              host, port, {'Msf' => framework, 'MsfExploit' => framework_module}, ssl, ssl_version, proxies, self.http_username, self.http_password
+            host, port, { 'Msf' => framework, 'MsfExploit' => framework_module }, ssl, ssl_version, proxies, http_username, http_password
           )
           configure_http_client(http_client)
 
           result_opts = {
-              credential: credential,
-              host: host,
-              port: port,
-              protocol: 'tcp'
+            credential: credential,
+            host: host,
+            port: port,
+            protocol: 'tcp'
           }
-          if ssl
-            result_opts[:service_name] = 'https'
-          else
-            result_opts[:service_name] = 'http'
-          end
+          result_opts[:service_name] = if ssl
+                                         'https'
+                                       else
+                                         'http'
+                                       end
 
           begin
             http_client.connect
 
             nonce_request = http_client.request_cgi(
-                'uri' => uri,
-                'method'  => 'GET'
+              'uri' => uri,
+              'method' => 'GET'
             )
 
             nonce_response = http_client.send_recv(nonce_request)
 
             if nonce_response.body =~ /name='auth_key'\s+value='.*?((?:[a-z0-9]*))'/i
-              server_nonce = $1
+              server_nonce = Regexp.last_match(1)
 
-              if uri.end_with? '/'
-                base_uri = uri.gsub(/\/$/, '')
-              else
-                base_uri = uri
-              end
+              base_uri = if uri.end_with? '/'
+                           uri.gsub(/\/$/, '')
+                         else
+                           uri
+                         end
 
               auth_uri = "#{base_uri}/index.php"
 
               request = http_client.request_cgi(
                 'uri' => auth_uri,
-                'method'  => 'POST',
+                'method' => 'POST',
                 'vars_get' => {
                   'app'     => 'core',
                   'module'  => 'global',
@@ -87,14 +86,12 @@ module Metasploit
           end
 
           Result.new(result_opts)
-
         end
-
 
         # (see Base#set_sane_defaults)
         def set_sane_defaults
-          self.uri = "/forum/" if self.uri.nil?
-          @method = "POST".freeze
+          self.uri = "/forum/" if uri.nil?
+          @method = "POST"
 
           super
         end
@@ -102,11 +99,9 @@ module Metasploit
         # The method *must* be "POST", so don't let the user change it
         # @raise [RuntimeError]
         def method=(_)
-          raise RuntimeError, "Method must be POST for IPBoard"
+          raise "Method must be POST for IPBoard"
         end
-
       end
     end
   end
 end
-

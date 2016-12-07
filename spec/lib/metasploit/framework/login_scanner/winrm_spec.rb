@@ -1,10 +1,10 @@
 
+# frozen_string_literal: true
 require 'spec_helper'
 require 'metasploit/framework/login_scanner/winrm'
 
 RSpec.describe Metasploit::Framework::LoginScanner::WinRM do
-
-  it_behaves_like 'Metasploit::Framework::LoginScanner::Base',  has_realm_key: true, has_default_realm: true
+  it_behaves_like 'Metasploit::Framework::LoginScanner::Base', has_realm_key: true, has_default_realm: true
   it_behaves_like 'Metasploit::Framework::LoginScanner::RexSocket'
   it_behaves_like 'Metasploit::Framework::LoginScanner::HTTP'
 
@@ -16,6 +16,4 @@ RSpec.describe Metasploit::Framework::LoginScanner::WinRM do
       expect(winrm_scanner.method).to eq("POST")
     end
   end
-
 end
-

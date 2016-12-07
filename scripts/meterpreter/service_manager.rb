@@ -1,9 +1,9 @@
+# frozen_string_literal: true
 ##
 # WARNING: Metasploit no longer maintains or accepts meterpreter scripts.
 # If you'd like to imporve this script, please try to port it as a post
 # module instead. Thank you.
 ##
-
 
 # Author: Carlos Perez <carlos_perez [at] darkoperator.com and Shai rod (@NightRang3r)
 #-------------------------------------------------------------------------------
@@ -23,21 +23,20 @@ srv_info           = false
 srv_change_startup = false
 srv_delete         = false
 
-
 @exec_opts = Rex::Parser::Arguments.new(
-  "-h" => [ false , "Help menu." ],
-  "-l" => [ false , "List Services"],
-  "-S" => [ false , "Start Service"],
-  "-K" => [ false , "Stop Service"],
-  "-C" => [ false , "Create Service, service will be set to auto start"],
-  "-c" => [ false , "Change Service StartUp. Default <Auto>" ],
-  "-i" => [ false , "Get Service Information"],
-  "-n" => [ true  , "Service Name"],
-  "-s" => [ true  , "Startup Parameter for service. Specify Auto, Manual or Disabled"],
-  "-d" => [ true  , "Display Name of Service"],
-  "-p" => [ true  , "Service command"],
-  "-D" => [ false , "Delete Service"]
-  )
+  "-h" => [ false, "Help menu." ],
+  "-l" => [ false, "List Services"],
+  "-S" => [ false, "Start Service"],
+  "-K" => [ false, "Stop Service"],
+  "-C" => [ false, "Create Service, service will be set to auto start"],
+  "-c" => [ false, "Change Service StartUp. Default <Auto>" ],
+  "-i" => [ false, "Get Service Information"],
+  "-n" => [ true, "Service Name"],
+  "-s" => [ true, "Startup Parameter for service. Specify Auto, Manual or Disabled"],
+  "-d" => [ true, "Display Name of Service"],
+  "-p" => [ true, "Service command"],
+  "-D" => [ false, "Delete Service"]
+)
 meter_type = client.platform
 
 ################## Function Declarations ##################
@@ -59,20 +58,19 @@ end
 
 # Check if sufficient privileges are present for certain actions
 def priv_check
-  if not is_uac_enabled? or is_admin?
-    return true
+  if !is_uac_enabled? || is_admin?
+    true
   else
     print_error("Insuficient Privileges")
     raise Rex::Script::Completed
   end
-
 end
 
 ################## Main ##################
 # Check for Version of Meterpreter
 wrong_meter_version(meter_type) if meter_type !~ /win32|win64/i
 
-@exec_opts.parse(args) { |opt, idx, val|
+@exec_opts.parse(args) do |opt, _idx, val|
   case opt
   when "-h"
     usage
@@ -97,7 +95,7 @@ wrong_meter_version(meter_type) if meter_type !~ /win32|win64/i
   when "-D"
     srv_delete = true
   end
-}
+end
 
 # List Services
 if srv_list
@@ -176,7 +174,7 @@ elsif srv_change_startup
   if srv_name
     begin
       print_status("Changing Service #{srv_name} Startup to #{srv_startup}")
-      service_change_startup(srv_name,srv_startup)
+      service_change_startup(srv_name, srv_startup)
       print_good("Service Startup changed!")
 
     rescue
@@ -190,15 +188,15 @@ elsif srv_change_startup
 # Create a service
 elsif srv_create
   priv_check
-  if srv_name and srv_command
+  if srv_name && srv_command
     begin
       print_status("Creating Service #{srv_name}")
-      service_create(srv_name,srv_display_name,srv_command)
+      service_create(srv_name, srv_display_name, srv_command)
       print_good("\tService Created!")
       print_good("\tDisplay Name: #{srv_display_name}")
       print_good("\tCommand: #{srv_command}")
       print_good("\tSet to Auto Star.")
-    rescue::Exception => e
+    rescue ::Exception => e
       print_error("Error: #{e}")
     end
   else
@@ -213,7 +211,7 @@ elsif srv_delete
       print_status("Deleting Service #{srv_name}")
       service_delete(srv_name)
       print_good("\tService #{srv_name} Delete")
-    rescue::Exception => e
+    rescue ::Exception => e
       print_error("A Service Name must be provided, service names are case sensitive.")
       print_error("Error: #{e}")
     end

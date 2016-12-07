@@ -1,12 +1,11 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 require 'rex/proto/ntlm/message'
-
 
 class MetasploitModule < Msf::Auxiliary
   include Msf::Exploit::Remote::VIMSoap
@@ -17,11 +16,11 @@ class MetasploitModule < Msf::Auxiliary
   def initialize
     super(
       'Name'           => 'VMWare Enumerate User Accounts',
-      'Description'    => %Q{
+      'Description'    => %(
         This module will log into the Web API of VMWare and try to enumerate
         all the user accounts. If the VMware instance is connected to one or
         more domains, it will try to enumerate domain users as well.
-      },
+      ),
       'Author'         => ['theLightCosine'],
       'License'        => MSF_LICENSE,
       'DefaultOptions' => { 'SSL' => true }
@@ -32,9 +31,9 @@ class MetasploitModule < Msf::Auxiliary
         Opt::RPORT(443),
         OptString.new('USERNAME', [ true, "The username to Authenticate with.", 'root' ]),
         OptString.new('PASSWORD', [ true, "The password to Authenticate with.", 'password' ])
-      ], self.class)
+      ], self.class
+    )
   end
-
 
   def run_host(ip)
     if vim_do_login(datastore['USERNAME'], datastore['PASSWORD']) == :success
@@ -67,9 +66,9 @@ class MetasploitModule < Msf::Auxiliary
             end
           end
           print_good tmp_groups.to_s
-          store_loot('host.vmware.groups', "text/plain", datastore['RHOST'], tmp_groups.to_csv , "#{datastore['RHOST']}_esx_groups.txt", "VMWare ESX User Groups")
+          store_loot('host.vmware.groups', "text/plain", datastore['RHOST'], tmp_groups.to_csv, "#{datastore['RHOST']}_esx_groups.txt", "VMWare ESX User Groups")
           print_good tmp_users.to_s
-          store_loot('host.vmware.users', "text/plain", datastore['RHOST'], tmp_users.to_csv , "#{datastore['RHOST']}_esx_users.txt", "VMWare ESX Users")
+          store_loot('host.vmware.users', "text/plain", datastore['RHOST'], tmp_users.to_csv, "#{datastore['RHOST']}_esx_users.txt", "VMWare ESX Users")
         end
       end
 
@@ -117,18 +116,17 @@ class MetasploitModule < Msf::Auxiliary
             end
             print_good tmp_dgroups.to_s
 
-            f = store_loot('domain.groups', "text/plain", datastore['RHOST'], tmp_dgroups.to_csv , "#{domain}_esx_groups.txt", "VMWare ESX #{domain} Domain User Groups")
+            f = store_loot('domain.groups', "text/plain", datastore['RHOST'], tmp_dgroups.to_csv, "#{domain}_esx_groups.txt", "VMWare ESX #{domain} Domain User Groups")
             vprint_status("VMWare domain user groups stored in: #{f}")
             print_good tmp_dusers.to_s
-            f = store_loot('domain.users', "text/plain", datastore['RHOST'], tmp_dgroups.to_csv , "#{domain}_esx_users.txt", "VMWare ESX #{domain} Domain Users")
+            f = store_loot('domain.users', "text/plain", datastore['RHOST'], tmp_dgroups.to_csv, "#{domain}_esx_users.txt", "VMWare ESX #{domain} Domain Users")
             vprint_status("VMWare users stored in: #{f}")
           end
         end
       end
     else
       print_error "Login Failure on #{ip}"
-      return
+      nil
     end
   end
-
 end

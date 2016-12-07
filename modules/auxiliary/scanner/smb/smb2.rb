@@ -1,14 +1,12 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 
-
 class MetasploitModule < Msf::Auxiliary
-
   # Exploit mixins should go first
   include Msf::Exploit::Remote::Tcp
 
@@ -34,7 +32,6 @@ class MetasploitModule < Msf::Auxiliary
 
   # Fingerprint a single host
   def run_host(ip)
-
     begin
       connect
 
@@ -53,32 +50,32 @@ class MetasploitModule < Msf::Auxiliary
 
       sock.put(pkt.to_s)
       res = sock.get_once
-      if(res and res.index("\xfeSMB"))
-        if(res.length >= 124)
-          vers  = res[72,2].unpack("CC").map{|c| c.to_s}.join(".")
-          ctime = Rex::Proto::SMB::Utils.time_smb_to_unix(*(res[108,8].unpack("VV").reverse))
-          btime = Rex::Proto::SMB::Utils.time_smb_to_unix(*(res[116,8].unpack("VV").reverse))
+      if res && res.index("\xfeSMB")
+        if res.length >= 124
+          vers  = res[72, 2].unpack("CC").map(&:to_s).join(".")
+          ctime = Rex::Proto::SMB::Utils.time_smb_to_unix(*res[108, 8].unpack("VV").reverse)
+          btime = Rex::Proto::SMB::Utils.time_smb_to_unix(*res[116, 8].unpack("VV").reverse)
           utime = ctime - btime
-          print_status("#{ip} supports SMB 2 [dialect #{vers}] and has been online for #{utime/3600} hours")
+          print_status("#{ip} supports SMB 2 [dialect #{vers}] and has been online for #{utime / 3600} hours")
           # Add Report
           report_note(
-            :host	=> ip,
-            :proto => 'tcp',
-            :sname	=> 'smb2',
-            :port	=> rport,
-            :type	=> "supports SMB 2 [dialect #{vers}]",
-            :data	=> "supports SMB 2 [dialect #{vers}] and has been online for #{utime/3600} hours"
+            host: ip,
+            proto: 'tcp',
+            sname: 'smb2',
+            port: rport,
+            type: "supports SMB 2 [dialect #{vers}]",
+            data: "supports SMB 2 [dialect #{vers}] and has been online for #{utime / 3600} hours"
           )
         else
           print_status("#{ip} supports SMB 2.0")
           # Add Report
           report_note(
-            :host	=> ip,
-            :proto => 'tcp',
-            :sname	=> 'smb2',
-            :port	=> rport,
-            :type	=> "supports SMB 2.0",
-            :data	=> "supports SMB 2.0"
+            host: ip,
+            proto: 'tcp',
+            sname: 'smb2',
+            port: rport,
+            type: "supports SMB 2.0",
+            data: "supports SMB 2.0"
           )
         end
       end
@@ -90,5 +87,4 @@ class MetasploitModule < Msf::Auxiliary
       disconnect
     end
   end
-
 end

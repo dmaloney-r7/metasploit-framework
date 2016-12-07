@@ -1,8 +1,8 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 require 'msf/core'
 
 module Msf::Payload::Ruby
-
   def initialize(info = {})
     super(info)
 
@@ -17,8 +17,8 @@ module Msf::Payload::Ruby
 
   def prepends(buf)
     if datastore['PrependFork']
-      buf = %Q^
-        code = %(#{ Rex::Text.encode_base64(buf) }).unpack(%(m0)).first
+      buf = %^
+        code = %(#{Rex::Text.encode_base64(buf)}).unpack(%(m0)).first
         if RUBY_PLATFORM =~ /mswin|mingw|win32/
           inp = IO.popen(%(ruby), %(wb)) rescue nil
           if inp
@@ -26,14 +26,9 @@ module Msf::Payload::Ruby
             inp.close
           end
         else
-          if ! Process.fork()
-            eval(code) rescue nil
-          end
-        end
-      ^.strip.split(/\n/).map{|line| line.strip}.join("\n")
+          if ! Process.fork(&:strip).join("\n")
     end
 
     buf
   end
-
 end

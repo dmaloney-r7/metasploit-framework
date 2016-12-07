@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'metasploit/framework/login_scanner/http'
 
 module Metasploit
@@ -8,7 +9,7 @@ module Metasploit
         # Inherit LIKELY_PORTS,LIKELY_SERVICE_NAMES, and REALM_KEY from HTTP
         CAN_GET_SESSION = false
         DEFAULT_PORT    = 80
-        PRIVATE_TYPES   = [ :password ]
+        PRIVATE_TYPES   = [ :password ].freeze
 
         # (see Base#set_sane_defaults)
         def set_sane_defaults
@@ -55,28 +56,28 @@ module Metasploit
             elsif res.body.include? 'user[login]'
               user_field = 'user[login]'
             else
-              fail RuntimeError, 'Not a valid GitLab login page'
+              raise 'Not a valid GitLab login page'
             end
 
             local_session_cookie = res.get_cookies.scan(/(_gitlab_session=[A-Za-z0-9%-]+)/).flatten[0]
             auth_token = res.body.scan(/<input name="authenticity_token" type="hidden" value="(.*?)"/).flatten[0]
 
-            fail RuntimeError, 'Unable to get Session Cookie' unless local_session_cookie
-            fail RuntimeError, 'Unable to get Authentication Token' unless auth_token
+            raise 'Unable to get Session Cookie' unless local_session_cookie
+            raise 'Unable to get Authentication Token' unless auth_token
 
             # Perform the actual login
             req = cli.request_cgi(
-                                    'method' => 'POST',
-                                    'cookie' => local_session_cookie,
-                                    'uri'    => uri,
-                                    'vars_post' =>
-                                      {
-                                        'utf8' => "\xE2\x9C\x93",
-                                        'authenticity_token' => auth_token,
-                                        "#{user_field}" => credential.public,
-                                        'user[password]' => credential.private,
-                                        'user[remember_me]' => 0
-                                      }
+              'method' => 'POST',
+              'cookie' => local_session_cookie,
+              'uri'    => uri,
+              'vars_post' =>
+                {
+                  'utf8' => "\xE2\x9C\x93",
+                  'authenticity_token' => auth_token,
+                  user_field.to_s => credential.public,
+                  'user[password]' => credential.private,
+                  'user[remember_me]' => 0
+                }
             )
 
             res = cli.send_recv(req)
@@ -85,7 +86,7 @@ module Metasploit
             else
               result_opts.merge!(status: Metasploit::Model::Login::Status::INCORRECT, proof: res)
             end
-          rescue ::EOFError, Errno::ETIMEDOUT ,Errno::ECONNRESET, Rex::ConnectionError, OpenSSL::SSL::SSLError, ::Timeout::Error => e
+          rescue ::EOFError, Errno::ETIMEDOUT, Errno::ECONNRESET, Rex::ConnectionError, OpenSSL::SSL::SSLError, ::Timeout::Error => e
             result_opts.merge!(status: Metasploit::Model::Login::Status::UNABLE_TO_CONNECT, proof: e)
           ensure
             cli.close

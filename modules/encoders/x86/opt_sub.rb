@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Encoder
-
   Rank = ManualRanking
 
   ASM_SUBESP20 = "\x83\xEC\x20"
@@ -23,7 +23,7 @@ class MetasploitModule < Msf::Encoder
   def initialize
     super(
       'Name'             => 'Sub Encoder (optimised)',
-      'Description'      => %q{
+      'Description'      => %q(
         Encodes a payload using a series of SUB instructions and writing the
         encoded value to ESP. This concept is based on the known SUB encoding
         approach that is widely used to manually encode payloads with very
@@ -42,19 +42,20 @@ class MetasploitModule < Msf::Encoder
         start of the payload by setting the 'OverwriteProtect' flag to true.
         This adds 3-bytes to the start of the payload to bump ESP by 32 bytes
         so that it's clear of the top of the payload.
-      },
+      ),
       'Author'           => 'OJ Reeves <oj[at]buffered.io>',
       'Arch'             => ARCH_X86,
       'License'          => MSF_LICENSE,
-      'Decoder'          => { 'BlockSize'  => 4 }
+      'Decoder'          => { 'BlockSize' => 4 }
     )
 
     register_options(
       [
-        OptString.new( 'ValidCharSet', [ false, "Specify a known set of valid chars (ALPHA, ALPHANUM, FILEPATH)" ]),
-        OptBool.new( 'OverwriteProtect', [ false, "Indicate if the encoded payload requires protection against being overwritten", false])
+        OptString.new('ValidCharSet', [ false, "Specify a known set of valid chars (ALPHA, ALPHANUM, FILEPATH)" ]),
+        OptBool.new('OverwriteProtect', [ false, "Indicate if the encoded payload requires protection against being overwritten", false])
       ],
-      self.class)
+      self.class
+    )
   end
 
   #
@@ -75,7 +76,7 @@ class MetasploitModule < Msf::Encoder
     # int block so calculations are easy
     chunks = []
     sc = sc.bytes.to_a
-    while sc.length > 0
+    until sc.empty?
       chunk = sc.shift + (sc.shift << 8) + (sc.shift << 16) + (sc.shift << 24)
       chunks << chunk
     end
@@ -92,12 +93,10 @@ class MetasploitModule < Msf::Encoder
   def find_opposite_bytes(list)
     list.each_char do |b1|
       list.each_char do |b2|
-        if b1.ord & b2.ord == 0
-          return (b1 * 4), (b2 * 4)
-        end
+        return (b1 * 4), (b2 * 4) if b1.ord & b2.ord == 0
       end
     end
-    return nil, nil
+    [nil, nil]
   end
 
   #
@@ -117,7 +116,7 @@ class MetasploitModule < Msf::Encoder
         'ECX' => "\x51", 'EDX' => "\x52",
         'EDI' => "\x57", 'ESI' => "\x56"
       },
-      'POP' => { 'ESP' => "\x5C", 'EAX' => "\x58", }
+      'POP' => { 'ESP' => "\x5C", 'EAX' => "\x58" }
     }
 
     # set up our base register, defaulting to ESP if not specified
@@ -142,7 +141,7 @@ class MetasploitModule < Msf::Encoder
     when 'FILEPATH'
       char_set = CHAR_SET_FILEPATH
     else
-      for i in 0 .. 255
+      for i in 0..255
         char_set += i.chr.to_s
       end
     end
@@ -164,9 +163,7 @@ class MetasploitModule < Msf::Encoder
       raise EncodingError, "Bad character set contains characters that are required for this encoder to function."
     end
 
-    unless @asm['PUSH'][@base_reg]
-      raise EncodingError, "Invalid base register"
-    end
+    raise EncodingError, "Invalid base register" unless @asm['PUSH'][@base_reg]
 
     # get the offset from the specified base register, or default to zero if not specifed
     reg_offset = (datastore['BufferOffset'] || 0).to_i
@@ -196,7 +193,7 @@ class MetasploitModule < Msf::Encoder
     target = previous - chunk
     sum = [0, 0, 0]
 
-    4.times do |idx|
+    4.times do |_idx|
       b = (target >> shift) & 0xFF
       lo = md = hi = 0
 
@@ -232,14 +229,12 @@ class MetasploitModule < Msf::Encoder
       end
 
       # we ran out of chars to try
-      if lo >= @valid_bytes.length
-        return nil, nil
-      end
+      return nil, nil if lo >= @valid_bytes.length
 
       shift += 8
     end
 
-    return sum, chunk
+    [sum, chunk]
   end
 
   #
@@ -285,7 +280,7 @@ class MetasploitModule < Msf::Encoder
 
     # Write out a stubbed placeholder for the offset instruction based on
     # the base register, we'll update this later on when we know how big our payload is.
-    encoded, _ = sub_3(0, 0)
+    encoded, = sub_3(0, 0)
     raise EncodingError, "Couldn't offset base register." if encoded.nil?
     data << create_sub(encoded)
 
@@ -319,17 +314,16 @@ class MetasploitModule < Msf::Encoder
     # based on sizes so that the payload overlaps perfectly with the end of
     # our decoder
     total_offset = reg_offset + data.length + (chunks.length * 4) - 1
-    encoded, _ = sub_3(total_offset, 0)
+    encoded, = sub_3(total_offset, 0)
 
     # if we're still nil here, then we have an issue
     raise EncodingError, "Couldn't encode protection" if encoded.nil?
     patch = create_sub(encoded)
 
     # patch in the correct offset back at the start of our payload
-    data[base_reg_offset .. base_reg_offset + patch.length] = patch
+    data[base_reg_offset..base_reg_offset + patch.length] = patch
 
     # and we're done finally!
     data
   end
 end
-

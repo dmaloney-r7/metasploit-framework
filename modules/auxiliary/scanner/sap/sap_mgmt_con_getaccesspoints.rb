@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::Scanner
@@ -14,10 +14,10 @@ class MetasploitModule < Msf::Auxiliary
   def initialize
     super(
       'Name'         => 'SAP Management Console Get Access Points',
-      'Description'  => %q{
+      'Description'  => %q(
         This module simply attempts to output a list of SAP access points through the
         SAP Management Console SOAP Interface.
-      },
+      ),
       'References'   =>
         [
           # General
@@ -30,19 +30,20 @@ class MetasploitModule < Msf::Auxiliary
     register_options(
       [
         Opt::RPORT(50013),
-        OptString.new('URI', [false, 'Path to the SAP Management Console ', '/']),
-      ], self.class)
+        OptString.new('URI', [false, 'Path to the SAP Management Console ', '/'])
+      ], self.class
+    )
     register_autofilter_ports([ 50013 ])
     deregister_options('RHOST')
   end
 
   def run_host(ip)
     res = send_request_cgi({
-      'uri'      => normalize_uri(datastore['URI']),
-      'method'   => 'GET'
-    }, 25)
+                             'uri' => normalize_uri(datastore['URI']),
+                             'method' => 'GET'
+                           }, 25)
 
-    if not res
+    unless res
       print_error("#{rhost}:#{rport} [SAP] Unable to connect")
       return
     end
@@ -74,19 +75,19 @@ class MetasploitModule < Msf::Auxiliary
 
     begin
       res = send_request_raw({
-        'uri'      => normalize_uri(datastore['URI']),
-        'method'   => 'POST',
-        'data'     => data,
-        'headers'  =>
+                               'uri' => normalize_uri(datastore['URI']),
+                               'method'   => 'POST',
+                               'data'     => data,
+                               'headers'  =>
           {
             'Content-Length' => data.length,
             'SOAPAction'     => '""',
-            'Content-Type'   => 'text/xml; charset=UTF-8',
+            'Content-Type'   => 'text/xml; charset=UTF-8'
           }
-      }, 30)
+                             }, 30)
 
       env = []
-      if res and res.code == 200
+      if res && (res.code == 200)
         case res.body
         when nil
           # Nothing
@@ -96,10 +97,10 @@ class MetasploitModule < Msf::Auxiliary
           env = body.scan(/<address>(.*?)<\/address><port>(.*?)<\/port><protocol>(.*?)<\/protocol><processname>(.*?)<\/processname><active>(.*?)<\/active>/i)
           success = true
         end
-      elsif res and res.code == 500
+      elsif res && (res.code == 500)
         case res.body
         when /<faultstring>(.*)<\/faultstring>/i
-          faultcode = $1.strip
+          faultcode = Regexp.last_match(1).strip
           fault = true
         end
       end
@@ -112,18 +113,19 @@ class MetasploitModule < Msf::Auxiliary
     if success
 
       saptbl = Msf::Ui::Console::Table.new(
-      Msf::Ui::Console::Table::Style::Default,
-      'Header'    => "[SAP] Access Points #{rhost}:#{rport}",
-      'Prefix'    => "\n",
-      'Indent'    => 1,
-      'Columns'   =>
-      [
-        "address",
-        "port",
-        "protocol",
-        "processname",
-        "active"
-      ])
+        Msf::Ui::Console::Table::Style::Default,
+        'Header'    => "[SAP] Access Points #{rhost}:#{rport}",
+        'Prefix'    => "\n",
+        'Indent'    => 1,
+        'Columns'   =>
+        [
+          "address",
+          "port",
+          "protocol",
+          "processname",
+          "active"
+        ]
+      )
 
       env.each do |output|
         saptbl << [ output[0], output[1], output[2], output[3], output[4] ]
@@ -137,7 +139,7 @@ class MetasploitModule < Msf::Auxiliary
         ".xml"
       )
 
-      print_good("#{rhost}:#{rport} [SAP] Access Point List: #{env.length} entries extracted\n#{saptbl.to_s}")
+      print_good("#{rhost}:#{rport} [SAP] Access Point List: #{env.length} entries extracted\n#{saptbl}")
       return
 
     elsif fault

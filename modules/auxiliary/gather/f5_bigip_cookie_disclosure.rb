@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -11,37 +12,37 @@ class MetasploitModule < Msf::Auxiliary
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'F5 BigIP Backend Cookie Disclosure',
-      'Description'    => %q{
-        This module identifies F5 BigIP load balancers and leaks backend
-        information (pool name, backend's IP address and port, routed domain)
-        through cookies inserted by the BigIP system.
-      },
-      'Author'         =>
-        [
-          'Thanat0s <thanspam[at]trollprod.org>',
-          'Oleg Broslavsky <ovbroslavsky[at]gmail.com>',
-          'Nikita Oleksov <neoleksov[at]gmail.com>',
-          'Denis Kolegov <dnkolegov[at]gmail.com>'
-        ],
-      'References'     =>
-        [
-          ['URL', 'http://support.f5.com/kb/en-us/solutions/public/6000/900/sol6917.html'],
-          ['URL', 'http://support.f5.com/kb/en-us/solutions/public/7000/700/sol7784.html?sr=14607726']
-        ],
-      'License'        => MSF_LICENSE,
-      'DefaultOptions' =>
-        {
-          'SSL'        => true
-        }
-    ))
+                      'Name'           => 'F5 BigIP Backend Cookie Disclosure',
+                      'Description'    => %q{
+                        This module identifies F5 BigIP load balancers and leaks backend
+                        information (pool name, backend's IP address and port, routed domain)
+                        through cookies inserted by the BigIP system.
+                      },
+                      'Author'         =>
+                        [
+                          'Thanat0s <thanspam[at]trollprod.org>',
+                          'Oleg Broslavsky <ovbroslavsky[at]gmail.com>',
+                          'Nikita Oleksov <neoleksov[at]gmail.com>',
+                          'Denis Kolegov <dnkolegov[at]gmail.com>'
+                        ],
+                      'References'     =>
+                        [
+                          ['URL', 'http://support.f5.com/kb/en-us/solutions/public/6000/900/sol6917.html'],
+                          ['URL', 'http://support.f5.com/kb/en-us/solutions/public/7000/700/sol7784.html?sr=14607726']
+                        ],
+                      'License'        => MSF_LICENSE,
+                      'DefaultOptions' =>
+                        {
+                          'SSL' => true
+                        }))
 
     register_options(
       [
         OptInt.new('RPORT', [true, 'The BigIP service port to listen on', 443]),
         OptString.new('TARGETURI', [true, 'The URI path to test', '/']),
         OptInt.new('REQUESTS', [true, 'The number of requests to send', 10])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def change_endianness(value, size = 4)
@@ -56,23 +57,22 @@ class MetasploitModule < Msf::Auxiliary
 
   def cookie_decode(cookie_value)
     backend = {}
-    case
-    when cookie_value =~ /(\d{8,10})\.(\d{1,5})\./
+    if cookie_value =~ /(\d{8,10})\.(\d{1,5})\./
       host = Regexp.last_match(1).to_i
       port = Regexp.last_match(2).to_i
       host = change_endianness(host)
       host = Rex::Socket.addr_itoa(host)
       port = change_endianness(port, 2)
-    when cookie_value.downcase =~ /rd\d+o0{20}f{4}([a-f0-9]{8})o(\d{1,5})/
+    elsif cookie_value.downcase =~ /rd\d+o0{20}f{4}([a-f0-9]{8})o(\d{1,5})/
       host = Regexp.last_match(1).to_i(16)
       port = Regexp.last_match(2).to_i
       host = Rex::Socket.addr_itoa(host)
-    when cookie_value.downcase =~ /vi([a-f0-9]{32})\.(\d{1,5})/
+    elsif cookie_value.downcase =~ /vi([a-f0-9]{32})\.(\d{1,5})/
       host = Regexp.last_match(1).to_i(16)
       port = Regexp.last_match(2).to_i
       host = Rex::Socket.addr_itoa(host, true)
       port = change_endianness(port, 2)
-    when cookie_value.downcase =~ /rd\d+o([a-f0-9]{32})o(\d{1,5})/
+    elsif cookie_value.downcase =~ /rd\d+o([a-f0-9]{32})o(\d{1,5})/
       host = Regexp.last_match(1).to_i(16)
       port = Regexp.last_match(2).to_i
       host = Rex::Socket.addr_itoa(host, true)
@@ -88,7 +88,7 @@ class MetasploitModule < Msf::Auxiliary
 
   def get_cookie # request a page and extract a F5 looking cookie.
     cookie = {}
-    res = send_request_raw({ 'method' => 'GET', 'uri' => @uri })
+    res = send_request_raw('method' => 'GET', 'uri' => @uri)
 
     unless res.nil?
       # Get the SLB session IDs for all cases:
@@ -105,8 +105,8 @@ class MetasploitModule < Msf::Auxiliary
         (?:$|,|;|\s)
       /x
       m = res.get_cookies.match(regexp)
-      cookie[:id] = (m.nil?) ? nil : m[1]
-      cookie[:value] = (m.nil?) ? nil : m[2]
+      cookie[:id] = m.nil? ? nil : m[1]
+      cookie[:value] = m.nil? ? nil : m[2]
     end
     cookie
   end
@@ -148,11 +148,11 @@ class MetasploitModule < Msf::Auxiliary
       report_note(host: rhost, type: 'f5_load_balancer_backends', data: backends)
     end
 
-    rescue ::Rex::ConnectionRefused
-      print_error("Network connection error")
-    rescue ::Rex::ConnectionError
-      print_error("Network connection error")
-    rescue ::OpenSSL::SSL::SSLError
-      print_error("SSL/TLS connection error")
+  rescue ::Rex::ConnectionRefused
+    print_error("Network connection error")
+  rescue ::Rex::ConnectionError
+    print_error("Network connection error")
+  rescue ::OpenSSL::SSL::SSLError
+    print_error("SSL/TLS connection error")
   end
 end

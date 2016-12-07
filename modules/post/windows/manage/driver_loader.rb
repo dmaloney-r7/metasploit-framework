@@ -1,10 +1,10 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
 class MetasploitModule < Msf::Post
-
   include Msf::Post::File
   include Msf::Post::Windows::Priv
   include Msf::Post::Windows::Services
@@ -16,42 +16,42 @@ class MetasploitModule < Msf::Post
     "auto"      => "SERVICE_AUTO_START",
     "disabled"  => "SERVICE_DISABLED",
     "system"    => "SERVICE_SYSTEM_START"
-  }
+  }.freeze
 
   ERROR_TYPE = {
     "critical"  => "SERVICE_ERROR_CRITICAL",
     "normal"    => "SERVICE_ERROR_NORMAL",
     "severe"    => "SERVICE_ERROR_SEVERE",
     "ignore"    => "SERVICE_ERROR_IGNORE"
-  }
+  }.freeze
 
   SERVICE_TYPE = {
     "kernel"       => "SERVICE_KERNEL_DRIVER",
     "file_system"  => "SERVICE_FILE_SYSTEM_DRIVER",
     "adapter"      => "SERVICE_ADAPTER",
     "recognizer"   => "SERVICE_RECOGNIZER_DRIVER"
-  }
+  }.freeze
 
-  def initialize(info={})
-    super( update_info( info,
-      'Name'          => 'Windows Manage Driver Loader',
-      'Description'   => %q{
-        This module loads a KMD (Kernel Mode Driver) using the Windows Service API.
-      },
-      'License'       => MSF_LICENSE,
-      'Author'        => 'Borja Merino <bmerinofe[at]gmail.com>',
-      'Platform'      => 'win',
-      'SessionTypes'  => [ 'meterpreter' ]
-    ))
+  def initialize(info = {})
+    super(update_info(info,
+                      'Name'          => 'Windows Manage Driver Loader',
+                      'Description'   => %q{
+                        This module loads a KMD (Kernel Mode Driver) using the Windows Service API.
+                      },
+                      'License'       => MSF_LICENSE,
+                      'Author'        => 'Borja Merino <bmerinofe[at]gmail.com>',
+                      'Platform'      => 'win',
+                      'SessionTypes'  => [ 'meterpreter' ]))
 
     register_options(
       [
         OptString.new('DRIVER_PATH', [true,  'Driver path in %SYSTEMROOT%. Example: c:\\windows\\system32\\msf.sys']),
         OptString.new('DRIVER_NAME', [false, 'Driver Name.']),
-        OptEnum.new('START_TYPE',    [true,  'Start type.', 'auto', [ 'boot', 'system', 'auto', 'demand','disabled']]),
+        OptEnum.new('START_TYPE',    [true,  'Start type.', 'auto', [ 'boot', 'system', 'auto', 'demand', 'disabled']]),
         OptEnum.new('SERVICE_TYPE',  [true,  'Service type.', 'kernel', [ 'kernel', 'file_system', 'adapter', 'recognizer']]),
         OptEnum.new('ERROR_TYPE',    [true,  'Error type.', 'ignore', [ 'ignore', 'normal', 'severe', 'critical']])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def run
@@ -60,7 +60,7 @@ class MetasploitModule < Msf::Post
     error = ERROR_TYPE[datastore['ERROR_TYPE']]
     service = SERVICE_TYPE[datastore['SERVICE_TYPE']]
 
-    name = datastore['DRIVER_NAME'].blank? ? Rex::Text.rand_text_alpha((rand(8)+6)) : datastore['DRIVER_NAME']
+    name = datastore['DRIVER_NAME'].blank? ? Rex::Text.rand_text_alpha((rand(8) + 6)) : datastore['DRIVER_NAME']
 
     unless is_admin?
       print_error("Administrator or better privileges needed. Try 'getsystem' first.")
@@ -94,7 +94,7 @@ class MetasploitModule < Msf::Post
     end
   end
 
-  def install_driver(name, opts={})
+  def install_driver(name, opts = {})
     rc = service_create(name, opts)
 
     if rc == Windows::Error::SUCCESS
@@ -108,6 +108,6 @@ class MetasploitModule < Msf::Post
     else
       print_error("There was an error opening the driver handler. GetLastError=#{rc}.")
     end
-    return false
+    false
   end
 end

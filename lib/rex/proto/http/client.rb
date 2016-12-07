@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 require 'rex/socket'
 require 'rex/proto/http'
@@ -9,7 +10,6 @@ require 'rex/proto/http/client_request'
 module Rex
 module Proto
 module Http
-
 ###
 #
 # Acts as a client to an HTTP server, sending requests and receiving responses.
@@ -18,7 +18,6 @@ module Http
 #
 ###
 class Client
-
   DefaultUserAgent = ClientRequest::DefaultUserAgent
 
   #
@@ -35,10 +34,8 @@ class Client
     self.password = password
 
     # Take ClientRequest's defaults, but override with our own
-    self.config = Http::ClientRequest::DefaultConfig.merge({
-      'read_max_data'   => (1024*1024*1),
-      'vhost'           => self.hostname,
-    })
+    self.config = Http::ClientRequest::DefaultConfig.merge(                                                             'read_max_data'   => (1024 * 1024 * 1),
+      'vhost'           => hostname)
 
     # XXX: This info should all be controlled by ClientRequest
     self.config_types = {
@@ -69,21 +66,20 @@ class Client
       'chunked_size'           => 'integer'
     }
 
-
   end
 
   #
   # Set configuration options
   #
   def set_config(opts = {})
-    opts.each_pair do |var,val|
+    opts.each_pair do |var, val|
       # Default type is string
-      typ = self.config_types[var] || 'string'
+      typ = config_types[var] || 'string'
 
       # These are enum types
       if typ.is_a?(Array)
-        if not typ.include?(val)
-          raise RuntimeError, "The specified value for #{var} is not one of the valid choices"
+        unless typ.include?(val)
+          raise "The specified value for #{var} is not one of the valid choices"
         end
       end
 
@@ -91,15 +87,13 @@ class Client
       # take care of the case where they didn't before setting the
       # config.
 
-      if(typ == 'bool')
+      if (typ == 'bool')
         val = (val =~ /^(t|y|1)$/i ? true : false || val === true)
       end
 
-      if(typ == 'integer')
-        val = val.to_i
-      end
+      val = val.to_i if (typ == 'integer')
 
-      self.config[var]=val
+      config[var] = val
     end
   end
 
@@ -122,16 +116,15 @@ class Client
   # @option opts 'vhost'         [String] Host header value
   #
   # @return [ClientRequest]
-  def request_raw(opts={})
-    opts = self.config.merge(opts)
+  def request_raw(opts = {})
+    opts = config.merge(opts)
 
-    opts['ssl']         = self.ssl
+    opts['ssl']         = ssl
     opts['cgi']         = false
-    opts['port']        = self.port
+    opts['port']        = port
 
     req = ClientRequest.new(opts)
   end
-
 
   #
   # Create a CGI compatible request
@@ -144,13 +137,13 @@ class Client
   # @option opts 'vars_post'     [Hash]   POST variables as a hash to be translated into POST data
   #
   # @return [ClientRequest]
-  def request_cgi(opts={})
-    opts = self.config.merge(opts)
+  def request_cgi(opts = {})
+    opts = config.merge(opts)
 
-    opts['ctype']       ||= 'application/x-www-form-urlencoded'
-    opts['ssl']         = self.ssl
+    opts['ctype'] ||= 'application/x-www-form-urlencoded'
+    opts['ssl']         = ssl
     opts['cgi']         = true
-    opts['port']        = self.port
+    opts['port']        = port
 
     req = ClientRequest.new(opts)
     req
@@ -164,25 +157,25 @@ class Client
   # @return [Rex::Socket::Tcp]
   def connect(t = -1)
     # If we already have a connection and we aren't pipelining, close it.
-    if (self.conn)
+    if conn
       if !pipelining?
         close
       else
-        return self.conn
+        return conn
       end
     end
 
-    timeout = (t.nil? or t == -1) ? 0 : t
+    timeout = t.nil? || (t == -1) ? 0 : t
 
     self.conn = Rex::Socket::Tcp.create(
-      'PeerHost'   => self.hostname,
-      'PeerPort'   => self.port.to_i,
-      'LocalHost'  => self.local_host,
-      'LocalPort'  => self.local_port,
-      'Context'    => self.context,
-      'SSL'        => self.ssl,
-      'SSLVersion' => self.ssl_version,
-      'Proxies'    => self.proxies,
+      'PeerHost'   => hostname,
+      'PeerPort'   => port.to_i,
+      'LocalHost'  => local_host,
+      'LocalPort'  => local_port,
+      'Context'    => context,
+      'SSL'        => ssl,
+      'SSLVersion' => ssl_version,
+      'Proxies'    => proxies,
       'Timeout'    => timeout
     )
   end
@@ -191,9 +184,9 @@ class Client
   # Closes the connection to the remote server.
   #
   def close
-    if (self.conn)
-      self.conn.shutdown
-      self.conn.close unless self.conn.closed?
+    if conn
+      conn.shutdown
+      conn.close unless conn.closed?
     end
 
     self.conn = nil
@@ -206,9 +199,9 @@ class Client
   # authentication and return the final response
   #
   # @return (see #_send_recv)
-  def send_recv(req, t = -1, persist=false)
-    res = _send_recv(req,t,persist)
-    if res and res.code == 401 and res.headers['WWW-Authenticate']
+  def send_recv(req, t = -1, persist = false)
+    res = _send_recv(req, t, persist)
+    if res && (res.code == 401) && res.headers['WWW-Authenticate']
       res = send_auth(res, req.opts, t, persist)
     end
     res
@@ -224,11 +217,11 @@ class Client
   # authentication handling.
   #
   # @return (see #read_response)
-  def _send_recv(req, t = -1, persist=false)
+  def _send_recv(req, t = -1, persist = false)
     @pipeline = persist
     send_request(req, t)
     res = read_response(t)
-    res.request = req.to_s if res
+    res&.request = req.to_s
     res
   end
 
@@ -255,17 +248,17 @@ class Client
   #
   # @return [Response] the last valid HTTP response object we received
   def send_auth(res, opts, t, persist)
-    if opts['username'].nil? or opts['username'] == ''
-      if self.username and not (self.username == '')
-        opts['username'] = self.username
-        opts['password'] = self.password
+    if opts['username'].nil? || (opts['username'] == '')
+      if username && (!(username == ''))
+        opts['username'] = username
+        opts['password'] = password
       else
         opts['username'] = nil
         opts['password'] = nil
       end
     end
 
-    return res if opts['username'].nil? or opts['username'] == ''
+    return res if opts['username'].nil? || (opts['username'] == '')
     supported_auths = res.headers['WWW-Authenticate']
 
     # if several providers are available, the client may want one in particular
@@ -273,39 +266,39 @@ class Client
 
     if supported_auths.include?('Basic') && (preferred_auth.nil? || preferred_auth == 'Basic')
       opts['headers'] ||= {}
-      opts['headers']['Authorization'] = basic_auth_header(opts['username'],opts['password'] )
+      opts['headers']['Authorization'] = basic_auth_header(opts['username'], opts['password'])
       req = request_cgi(opts)
-      res = _send_recv(req,t,persist)
+      res = _send_recv(req, t, persist)
       return res
     elsif supported_auths.include?('Digest') && (preferred_auth.nil? || preferred_auth == 'Digest')
       temp_response = digest_auth(opts)
-      if temp_response.kind_of? Rex::Proto::Http::Response
+      if temp_response.is_a? Rex::Proto::Http::Response
         res = temp_response
       end
       return res
     elsif supported_auths.include?('NTLM') && (preferred_auth.nil? || preferred_auth == 'NTLM')
       opts['provider'] = 'NTLM'
       temp_response = negotiate_auth(opts)
-      if temp_response.kind_of? Rex::Proto::Http::Response
+      if temp_response.is_a? Rex::Proto::Http::Response
         res = temp_response
       end
       return res
     elsif supported_auths.include?('Negotiate') && (preferred_auth.nil? || preferred_auth == 'Negotiate')
       opts['provider'] = 'Negotiate'
       temp_response = negotiate_auth(opts)
-      if temp_response.kind_of? Rex::Proto::Http::Response
+      if temp_response.is_a? Rex::Proto::Http::Response
         res = temp_response
       end
       return res
     end
-    return res
+    res
   end
 
   # Converts username and password into the HTTP Basic authorization
   # string.
   #
   # @return [String] A value suitable for use as an Authorization header
-  def basic_auth_header(username,password)
+  def basic_auth_header(username, password)
     auth_str = username.to_s + ":" + password.to_s
     auth_str = "Basic " + Rex::Text.encode_base64(auth_str)
   end
@@ -314,7 +307,7 @@ class Client
   #
   # @param opts [Hash] the options used to build an HTTP request
   # @return [Response] the last valid HTTP response we received
-  def digest_auth(opts={})
+  def digest_auth(opts = {})
     @nonce_count = 0
 
     to = opts['timeout'] || 20
@@ -325,7 +318,7 @@ class Client
     method = opts['method']
     path = opts['uri']
     iis = true
-    if (opts['DigestAuthIIS'] == false or self.config['DigestAuthIIS'] == false)
+    if (opts['DigestAuthIIS'] == false) || (config['DigestAuthIIS'] == false)
       iis = false
     end
 
@@ -334,19 +327,16 @@ class Client
 
     resp = opts['response']
 
-    if not resp
+    unless resp
       # Get authentication-challenge from server, and read out parameters required
-      r = request_cgi(opts.merge({
-          'uri' => path,
-          'method' => method }))
+      r = request_cgi(opts.merge(                                   'uri' => path,
+          'method' => method))
       resp = _send_recv(r, to)
-      unless resp.kind_of? Rex::Proto::Http::Response
+      unless resp.is_a? Rex::Proto::Http::Response
         return nil
       end
 
-      if resp.code != 401
-        return resp
-      end
+      return resp if resp.code != 401
       return resp unless resp.headers['WWW-Authenticate']
     end
 
@@ -357,39 +347,39 @@ class Client
     resp['www-authenticate'] =~ /Digest (.*)/
 
     parameters = {}
-    $1.split(/,[[:space:]]*/).each do |p|
+    Regexp.last_match(1).split(/,[[:space:]]*/).each do |p|
       k, v = p.split("=", 2)
-      parameters[k] = v.gsub('"', '')
+      parameters[k] = v.delete('"')
     end
 
     qop = parameters['qop']
 
     if parameters['algorithm'] =~ /(.*?)(-sess)?$/
-      algorithm = case $1
-      when 'MD5' then Digest::MD5
-      when 'SHA1' then Digest::SHA1
-      when 'SHA2' then Digest::SHA2
-      when 'SHA256' then Digest::SHA256
-      when 'SHA384' then Digest::SHA384
-      when 'SHA512' then Digest::SHA512
-      when 'RMD160' then Digest::RMD160
-      else raise Error, "unknown algorithm \"#{$1}\""
+      algorithm = case Regexp.last_match(1)
+                  when 'MD5' then Digest::MD5
+                  when 'SHA1' then Digest::SHA1
+                  when 'SHA2' then Digest::SHA2
+                  when 'SHA256' then Digest::SHA256
+                  when 'SHA384' then Digest::SHA384
+                  when 'SHA512' then Digest::SHA512
+                  when 'RMD160' then Digest::RMD160
+      else raise Error, "unknown algorithm \"#{Regexp.last_match(1)}\""
       end
       algstr = parameters["algorithm"]
-      sess = $2
+      sess = Regexp.last_match(2)
     else
       algorithm = Digest::MD5
       algstr = "MD5"
       sess = false
     end
 
-    a1 = if sess then
+    a1 = if sess
       [
         algorithm.hexdigest("#{digest_user}:#{parameters['realm']}:#{digest_password}"),
         parameters['nonce'],
         @cnonce
       ].join ':'
-    else
+         else
       "#{digest_user}:#{parameters['realm']}:#{digest_password}"
     end
 
@@ -417,27 +407,24 @@ class Client
       # Use the non-compliant-but-everybody-does-it to be as compatible
       # as possible by default.  The user can override if they don't like
       # it.
-      if qop.nil? then
-      elsif iis then
+      if qop.nil?
+      elsif iis
         "qop=\"#{qop}\""
       else
         "qop=#{qop}"
       end,
-      if parameters.key? 'opaque' then
-        "opaque=\"#{parameters['opaque']}\""
-      end
+      "opaque=\"#{parameters['opaque']}\"" if parameters.key? 'opaque'
     ].compact
 
-    headers ={ 'Authorization' => auth.join(', ') }
+    headers = { 'Authorization' => auth.join(', ') }
     headers.merge!(opts['headers']) if opts['headers']
 
     # Send main request with authentication
-    r = request_cgi(opts.merge({
-      'uri' => path,
+    r = request_cgi(opts.merge(                                 'uri' => path,
       'method' => method,
-      'headers' => headers }))
+      'headers' => headers))
     resp = _send_recv(r, to, true)
-    unless resp.kind_of? Rex::Proto::Http::Response
+    unless resp.is_a? Rex::Proto::Http::Response
       return nil
     end
 
@@ -455,29 +442,28 @@ class Client
   # @option opts provider ["Negotiate","NTLM"] What Negotiate provider to use
   #
   # @return [Response] the last valid HTTP response we received
-  def negotiate_auth(opts={})
-
+  def negotiate_auth(opts = {})
     to = opts['timeout'] || 20
     opts['username'] ||= ''
     opts['password'] ||= ''
 
-    if opts['provider'] and opts['provider'].include? 'Negotiate'
-      provider = "Negotiate "
+    provider = if opts['provider'] && opts['provider'].include?('Negotiate')
+      "Negotiate "
     else
-      provider = "NTLM "
-    end
+      "NTLM "
+               end
 
-    opts['method']||= 'GET'
-    opts['headers']||= {}
+    opts['method'] ||= 'GET'
+    opts['headers'] ||= {}
 
-    workstation_name = Rex::Text.rand_text_alpha(rand(8)+6)
-    domain_name = self.config['domain']
+    workstation_name = Rex::Text.rand_text_alpha(rand(8) + 6)
+    domain_name = config['domain']
 
     ntlm_client = ::Net::NTLM::Client.new(
       opts['username'],
       opts['password'],
       workstation: workstation_name,
-      domain: domain_name,
+      domain: domain_name
     )
     type1 = ntlm_client.init_context
 
@@ -487,7 +473,7 @@ class Client
 
       r = request_cgi(opts)
       resp = _send_recv(r, to)
-      unless resp.kind_of? Rex::Proto::Http::Response
+      unless resp.is_a? Rex::Proto::Http::Response
         return nil
       end
 
@@ -503,7 +489,7 @@ class Client
       opts['headers']['Authorization'] = "#{provider}#{ntlm_message_3.encode64}"
       r = request_cgi(opts)
       resp = _send_recv(r, to, true)
-      unless resp.kind_of? Rex::Proto::Http::Response
+      unless resp.is_a? Rex::Proto::Http::Response
         return nil
       end
       return resp
@@ -518,7 +504,6 @@ class Client
   #
   # @return [Response]
   def read_response(t = -1, opts = {})
-
     resp = Response.new
     resp.max_data = config['read_max_data']
 
@@ -527,16 +512,15 @@ class Client
     # wait cycle.  If t were specified as nil it would indicate that no
     # response parsing is required.
 
-    return resp if not t
+    return resp unless t
 
-    Timeout.timeout((t < 0) ? nil : t) do
-
+    Timeout.timeout(t < 0 ? nil : t) do
       rv = nil
-      while (
-               not conn.closed? and
-               rv != Packet::ParseCode::Completed and
-               rv != Packet::ParseCode::Error
-              )
+      while 
+               (!conn.closed?) &&
+               (rv != Packet::ParseCode::Completed) &&
+               (rv != Packet::ParseCode::Error)
+      
 
         begin
 
@@ -556,34 +540,33 @@ class Client
         end
 
         # This is a dirty hack for broken HTTP servers
-        if rv == Packet::ParseCode::Completed
-          rbody = resp.body
-          rbufq = resp.bufq
+        next unless rv == Packet::ParseCode::Completed
+        rbody = resp.body
+        rbufq = resp.bufq
 
-          rblob = rbody.to_s + rbufq.to_s
-          tries = 0
-          begin
-            # XXX: This doesn't deal with chunked encoding or "Content-type: text/html; charset=..."
-            while tries < 1000 and resp.headers["Content-Type"]== "text/html" and rblob !~ /<\/html>/i
-              buff = conn.get_once(-1, 0.05)
-              break if not buff
-              rblob += buff
-              tries += 1
-            end
-          rescue ::Errno::EPIPE, ::EOFError, ::IOError
+        rblob = rbody.to_s + rbufq.to_s
+        tries = 0
+        begin
+          # XXX: This doesn't deal with chunked encoding or "Content-type: text/html; charset=..."
+          while tries < 1000 && (resp.headers["Content-Type"] == "text/html") && rblob !~ /<\/html>/i
+            buff = conn.get_once(-1, 0.05)
+            break unless buff
+            rblob += buff
+            tries += 1
           end
-
-          resp.bufq = ""
-          resp.body = rblob
+        rescue ::Errno::EPIPE, ::EOFError, ::IOError
         end
+
+        resp.bufq = ""
+        resp.body = rblob
       end
     end
 
-    return resp if not resp
+    return resp unless resp
 
     # As a last minute hack, we check to see if we're dealing with a 100 Continue here.
     # Most of the time this is handled by the parser via check_100()
-    if resp.proto == '1.1' and resp.code == 100 and not opts[:skip_100]
+    if (resp.proto == '1.1') && (resp.code == 100) && (not opts[:skip_100])
       # Read the real response from the body if we found one
       # If so, our real response became the body, so we re-parse it.
       if resp.body.to_s =~ /^HTTP/
@@ -594,7 +577,7 @@ class Client
       # We found a 100 Continue but didn't read the real reply yet
       # Otherwise reread the reply, but don't try this hack again
       else
-        resp = read_response(t, :skip_100 => true)
+        resp = read_response(t, skip_100: true)
       end
     end
 
@@ -661,15 +644,13 @@ class Client
   # When parsing the request, thunk off the first response from the server, since junk
   attr_accessor :junk_pipeline
 
-protected
+  protected
 
   # https
   attr_accessor :ssl, :ssl_version # :nodoc:
 
   attr_accessor :hostname, :port # :nodoc:
-
 end
-
 end
 end
 end

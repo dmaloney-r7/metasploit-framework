@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -16,20 +17,19 @@ class MetasploitModule < Msf::Post
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'          => 'Windows Gather Microsoft Office Trusted Locations',
-      'Description'   => %q( This module will enumerate the Microsoft Office trusted locations on the target host. ),
-      'License'       => MSF_LICENSE,
-      'Author'        => [ 'vysec <vincent.yiu[at]mwrinfosecurity.com>' ],
-      'Platform'      => [ 'win' ],
-      'SessionTypes'  => [ 'meterpreter' ]
-    ))
+                      'Name'          => 'Windows Gather Microsoft Office Trusted Locations',
+                      'Description'   => %q( This module will enumerate the Microsoft Office trusted locations on the target host. ),
+                      'License'       => MSF_LICENSE,
+                      'Author'        => [ 'vysec <vincent.yiu[at]mwrinfosecurity.com>' ],
+                      'Platform'      => [ 'win' ],
+                      'SessionTypes'  => [ 'meterpreter' ]))
   end
 
-  def print_status(msg='')
+  def print_status(msg = '')
     super("#{peer} - #{msg}")
   end
 
-  def print_good(msg='')
+  def print_good(msg = '')
     super("#{peer} - #{msg}")
   end
 
@@ -56,14 +56,14 @@ class MetasploitModule < Msf::Post
         end
 
         vprint_status('Found applications.')
-        #find version to use
+        # find version to use
         applications.each do |application|
           trusted_locations_path = "#{version_path}\\#{application}\\#{TRUSTED_LOCATIONS_PATH}"
           trusted_locations = registry_enumkeys(trusted_locations_path, registry_arch)
           next if trusted_locations.nil?
 
           print_good("Found trusted locations in #{application}")
-          #find version to use
+          # find version to use
           trusted_locations.each do |location|
             location_path = "#{trusted_locations_path}\\#{location}"
             description = registry_getvaldata(location_path, 'Description', registry_arch)

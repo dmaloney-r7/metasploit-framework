@@ -1,55 +1,53 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 require 'rex/post/meterpreter/client'
 require 'rex/post/meterpreter/extensions/stdapi/constants'
 
 module Rex
-module Post
-module Meterpreter
-module Extensions
-module Stdapi
-module Sys
-module ProcessSubsystem
+  module Post
+    module Meterpreter
+      module Extensions
+        module Stdapi
+          module Sys
+            module ProcessSubsystem
+              ###
+              #
+              # This class provides an input/output interface to an executed
+              # process' standard input and output.
+              #
+              ###
+              class IO
+                ##
+                #
+                # Constructor
+                #
+                ##
 
-###
-#
-# This class provides an input/output interface to an executed
-# process' standard input and output.
-#
-###
-class IO
+                #
+                # Initializes the IO instance.
+                #
+                def initialize(process)
+                  self.process = process
+                end
 
-  ##
-  #
-  # Constructor
-  #
-  ##
+                #
+                # Writes the supplied buffer to the standard input handle of the
+                # executed process.
+                #
+                def write(buf)
+                  process.channel.write(buf)
+                end
 
-  #
-  # Initializes the IO instance.
-  #
-  def initialize(process)
-    self.process = process
-  end
+                #
+                # Reads data from the standard output handle of the executed process.
+                #
+                def read(length = nil)
+                  process.channel.read(length)
+                end
 
-  #
-  # Writes the supplied buffer to the standard input handle of the
-  # executed process.
-  #
-  def write(buf)
-    return process.channel.write(buf)
-  end
+                protected
 
-  #
-  # Reads data from the standard output handle of the executed process.
-  #
-  def read(length = nil)
-    return process.channel.read(length)
-  end
-
-protected
-  attr_accessor :process # :nodoc:
-
-end
-
-end; end; end; end; end; end; end
+                attr_accessor :process # :nodoc:
+              end
+            end; end; end; end; end; end; end

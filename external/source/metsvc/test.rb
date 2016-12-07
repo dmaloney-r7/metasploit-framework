@@ -1,16 +1,17 @@
 #!/usr/bin/ruby
+# frozen_string_literal: true
 
-$:.unshift(File.join(File.dirname(__FILE__), '..', '..', '..', 'lib'))
+$LOAD_PATH.unshift(File.join(File.dirname(__FILE__), '..', '..', '..', 'lib'))
 
 require 'openssl'
 require 'rex'
 
 require 'rex/post/meterpreter'
 
-ip   = ARGV.shift() || exit
-port = ARGV.shift() || 31337
+ip   = ARGV.shift || exit
+port = ARGV.shift || 31337
 
-if (ip == nil || port == nil)
+if ip.nil? || port.nil?
   puts "Syntax: test.rb <ip> [port]\n"
   exit
 end

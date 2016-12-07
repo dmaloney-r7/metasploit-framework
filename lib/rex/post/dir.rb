@@ -1,51 +1,49 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 module Rex
-module Post
+  module Post
+    ###
+    #
+    # This class wraps the behavior of the Ruby Dir class against a remote entity.
+    # Refer to the Ruby documentation for expected behavior.
+    #
+    ###
+    class Dir
+      def self.entries(_name)
+        raise NotImplementedError
+    end
 
-###
-#
-# This class wraps the behavior of the Ruby Dir class against a remote entity.
-# Refer to the Ruby documentation for expected behavior.
-#
-###
-class Dir
+      def self.foreach(name, &block)
+        entries(name).each(&block)
+      end
 
-  def Dir.entries(name)
-    raise NotImplementedError
-  end
+      def self.chdir(_path)
+        raise NotImplementedError
+      end
 
-  def Dir.foreach(name, &block)
-    entries(name).each(&block)
-  end
+      def self.mkdir(_path)
+        raise NotImplementedError
+      end
 
-  def Dir.chdir(path)
-    raise NotImplementedError
-  end
+      def self.pwd
+        raise NotImplementedError
+      end
 
-  def Dir.mkdir(path)
-    raise NotImplementedError
-  end
+      def self.getwd
+        raise NotImplementedError
+      end
 
-  def Dir.pwd
-    raise NotImplementedError
-  end
+      def self.delete(_path)
+        raise NotImplementedError
+      end
 
-  def Dir.getwd
-    raise NotImplementedError
-  end
+      def self.rmdir(_path)
+        raise NotImplementedError
+      end
 
-  def Dir.delete(path)
-    raise NotImplementedError
-  end
-
-  def Dir.rmdir(path)
-    raise NotImplementedError
-  end
-
-  def Dir.unlink(path)
-    raise NotImplementedError
-  end
-end
-
-end; end # Post/Rex
+      def self.unlink(_path)
+        raise NotImplementedError
+      end
+    end
+    end; end # Post/Rex

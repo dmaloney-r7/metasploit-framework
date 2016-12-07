@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::UDPScanner
   include Msf::Auxiliary::DRDoS
@@ -14,10 +14,10 @@ class MetasploitModule < Msf::Auxiliary
   def initialize
     super(
       'Name'        => 'Portmapper Amplification Scanner',
-      'Description' => %q{
+      'Description' => %q(
         This module can be used to discover Portmapper services which can be used in an
         amplification DDoS attack against a third party.
-      },
+      ),
       'Author'      => ['xistence <xistence[at]0x90.nl>'],
       'License'     => MSF_LICENSE,
       'References'  =>
@@ -27,9 +27,9 @@ class MetasploitModule < Msf::Auxiliary
         ],
     )
 
-    register_options( [
-      Opt::RPORT(111),
-    ], self.class)
+    register_options([
+                       Opt::RPORT(111)
+                     ], self.class)
   end
 
   def rport
@@ -37,15 +37,15 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   def xid_summary
-    @xid_summary ||= [Rex::Text::rand_text_numeric(8).to_i].pack('N')
+    @xid_summary ||= [Rex::Text.rand_text_numeric(8).to_i].pack('N')
   end
 
   def xid_dump
-    @xid_dump ||= [Rex::Text::rand_text_numeric(8).to_i].pack('N')
+    @xid_dump ||= [Rex::Text.rand_text_numeric(8).to_i].pack('N')
   end
 
   def xid_metrics
-    @xid_metrics ||= [Rex::Text::rand_text_numeric(8).to_i].pack('N')
+    @xid_metrics ||= [Rex::Text.rand_text_numeric(8).to_i].pack('N')
   end
 
   def setup
@@ -127,7 +127,7 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   # Called after the scan block
-  def scanner_postscan(batch)
+  def scanner_postscan(_batch)
     @results_summary.keys.each do |k|
       response_map_summary = { @portmap_summary => @results_summary[k] }
       what = 'Portmap RPC DUMP (Program version: 3) amplification'
@@ -171,5 +171,3 @@ class MetasploitModule < Msf::Auxiliary
     end
   end
 end
-
-

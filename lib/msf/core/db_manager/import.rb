@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 #
 # Standard library
 #
@@ -68,23 +69,23 @@ module Msf::DBManager::Import
   # If hex notation is present, turn them into a character.
   def dehex(str)
     hexen = str.scan(/\x5cx[0-9a-fA-F]{2}/n)
-    hexen.each { |h|
-      str.gsub!(h,h[2,2].to_i(16).chr)
-    }
-    return str
+    hexen.each do |h|
+      str.gsub!(h, h[2, 2].to_i(16).chr)
+    end
+    str
   end
 
   # A way to sneak the yield back into the db importer.
   # Used by the SAX parsers.
-  def emit(sym,data,&block)
-    yield(sym,data)
+  def emit(sym, data)
+    yield(sym, data)
   end
 
   # A dispatcher method that figures out the data's file type,
   # and sends it off to the appropriate importer. Note that
   # import_file_detect will raise an error if the filetype
   # is unknown.
-  def import(args={}, &block)
+  def import(args = {}, &block)
     wspace = args[:wspace] || args['wspace'] || workspace
     preserve_hosts = args[:task].options["DS_PRESERVE_HOSTS"] if args[:task].present? && args[:task].options.present?
     wspace.update_attribute(:import_fingerprint, true)
@@ -92,7 +93,7 @@ module Msf::DBManager::Import
     data = args[:data] || args['data']
     ftype = import_filetype_detect(data)
     yield(:filetype, @import_filedata[:type]) if block
-    self.send "import_#{ftype}".to_sym, args, &block
+    send "import_#{ftype}".to_sym, args, &block
     if preserve_hosts
       new_host_ids = Mdm::Host.where(workspace: wspace).map(&:id)
       (new_host_ids - existing_host_ids).each do |id|
@@ -109,7 +110,7 @@ module Msf::DBManager::Import
   # imported.  Since this looks for vendor-specific strings in the given
   # file, there shouldn't be any false detections, but no guarantees.
   #
-  def import_file(args={}, &block)
+  def import_file(args = {}, &block)
     filename = args[:filename] || args['filename']
     wspace = args[:wspace] || args['wspace'] || workspace
     @import_filedata            = {}
@@ -121,21 +122,19 @@ module Msf::DBManager::Import
       # since the other 4-byte checks will be subsets of this larger one.
       data = f.read(Metasploit::Credential::Exporter::Pwdump::FILE_ID_STRING.size)
     end
-    if data.nil?
-      raise Msf::DBImportError.new("Zero-length file")
-    end
+    raise Msf::DBImportError, "Zero-length file" if data.nil?
 
     if data.index(Metasploit::Credential::Exporter::Pwdump::FILE_ID_STRING)
       data = ::File.open(filename, 'rb')
     else
-      case data[0,4]
+      case data[0, 4]
       when "PK\x03\x04"
         # When Msf::DBManager::Import::MetasploitFramework is included, it's child namespace of
         # Msf::DBManager::Import::MetasploitFramework::Zip becomes resolvable as Zip here, so need to use ::Zip so Zip
         # is resolved as one from rubyzip gem.
         data = ::Zip::File.open(filename)
       when "\xd4\xc3\xb2\xa1".force_encoding('ASCII-8BIT'), "\xa1\xb2\xc3\xd4".force_encoding('ASCII-8BIT')
-        data = PacketFu::PcapFile.new(:filename => filename)
+        data = PacketFu::PcapFile.new(filename: filename)
       else
         ::File.open(filename, 'rb') do |f|
           sz = f.stat.size
@@ -148,9 +147,9 @@ module Msf::DBManager::Import
     REXML::Security.entity_expansion_text_limit = 51200
 
     if block
-      import(args.merge(:data => data)) { |type,data| yield type,data }
+      import(args.merge(data: data)) { |type, data| yield type, data }
     else
-      import(args.merge(:data => data))
+      import(args.merge(data: data))
     end
   end
 
@@ -197,15 +196,15 @@ module Msf::DBManager::Import
     # When Msf::DBManager::Import::MetasploitFramework is included, it's child namespace of
     # Msf::DBManager::Import::MetasploitFramework::Zip becomes resolvable as Zip here, so need to use ::Zip so Zip
     # is resolved as one from rubyzip gem.
-    if data and data.kind_of? ::Zip::File
+    if data && data.is_a?(::Zip::File)
       if data.entries.empty?
-        raise Msf::DBImportError.new("The zip file provided is empty.")
+        raise Msf::DBImportError, "The zip file provided is empty."
       end
 
       @import_filedata ||= {}
       @import_filedata[:zip_filename] = File.split(data.to_s).last
-      @import_filedata[:zip_basename] = @import_filedata[:zip_filename].gsub(/\.zip$/,"")
-      @import_filedata[:zip_entry_names] = data.entries.map {|x| x.name}
+      @import_filedata[:zip_basename] = @import_filedata[:zip_filename].gsub(/\.zip$/, "")
+      @import_filedata[:zip_entry_names] = data.entries.map(&:name)
 
       if @import_filedata[:zip_entry_names].include?(Metasploit::Credential::Importer::Zip::MANIFEST_FILE_NAME)
         @import_filedata[:type] = "Metasploit Credential Dump"
@@ -214,9 +213,9 @@ module Msf::DBManager::Import
 
       xml_files = @import_filedata[:zip_entry_names].grep(/^(.*)\.xml$/)
 
-      # TODO This check for our zip export should be more extensive
+      # TODO: This check for our zip export should be more extensive
       if xml_files.empty?
-        raise Msf::DBImportError.new("The zip file provided is not a Metasploit Zip Export")
+        raise Msf::DBImportError, "The zip file provided is not a Metasploit Zip Export"
       end
 
       @import_filedata[:zip_xml] = xml_files.first
@@ -225,26 +224,26 @@ module Msf::DBManager::Import
       return :msf_zip
     end
 
-    if data and data.kind_of? PacketFu::PcapFile
+    if data && data.is_a?(PacketFu::PcapFile)
       # Don't check for emptiness here because unlike other formats, we
       # haven't read any actual data in yet, only magic bytes to discover
       # that this is indeed a pcap file.
-      #raise Msf::DBImportError.new("The pcap file provided is empty.") if data.body.empty?
+      # raise Msf::DBImportError.new("The pcap file provided is empty.") if data.body.empty?
       @import_filedata ||= {}
       @import_filedata[:type] = "Libpcap Packet Capture"
       return :libpcap
     end
 
     # msfpwdump
-    if data.present? && data.kind_of?(::File)
+    if data.present? && data.is_a?(::File)
       @import_filedata[:type] = "Metasploit PWDump Export"
       return :msf_pwdump
     end
 
     # This is a text string, lets make sure its treated as binary
     data.force_encoding(Encoding::ASCII_8BIT)
-    if data and data.to_s.strip.length == 0
-      raise Msf::DBImportError.new("The data provided to the import function was empty")
+    if data && data.to_s.strip.empty?
+      raise Msf::DBImportError, "The data provided to the import function was empty"
     end
 
     # Parse the first line or 4k of data from the file
@@ -252,49 +251,49 @@ module Msf::DBManager::Import
 
     firstline = data[0, di]
     @import_filedata ||= {}
-    if (firstline.index("<NeXposeSimpleXML"))
+    if firstline.index("<NeXposeSimpleXML")
       @import_filedata[:type] = "NeXpose Simple XML"
       return :nexpose_simplexml
-    elsif (firstline.index("<FusionVM"))
+    elsif firstline.index("<FusionVM")
       @import_filedata[:type] = "FusionVM XML"
       return :fusionvm_xml
-    elsif (firstline.index("<NexposeReport"))
+    elsif firstline.index("<NexposeReport")
       @import_filedata[:type] = "NeXpose XML Report"
       return :nexpose_rawxml
-    elsif (firstline.index("Name,Manufacturer,Device Type,Model,IP Address,Serial Number,Location,Operating System"))
+    elsif firstline.index("Name,Manufacturer,Device Type,Model,IP Address,Serial Number,Location,Operating System")
       @import_filedata[:type] = "Spiceworks CSV Export"
       return :spiceworks_csv
-    elsif (firstline.index("<scanJob>"))
+    elsif firstline.index("<scanJob>")
       @import_filedata[:type] = "Retina XML"
       return :retina_xml
-    elsif (firstline.index(/<get_results_response status=['"]200['"] status_text=['"]OK['"]>/))
+    elsif firstline.index(/<get_results_response status=['"]200['"] status_text=['"]OK['"]>/)
       @import_filedata[:type] = "OpenVAS XML"
       return :openvas_new_xml
-    elsif (firstline.index(/<get_reports_response status=['"]200['"] status_text=['"]OK['"]>/))
+    elsif firstline.index(/<get_reports_response status=['"]200['"] status_text=['"]OK['"]>/)
       @import_filedata[:type] = "OpenVAS XML"
       return :openvas_new_xml
-    elsif (firstline.index(/<report id=['"]/))
+    elsif firstline.index(/<report id=['"]/)
       @import_filedata[:type] = "OpenVAS XML"
       return :openvas_new_xml
-    elsif (firstline.index("<NessusClientData>"))
+    elsif firstline.index("<NessusClientData>")
       @import_filedata[:type] = "Nessus XML (v1)"
       return :nessus_xml
-    elsif (firstline.index("<SecScan ID="))
+    elsif firstline.index("<SecScan ID=")
       @import_filedata[:type] = "Microsoft Baseline Security Analyzer"
       return :mbsa_xml
-    elsif (data[0,1024] =~ /<!ATTLIST\s+items\s+burpVersion/)
+    elsif data[0, 1024] =~ /<!ATTLIST\s+items\s+burpVersion/
       @import_filedata[:type] = "Burp Session XML"
       return :burp_session_xml
-    elsif (data[0,1024] =~ /<!ATTLIST\s+issues\s+burpVersion/)
+    elsif data[0, 1024] =~ /<!ATTLIST\s+issues\s+burpVersion/
       @import_filedata[:type] = "Burp Issue XML"
       return :burp_issue_xml
-    elsif (firstline.index("<?xml"))
+    elsif firstline.index("<?xml")
       # it's xml, check for root tags we can handle
       line_count = 0
-      data.each_line { |line|
+      data.each_line do |line|
         line =~ /<([a-zA-Z0-9\-\_]+)[ >]/
 
-        case $1
+        case Regexp.last_match(1)
         when "niktoscan"
           @import_filedata[:type] = "Nikto XML"
           return :nikto_xml
@@ -347,7 +346,7 @@ module Msf::DBManager::Import
           @import_filedata[:type] = "Appscan"
           return :appscan_xml
         when "entities"
-          if  line =~ /creator.*\x43\x4f\x52\x45\x20\x49\x4d\x50\x41\x43\x54/ni
+          if line =~ /creator.*\x43\x4f\x52\x45\x20\x49\x4d\x50\x41\x43\x54/ni
             @import_filedata[:type] = "CI"
             return :ci_xml
           end
@@ -359,16 +358,16 @@ module Msf::DBManager::Import
           break if line_count > 10
         end
         line_count += 1
-      }
-    elsif (firstline.index("timestamps|||scan_start"))
+      end
+    elsif firstline.index("timestamps|||scan_start")
       @import_filedata[:type] = "Nessus NBE Report"
       # then it's a nessus nbe
       return :nessus_nbe
-    elsif (firstline.index("# amap v"))
+    elsif firstline.index("# amap v")
       # then it's an amap mlog
       @import_filedata[:type] = "Amap Log -m"
       return :amap_mlog
-    elsif (firstline.index("amap v"))
+    elsif firstline.index("amap v")
       # then it's an amap log
       @import_filedata[:type] = "Amap Log"
       return :amap_log
@@ -376,42 +375,42 @@ module Msf::DBManager::Import
       # then its an IP list
       @import_filedata[:type] = "IP Address List"
       return :ip_list
-    elsif (data[0,1024].index("<netsparker"))
+    elsif data[0, 1024].index("<netsparker")
       @import_filedata[:type] = "NetSparker XML"
       return :netsparker_xml
-    elsif (firstline.index("# Metasploit PWDump Export"))
+    elsif firstline.index("# Metasploit PWDump Export")
       # then it's a Metasploit PWDump export
       @import_filedata[:type] = "Metasploit PWDump Export"
       return :msf_pwdump
     end
 
-    raise Msf::DBImportError.new("Could not automatically determine file type")
+    raise Msf::DBImportError, "Could not automatically determine file type"
   end
 
   # Handles timestamps from Metasploit Express/Pro imports.
-  def msf_import_timestamps(opts,obj)
+  def msf_import_timestamps(opts, obj)
     obj.created_at = opts["created_at"] if opts["created_at"]
     obj.created_at = opts[:created_at] if opts[:created_at]
     obj.updated_at = opts["updated_at"] ? opts["updated_at"] : obj.created_at
     obj.updated_at = opts[:updated_at] ? opts[:updated_at] : obj.created_at
-    return obj
+    obj
   end
 
-  def report_import_note(wspace,addr)
-    if @import_filedata.kind_of?(Hash) && @import_filedata[:filename] && @import_filedata[:filename] !~ /msfe-nmap[0-9]{8}/
-    report_note(
-      :workspace => wspace,
-      :host => addr,
-      :type => 'host.imported',
-      :data => @import_filedata.merge(:time=> Time.now.utc)
-    )
+  def report_import_note(wspace, addr)
+    if @import_filedata.is_a?(Hash) && @import_filedata[:filename] && @import_filedata[:filename] !~ /msfe-nmap[0-9]{8}/
+      report_note(
+        workspace: wspace,
+        host: addr,
+        type: 'host.imported',
+        data: @import_filedata.merge(time: Time.now.utc)
+      )
     end
   end
 
   # Returns a REXML::Document from the given data.
   def rexmlify(data)
-    if data.kind_of?(REXML::Document)
-      return data
+    if data.is_a?(REXML::Document)
+      data
     else
       # Make an attempt to recover from a REXML import fail, since
       # it's better than dying outright.
@@ -419,7 +418,7 @@ module Msf::DBManager::Import
         return REXML::Document.new(data)
       rescue REXML::ParseException => e
         dlog("REXML error: Badly formatted XML, attempting to recover. Error was: #{e.inspect}")
-        return REXML::Document.new(data.gsub(/([\x00-\x08\x0b\x0c\x0e-\x1f\x80-\xff])/n){ |x| "\\x%.2x" % x.unpack("C*")[0] })
+        return REXML::Document.new(data.gsub(/([\x00-\x08\x0b\x0c\x0e-\x1f\x80-\xff])/n) { |x| "\\x%.2x" % x.unpack("C*")[0] })
       end
     end
   end
@@ -429,19 +428,19 @@ module Msf::DBManager::Import
   # the standard ones recognized by metasploit
   #
   def service_name_map(proto)
-    return proto unless proto.kind_of? String
+    return proto unless proto.is_a? String
     case proto.downcase
     when "msrpc", "nfs-or-iis", "dce endpoint resolution"
       "dcerpc"
     when "ms-sql-s", "tds"
       "mssql"
-    when "ms-sql-m","microsoft sql monitor"
+    when "ms-sql-m", "microsoft sql monitor"
       "mssql-m"
-    when "postgresql";                  "postgres"
-    when "http-proxy";                  "http"
-    when "iiimsf";                      "db2"
-    when "oracle-tns";                  "oracle"
-    when "quickbooksrds";               "metasploit"
+    when "postgresql" then                  "postgres"
+    when "http-proxy" then                  "http"
+    when "iiimsf" then                      "db2"
+    when "oracle-tns" then                  "oracle"
+    when "quickbooksrds" then               "metasploit"
     when "microsoft remote display protocol"
       "rdp"
     when "vmware authentication daemon"
@@ -460,10 +459,10 @@ module Msf::DBManager::Import
       "jetdirect"
     when "dhcp server"
       "dhcp"
-    when /^dns-(udp|tcp)$/;             "dns"
-    when /^dce[\s+]rpc$/;               "dcerpc"
+    when /^dns-(udp|tcp)$/ then             "dns"
+    when /^dce[\s+]rpc$/ then               "dcerpc"
     else
-      proto.downcase.gsub(/\s*\(.*/, '')   # "service (some service)"
+      proto.downcase.gsub(/\s*\(.*/, '') # "service (some service)"
     end
   end
 
@@ -474,6 +473,6 @@ module Msf::DBManager::Import
     rescue Msf::DBImportError
       return false
     end
-    return true
+    true
   end
 end

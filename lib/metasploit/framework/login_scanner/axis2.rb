@@ -1,38 +1,37 @@
 
+# frozen_string_literal: true
 require 'metasploit/framework/login_scanner/http'
 
 module Metasploit
   module Framework
     module LoginScanner
-
       # Tomcat Manager login scanner
       class Axis2 < HTTP
-
         DEFAULT_PORT = 8080
         # Inherit LIKELY_PORTS,LIKELY_SERVICE_NAMES, and REALM_KEY from HTTP
 
         CAN_GET_SESSION = true
-        PRIVATE_TYPES   = [ :password ]
+        PRIVATE_TYPES   = [ :password ].freeze
 
         # (see Base#attempt_login)
         def attempt_login(credential)
           http_client = Rex::Proto::Http::Client.new(
-            host, port, {'Msf' => framework, 'MsfExploit' => framework_module}, ssl, ssl_version, proxies, http_username, http_password
+            host, port, { 'Msf' => framework, 'MsfExploit' => framework_module }, ssl, ssl_version, proxies, http_username, http_password
           )
 
           configure_http_client(http_client)
 
           result_opts = {
-              credential: credential,
-              host: host,
-              port: port,
-              protocol: 'tcp'
+            credential: credential,
+            host: host,
+            port: port,
+            protocol: 'tcp'
           }
-          if ssl
-            result_opts[:service_name] = 'https'
-          else
-            result_opts[:service_name] = 'http'
-          end
+          result_opts[:service_name] = if ssl
+                                         'https'
+                                       else
+                                         'http'
+                                       end
 
           begin
             http_client.connect
@@ -40,7 +39,7 @@ module Metasploit
             request = http_client.request_cgi(
               'uri' => uri,
               'method' => "POST",
-              'data' => body,
+              'data' => body
             )
             response = http_client.send_recv(request)
 
@@ -54,13 +53,12 @@ module Metasploit
           end
 
           Result.new(result_opts)
-
         end
 
         # (see Base#set_sane_defaults)
         def set_sane_defaults
-          self.uri = "/axis2/axis2-admin/login" if self.uri.nil?
-          @method = "POST".freeze
+          self.uri = "/axis2/axis2-admin/login" if uri.nil?
+          @method = "POST"
 
           super
         end
@@ -68,11 +66,9 @@ module Metasploit
         # The method *must* be "POST", so don't let the user change it
         # @raise [RuntimeError]
         def method=(_)
-          raise RuntimeError, "Method must be POST for Axis2"
+          raise "Method must be POST for Axis2"
         end
-
       end
     end
   end
 end
-

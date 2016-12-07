@@ -1,10 +1,10 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::SSH
   include Msf::Exploit::Remote::Fortinet
   include Msf::Auxiliary::Scanner
@@ -12,33 +12,32 @@ class MetasploitModule < Msf::Auxiliary
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Fortinet SSH Backdoor Scanner',
-      'Description'    => %q{
-        This module scans for the Fortinet SSH backdoor.
-      },
-      'Author'         => [
-        'operator8203 <operator8203[at]runbox.com>', # PoC
-        'wvu'                                        # Module
-      ],
-      'References'     => [
-        ['CVE', '2016-1909'],
-        ['EDB', '39224'],
-        ['PACKETSTORM', '135225'],
-        ['URL', 'http://seclists.org/fulldisclosure/2016/Jan/26'],
-        ['URL', 'https://blog.fortinet.com/post/brief-statement-regarding-issues-found-with-fortios']
-      ],
-      'DisclosureDate' => 'Jan 9 2016',
-      'License'        => MSF_LICENSE
-    ))
+                      'Name'           => 'Fortinet SSH Backdoor Scanner',
+                      'Description'    => %q(
+                        This module scans for the Fortinet SSH backdoor.
+                      ),
+                      'Author' => [
+                        'operator8203 <operator8203[at]runbox.com>', # PoC
+                        'wvu'                                        # Module
+                      ],
+                      'References' => [
+                        ['CVE', '2016-1909'],
+                        ['EDB', '39224'],
+                        ['PACKETSTORM', '135225'],
+                        ['URL', 'http://seclists.org/fulldisclosure/2016/Jan/26'],
+                        ['URL', 'https://blog.fortinet.com/post/brief-statement-regarding-issues-found-with-fortios']
+                      ],
+                      'DisclosureDate' => 'Jan 9 2016',
+                      'License'        => MSF_LICENSE))
 
     register_options([
-      Opt::RPORT(22)
-    ])
+                       Opt::RPORT(22)
+                     ])
 
     register_advanced_options([
-      OptBool.new('SSH_DEBUG',  [false, 'SSH debugging', false]),
-      OptInt.new('SSH_TIMEOUT', [false, 'SSH timeout', 10])
-    ])
+                                OptBool.new('SSH_DEBUG', [false, 'SSH debugging', false]),
+                                OptInt.new('SSH_TIMEOUT', [false, 'SSH timeout', 10])
+                              ])
   end
 
   def run_host(ip)
@@ -53,7 +52,7 @@ class MetasploitModule < Msf::Auxiliary
       proxy:           factory
     }
 
-    ssh_opts.merge!(verbose: :debug) if datastore['SSH_DEBUG']
+    ssh_opts[:verbose] = :debug if datastore['SSH_DEBUG']
 
     begin
       ssh = Timeout.timeout(datastore['SSH_TIMEOUT']) do
@@ -68,8 +67,8 @@ class MetasploitModule < Msf::Auxiliary
       print_good("#{ip}:#{rport} - Logged in as Fortimanager_Access")
       report_vuln(
         host: ip,
-        name: self.name,
-        refs: self.references,
+        name: name,
+        refs: references,
         info: ssh.transport.server_version.version
       )
     end
@@ -78,5 +77,4 @@ class MetasploitModule < Msf::Auxiliary
   def rport
     datastore['RPORT']
   end
-
 end

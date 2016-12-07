@@ -1,9 +1,10 @@
+# frozen_string_literal: true
 RSpec.shared_examples_for 'Msf::DBManager::Adapter' do
   context 'CONSTANTS' do
     context 'ADAPTER' do
-      subject(:adapter) {
+      subject(:adapter) do
         described_class::ADAPTER
-      }
+      end
 
       it { is_expected.to eq('postgresql') }
     end

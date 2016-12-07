@@ -1,16 +1,15 @@
 
+# frozen_string_literal: true
 require 'metasploit/framework/login_scanner/http'
 
 module Metasploit
   module Framework
     module LoginScanner
-
       # The Zabbix HTTP LoginScanner class provides methods to do login routines
       # for Zabbix 2.4 and 2.2
       class Zabbix < HTTP
-
         DEFAULT_PORT  = 80
-        PRIVATE_TYPES = [ :password ]
+        PRIVATE_TYPES = [ :password ].freeze
 
         # @!attribute version
         #   @return [String] Product version
@@ -37,11 +36,10 @@ module Metasploit
           Result.new(result_opts)
         end
 
-
         # (see Base#check_setup)
         def check_setup
           begin
-            res = send_request({'uri' => normalize_uri('/')})
+            res = send_request('uri' => normalize_uri('/'))
             return "Connection failed" if res.nil?
 
             if res.code != 200
@@ -52,7 +50,7 @@ module Metasploit
               return "Unexpected HTTP body (is this really Zabbix?)"
             end
 
-            self.version = $1
+            self.version = Regexp.last_match(1)
 
           rescue ::EOFError, Errno::ETIMEDOUT, Rex::ConnectionError, ::Timeout::Error
             return "Unable to connect to target"
@@ -66,7 +64,7 @@ module Metasploit
         # @param (see Rex::Proto::Http::Resquest#request_raw)
         # @return [Rex::Proto::Http::Response] The HTTP response
         def send_request(opts)
-          cli = Rex::Proto::Http::Client.new(host, port, {'Msf' => framework, 'MsfExploit' => self}, ssl, ssl_version, proxies, http_username, http_password)
+          cli = Rex::Proto::Http::Client.new(host, port, { 'Msf' => framework, 'MsfExploit' => self }, ssl, ssl_version, proxies, http_username, http_password)
           configure_http_client(cli)
           cli.connect
           req = cli.request_raw(opts)
@@ -74,7 +72,7 @@ module Metasploit
 
           # Found a cookie? Set it. We're going to need it.
           if res && res.get_cookies =~ /zbx_sessionid=(\w*);/i
-            self.zsession = $1
+            self.zsession = Regexp.last_match(1)
           end
 
           res
@@ -85,8 +83,7 @@ module Metasploit
         # @param credential [Metasploit::Framework::Credential] The credential object
         # @return [Rex::Proto::Http::Response] The HTTP auth response
         def try_credential(credential)
-
-          data  = "request="
+          data = "request="
           data << "&name=#{Rex::Text.uri_encode(credential.public)}"
           data << "&password=#{Rex::Text.uri_encode(credential.private)}"
           data << "&autologin=1"
@@ -97,13 +94,12 @@ module Metasploit
             'method'  => 'POST',
             'data'    => data,
             'headers' => {
-              'Content-Type'   => 'application/x-www-form-urlencoded'
+              'Content-Type' => 'application/x-www-form-urlencoded'
             }
           }
 
           send_request(opts)
         end
-
 
         # Tries to login to Zabbix
         #
@@ -118,20 +114,18 @@ module Metasploit
               'uri'     => normalize_uri('profile.php'),
               'method'  => 'GET',
               'headers' => {
-                'Cookie'  => "zbx_sessionid=#{self.zsession}"
+                'Cookie' => "zbx_sessionid=#{zsession}"
               }
             }
             res = send_request(opts)
-            if (res && res.code == 200 && res.body.to_s =~ /<title>Zabbix .*: User profile<\/title>/)
-              return {:status => Metasploit::Model::Login::Status::SUCCESSFUL, :proof => res.body}
+            if res && res.code == 200 && res.body.to_s =~ /<title>Zabbix .*: User profile<\/title>/
+              return { status: Metasploit::Model::Login::Status::SUCCESSFUL, proof: res.body }
             end
           end
 
-          {:status => Metasploit::Model::Login::Status::INCORRECT, :proof => res.body}
+          { status: Metasploit::Model::Login::Status::INCORRECT, proof: res.body }
         end
-
       end
     end
   end
 end
-

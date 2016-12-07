@@ -1,38 +1,37 @@
+# frozen_string_literal: true
 require 'metasploit/framework/login_scanner/http'
 
 module Metasploit
   module Framework
     module LoginScanner
-
       # Wordpress XML RPC login scanner
       class WordpressRPC < HTTP
-
         # (see Base#attempt_login)
         def attempt_login(credential)
           http_client = Rex::Proto::Http::Client.new(
-              host, port, {'Msf' => framework, 'MsfExploit' => framework_module}, ssl, ssl_version, proxies, http_username, http_password
+            host, port, { 'Msf' => framework, 'MsfExploit' => framework_module }, ssl, ssl_version, proxies, http_username, http_password
           )
           configure_http_client(http_client)
 
           result_opts = {
-              credential: credential,
-              host: host,
-              port: port,
-              protocol: 'tcp'
+            credential: credential,
+            host: host,
+            port: port,
+            protocol: 'tcp'
           }
-          if ssl
-            result_opts[:service_name] = 'https'
-          else
-            result_opts[:service_name] = 'http'
-          end
+          result_opts[:service_name] = if ssl
+                                         'https'
+                                       else
+                                         'http'
+                                       end
 
           begin
             http_client.connect
 
             request = http_client.request_cgi(
-                'uri' => uri,
-                'method' => method,
-                'data' => generate_xml_request(credential.public,credential.private)
+              'uri' => uri,
+              'method' => method,
+              'data' => generate_xml_request(credential.public, credential.private)
             )
             response = http_client.send_recv(request)
 
@@ -48,7 +47,6 @@ module Metasploit
           end
 
           Result.new(result_opts)
-
         end
 
         # This method generates the XML data for the RPC login request
@@ -69,12 +67,10 @@ module Metasploit
 
         # (see Base#set_sane_defaults)
         def set_sane_defaults
-          @method = "POST".freeze
+          @method = "POST"
           super
         end
-
       end
     end
   end
 end
-

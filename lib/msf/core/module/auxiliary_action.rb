@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 require 'msf/core'
 
@@ -7,14 +8,12 @@ require 'msf/core'
 #
 ###
 class Msf::Module::AuxiliaryAction
-
-
   #
   # Serialize from an array to an Action instance.
   #
   def self.from_a(ary)
     return nil if ary.nil?
-    self.new(*ary)
+    new(*ary)
   end
 
   #
@@ -27,7 +26,7 @@ class Msf::Module::AuxiliaryAction
   #
   # Creates a new action definition
   #
-  def initialize(name, opts={})
+  def initialize(name, opts = {})
     self.name        = name
     self.opts        = opts
     self.description = opts['Description'] || ''
@@ -53,8 +52,7 @@ class Msf::Module::AuxiliaryAction
   #
   attr_reader :opts
 
-protected
+  protected
 
   attr_writer :name, :opts, :description # :nodoc:
-
 end

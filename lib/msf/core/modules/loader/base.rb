@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 #
 # Project
@@ -22,7 +23,7 @@ class Msf::Modules::Loader::Base
     Msf::MODULE_NOP => 'nops',
     Msf::MODULE_PAYLOAD => 'payloads',
     Msf::MODULE_POST => 'post'
-  }
+  }.freeze
   # This must calculate the first line of the NAMESPACE_MODULE_CONTENT string so that errors are reported correctly
   NAMESPACE_MODULE_LINE = __LINE__ + 4
   # By calling module_eval from inside the module definition, the lexical scope is captured and available to the code in
@@ -56,7 +57,7 @@ class Msf::Modules::Loader::Base
   MODULE_SEPARATOR = '::'
   # The base namespace name under which {#create_namespace_module
   # namespace modules are created}.
-  NAMESPACE_MODULE_NAMES = ['Msf', 'Modules']
+  NAMESPACE_MODULE_NAMES = ['Msf', 'Modules'].freeze
   # Regex that can distinguish regular ruby source from unit test source.
   UNIT_TEST_REGEX = /rb\.(ut|ts)\.rb$/
 
@@ -74,7 +75,7 @@ class Msf::Modules::Loader::Base
   #
   # @param path (see #load_modules)
   # @return [Boolean]
-  def loadable?(path)
+  def loadable?(_path)
     raise ::NotImplementedError
   end
 
@@ -107,7 +108,7 @@ class Msf::Modules::Loader::Base
   #
   # @see #read_module_content
   # @see Msf::ModuleManager::Loading#file_changed?
-  def load_module(parent_path, type, module_reference_name, options={})
+  def load_module(parent_path, type, module_reference_name, options = {})
     options.assert_valid_keys(:count_by_type, :force, :recalculate_by_type, :reload)
     force = options[:force] || false
     reload = options[:reload] || false
@@ -115,7 +116,7 @@ class Msf::Modules::Loader::Base
     module_path = self.module_path(parent_path, type, module_reference_name)
     file_changed = module_manager.file_changed?(module_path)
 
-    unless force or file_changed
+    unless force || file_changed
       dlog("Cached module from #{module_path} has not changed.", 'core', LEV_2)
 
       return false
@@ -131,7 +132,7 @@ class Msf::Modules::Loader::Base
     end
 
     klass = nil
-    try_eval_module = lambda { |namespace_module|
+    try_eval_module = lambda do |namespace_module|
       # set the parent_path so that the module can be reloaded with #load_module
       namespace_module.parent_path = parent_path
 
@@ -154,11 +155,9 @@ class Msf::Modules::Loader::Base
       elsif namespace_module.const_defined?('MetasploitModule', false)
         klass = namespace_module.const_get('MetasploitModule', false)
       else
-        load_error(module_path, Msf::Modules::Error.new({
-          :module_path => module_path,
-          :module_reference_name => module_reference_name,
-          :causal_message => 'Invalid module (no MetasploitModule class or module name)'
-        }))
+        load_error(module_path, Msf::Modules::Error.new(module_path: module_path,
+                                                        module_reference_name: module_reference_name,
+                                                        causal_message: 'Invalid module (no MetasploitModule class or module name)'))
         return false
       end
 
@@ -171,37 +170,31 @@ class Msf::Modules::Loader::Base
       module_manager.module_load_error_by_path.delete(module_path)
 
       true
-    }
-
-    loaded = namespace_module_transaction(type + "/" + module_reference_name, :reload => reload, &try_eval_module)
-    unless loaded
-      return false
     end
+
+    loaded = namespace_module_transaction(type + "/" + module_reference_name, reload: reload, &try_eval_module)
+    return false unless loaded
 
     # Do some processing on the loaded module to get it into the right associations
     module_manager.on_module_load(
-        klass,
-        type,
-        module_reference_name,
-        {
-            # files[0] is stored in the {Msf::Module#file_path} and is used to reload the module, so it needs to be a
-            # full path
-            'files' => [
-                module_path
-            ],
-            'paths' => [
-                module_reference_name
-            ],
-            'type' => type
-        }
+      klass,
+      type,
+      module_reference_name,
+      # files[0] is stored in the {Msf::Module#file_path} and is used to reload the module, so it needs to be a
+      # full path
+      'files' => [
+        module_path
+      ],
+      'paths' => [
+        module_reference_name
+      ],
+      'type' => type
     )
 
     # Set this module type as needing recalculation
     recalculate_by_type = options[:recalculate_by_type]
 
-    if recalculate_by_type
-      recalculate_by_type[type] = true
-    end
+    recalculate_by_type[type] = true if recalculate_by_type
 
     # The number of loaded modules this round
     count_by_type = options[:count_by_type]
@@ -211,7 +204,7 @@ class Msf::Modules::Loader::Base
       count_by_type[type] += 1
     end
 
-    return true
+    true
   end
 
   # Loads all of the modules from the supplied path.
@@ -226,7 +219,7 @@ class Msf::Modules::Loader::Base
   # @option options [Array] whitelist An array of regex patterns to search for specific modules
   # @return [Hash{String => Integer}] Maps module type to number of
   #   modules loaded
-  def load_modules(path, options={})
+  def load_modules(path, options = {})
     options.assert_valid_keys(:force)
 
     force = options[:force]
@@ -235,12 +228,12 @@ class Msf::Modules::Loader::Base
 
     each_module_reference_name(path, options) do |parent_path, type, module_reference_name|
       load_module(
-          parent_path,
-          type,
-          module_reference_name,
-          :recalculate_by_type => recalculate_by_type,
-          :count_by_type => count_by_type,
-          :force => force
+        parent_path,
+        type,
+        module_reference_name,
+        recalculate_by_type: recalculate_by_type,
+        count_by_type: count_by_type,
+        force: force
       )
     end
 
@@ -279,7 +272,7 @@ class Msf::Modules::Loader::Base
 
     dlog("Reloading module #{module_reference_name}...", 'core')
 
-    if load_module(parent_path, type, module_reference_name, :force => true, :reload => true)
+    if load_module(parent_path, type, module_reference_name, force: true, reload: true)
       # Create a new instance of the module
       reloaded_module_instance = module_manager.create(module_reference_name)
 
@@ -332,14 +325,14 @@ class Msf::Modules::Loader::Base
 
     nested_module_names = namespace_module_names.reverse
 
-    namespace_module_content = nested_module_names.inject(NAMESPACE_MODULE_CONTENT) { |wrapped_content, module_name|
+    namespace_module_content = nested_module_names.inject(NAMESPACE_MODULE_CONTENT) do |wrapped_content, module_name|
       lines = []
       lines << "module #{module_name}"
       lines << wrapped_content
       lines << "end"
 
       lines.join("\n")
-    }
+    end
 
     # - because the added wrap lines have to act like they were written before NAMESPACE_MODULE_CONTENT
     line_with_wrapping = NAMESPACE_MODULE_LINE - nested_module_names.length
@@ -360,7 +353,7 @@ class Msf::Modules::Loader::Base
   # @return [nil] if any module name along the chain does not exist.
   def current_module(module_names)
     # Don't want to trigger ActiveSupport's const_missing, so can't use constantize.
-    named_module = module_names.inject(Object) { |parent, module_name|
+    named_module = module_names.inject(Object) do |parent, module_name|
       # Since we're searching parent namespaces first anyway, this is
       # semantically equivalent to providing false for the 1.9-only
       # "inherit" parameter to const_defined?. If we ever drop 1.8
@@ -370,7 +363,7 @@ class Msf::Modules::Loader::Base
       else
         break
       end
-    }
+    end
 
     named_module
   end
@@ -386,7 +379,7 @@ class Msf::Modules::Loader::Base
   # @yieldparam type [String] the type of the module.
   # @yieldparam module_reference_name [String] The canonical name for referencing the module.
   # @return [void]
-  def each_module_reference_name(path)
+  def each_module_reference_name(_path)
     raise ::NotImplementedError
   end
 
@@ -444,7 +437,7 @@ class Msf::Modules::Loader::Base
   # @param type (see #load_module)
   # @param module_reference_name (see #load_module)
   # @return [String] The path to module.
-  def module_path(parent_path, type, module_reference_name)
+  def module_path(_parent_path, _type, _module_reference_name)
     raise ::NotImplementedError
   end
 
@@ -461,9 +454,9 @@ class Msf::Modules::Loader::Base
 
     extension = File.extname(path)
 
-    unless (path[0,1] == "." or
-            extension != MODULE_EXTENSION or
-            path =~ UNIT_TEST_REGEX)
+    unless (path[0, 1] == ".") ||
+           (extension != MODULE_EXTENSION) ||
+           path =~ UNIT_TEST_REGEX
       module_path = true
     end
 
@@ -509,7 +502,7 @@ class Msf::Modules::Loader::Base
     NAMESPACE_MODULE_NAMES + [ "Mod" + module_full_name.unpack("H*").first.downcase ]
   end
 
-  def namespace_module_transaction(module_full_name, options={}, &block)
+  def namespace_module_transaction(module_full_name, options = {})
     options.assert_valid_keys(:reload)
 
     reload = options[:reload] || false
@@ -517,7 +510,7 @@ class Msf::Modules::Loader::Base
 
     previous_namespace_module = current_module(namespace_module_names)
 
-    if previous_namespace_module and not reload
+    if previous_namespace_module && !reload
       elog("Reloading namespace_module #{previous_namespace_module} when :reload => false")
     end
 
@@ -536,7 +529,7 @@ class Msf::Modules::Loader::Base
     parent_module = namespace_module.parent
 
     begin
-      loaded = block.call(namespace_module)
+      loaded = yield(namespace_module)
     rescue Exception
       restore_namespace_module(parent_module, relative_name, previous_namespace_module)
 
@@ -559,7 +552,7 @@ class Msf::Modules::Loader::Base
   # @param type (see #load_module)
   # @param module_reference_name (see #load_module)
   # @return [String] module content that can be module_evaled into the {#create_namespace_module}
-  def read_module_content(parent_path, type, module_reference_name)
+  def read_module_content(_parent_path, _type, _module_reference_name)
     raise ::NotImplementedError
   end
 
@@ -618,5 +611,4 @@ class Msf::Modules::Loader::Base
   def typed_path(type, module_reference_name)
     self.class.typed_path(type, module_reference_name)
   end
-
 end

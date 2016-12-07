@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,9 +8,7 @@ require 'rex/proto/http'
 require 'msf/core'
 require 'thread'
 
-
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::WmapScanDir
   include Msf::Auxiliary::Scanner
@@ -17,36 +16,33 @@ class MetasploitModule < Msf::Auxiliary
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'   		=> 'HTTP Directory Scanner',
-      'Description'	=> %q{
-        This module identifies the existence of interesting directories
-        in a given directory path.
-      },
-      'Author' 		=> [ 'et [at] metasploit.com' ],
-      'License'		=> BSD_LICENSE))
+                      'Name' => 'HTTP Directory Scanner',
+                      'Description'	=> %q(
+                        This module identifies the existence of interesting directories
+                        in a given directory path.
+                      ),
+                      'Author' 		=> [ 'et [at] metasploit.com' ],
+                      'License'		=> BSD_LICENSE))
 
     register_options(
       [
-        OptString.new('PATH', [ true,  "The path  to identify files", '/']),
-        OptPath.new('DICTIONARY',   [ false, "Path of word dictionary to use",
-            File.join(Msf::Config.data_directory, "wmap", "wmap_dirs.txt")
-          ]
-        )
+        OptString.new('PATH', [ true, "The path  to identify files", '/']),
+        OptPath.new('DICTIONARY', [ false, "Path of word dictionary to use",
+                                    File.join(Msf::Config.data_directory, "wmap", "wmap_dirs.txt")])
 
-      ], self.class)
+      ], self.class
+    )
 
     register_advanced_options(
       [
         OptInt.new('ErrorCode', [ false, "Error code for non existent directory" ]),
-        OptPath.new('HTTP404Sigs',   [ false, "Path of 404 signatures to use",
-            File.join(Msf::Config.data_directory, "wmap", "wmap_404s.txt")
-          ]
-        ),
+        OptPath.new('HTTP404Sigs', [ false, "Path of 404 signatures to use",
+                                     File.join(Msf::Config.data_directory, "wmap", "wmap_404s.txt")]),
         OptBool.new('NoDetailMessages', [ false, "Do not display detailed test messages", true ]),
         OptInt.new('TestThreads', [ true, "Number of test threads", 25])
 
-      ], self.class)
-
+      ], self.class
+    )
   end
 
   def run_host(ip)
@@ -55,16 +51,13 @@ class MetasploitModule < Msf::Auxiliary
     emesg = nil
 
     tpath = normalize_uri(datastore['PATH'])
-    if tpath[-1,1] != '/'
-      tpath += '/'
-    end
+    tpath += '/' if tpath[-1, 1] != '/'
 
     ecode = datastore['ErrorCode'].to_i
     vhost = datastore['VHOST'] || wmap_target_host
     prot  = datastore['SSL'] ? 'https' : 'http'
 
-
-    if (ecode == 0)
+    if ecode == 0
       # Then the user didn't specify one, go request a (probably)
       # nonexistent file to detect what to use.
       begin
@@ -74,28 +67,28 @@ class MetasploitModule < Msf::Auxiliary
         print_status("Detecting error code")
         randdir = Rex::Text.rand_text_alpha(5).chomp + '/'
         res = send_request_cgi({
-          'uri'  		=>  tpath+randdir,
-          'method'   	=> 'GET',
-          'ctype'		=> 'text/html'
-        }, 20)
+                                 'uri' => tpath + randdir,
+                                 'method' => 'GET',
+                                 'ctype'		=> 'text/html'
+                               }, 20)
 
-        return if not res
+        return unless res
 
         tcode = res.code.to_i
 
         # Look for a string we can signature on as well
-        if(tcode >= 200 and tcode <= 299)
+        if (tcode >= 200) && (tcode <= 299)
 
           File.open(datastore['HTTP404Sigs'], 'rb').each do |str|
-            if(res.body.index(str))
+            if res.body.index(str)
               emesg = str
               break
             end
           end
 
-          if(not emesg)
+          if !emesg
             print_status("Using first 256 bytes of the response as 404 string for #{wmap_target_host}")
-            emesg = res.body[0,256]
+            emesg = res.body[0, 256]
           else
             print_status("Using custom 404 string of '#{emesg}' for #{wmap_target_host}")
           end
@@ -109,7 +102,7 @@ class MetasploitModule < Msf::Auxiliary
       end
     end
 
-    return if not conn
+    return unless conn
 
     nt = datastore['TestThreads'].to_i
     nt = 1 if nt == 0
@@ -121,40 +114,39 @@ class MetasploitModule < Msf::Auxiliary
       queue << testd.strip + '/'
     end
 
-    while(not queue.empty?)
+    until queue.empty?
       t = []
       1.upto(nt) do
-        t << framework.threads.spawn("Module(#{self.refname})-#{rhost}", false, queue.shift) do |testf|
-          Thread.current.kill if not testf
+        t << framework.threads.spawn("Module(#{refname})-#{rhost}", false, queue.shift) do |testf|
+          Thread.current.kill unless testf
 
           testfdir = testf
           res = send_request_cgi({
-            'uri'  		=>  tpath+testfdir,
-            'method'   	=> 'GET',
-            'ctype'		=> 'text/html'
-          }, 20)
+                                   'uri' => tpath + testfdir,
+                                   'method' => 'GET',
+                                   'ctype'		=> 'text/html'
+                                 }, 20)
 
-
-          if(not res or ((res.code.to_i == ecode) or (emesg and res.body.index(emesg))))
+          if !res || ((res.code.to_i == ecode) || (emesg && res.body.index(emesg)))
             if dm == false
               print_status("NOT Found #{wmap_base_url}#{tpath}#{testfdir} #{res.code} (#{wmap_target_host})")
             end
           else
 
             report_web_vuln(
-              :host	=> ip,
-              :port	=> rport,
-              :vhost  => vhost,
-              :ssl    => ssl,
-              :path	=> "#{tpath}#{testfdir}",
-              :method => 'GET',
-              :pname  => "",
-              :proof  => "Res code: #{res.code.to_s}",
-              :risk   => 0,
-              :confidence   => 100,
-              :category     => 'directory',
-              :description  => 'Directoy found.',
-              :name   => 'directory'
+              host: ip,
+              port: rport,
+              vhost: vhost,
+              ssl: ssl,
+              path: "#{tpath}#{testfdir}",
+              method: 'GET',
+              pname: "",
+              proof: "Res code: #{res.code}",
+              risk: 0,
+              confidence: 100,
+              category: 'directory',
+              description: 'Directoy found.',
+              name: 'directory'
             )
 
             print_status("Found #{wmap_base_url}#{tpath}#{testfdir} #{res.code} (#{wmap_target_host})")
@@ -163,21 +155,20 @@ class MetasploitModule < Msf::Auxiliary
               print_status("#{wmap_base_url}#{tpath}#{testfdir} requires authentication: #{res.headers['WWW-Authenticate']}")
 
               report_note(
-                :host	=> ip,
-                :port	=> rport,
-                :proto => 'tcp',
-                :sname	=> (ssl ? 'https' : 'http'),
-                :type	=> 'WWW_AUTHENTICATE',
-                :data	=> "#{tpath}#{testfdir} Auth: #{res.headers['WWW-Authenticate']}",
-                :update => :unique_data
+                host: ip,
+                port: rport,
+                proto: 'tcp',
+                sname: (ssl ? 'https' : 'http'),
+                type: 'WWW_AUTHENTICATE',
+                data: "#{tpath}#{testfdir} Auth: #{res.headers['WWW-Authenticate']}",
+                update: :unique_data
               )
 
             end
           end
-
         end
       end
-      t.map{|x| x.join }
+      t.map(&:join)
     end
   end
 end

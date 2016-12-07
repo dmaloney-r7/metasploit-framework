@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::Udp
   include Msf::Auxiliary::Report
 
@@ -42,9 +42,7 @@ class MetasploitModule < Msf::Auxiliary
     return unless pkt[1]
 
     # strip to just the IPv4 address
-    if pkt[1] =~ /^::ffff:/
-      pkt[1] = pkt[1].sub(/^::ffff:/, '')
-    end
+    pkt[1] = pkt[1].sub(/^::ffff:/, '') if pkt[1] =~ /^::ffff:/
 
     # check for and extract the version string
     ver = pkt[0].scan(/version>(.*)<\/version/i).flatten.first

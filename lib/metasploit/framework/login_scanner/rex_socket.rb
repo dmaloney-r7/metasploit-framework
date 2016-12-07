@@ -1,9 +1,9 @@
+# frozen_string_literal: true
 require 'metasploit/framework/login_scanner'
 
 module Metasploit
   module Framework
     module LoginScanner
-
       # This module provides the common mixin behaviour for
       # LoginScanner objects that rely on Rex Sockets for their
       # underlying communication.
@@ -11,7 +11,6 @@ module Metasploit
         extend ActiveSupport::Concern
 
         included do
-
           # @!attribute ssl
           #   @return [Boolean] Whether the socket should use ssl
           attr_accessor :ssl

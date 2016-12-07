@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::RealPort
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::Scanner
@@ -32,7 +32,7 @@ class MetasploitModule < Msf::Auxiliary
     if realport_connect
       info = "#{@realport_name} ( ports: #{@realport_port_count} )"
       print_status("#{target_host}:#{rport} #{info}")
-      report_service(:host => rhost, :port => rport, :name => "realport", :info => info)
+      report_service(host: rhost, port: rport, name: "realport", info: info)
     end
     realport_disconnect
   end

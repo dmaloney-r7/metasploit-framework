@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 require 'msf/core/post/common'
 require 'msf/core/post/windows/registry'
@@ -14,7 +15,7 @@ module Msf::Post::Windows::Dotnet
   # actual version, rather than the over-arching release
   # An alternative would be to query for it, and catch the exception.
   #
-  
+
   def search_for_version(dotnet_subkey)
     dotnet_version = nil
     begin
@@ -23,15 +24,13 @@ module Msf::Post::Windows::Dotnet
       print_status("Encountered exception in search_for_version: #{e.class} #{e}")
       elog("#{e.class} #{e.message}\n#{e.backtrace * "\n"}")
     end
-    unless subkeys.nil?
-      subkeys.each do |subkey|
-        if subkey == 'Version'
-          dotnet_version = registry_getvaldata(dotnet_subkey, subkey)
-          break
-        end
+    subkeys&.each do |subkey|
+      if subkey == 'Version'
+        dotnet_version = registry_getvaldata(dotnet_subkey, subkey)
+        break
       end
     end
-    return dotnet_version
+    dotnet_version
   end
 
   #
@@ -46,18 +45,16 @@ module Msf::Post::Windows::Dotnet
       print_status("Encountered exception in get_versionception: #{e.class} #{e}")
       elog("#{e.class} #{e.message}\n#{e.backtrace * "\n"}")
     end
-    unless subkeys.nil?
-      subkeys.each do |subkey|
-        exact_version = search_for_version(dotnet_vkey + '\\' + subkey)
-        unless exact_version.nil?
-          # if we find a version, stop looking
-          break
-        end
+    subkeys&.each do |subkey|
+      exact_version = search_for_version(dotnet_vkey + '\\' + subkey)
+      unless exact_version.nil?
+        # if we find a version, stop looking
+        break
       end
     end
-    return exact_version
+    exact_version
   end
-  
+
   #
   # 'Public' function that returns a list of all .NET versions on
   # a windows host
@@ -71,18 +68,13 @@ module Msf::Post::Windows::Dotnet
       print_status("Encountered exception in get_dotnet_version: #{e.class} #{e}")
       elog("#{e.class} #{e.message}\n#{e.backtrace * "\n"}")
     end
-    unless dotnet_keys.nil?
-      dotnet_keys.each do |temp_key|
-        if temp_key[0] == 'v'
-          key = 'HKLM\\SOFTWARE\\Microsoft\NET Framework Setup\\NDP\\' + temp_key
-          dotnet_version = get_versionception(key)
-          unless dotnet_version.nil? 
-            ret_val << dotnet_version
-          end
-        end
+    dotnet_keys&.each do |temp_key|
+      if temp_key[0] == 'v'
+        key = 'HKLM\\SOFTWARE\\Microsoft\NET Framework Setup\\NDP\\' + temp_key
+        dotnet_version = get_versionception(key)
+        ret_val << dotnet_version unless dotnet_version.nil?
       end
     end
-    return ret_val
+    ret_val
   end
 end
-

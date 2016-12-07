@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,40 +7,39 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Capture
   include Msf::Auxiliary::Scanner
 
   def initialize
     super(
       'Name'        => 'Rogue Gateway Detection: Sender',
-      'Description' => %q{
+      'Description' => %q(
         This module send a series of TCP SYN and ICMP ECHO requests
       to each internal target host, spoofing the source address of an external
       system running the rogue_recv module. This allows the system running
       the rogue_recv module to determine what external IP a given internal
       system is using as its default route.
-      },
+      ),
       'Author'      => 'hdm',
       'License'     => MSF_LICENSE
     )
 
     register_options([
-      OptAddress.new("EHOST", [true, "The IP address of the machine running rogue_recv"]),
-      OptPort.new("RPORT", [true, "The destination port for the TCP SYN packet", 80]),
-      OptPort.new("CPORT", [true, "The source port for the TCP SYN packet", 13832]),
-      OptInt.new("ECHOID", [true, "The unique ICMP ECHO ID to embed into the packet", 7893]),
-    ])
+                       OptAddress.new("EHOST", [true, "The IP address of the machine running rogue_recv"]),
+                       OptPort.new("RPORT", [true, "The destination port for the TCP SYN packet", 80]),
+                       OptPort.new("CPORT", [true, "The source port for the TCP SYN packet", 13832]),
+                       OptInt.new("ECHOID", [true, "The unique ICMP ECHO ID to embed into the packet", 7893])
+                     ])
 
-    deregister_options('FILTER','PCAPFILE')
+    deregister_options('FILTER', 'PCAPFILE')
   end
 
   def run_host(ip)
     open_pcap
 
-    pcap = self.capture
+    pcap = capture
 
-    capture_sendto(build_tcp_syn(ip), ip) and capture_sendto(build_icmp(ip), ip)
+    capture_sendto(build_tcp_syn(ip), ip) && capture_sendto(build_icmp(ip), ip)
 
     close_pcap
   end
@@ -64,7 +64,7 @@ class MetasploitModule < Msf::Auxiliary
     p.ip_ttl = 255
     p.icmp_type = 8
     payload = Rex::Socket.addr_aton(dst) + [datastore['ECHOID']].pack('n') + Rex::Text.rand_text(26)
-    p.payload = capture_icmp_echo_pack(datastore['ECHOID'],1,payload)
+    p.payload = capture_icmp_echo_pack(datastore['ECHOID'], 1, payload)
     p.recalc
   end
 end

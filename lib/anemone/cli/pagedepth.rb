@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'anemone'
 
 begin
@@ -21,7 +22,7 @@ Anemone.crawl(root) do |anemone|
   anemone.after_crawl do |pages|
     pages = pages.shortest_paths!(root).uniq!
 
-    depths = pages.values.inject({}) do |depths, page|
+    depths = pages.values.each_with_object({}) do |page, depths|
       depths[page.depth] ||= 0
       depths[page.depth] += 1
       depths

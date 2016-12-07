@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 
 #
 # This script takes a list of ranges and converts it to a per line ip list.
@@ -12,25 +13,23 @@
 # mubix
 #
 
-
 msfbase = __FILE__
 while File.symlink?(msfbase)
   msfbase = File.expand_path(File.readlink(msfbase), File.dirname(msfbase))
 end
 
-$:.unshift(File.expand_path(File.join(File.dirname(msfbase), '..', '..', 'lib')))
+$LOAD_PATH.unshift(File.expand_path(File.join(File.dirname(msfbase), '..', '..', 'lib')))
 require 'msfenv'
 require 'rex'
 require 'optparse'
 
-
 class OptsConsole
   def self.parse(args)
-    options = {'output' => 'iplist.txt'}
+    options = { 'output' => 'iplist.txt' }
 
     opts = OptionParser.new do |opts|
-      opts.banner = %Q|This script takes a list of ranges and converts it to a per line ip list.
-Usage: #{__FILE__} [options]|
+      opts.banner = %(This script takes a list of ranges and converts it to a per line ip list.
+Usage: #{__FILE__} [options])
 
       opts.separator ""
       opts.separator "Specific options:"
@@ -54,7 +53,7 @@ Usage: #{__FILE__} [options]|
 
     begin
       opts.parse!(args)
-      if options['input'] == nil
+      if options['input'].nil?
         puts opts
         raise OptionParser::MissingArgument, "-i is a required option"
       end
@@ -78,7 +77,6 @@ Usage: #{__FILE__} [options]|
   end
 end
 
-
 #
 # Prints IPs
 #
@@ -87,10 +85,9 @@ def make_list(in_f, out_f)
     ips = Rex::Socket::RangeWalker.new(range)
     ips.each do |ip|
       out_f.puts ip
-      end
     end
+  end
 end
-
 
 #
 # Returns file handles
@@ -103,9 +100,8 @@ def load_files(in_f, out_f)
 
   handle_out = ::File.open(out_f, 'a')
 
-  return handle_in, handle_out
+  [handle_in, handle_out]
 end
-
 
 options = OptsConsole.parse(ARGV)
 in_f, out_f = load_files(options['input'], options['output'])

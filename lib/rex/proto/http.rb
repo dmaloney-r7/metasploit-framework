@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 require 'rex/proto/http/packet'
 require 'rex/proto/http/request'

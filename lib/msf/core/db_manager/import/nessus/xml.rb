@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 module Msf::DBManager::Import::Nessus::XML
   autoload :V1, 'msf/core/db_manager/import/nessus/xml/v1'
   autoload :V2, 'msf/core/db_manager/import/nessus/xml/v2'
@@ -10,7 +11,7 @@ module Msf::DBManager::Import::Nessus::XML
   #
   # Old versions of openvas exported this as well
   #
-  def import_nessus_xml_file(args={})
+  def import_nessus_xml_file(args = {})
     filename = args[:filename]
     wspace = args[:wspace] || workspace
 
@@ -20,9 +21,9 @@ module Msf::DBManager::Import::Nessus::XML
     end
 
     if data.index("NessusClientData_v2")
-      import_nessus_xml_v2(args.merge(:data => data))
+      import_nessus_xml_v2(args.merge(data: data))
     else
-      import_nessus_xml(args.merge(:data => data))
+      import_nessus_xml(args.merge(data: data))
     end
   end
 end

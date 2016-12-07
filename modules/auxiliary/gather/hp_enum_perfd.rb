@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -13,25 +14,26 @@ class MetasploitModule < Msf::Auxiliary
   # TODO: figure out what these do:
   #   o: valid command, takes no args, does nothing
   #   B, c, F, G, I, M, U, x: all require an "instance id" and possibly other args
-  ALLOWED_COMMANDS = %w(a A i g l p t T u w Z)
+  ALLOWED_COMMANDS = %w(a A i g l p t T u w Z).freeze
 
   def initialize
     super(
       'Name'        => 'HP Operations Manager Perfd Environment Scanner',
-      'Description' => %q{
+      'Description' => %q(
         This module will enumerate the process list of a remote machine by abusing
         HP Operation Manager's unauthenticated 'perfd' daemon.
-        },
+        ),
       'Author'      => [ 'Roberto Soares Espreto <robertoespreto[at]gmail.com>' ],
       'License'     => MSF_LICENSE
     )
 
     commands_help = ALLOWED_COMMANDS.join(',')
     register_options(
-    [
-      Opt::RPORT(5227),
-      OptString.new("COMMANDS", [true, "Command(s) to execute (one or more of #{commands_help})", commands_help])
-    ], self.class)
+      [
+        Opt::RPORT(5227),
+        OptString.new("COMMANDS", [true, "Command(s) to execute (one or more of #{commands_help})", commands_help])
+      ], self.class
+    )
   end
 
   def commands
@@ -43,7 +45,7 @@ class MetasploitModule < Msf::Auxiliary
     if datastore['COMMANDS']
       bad_commands = commands - ALLOWED_COMMANDS
       unless bad_commands.empty?
-        fail ArgumentError, "Bad perfd command(s): #{bad_commands}"
+        raise ArgumentError, "Bad perfd command(s): #{bad_commands}"
       end
     end
   end

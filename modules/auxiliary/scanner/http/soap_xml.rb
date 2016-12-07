@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   # Exploit mixins should be called first
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
@@ -16,13 +16,13 @@ class MetasploitModule < Msf::Auxiliary
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'        => 'HTTP SOAP Verb/Noun Brute Force Scanner',
-      'Description' => %q(
-        This module attempts to brute force SOAP/XML requests to uncover
-        hidden methods.
-      ),
-      'Author'      => ['patrick'],
-      'License'     => MSF_LICENSE))
+                      'Name'        => 'HTTP SOAP Verb/Noun Brute Force Scanner',
+                      'Description' => %q(
+                        This module attempts to brute force SOAP/XML requests to uncover
+                        hidden methods.
+                      ),
+                      'Author'      => ['patrick'],
+                      'License'     => MSF_LICENSE))
 
     register_options(
       [
@@ -36,7 +36,8 @@ class MetasploitModule < Msf::Auxiliary
         OptBool.new('DISPLAYHTML', [true, 'Display HTML response', false]),
         OptBool.new('SSL', [true, 'Use SSL', false]),
         OptBool.new('VERB_DELETE', [false, 'Enable DELETE verb', false])
-      ], self.class)
+      ], self.class
+    )
   end
 
   # Fingerprint a single host
@@ -160,15 +161,16 @@ class MetasploitModule < Msf::Auxiliary
                   'Expect'	 => '100-continue',
                   'Content-Type'	 => datastore['CONTENTTYPE']
                 }
-            }, 15)
+            }, 15
+          )
 
-          if res && !(res.body.empty?)
+          if res && !res.body.empty?
             if reject_regexen.any? { |r| res.body =~ r }
               print_status("Server #{wmap_target_host}:#{datastore['RPORT']} rejected SOAPAction: #{v}#{n} with HTTP: #{res.code} #{res.message}.")
             elsif res.message =~ /Cannot process the message because the content type/
               print_status("Server #{wmap_target_host}:#{datastore['RPORT']} rejected CONTENTTYPE: HTTP: #{res.code} #{res.message}.")
               res.message =~ /was not the expected type\s\'([^']+)'/
-              print_status("Set CONTENTTYPE to \"#{$1}\"")
+              print_status("Set CONTENTTYPE to \"#{Regexp.last_match(1)}\"")
               return false
             elsif res.code == 404
               print_status("Server #{wmap_target_host}:#{datastore['RPORT']} returned HTTP 404 for #{datastore['PATH']}.  Use a different one.")

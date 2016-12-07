@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -14,7 +15,5 @@ require 'msf/core/payload/windows/reflectivedllinject'
 #
 ###
 module MetasploitModule
-
   include Msf::Payload::Windows::ReflectiveDllInject
-
 end

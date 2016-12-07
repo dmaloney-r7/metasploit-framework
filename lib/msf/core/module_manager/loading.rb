@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 #
 # Gems
@@ -19,17 +20,17 @@ module Msf::ModuleManager::Loading
 
   # Classes that can be used to load modules.
   LOADER_CLASSES = [
-      Msf::Modules::Loader::Directory
-  ]
+    Msf::Modules::Loader::Directory
+  ].freeze
 
   def file_changed?(path)
     changed = false
 
-    module_info = self.module_info_by_path[path]
+    module_info = module_info_by_path[path]
 
     # if uncached then it counts as changed
     # Payloads can't be cached due to stage/stager matching
-    if module_info.nil? or module_info[:type] == Msf::MODULE_PAYLOAD
+    if module_info.nil? || (module_info[:type] == Msf::MODULE_PAYLOAD)
       changed = true
     else
       begin
@@ -41,9 +42,7 @@ module Msf::ModuleManager::Loading
         cached_modification_time = module_info[:modification_time].to_i
 
         # if the file's modification time's different from the cache, then it's changed
-        if current_modification_time != cached_modification_time
-          changed = true
-        end
+        changed = true if current_modification_time != cached_modification_time
       end
     end
 
@@ -66,16 +65,16 @@ module Msf::ModuleManager::Loading
   # @option info [String] 'type' The module type, should match positional
   #   +type+ argument.
   # @return [void]
-  def on_module_load(class_or_module, type, reference_name, info={})
+  def on_module_load(class_or_module, type, reference_name, info = {})
     module_set = module_set_by_type[type]
     module_set.add_module(class_or_module, reference_name, info)
 
     path = info['files'].first
     cache_in_memory(
-        class_or_module,
-        :path => path,
-        :reference_name => reference_name,
-        :type => type
+      class_or_module,
+      path: path,
+      reference_name: reference_name,
+      type: type
     )
 
     # Automatically subscribe a wrapper around this module to the necessary
@@ -91,9 +90,9 @@ module Msf::ModuleManager::Loading
   # Return list of {LOADER_CLASSES} instances that load modules into this module manager
   def loaders
     unless instance_variable_defined? :@loaders
-      @loaders = LOADER_CLASSES.collect { |klass|
+      @loaders = LOADER_CLASSES.collect do |klass|
         klass.new(self)
-      }
+      end
     end
 
     @loaders
@@ -107,17 +106,16 @@ module Msf::ModuleManager::Loading
   #   loaded.
   # @option options [Array] :modules An array of regex patterns to search for specific modules
   # @return [Hash{String => Integer}] Maps module type to number of modules loaded
-  def load_modules(path, options={})
+  def load_modules(path, options = {})
     options.assert_valid_keys(:force, :whitelist)
 
     count_by_type = {}
 
     loaders.each do |loader|
-      if loader.loadable?(path)
-        count_by_type = loader.load_modules(path, options)
+      next unless loader.loadable?(path)
+      count_by_type = loader.load_modules(path, options)
 
-        break
-      end
+      break
     end
 
     count_by_type

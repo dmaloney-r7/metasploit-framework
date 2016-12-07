@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -12,7 +13,7 @@ class MetasploitModule < Msf::Auxiliary
     super(update_info(
       info,
       'Name'            => 'WordPress WP EasyCart Plugin Privilege Escalation',
-      'Description'     => %q{
+      'Description'     => %q(
         The WordPress WP EasyCart plugin from version 1.1.30 to 3.0.20 allows authenticated
         users  of any user level to set any system option via a lack of validation in the
         ec_ajax_update_option and ec_ajax_clear_all_taxrates functions located in
@@ -21,7 +22,7 @@ class MetasploitModule < Msf::Auxiliary
         re-enables user registration in case it has been disabled and sets the default role to
         be administrator. This will allow for the user to create a new account with admin
         privileges via the default registration page found at /wp-login.php?action=register.
-      },
+      ),
       'Author'          =>
         [
           'Rob Carr <rob[at]rastating.com>' # Discovery and Metasploit module
@@ -34,13 +35,14 @@ class MetasploitModule < Msf::Auxiliary
           ['URL', 'http://blog.rastating.com/wp-easycart-privilege-escalation-information-disclosure']
         ],
       'DisclosureDate'  => 'Feb 25 2015'
-      ))
+    ))
 
     register_options(
       [
         OptString.new('USERNAME', [true, 'The WordPress username to authenticate with']),
         OptString.new('PASSWORD', [true, 'The WordPress password to authenticate with'])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def check

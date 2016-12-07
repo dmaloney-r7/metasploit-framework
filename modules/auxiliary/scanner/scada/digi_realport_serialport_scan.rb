@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::RealPort
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::Scanner
@@ -32,16 +32,15 @@ class MetasploitModule < Msf::Auxiliary
         OptInt.new("BANNER_TIMEOUT", [true, "How long to capture data from the serial port", 5]),
         OptString.new('BAUD_RATES', [true, "A space delimited list of baud rates to try for each port", "9600 115200"]),
         OptString.new('PORTS', [true, "A space delimited list of 1-indexed serial port numbers to try, default is all supported", "ALL"])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def setup
     test_speeds = datastore['BAUD_RATES'].split(/\s+/)
     test_speeds.each do |baud|
       valid = realport_baud_to_speed(baud)
-      if not valid
-        raise RuntimeError, "The baud rate #{baud} is not supported"
-      end
+      raise "The baud rate #{baud} is not supported" unless valid
     end
   end
 
@@ -53,10 +52,10 @@ class MetasploitModule < Msf::Auxiliary
 
     info = "#{@realport_name} ( ports: #{@realport_port_count} )"
     vprint_status("#{target_host}:#{rport} is running #{info}")
-    report_service(:host => rhost, :port => rport, :name => "realport", :info => info)
+    report_service(host: rhost, port: rport, name: "realport", info: info)
 
     1.upto(@realport_port_count) do |pnum|
-      unless test_ports.include?('ALL') or test_ports.include?(pnum.to_s)
+      unless test_ports.include?('ALL') || test_ports.include?(pnum.to_s)
         # Skip this port
         next
       end
@@ -65,15 +64,15 @@ class MetasploitModule < Msf::Auxiliary
         ret = realport_open(pnum - 1, baud)
         break unless ret == :open
         res = realport_recv_banner(pnum - 1, datastore['BANNER_TIMEOUT'])
-        if res and res.length > 0
+        if res && !res.empty?
           print_status("#{target_host}:#{rport} [port #{pnum} @ #{baud}bps] #{res.inspect}")
           report_note(
-            :host   => target_host,
-            :proto  => 'tcp',
-            :port   => rport,
-            :type   => "realport.port#{pnum}.banner",
-            :data   => {:baud => baud, :banner => res},
-            :update => :unique_data
+            host: target_host,
+            proto: 'tcp',
+            port: rport,
+            type: "realport.port#{pnum}.banner",
+            data: { baud: baud, banner: res },
+            update: :unique_data
           )
 
         end
@@ -83,5 +82,4 @@ class MetasploitModule < Msf::Auxiliary
 
     realport_disconnect
   end
-
 end

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::Tcp
   include Msf::Auxiliary::Scanner
   include Msf::Auxiliary::Report
@@ -19,8 +19,8 @@ class MetasploitModule < Msf::Auxiliary
       'License'     => MSF_LICENSE
     )
     register_options([
-      Opt::RPORT(110)
-    ], self.class)
+                       Opt::RPORT(110)
+                     ], self.class)
   end
 
   def run_host(ip)
@@ -29,7 +29,7 @@ class MetasploitModule < Msf::Auxiliary
       banner = sock.get_once(-1, 30)
       banner_sanitized = Rex::Text.to_hex_ascii(banner.to_s)
       print_status("#{ip}:#{rport} POP3 #{banner_sanitized}")
-      report_service(:host => rhost, :port => rport, :name => "pop3", :info => banner)
+      report_service(host: rhost, port: rport, name: "pop3", info: banner)
     rescue ::Rex::ConnectionError
     rescue ::EOFError
       print_error("#{ip}:#{rport} - The service failed to respond")
@@ -37,5 +37,4 @@ class MetasploitModule < Msf::Auxiliary
       print_error("#{ip}:#{rport} - #{e} #{e.backtrace}")
     end
   end
-
 end

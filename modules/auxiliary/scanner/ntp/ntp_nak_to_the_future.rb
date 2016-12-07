@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -45,7 +46,8 @@ class MetasploitModule < Msf::Auxiliary
     register_options(
       [
         OptInt.new('OFFSET', [true, "Offset from local time, in seconds", 300])
-      ], self.class)
+      ], self.class
+    )
 
     deregister_options('RHOST')
   end

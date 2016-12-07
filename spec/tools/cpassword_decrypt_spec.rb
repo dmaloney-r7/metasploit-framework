@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'spec_helper'
 
 load Metasploit::Framework.root.join('tools/password/cpassword_decrypt.rb').to_path

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 require 'snmp'
@@ -6,7 +7,6 @@ require 'metasploit/framework/login_scanner/base'
 module Metasploit
   module Framework
     module LoginScanner
-
       # This is the LoginScanner class for dealing with SNMP.
       # It is responsible for taking a single target, and a list of credentials
       # and attempting them. It then saves the results.
@@ -17,9 +17,9 @@ module Metasploit
         DEFAULT_PORT         = 161
         DEFAULT_VERSION      = '1'
         DEFAULT_QUEUE_SIZE   = 100
-        LIKELY_PORTS         = [ 161, 162 ]
-        LIKELY_SERVICE_NAMES = [ 'snmp' ]
-        PRIVATE_TYPES        = [ :password ]
+        LIKELY_PORTS         = [ 161, 162 ].freeze
+        LIKELY_SERVICE_NAMES = [ 'snmp' ].freeze
+        PRIVATE_TYPES        = [ :password ].freeze
         REALM_KEY            = nil
 
         attr_accessor :queued_credentials #:nodoc:
@@ -103,9 +103,7 @@ module Metasploit
               end
 
               # Exit early if we already have a positive result
-              if stop_on_success && self.queued_results.length > 0
-                break
-              end
+              break if stop_on_success && !queued_results.empty?
             end
           rescue Errno::ECONNREFUSED
             # Exit early if we get an ICMP port unreachable
@@ -116,7 +114,7 @@ module Metasploit
           process_logins(final: true)
 
           # Create a non-duplicated set of credentials
-          found_credentials = self.queued_results.uniq
+          found_credentials = queued_results.uniq
 
           # Reset the queued results for our write test
           self.queued_results = []
@@ -126,7 +124,7 @@ module Metasploit
 
           # Try to write back the originally received values
           found_credentials.each do |result|
-             process_logins(
+            process_logins(
               version: result[:snmp_version],
               community: result[:community],
               type: 'write',
@@ -138,8 +136,8 @@ module Metasploit
           process_logins(final: true)
 
           # Mark any results from our write scan as read-write in our found credentials
-          self.queued_results.select{|r| [0,17].include? r[:snmp_error] }.map{|r| r[:community]}.uniq.each do |c|
-            found_credentials.select{|r| r[:community] == c}.each do |result|
+          queued_results.select { |r| [0, 17].include? r[:snmp_error] }.map { |r| r[:community] }.uniq.each do |c|
+            found_credentials.select { |r| r[:community] == c }.each do |result|
               result[:access_level] = 'read-write'
             end
           end
@@ -167,20 +165,20 @@ module Metasploit
         end
 
         # Queue up and possibly send any requests, based on the queue limit and final flag
-        def process_logins(opts={})
+        def process_logins(opts = {})
           self.queued_results     ||= []
           self.queued_credentials ||= []
 
-          unless opts[:final] || self.queued_credentials.length > self.queue_size
+          unless opts[:final] || self.queued_credentials.length > queue_size
             self.queued_credentials.push [ opts[:type], opts[:community], opts[:version], opts[:data] ]
             return
           end
 
-          return if self.queued_credentials.length == 0
+          return if self.queued_credentials.empty?
 
           process_responses(0.01)
 
-          while self.queued_credentials.length > 0
+          until self.queued_credentials.empty?
             action, community, version, data = self.queued_credentials.pop
             case action
             when 'read'
@@ -194,15 +192,15 @@ module Metasploit
         end
 
         # Process any responses on the UDP socket and queue the results
-        def process_responses(timeout=1.0)
+        def process_responses(timeout = 1.0)
           queue = []
           while (res = sock.recvfrom(65535, timeout))
 
             # Ignore invalid responses
-            break if not res[1]
+            break unless res[1]
 
             # Ignore empty responses
-            next if not (res[0] and res[0].length > 0)
+            next unless res[0] && !res[0].empty?
 
             # Trim the IPv6-compat prefix off if needed
             shost = res[1].sub(/^::ffff:/, '')
@@ -244,12 +242,10 @@ module Metasploit
           resend_count = 0
 
           begin
-            sock.sendto(pkt, self.host, self.port, 0)
+            sock.sendto(pkt, host, port, 0)
           rescue ::Errno::ENOBUFS
             resend_count += 1
-            if resend_count > MAX_RESEND_COUNT
-              return false
-            end
+            return false if resend_count > MAX_RESEND_COUNT
             ::IO.select(nil, nil, nil, 0.25)
             retry
           rescue ::Rex::ConnectionError
@@ -262,85 +258,111 @@ module Metasploit
         def create_snmp_read_sys_descr_request(version_str, community)
           version = version_str == '1' ? 1 : 2
           OpenSSL::ASN1::Sequence([
-            OpenSSL::ASN1::Integer(version - 1),
-            OpenSSL::ASN1::OctetString(community),
-            OpenSSL::ASN1::Set.new([
-              OpenSSL::ASN1::Integer(rand(0x80000000)),
-              OpenSSL::ASN1::Integer(0),
-              OpenSSL::ASN1::Integer(0),
-              OpenSSL::ASN1::Sequence([
-                OpenSSL::ASN1::Sequence([
-                  OpenSSL::ASN1.ObjectId("1.3.6.1.2.1.1.1.0"),
-                  OpenSSL::ASN1.Null(nil)
-                ])
-              ]),
-            ], 0, :IMPLICIT)
-          ]).to_der
+                                    OpenSSL::ASN1::Integer(version - 1),
+                                    OpenSSL::ASN1::OctetString(community),
+                                    OpenSSL::ASN1::Set.new([
+                                                             OpenSSL::ASN1::Integer(rand(0x80000000)),
+                                                             OpenSSL::ASN1::Integer(0),
+                                                             OpenSSL::ASN1::Integer(0),
+                                                             OpenSSL::ASN1::Sequence([
+                                                                                       OpenSSL::ASN1::Sequence([
+                                                                                                                 OpenSSL::ASN1.ObjectId("1.3.6.1.2.1.1.1.0"),
+                                                                                                                 OpenSSL::ASN1.Null(nil)
+                                                                                                               ])
+                                                                                     ])
+                                                           ], 0, :IMPLICIT)
+                                  ]).to_der
         end
 
         # Create a SNMP request that tries to write to sys.sysDescr.0
         def create_snmp_write_sys_descr_request(version_str, community, data)
           version = version_str == '1' ? 1 : 2
           snmp_write = OpenSSL::ASN1::Sequence([
-            OpenSSL::ASN1::Integer(version - 1),
-            OpenSSL::ASN1::OctetString(community),
-            OpenSSL::ASN1::Set.new([
-              OpenSSL::ASN1::Integer(rand(0x80000000)),
-              OpenSSL::ASN1::Integer(0),
-              OpenSSL::ASN1::Integer(0),
-              OpenSSL::ASN1::Sequence([
-                OpenSSL::ASN1::Sequence([
-                  OpenSSL::ASN1.ObjectId("1.3.6.1.2.1.1.1.0"),
-                  OpenSSL::ASN1::OctetString(data)
-                ])
-              ]),
-            ], 3, :IMPLICIT)
-          ]).to_der
+                                                 OpenSSL::ASN1::Integer(version - 1),
+                                                 OpenSSL::ASN1::OctetString(community),
+                                                 OpenSSL::ASN1::Set.new([
+                                                                          OpenSSL::ASN1::Integer(rand(0x80000000)),
+                                                                          OpenSSL::ASN1::Integer(0),
+                                                                          OpenSSL::ASN1::Integer(0),
+                                                                          OpenSSL::ASN1::Sequence([
+                                                                                                    OpenSSL::ASN1::Sequence([
+                                                                                                                              OpenSSL::ASN1.ObjectId("1.3.6.1.2.1.1.1.0"),
+                                                                                                                              OpenSSL::ASN1::OctetString(data)
+                                                                                                                            ])
+                                                                                                  ])
+                                                                        ], 3, :IMPLICIT)
+                                               ]).to_der
         end
 
         # Parse a SNMP reply from a packet and return a response hash or nil
         def parse_snmp_response(pkt)
-          asn = OpenSSL::ASN1.decode(pkt) rescue nil
-          return if not asn
+          asn = begin
+                  OpenSSL::ASN1.decode(pkt)
+                rescue
+                  nil
+                end
+          return unless asn
 
-          snmp_vers  = asn.value[0].value.to_i rescue nil
-          snmp_comm  = asn.value[1].value rescue nil
-          snmp_error = asn.value[2].value[1].value.to_i rescue nil
-          snmp_data  = asn.value[2].value[3].value[0] rescue nil
-          snmp_oid   = snmp_data.value[0].value rescue nil
-          snmp_info  = snmp_data.value[1].value.to_s rescue nil
+          snmp_vers  = begin
+                         asn.value[0].value.to_i
+                       rescue
+                         nil
+                       end
+          snmp_comm  = begin
+                         asn.value[1].value
+                       rescue
+                         nil
+                       end
+          snmp_error = begin
+                         asn.value[2].value[1].value.to_i
+                       rescue
+                         nil
+                       end
+          snmp_data  = begin
+                         asn.value[2].value[3].value[0]
+                       rescue
+                         nil
+                       end
+          snmp_oid   = begin
+                         snmp_data.value[0].value
+                       rescue
+                         nil
+                       end
+          snmp_info  = begin
+                         snmp_data.value[1].value.to_s
+                       rescue
+                         nil
+                       end
 
-          return if not (snmp_error and snmp_comm and snmp_data and snmp_oid and snmp_info)
+          return unless snmp_error && snmp_comm && snmp_data && snmp_oid && snmp_info
           snmp_vers = snmp_vers == 0 ? "1" : "2c"
 
-          { error: snmp_error, community: snmp_comm, proof: snmp_info, version: snmp_vers}
+          { error: snmp_error, community: snmp_comm, proof: snmp_info, version: snmp_vers }
         end
 
         # Create a new socket for this scanner
         def configure_socket
-          shutdown_socket if self.sock
+          shutdown_socket if sock
           self.sock = ::Rex::Socket::Udp.create(
-            'Context'  =>
+            'Context' =>
               { 'Msf' => framework, 'MsfExploit' => framework_module }
-            )
+          )
         end
 
         # Close any open socket if it exists
         def shutdown_socket
-          self.sock.close if self.sock
+          sock&.close
           self.sock = nil
         end
 
         # Sets the SNMP parameters if not specified
         def set_sane_defaults
-          self.connection_timeout = DEFAULT_TIMEOUT if self.connection_timeout.nil?
-          self.port = DEFAULT_PORT if self.port.nil?
-          self.version = DEFAULT_VERSION if self.version.nil?
-          self.queue_size = DEFAULT_QUEUE_SIZE if self.queue_size.nil?
+          self.connection_timeout = DEFAULT_TIMEOUT if connection_timeout.nil?
+          self.port = DEFAULT_PORT if port.nil?
+          self.version = DEFAULT_VERSION if version.nil?
+          self.queue_size = DEFAULT_QUEUE_SIZE if queue_size.nil?
         end
-
       end
-
     end
   end
 end

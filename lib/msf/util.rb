@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 ###
 #
@@ -9,14 +10,12 @@
 #
 ###
 
-
 require 'msf/core'
 require 'rex'
 
 module Msf
-module Util
-
-end
+  module Util
+    end
 end
 
 # Executable generation and encoding

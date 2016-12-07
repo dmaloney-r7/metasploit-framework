@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,41 +7,39 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Scanner
   include Msf::Auxiliary::Report
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'            => 'SAP URL Scanner',
-      'Description'   => %q{
-        This module scans for commonly found SAP Internet Communication Manager URLs
-        and outputs return codes for the user.
-      },
-      'Author'          => [ 'Chris John Riley' ],
-      'References'      =>
-        [
-          [ 'CVE', '2010-0738' ] # VERB auth bypass
-        ],
-      'License'         => MSF_LICENSE
-      ))
+                      'Name' => 'SAP URL Scanner',
+                      'Description' => %q(
+                        This module scans for commonly found SAP Internet Communication Manager URLs
+                        and outputs return codes for the user.
+                      ),
+                      'Author'          => [ 'Chris John Riley' ],
+                      'References'      =>
+                        [
+                          [ 'CVE', '2010-0738' ] # VERB auth bypass
+                        ],
+                      'License'         => MSF_LICENSE))
 
     register_options(
       [
-        OptString.new('VERB',    [true, "Verb for auth bypass testing", "HEAD"]),
+        OptString.new('VERB', [true, "Verb for auth bypass testing", "HEAD"]),
         OptPath.new('URLFILE', [true, "SAP ICM Paths File",
-          File.join(Msf::Config.data_directory, 'wordlists', 'sap_icm_paths.txt')])
-      ], self.class)
+                                File.join(Msf::Config.data_directory, 'wordlists', 'sap_icm_paths.txt')])
+      ], self.class
+    )
   end
 
   # Base Structure of module borrowed from jboss_vulnscan
-  def run_host(ip)
-     res = send_request_cgi(
-      {
-        'uri'       => "/" + Rex::Text.rand_text_alpha(12),
-        'method'    => 'GET',
-      })
+  def run_host(_ip)
+    res = send_request_cgi(
+      'uri' => "/" + Rex::Text.rand_text_alpha(12),
+      'method' => 'GET'
+    )
 
     if res
       print_status("Note: Please note these URLs may or may not be of interest based on server configuration")
@@ -52,8 +51,8 @@ class MetasploitModule < Msf::Auxiliary
         print_status("#{rhost}:#{rport} Server responded with a blank or missing Server Header")
       end
 
-      if (res.body && /class="note">(.*)code:(.*)</i.match(res.body) )
-        print_error("#{rhost}:#{rport} SAP ICM error message: #{$2}")
+      if res.body && /class="note">(.*)code:(.*)</i.match(res.body)
+        print_error("#{rhost}:#{rport} SAP ICM error message: #{Regexp.last_match(2)}")
       end
 
       # Load URLs
@@ -73,7 +72,7 @@ class MetasploitModule < Msf::Auxiliary
       print_error("#{rhost}:#{rport} No response received")
     end
 
-    if @valid_urls.length > 0
+    unless @valid_urls.empty?
       l = store_loot(
         'sap.icm.urls',
         "text/plain",
@@ -88,16 +87,14 @@ class MetasploitModule < Msf::Auxiliary
 
   def check_url(url)
     full_url = write_url(url)
-    res = send_request_cgi({
-      'uri'       => normalize_uri(url),
-      'method'    => 'GET',
-    })
+    res = send_request_cgi('uri' => normalize_uri(url),
+                           'method' => 'GET')
 
-    if (res)
+    if res
       if res.headers['Server']
         unless @info.include?(res.headers['Server'])
           print_good("New server header seen [#{res.headers['Server']}]")
-          @info << res.headers['Server'] #Add To seen server headers
+          @info << res.headers['Server'] # Add To seen server headers
         end
       end
 
@@ -133,11 +130,11 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   def write_url(path)
-    if datastore['SSL']
-      protocol = 'https://'
-    else
-      protocol = 'http://'
-    end
+    protocol = if datastore['SSL']
+                 'https://'
+               else
+                 'http://'
+               end
 
     "#{protocol}#{rhost}:#{rport}#{path}"
   end
@@ -146,13 +143,13 @@ class MetasploitModule < Msf::Auxiliary
     full_url = write_url(url)
     vprint_status("#{full_url} Check for verb tampering (#{datastore['VERB']})")
 
-    res = send_request_raw({
-      'uri'       => normalize_uri(url),
+    res = send_request_raw(
+      'uri' => normalize_uri(url),
       'method'    => datastore['VERB'],
       'version'   => '1.0' # 1.1 makes the head request wait on timeout for some reason
-    })
+    )
 
-    if (res && res.code == 200)
+    if res && res.code == 200
       print_good("#{full_url} Got authentication bypass via HTTP verb tampering")
     else
       vprint_status("#{rhost}:#{rport} Could not get authentication bypass via HTTP verb tampering")
@@ -164,20 +161,17 @@ class MetasploitModule < Msf::Auxiliary
   #  (SAP help) -> this disclose custom URLs that are also checked for authentication
   def check_urlprefixes
     urls = []
-    res = send_request_cgi({
-      'uri'       => "/sap/public/icf_info/urlprefix",
-      'method'    => 'GET',
-    })
+    res = send_request_cgi('uri' => "/sap/public/icf_info/urlprefix",
+                           'method' => 'GET')
 
-    if (res && res.code == 200)
+    if res && res.code == 200
       res.body.each_line do |line|
-        if line =~ /PREFIX=/
-          url_enc = line.sub(/^PREFIX=/, '')
-          # Remove CASE and VHOST
-          url_enc = url_enc.sub(/&CASE=.*/, '')
-          url_dec = URI.unescape(url_enc).sub(/;/, '')
-          urls << url_dec.strip
-        end
+        next unless line =~ /PREFIX=/
+        url_enc = line.sub(/^PREFIX=/, '')
+        # Remove CASE and VHOST
+        url_enc = url_enc.sub(/&CASE=.*/, '')
+        url_dec = URI.unescape(url_enc).sub(/;/, '')
+        urls << url_dec.strip
       end
     else
       print_error("#{rhost}:#{rport} Could not retrieve urlprefixes")

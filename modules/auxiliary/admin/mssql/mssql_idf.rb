@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # Author: Robin Wood <robin@digininja.org> <http://www.digininja.org>
 # Version: 0.1
@@ -15,36 +16,35 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::MSSQL
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Microsoft SQL Server Interesting Data Finder',
-      'Description'    => %q{
-        This module will search the specified MSSQL server for
-        'interesting' columns and data.
+                      'Name'           => 'Microsoft SQL Server Interesting Data Finder',
+                      'Description'    => %q(
+                        This module will search the specified MSSQL server for
+                        'interesting' columns and data.
 
-        The module has been tested against SQL Server 2005 but it should also work on
-        SQL Server 2008. The module will not work against SQL Server 2000 at this time,
-        if you are interested in supporting this platform, please contact the author.
-      },
-      'Author'         => [ 'Robin Wood <robin[at]digininja.org>' ],
-      'License'        => MSF_LICENSE,
-      'References'     =>
-        [
-          [ 'URL', 'http://www.digininja.org/metasploit/mssql_idf.php' ],
-        ],
-      'Targets'        =>
-        [
-          [ 'MSSQL 2005', { 'ver' => 2005 }	],
-        ]
-    ))
+                        The module has been tested against SQL Server 2005 but it should also work on
+                        SQL Server 2008. The module will not work against SQL Server 2000 at this time,
+                        if you are interested in supporting this platform, please contact the author.
+                      ),
+                      'Author'         => [ 'Robin Wood <robin[at]digininja.org>' ],
+                      'License'        => MSF_LICENSE,
+                      'References'     =>
+                        [
+                          [ 'URL', 'http://www.digininja.org/metasploit/mssql_idf.php' ]
+                        ],
+                      'Targets'        =>
+                        [
+                          [ 'MSSQL 2005', { 'ver' => 2005 }	]
+                        ]))
 
     register_options(
       [
-        OptString.new('NAMES', [ true, 'Pipe separated list of column names',  'passw|bank|credit|card']),
-      ], self.class)
+        OptString.new('NAMES', [ true, 'Pipe separated list of column names', 'passw|bank|credit|card'])
+      ], self.class
+    )
   end
 
   def print_with_underline(str)
@@ -77,9 +77,9 @@ class MetasploitModule < Msf::Auxiliary
 
     list = datastore['Names']
     where = "SET @sql = @sql + ' WHERE ("
-    list.split(/\|/).each { |val|
+    list.split(/\|/).each do |val|
       where += " lower(sys.columns.name) like ''%" + val + "%'' OR "
-    }
+    end
 
     where.slice!(-3, 4)
 
@@ -111,45 +111,45 @@ class MetasploitModule < Msf::Auxiliary
     widths = [0, 0, 0, 0, 0, 9]
     total_width = 0
 
-    (column_data|headings).each { |row|
-      0.upto(4) { |col|
+    (column_data | headings).each do |row|
+      0.upto(4) do |col|
         widths[col] = row[col].length if row[col].length > widths[col]
-      }
-    }
+      end
+    end
 
-    widths.each { |a|
+    widths.each do |a|
       total_width += a
-    }
+    end
 
     print_line
 
     buffer = ""
-    headings.each { |row|
-      0.upto(5) { |col|
+    headings.each do |row|
+      0.upto(5) do |col|
         buffer += row[col].ljust(widths[col] + 1)
-      }
+      end
       print_line(buffer)
       print_line
       buffer = ""
 
-      0.upto(5) { |col|
+      0.upto(5) do |col|
         buffer += print "=" * widths[col] + " "
-      }
+      end
       print_line(buffer)
       print_line
-    }
+    end
 
-    column_data.each { |row|
+    column_data.each do |row|
       count_sql = "SELECT COUNT(*) AS count FROM "
 
       full_table = ""
       column_name = ""
       buffer = ""
-      0.upto(4) { |col|
+      0.upto(4) do |col|
         full_table += row[col] + '.' if col < 3
         column_name = row[col] if col == 3
         buffer += row[col].ljust(widths[col] + 1)
-      }
+      end
       full_table.slice!(-1, 1)
       count_sql += full_table
 
@@ -161,10 +161,9 @@ class MetasploitModule < Msf::Auxiliary
       buffer += row_count.to_s
       print_line(buffer)
       print_line
-    }
+    end
 
     print_line
     disconnect
   end
-
 end

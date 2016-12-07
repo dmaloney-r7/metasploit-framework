@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 module Rex
@@ -6,7 +7,6 @@ module Rex
       module Model
         # This class provides a representation of request time
         class LastRequest < Element
-
           # @!attribute type
           #   @return [Fixnum] The type of value
           attr_accessor :type

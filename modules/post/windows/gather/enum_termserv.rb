@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # post/windows/gather/enum_termserv.rb
 
 ##
@@ -9,30 +10,27 @@ require 'msf/core'
 require 'rex'
 require 'msf/core/auxiliary/report'
 
-
 class MetasploitModule < Msf::Post
-
   include Msf::Post::Windows::Registry
   include Msf::Auxiliary::Report
   include Msf::Post::Windows::UserProfiles
 
-  def initialize(info={})
-    super( update_info( info,
-      'Name'          => 'Windows Gather Terminal Server Client Connection Information Dumper',
-      'Description'   => %q{
-        This module dumps MRU and connection data for RDP sessions
-      },
-      'License'       => MSF_LICENSE,
-      'Author'        => [ 'mubix' ],
-      'Platform'      => [ 'win' ],
-      'SessionTypes'  => [ 'meterpreter' ]
-    ))
+  def initialize(info = {})
+    super(update_info(info,
+                      'Name'          => 'Windows Gather Terminal Server Client Connection Information Dumper',
+                      'Description'   => %q(
+                        This module dumps MRU and connection data for RDP sessions
+                      ),
+                      'License'       => MSF_LICENSE,
+                      'Author'        => [ 'mubix' ],
+                      'Platform'      => [ 'win' ],
+                      'SessionTypes'  => [ 'meterpreter' ]))
   end
 
   def run
-    userhives = load_missing_hives()
+    userhives = load_missing_hives
     userhives.each do |hive|
-      next if hive['HKU'] == nil
+      next if hive['HKU'].nil?
       print_status("Doing enumeration for #{hive['SID']}")
       root_key, base_key = session.sys.registry.splitkey("#{hive['HKU']}\\Software\\Microsoft\\Terminal\ Server\ Client")
       begin
@@ -41,7 +39,7 @@ class MetasploitModule < Msf::Post
         if tmpkey_values.include?('Default')
           defaultkey = session.sys.registry.open_key(root_key, base_key + '\\Default', KEY_READ)
           print_good('Systems connected to:')
-          (defaultkey.enum_value).each do |x|
+          defaultkey.enum_value.each do |x|
             if x.name =~ /^MRU/
               print_good("--> #{defaultkey.query_value(x.name).data}")
             end

@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 str = '# -*- coding: binary -*-'
@@ -8,16 +9,14 @@ data  = ''
 done  = nil
 fd = ::File.open(fname, "rb")
 fd.each_line do |line|
-  if line =~ /^#.*coding:.*/
-    done = true
-  end
+  done = true if line =~ /^#.*coding:.*/
 
- 	if not done
+  unless done
     unless line =~ /^#\!.*env ruby/
       data << str + "\n"
       done = true
     end
-  end
+ end
 
   data << line
 end

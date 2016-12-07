@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -10,31 +11,30 @@ class MetasploitModule < Msf::Auxiliary
 
   include Msf::Exploit::Remote::HttpServer::HTML
 
-  def initialize(info={})
+  def initialize(info = {})
     super(update_info(info,
-      'Name'           => "Heaplib2 Test",
-      'Description'    => %q{
-        This tests heaplib2. Since it is a test module, it's not intended to do much useful work in the field.
-      },
-      'License'        => MSF_LICENSE,
-      'Author'         => [ 'sinn3r' ],
-      'References'     =>
-        [
-          [ 'URL', 'http://metasploit.com' ]
-        ],
-      'Platform'       => 'win',
-      'Targets'        =>
-        [
-          [ 'Automatic', {} ]
-        ],
-      'Privileged'     => false,
-      'DisclosureDate' => "Mar 1 2014",
-      'DefaultTarget'  => 0))
+                      'Name'           => "Heaplib2 Test",
+                      'Description'    => %q(
+                        This tests heaplib2. Since it is a test module, it's not intended to do much useful work in the field.
+                      ),
+                      'License'        => MSF_LICENSE,
+                      'Author'         => [ 'sinn3r' ],
+                      'References'     =>
+                        [
+                          [ 'URL', 'http://metasploit.com' ]
+                        ],
+                      'Platform'       => 'win',
+                      'Targets'        =>
+                        [
+                          [ 'Automatic', {} ]
+                        ],
+                      'Privileged'     => false,
+                      'DisclosureDate' => "Mar 1 2014",
+                      'DefaultTarget'  => 0))
   end
 
-
-  def on_request_uri(cli, request)
-    spray = %Q|
+  def on_request_uri(cli, _request)
+    spray = %|
     function log(msg) {
       console.log("[*] " + msg);
       Math.atan2(0x0101, msg);
@@ -63,20 +63,19 @@ class MetasploitModule < Msf::Auxiliary
     }
     |
 
-    html = %Q|
+    html = %(
     <html>
     <script>
     #{js_heaplib2(spray)}
     </script>
     </html>
-    |
+    )
 
     print_status("Sending html")
-    send_response(cli, html, {'Content-Type'=>'text/html'})
+    send_response(cli, html, 'Content-Type' => 'text/html')
   end
 
   def run
     exploit
   end
-
 end

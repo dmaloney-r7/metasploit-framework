@@ -1,8 +1,8 @@
+# frozen_string_literal: true
 require 'spec_helper'
 require 'metasploit/framework/jtr/cracker'
 
 RSpec.describe Metasploit::Framework::JtR::Cracker do
-
   subject(:cracker) { described_class.new }
   let(:john_path) { '/path/to/john' }
   let(:other_john_path) { '/path/to/other/john' }
@@ -14,12 +14,10 @@ RSpec.describe Metasploit::Framework::JtR::Cracker do
   let(:hash_path) { '/path/to/hashes' }
   let(:nt_format) { 'nt' }
   let(:incremental) { 'Digits5' }
-  let(:rules)   { 'Rule34'}
+  let(:rules) { 'Rule34' }
   let(:max_runtime) { 5000 }
 
   describe '#binary_path' do
-
-
     context 'when the user supplied a john_path' do
       before(:example) do
         cracker.john_path = john_path
@@ -106,14 +104,13 @@ RSpec.describe Metasploit::Framework::JtR::Cracker do
 
     it 'uses the user supplied max-run-time' do
       cracker.max_runtime = max_runtime
-      expect(cracker.crack_command).to include "--max-run-time=#{max_runtime.to_s}"
+      expect(cracker.crack_command).to include "--max-run-time=#{max_runtime}"
     end
 
     it 'puts the path to the has file at the end' do
       cracker.hash_path = hash_path
       expect(cracker.crack_command.last).to eq hash_path
     end
-
   end
 
   describe '#show_command' do

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 # Copyright (C) 2008-2009 TOMITA Masahiro
 # mailto:tommy@tmtm.org
@@ -11,23 +12,22 @@ require "stringio"
 class RbMysql
   # MySQL network protocol
   class Protocol
-
     VERSION = 10
-    MAX_PACKET_LENGTH = 2**24-1
+    MAX_PACKET_LENGTH = 2**24 - 1
 
     # convert Numeric to LengthCodedBinary
     def self.lcb(num)
       return "\xfb" if num.nil?
       return [num].pack("C") if num < 251
       return [252, num].pack("Cv") if num < 65536
-      return [253, num&0xffff, num>>16].pack("CvC") if num < 16777216
-      return [254, num&0xffffffff, num>>32].pack("CVV")
+      return [253, num & 0xffff, num >> 16].pack("CvC") if num < 16777216
+      [254, num & 0xffffffff, num >> 32].pack("CVV")
     end
 
     # convert String to LengthCodedString
     def self.lcs(str)
       str = Charset.to_binary str
-      lcb(str.length)+str
+      lcb(str.length) + str
     end
 
     # convert LengthCodedBinary to Integer
@@ -41,13 +41,13 @@ class RbMysql
       when ?\xfb
         return nil
       when ?\xfc
-        return lcb.slice!(0,2).unpack("v").first
+        return lcb.slice!(0, 2).unpack("v").first
       when ?\xfd
-        c, v = lcb.slice!(0,3).unpack("Cv")
-        return (v << 8)+c
+        c, v = lcb.slice!(0, 3).unpack("Cv")
+        return (v << 8) + c
       when ?\xfe
-        v1, v2 = lcb.slice!(0,8).unpack("VV")
-        return (v2 << 32)+v1
+        v1, v2 = lcb.slice!(0, 8).unpack("VV")
+        return (v2 << 32) + v1
       else
         return v.ord
       end
@@ -60,7 +60,7 @@ class RbMysql
     # String or nil
     def self.lcs2str!(lcs)
       len = lcb2int! lcs
-      return len && lcs.slice!(0, len)
+      len && lcs.slice!(0, len)
     end
 
     def self.eof_packet?(data)
@@ -80,34 +80,34 @@ class RbMysql
         return Protocol.lcs2str!(data)
       when Field::TYPE_TINY
         v = data.slice!(0).ord
-        return unsigned ? v : v < 128 ? v : v-256
+        unsigned ? v : v < 128 ? v : v - 256
       when Field::TYPE_SHORT
-        v = data.slice!(0,2).unpack("v").first
-        return unsigned ? v : v < 32768 ? v : v-65536
+        v = data.slice!(0, 2).unpack("v").first
+        unsigned ? v : v < 32768 ? v : v - 65536
       when Field::TYPE_INT24, Field::TYPE_LONG
-        v = data.slice!(0,4).unpack("V").first
-        return unsigned ? v : v < 2**32/2 ? v : v-2**32
+        v = data.slice!(0, 4).unpack("V").first
+        return unsigned ? v : v < 2**32 / 2 ? v : v - 2**32
       when Field::TYPE_LONGLONG
-        n1, n2 = data.slice!(0,8).unpack("VV")
+        n1, n2 = data.slice!(0, 8).unpack("VV")
         v = (n2 << 32) | n1
-        return unsigned ? v : v < 2**64/2 ? v : v-2**64
+        unsigned ? v : v < 2**64 / 2 ? v : v - 2**64
       when Field::TYPE_FLOAT
-        return data.slice!(0,4).unpack("e").first
+        data.slice!(0, 4).unpack("e").first
       when Field::TYPE_DOUBLE
-        return data.slice!(0,8).unpack("E").first
+        data.slice!(0, 8).unpack("E").first
       when Field::TYPE_DATE, Field::TYPE_DATETIME, Field::TYPE_TIMESTAMP
         len = data.slice!(0).ord
-        y, m, d, h, mi, s, bs = data.slice!(0,len).unpack("vCCCCCV")
+        y, m, d, h, mi, s, bs = data.slice!(0, len).unpack("vCCCCCV")
         return RbMysql::Time.new(y, m, d, h, mi, s, bs)
       when Field::TYPE_TIME
         len = data.slice!(0).ord
-        sign, d, h, mi, s, sp = data.slice!(0,len).unpack("CVCCCV")
+        sign, d, h, mi, s, sp = data.slice!(0, len).unpack("CVCCCV")
         h = d.to_i * 24 + h.to_i
-        return RbMysql::Time.new(0, 0, 0, h, mi, s, sign!=0, sp)
+        RbMysql::Time.new(0, 0, 0, h, mi, s, sign != 0, sp)
       when Field::TYPE_YEAR
-        return data.slice!(0,2).unpack("v").first
+        data.slice!(0, 2).unpack("v").first
       when Field::TYPE_BIT
-        return Protocol.lcs2str!(data)
+        Protocol.lcs2str!(data)
       else
         raise "not implemented: type=#{type}"
       end
@@ -138,23 +138,23 @@ class RbMysql
             val = [v].pack("V")
           elsif v < 256**8
             type = Field::TYPE_LONGLONG | 0x8000
-            val = [v&0xffffffff, v>>32].pack("VV")
+            val = [v & 0xffffffff, v >> 32].pack("VV")
           else
             raise ProtocolError, "value too large: #{v}"
           end
         else
-          if -v <= 256/2
+          if -v <= 256 / 2
             type = Field::TYPE_TINY
             val = [v].pack("C")
-          elsif -v <= 256**2/2
+          elsif -v <= 256**2 / 2
             type = Field::TYPE_SHORT
             val = [v].pack("v")
-          elsif -v <= 256**4/2
+          elsif -v <= 256**4 / 2
             type = Field::TYPE_LONG
             val = [v].pack("V")
-          elsif -v <= 256**8/2
+          elsif -v <= 256**8 / 2
             type = Field::TYPE_LONGLONG
-            val = [v&0xffffffff, v>>32].pack("VV")
+            val = [v & 0xffffffff, v >> 32].pack("VV")
           else
             raise ProtocolError, "value too large: #{v}"
           end
@@ -171,7 +171,7 @@ class RbMysql
       else
         raise ProtocolError, "class #{v.class} is not supported"
       end
-      return type, val
+      [type, val]
     end
 
     attr_reader :sqlstate
@@ -187,12 +187,16 @@ class RbMysql
     def initialize(host, port, socket, conn_timeout, read_timeout, write_timeout)
       begin
         Timeout.timeout conn_timeout do
-          if host.nil? or host.empty? or host == "localhost"
+          if host.nil? || host.empty? || (host == "localhost")
             socket = ENV["MYSQL_UNIX_PORT"] || MYSQL_UNIX_PORT
             @sock = UNIXSocket.new socket
           else
             if !socket
-              port ||= ENV["MYSQL_TCP_PORT"] || (Socket.getservbyname("mysql","tcp") rescue MYSQL_TCP_PORT)
+              port ||= ENV["MYSQL_TCP_PORT"] || (begin
+                                                   Socket.getservbyname("mysql", "tcp")
+                                                 rescue
+                                                   MYSQL_TCP_PORT
+                                                 end)
               @sock = TCPSocket.new host, port
             else
               @sock = socket
@@ -204,7 +208,7 @@ class RbMysql
       end
       @read_timeout = read_timeout
       @write_timeout = write_timeout
-      @seq = 0                # packet counter. reset by each command
+      @seq = 0 # packet counter. reset by each command
       @mutex = Mutex.new
     end
 
@@ -252,7 +256,7 @@ class RbMysql
       if ret[0] == ?\xff
         f, errno, marker, @sqlstate, message = ret.unpack("Cvaa5a*")
         unless marker == "#"
-          f, errno, message = ret.unpack("Cva*")    # Version 4.0 Error
+          f, errno, message = ret.unpack("Cva*") # Version 4.0 Error
           @sqlstate = ""
         end
         if RbMysql::ServerError::ERROR_MAP.key? errno
@@ -267,23 +271,21 @@ class RbMysql
     # === Argument
     # data [String / IO] ::
     def write(data)
-      begin
-        @sock.sync = false
-        data = StringIO.new data if data.is_a? String
-        while d = data.read(MAX_PACKET_LENGTH)
-          Timeout.timeout @write_timeout do
-            @sock.write [d.length%256, d.length/256, @seq].pack("CvC")
-            @sock.write d
-          end
-          @seq = (@seq + 1) % 256
-        end
-        @sock.sync = true
+      @sock.sync = false
+      data = StringIO.new data if data.is_a? String
+      while d = data.read(MAX_PACKET_LENGTH)
         Timeout.timeout @write_timeout do
-          @sock.flush
+          @sock.write [d.length % 256, d.length / 256, @seq].pack("CvC")
+          @sock.write d
         end
-      rescue Timeout::Error
-        raise ClientError, "write timeout"
+        @seq = (@seq + 1) % 256
       end
+      @sock.sync = true
+      Timeout.timeout @write_timeout do
+        @sock.flush
+      end
+    rescue Timeout::Error
+      raise ClientError, "write timeout"
     end
 
     # Send one packet
@@ -355,7 +357,7 @@ class RbMysql
         # Remove the f1 check to backport https://github.com/tmtm/ruby-mysql/commit/07ddfafafbd1d46bbb71c7cb54ae0f03bc998d27
         # raise ProtocolError, "invalid packet: f1=#{f1.inspect}" unless f1 == "\0\0\0\0\0\0\0\0\0\0\0\0\0"
         scramble_buff.concat rest_scramble_buff
-        self.new protocol_version, server_version, thread_id, server_capabilities, server_charset, server_status, scramble_buff
+        new protocol_version, server_version, thread_id, server_capabilities, server_charset, server_status, scramble_buff
       end
 
       attr_accessor :protocol_version, :server_version, :thread_id, :server_capabilities, :server_charset, :server_status, :scramble_buff
@@ -365,10 +367,10 @@ class RbMysql
       end
 
       def crypt_password(plain)
-        return "" if plain.nil? or plain.empty?
+        return "" if plain.nil? || plain.empty?
         hash_stage1 = Digest::SHA1.digest plain
         hash_stage2 = Digest::SHA1.digest hash_stage1
-        return hash_stage1.unpack("C*").zip(Digest::SHA1.digest(@scramble_buff+hash_stage2).unpack("C*")).map{|a,b| a^b}.pack("C*")
+        hash_stage1.unpack("C*").zip(Digest::SHA1.digest(@scramble_buff + hash_stage2).unpack("C*")).map { |a, b| a ^ b }.pack("C*")
       end
     end
 
@@ -385,7 +387,7 @@ class RbMysql
           client_flags,
           max_packet_size,
           Protocol.lcb(charset_number),
-          "",                   # always 0x00 * 23
+          "", # always 0x00 * 23
           username,
           Protocol.lcs(scrambled_password),
           databasename
@@ -421,9 +423,9 @@ class RbMysql
           affected_rows = Protocol.lcb2int! data
           insert_id = Protocol.lcb2int!(data)
           server_status, warning_count, message = data.unpack("vva*")
-          return self.new(field_count, affected_rows, insert_id, server_status, warning_count, message)
+          return new(field_count, affected_rows, insert_id, server_status, warning_count, message)
         else
-          return self.new(field_count)
+          return new(field_count)
         end
       end
 
@@ -446,7 +448,7 @@ class RbMysql
         f0, charsetnr, length, type, flags, decimals, f1, data = data.unpack("CvVCvCva*")
         raise ProtocolError, "invalid packet: f1=#{f1}" unless f1 == 0
         default = Protocol.lcs2str! data
-        return self.new(db, table, org_table, name, org_name, charsetnr, length, type, flags, decimals, default)
+        new(db, table, org_table, name, org_name, charsetnr, length, type, flags, decimals, default)
       end
 
       attr_accessor :db, :table, :org_table, :name, :org_name, :charsetnr, :length, :type, :flags, :decimals, :default
@@ -472,10 +474,10 @@ class RbMysql
     # Prepare result packet
     class PrepareResultPacket < RxPacket
       def self.parse(data)
-        raise ProtocolError, "invalid packet" unless data.slice!(0) == ?\0
+        raise ProtocolError, "invalid packet" unless data.slice!(0) == "\0"
         statement_id, field_count, param_count, f, warning_count = data.unpack("VvvCv")
         raise ProtocolError, "invalid packet" unless f == 0x00
-        self.new statement_id, field_count, param_count, warning_count
+        new statement_id, field_count, param_count, warning_count
       end
 
       attr_accessor :statement_id, :field_count, :param_count, :warning_count
@@ -510,12 +512,11 @@ class RbMysql
       #
       # If values is [1, nil, 2, 3, nil] then returns "\x12"(0b10010).
       def null_bitmap(values)
-        bitmap = values.enum_for(:each_slice,8).map do |vals|
-          vals.reverse.inject(0){|b, v|(b << 1 | (v ? 0 : 1))}
+        bitmap = values.enum_for(:each_slice, 8).map do |vals|
+          vals.reverse.inject(0) { |b, v| (b << 1 | (v ? 0 : 1)) }
         end
-        return bitmap.pack("C*")
+        bitmap.pack("C*")
       end
-
     end
 
     # Fetch packet
@@ -557,4 +558,3 @@ class RbMysql
     end
   end
 end
-

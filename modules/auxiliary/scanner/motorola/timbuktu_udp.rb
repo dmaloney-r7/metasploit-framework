@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,26 +7,25 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::Scanner
   include Msf::Exploit::Remote::Udp
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Motorola Timbuktu Service Detection',
-      'Description'    => %q{
-        This module simply sends a packet to the Motorola Timbuktu service for detection.
-      },
-      'Author'         => ['MC'],
-      'License'        => MSF_LICENSE,
-      'DisclosureDate' => 'Sep 25 2009'
-    ))
+                      'Name'           => 'Motorola Timbuktu Service Detection',
+                      'Description'    => %q(
+                        This module simply sends a packet to the Motorola Timbuktu service for detection.
+                      ),
+                      'Author'         => ['MC'],
+                      'License'        => MSF_LICENSE,
+                      'DisclosureDate' => 'Sep 25 2009'))
 
     register_options(
       [
         Opt::RPORT(407)
-      ], self.class)
+      ], self.class
+    )
 
     deregister_options('RHOST')
   end
@@ -40,18 +40,18 @@ class MetasploitModule < Msf::Auxiliary
 
       res = udp_sock.read(256)
 
-        if ( res =~ /\x00\x25\xD0\xB9/ )
-          report_note(
-            :host	=> ip,
-            :proto	=> 'udp',
-            :port	=> datastore['RPORT'],
-            :type	=> 'SERVICE',
-            :data	=> 'Motorola Timbuktu Service Detection'
-          )
-          print_status("Motorola Timbuktu Detected on host #{ip}.")
-        else
-          print_error("Unable to determine info for #{ip}...")
-        end
+      if res =~ /\x00\x25\xD0\xB9/
+        report_note(
+          host: ip,
+          proto: 'udp',
+          port: datastore['RPORT'],
+          type: 'SERVICE',
+          data: 'Motorola Timbuktu Service Detection'
+        )
+        print_status("Motorola Timbuktu Detected on host #{ip}.")
+      else
+        print_error("Unable to determine info for #{ip}...")
+      end
     ensure
       disconnect_udp
     end

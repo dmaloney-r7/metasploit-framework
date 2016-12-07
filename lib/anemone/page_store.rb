@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'forwardable'
 
 module Anemone
@@ -25,16 +26,16 @@ module Anemone
     end
 
     def has_key?(key)
-      @storage.has_key? key.to_s
+      @storage.key? key.to_s
     end
 
     def each_value
-      each { |key, value| yield value }
+      each { |_key, value| yield value }
     end
 
     def values
       result = []
-      each { |key, value| result << value }
+      each { |_key, value| result << value }
       result
     end
 
@@ -43,7 +44,7 @@ module Anemone
     end
 
     def touch_keys(keys)
-      @storage.merge! keys.inject({}) { |h, k| h[k.to_s] = Page.new(k); h }
+      @storage.merge! keys.each_with_object({}) { |k, h| h[k.to_s] = Page.new(k); h }
     end
 
     # Does this PageStore contain the specified URL?
@@ -52,10 +53,10 @@ module Anemone
       schemes = %w(http https)
       if schemes.include? url.scheme
         u = url.dup
-        return schemes.any? { |s| u.scheme = s; has_key?(u) }
+        return schemes.any? { |s| u.scheme = s; key?(u) }
       end
 
-      has_key? url
+      key? url
     end
 
     #
@@ -64,7 +65,7 @@ module Anemone
     #
     def shortest_paths!(root)
       root = URI(root) if root.is_a?(String)
-      raise "Root node not found" if !has_key?(root)
+      raise "Root node not found" unless key?(root)
 
       q = Queue.new
 
@@ -73,7 +74,7 @@ module Anemone
       root_page.depth = 0
       root_page.visited = true
       self[root] = root_page
-      while !q.empty?
+      until q.empty?
         page = self[q.deq]
         page.links.each do |u|
           begin
@@ -115,10 +116,14 @@ module Anemone
       end
 
       urls.map! do |url|
-        unless url.is_a?(URI)
-          URI(url) rescue nil
-        else
+        if url.is_a?(URI)
           url
+        else
+          begin
+            URI(url)
+          rescue
+            nil
+          end
         end
       end
       urls.compact
@@ -129,7 +134,7 @@ module Anemone
         urls.each { |url| links[url] << page if page.links.include?(url) }
       end
 
-      if single and !links.empty?
+      if single && !links.empty?
         return links[urls.first]
       else
         return links
@@ -147,14 +152,13 @@ module Anemone
       end
 
       links = pages_linking_to(urls)
-      links.each { |url, pages| links[url] = pages.map{|p| p.url} }
+      links.each { |url, pages| links[url] = pages.map(&:url) }
 
-      if single and !links.empty?
+      if single && !links.empty?
         return links[urls.first]
       else
         return links
       end
     end
-
   end
 end

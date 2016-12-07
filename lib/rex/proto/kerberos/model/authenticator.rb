@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 module Rex
@@ -36,7 +37,7 @@ module Rex
           # Rex::Proto::Kerberos::Model::Authenticator decoding isn't supported
           #
           # @raise [NotImplementedError]
-          def decode(input)
+          def decode(_input)
             raise ::NotImplementedError, 'Authenticator decoding not supported'
           end
 
@@ -66,7 +67,7 @@ module Rex
           # @return [String] the encrypted result
           # @raise [NotImplementedError] if the encryption schema isn't supported
           def encrypt(etype, key)
-            data = self.encode
+            data = encode
 
             res = ''
             case etype
@@ -78,7 +79,6 @@ module Rex
 
             res
           end
-
 
           private
 

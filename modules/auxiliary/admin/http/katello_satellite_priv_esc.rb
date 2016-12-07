@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
 
   def initialize
@@ -35,7 +35,7 @@ class MetasploitModule < Msf::Auxiliary
         OptBool.new('SSL', [true, 'Use SSL', true]),
         OptString.new('USERNAME', [true, 'Your username']),
         OptString.new('PASSWORD', [true, 'Your password']),
-        OptString.new('TARGETURI', [ true, 'The path to the application', '/']),
+        OptString.new('TARGETURI', [ true, 'The path to the application', '/'])
       ], self.class
     )
   end
@@ -60,7 +60,7 @@ class MetasploitModule < Msf::Auxiliary
       print_error('Authentication failed')
       return
     else
-      session = $1 if res.get_cookies =~ /_katello_session=(\S*);/
+      session = Regexp.last_match(1) if res.get_cookies =~ /_katello_session=(\S*);/
 
       if session.nil?
         print_error('Failed to retrieve the current session')
@@ -84,7 +84,7 @@ class MetasploitModule < Msf::Auxiliary
       print_error('Authentication failed')
       return
     else
-      session = $1 if res.get_cookies =~ /_katello_session=(\S*);/
+      session = Regexp.last_match(1) if res.get_cookies =~ /_katello_session=(\S*);/
 
       if session.nil?
         print_error('Failed to retrieve the current session')
@@ -96,15 +96,15 @@ class MetasploitModule < Msf::Auxiliary
       print_error('Failed to retrieve the user id')
       return
     else
-      csrf_token = $1 if res.body =~ /<meta[ ]+content="(\S*)"[ ]+name="csrf-token"[ ]*\/?>/i
-      csrf_token = $1 if res.body =~ /<meta[ ]+name="csrf-token"[ ]+content="(\S*)"[ ]*\/?>/i if csrf_token.nil?
+      csrf_token = Regexp.last_match(1) if res.body =~ /<meta[ ]+content="(\S*)"[ ]+name="csrf-token"[ ]*\/?>/i
+      csrf_token = Regexp.last_match(1) if csrf_token.nil? && res.body =~ /<meta[ ]+name="csrf-token"[ ]+content="(\S*)"[ ]*\/?>/i
 
       if csrf_token.nil?
         print_error('Failed to retrieve the CSRF token')
         return
       end
 
-      user = $1 if res.body =~ /\/users.(\d+)#list_search=#{datastore['USERNAME']}/
+      user = Regexp.last_match(1) if res.body =~ /\/users.(\d+)#list_search=#{datastore['USERNAME']}/
 
       if user.nil?
         print_error('Failed to retrieve the user id')

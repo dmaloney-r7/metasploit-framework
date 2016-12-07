@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 # -*- coding: binary -*-
 #
 # This user interface provides users with a command console interface to the
@@ -22,7 +23,7 @@ if ENV['METASPLOIT_FRAMEWORK_PROFILE'] == 'true'
   profile_pathname.parent.mkpath
   PerfTools::CpuProfiler.start(profile_pathname.to_path)
 
-  at_exit {
+  at_exit do
     PerfTools::CpuProfiler.stop
 
     puts "Generating pdf"
@@ -34,7 +35,7 @@ if ENV['METASPLOIT_FRAMEWORK_PROFILE'] == 'true'
 
       Rex::Compat.open_file(pdf_path)
     end
-  }
+  end
 end
 
 #

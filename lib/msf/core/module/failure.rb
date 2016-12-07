@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # Constants indicating the reason for an unsuccessful module attempt
 module Msf::Module::Failure
   # The exploit settings were incorrect

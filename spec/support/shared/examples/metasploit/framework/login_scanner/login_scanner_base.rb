@@ -1,6 +1,6 @@
 
-RSpec.shared_examples_for 'Metasploit::Framework::LoginScanner::Base' do | opts |
-
+# frozen_string_literal: true
+RSpec.shared_examples_for 'Metasploit::Framework::LoginScanner::Base' do |opts|
   subject(:login_scanner) { described_class.new }
 
   let(:public) { 'root' }
@@ -8,55 +8,55 @@ RSpec.shared_examples_for 'Metasploit::Framework::LoginScanner::Base' do | opts 
   let(:realm) { 'myrealm' }
   let(:realm_key) { Metasploit::Model::Realm::Key::ACTIVE_DIRECTORY_DOMAIN }
 
-  let(:pub_blank) {
+  let(:pub_blank) do
     Metasploit::Framework::Credential.new(
-        paired: true,
-        public: public,
-        private: ''
+      paired: true,
+      public: public,
+      private: ''
     )
-  }
+  end
 
-  let(:pub_pub) {
+  let(:pub_pub) do
     Metasploit::Framework::Credential.new(
-        paired: true,
-        public: public,
-        private: public
+      paired: true,
+      public: public,
+      private: public
     )
-  }
+  end
 
-  let(:pub_pri) {
+  let(:pub_pri) do
     Metasploit::Framework::Credential.new(
-        paired: true,
-        public: public,
-        private: private
+      paired: true,
+      public: public,
+      private: private
     )
-  }
+  end
 
-  let(:invalid_detail) {
+  let(:invalid_detail) do
     Metasploit::Framework::Credential.new(
-        paired: true,
-        public: nil,
-        private: nil
+      paired: true,
+      public: nil,
+      private: nil
     )
-  }
+  end
 
-  let(:ad_cred) {
+  let(:ad_cred) do
     Metasploit::Framework::Credential.new(
-        paired: true,
-        public: public,
-        private: private,
-        realm: realm,
-        realm_key: realm_key
+      paired: true,
+      public: public,
+      private: private,
+      realm: realm,
+      realm_key: realm_key
     )
-  }
+  end
 
-  let(:detail_group) {
+  let(:detail_group) do
     [ pub_blank, pub_pub, pub_pri]
-  }
+  end
 
-  let(:socket_error) {
+  let(:socket_error) do
     ::SocketError.new("getaddrinfo: nodename nor servname provided, or not known")
-  }
+  end
 
   it { is_expected.to respond_to :connection_timeout }
   it { is_expected.to respond_to :cred_details }
@@ -67,7 +67,6 @@ RSpec.shared_examples_for 'Metasploit::Framework::LoginScanner::Base' do | opts 
 
   context 'validations' do
     context 'port' do
-
       it 'is not valid for a non-number' do
         login_scanner.port = "a"
         expect(login_scanner).to_not be_valid
@@ -169,11 +168,9 @@ RSpec.shared_examples_for 'Metasploit::Framework::LoginScanner::Base' do | opts 
         expect(login_scanner).to_not be_valid
         expect(login_scanner.errors[:cred_details]).to include "must respond to :each"
       end
-
     end
 
     context 'connection_timeout' do
-
       it 'is not valid for a non-number' do
         login_scanner.connection_timeout = "a"
         expect(login_scanner).to_not be_valid
@@ -205,7 +202,6 @@ RSpec.shared_examples_for 'Metasploit::Framework::LoginScanner::Base' do | opts 
     end
 
     context 'stop_on_success' do
-
       it 'is not valid for not set' do
         expect(login_scanner).to_not be_valid
         expect(login_scanner.errors[:stop_on_success]).to include 'is not included in the list'
@@ -236,27 +232,27 @@ RSpec.shared_examples_for 'Metasploit::Framework::LoginScanner::Base' do | opts 
 
     context '#valid!' do
       it 'raises a Metasploit::Framework::LoginScanner::Invalid when validations fail' do
-        expect{login_scanner.valid!}.to raise_error Metasploit::Framework::LoginScanner::Invalid
+        expect { login_scanner.valid! }.to raise_error Metasploit::Framework::LoginScanner::Invalid
       end
     end
   end
 
   context '#scan!' do
-    let(:success) {
+    let(:success) do
       ::Metasploit::Framework::LoginScanner::Result.new(
-          credential: pub_pub,
-          proof: '',
-          status:  Metasploit::Model::Login::Status::SUCCESSFUL
+        credential: pub_pub,
+        proof: '',
+        status:  Metasploit::Model::Login::Status::SUCCESSFUL
       )
-    }
+    end
 
-    let(:failure_blank) {
+    let(:failure_blank) do
       ::Metasploit::Framework::LoginScanner::Result.new(
-          credential: pub_blank,
-          proof: nil,
-          status: Metasploit::Model::Login::Status::INCORRECT
+        credential: pub_blank,
+        proof: nil,
+        status: Metasploit::Model::Login::Status::INCORRECT
       )
-    }
+    end
 
     before(:example) do
       login_scanner.host = '127.0.0.1'
@@ -309,11 +305,9 @@ RSpec.shared_examples_for 'Metasploit::Framework::LoginScanner::Base' do | opts 
         my_scanner.scan!
       end
     end
-
   end
 
   context '#each_credential' do
-
     if opts[:has_realm_key]
       context 'when the login_scanner has a REALM_KEY' do
         context 'when the credential has a realm' do
@@ -323,7 +317,7 @@ RSpec.shared_examples_for 'Metasploit::Framework::LoginScanner::Base' do | opts 
           it 'set the realm_key on the credential to that of the scanner' do
             output_cred = ad_cred.dup
             output_cred.realm_key = described_class::REALM_KEY
-            expect{ |b| login_scanner.each_credential(&b)}.to yield_with_args(output_cred)
+            expect { |b| login_scanner.each_credential(&b) }.to yield_with_args(output_cred)
           end
         end
 
@@ -336,11 +330,10 @@ RSpec.shared_examples_for 'Metasploit::Framework::LoginScanner::Base' do | opts 
               output_cred = pub_pri.dup
               output_cred.realm = described_class::DEFAULT_REALM
               output_cred.realm_key = described_class::REALM_KEY
-              expect{ |b| login_scanner.each_credential(&b)}.to yield_with_args(output_cred)
+              expect { |b| login_scanner.each_credential(&b) }.to yield_with_args(output_cred)
             end
           end
         end
-
       end
     else
       context 'when login_scanner has no REALM_KEY' do
@@ -349,12 +342,12 @@ RSpec.shared_examples_for 'Metasploit::Framework::LoginScanner::Base' do | opts 
             login_scanner.cred_details = [ad_cred]
           end
           it 'yields the original credential as well as one with the realm in the public' do
-            first_cred  = ad_cred.dup
+            first_cred = ad_cred.dup
             first_cred.realm = nil
             first_cred.realm_key = nil
             second_cred = first_cred.dup
             second_cred.public = "#{realm}\\#{public}"
-            expect{ |b| login_scanner.each_credential(&b)}.to yield_successive_args(ad_cred,second_cred)
+            expect { |b| login_scanner.each_credential(&b) }.to yield_successive_args(ad_cred, second_cred)
           end
         end
 
@@ -363,14 +356,10 @@ RSpec.shared_examples_for 'Metasploit::Framework::LoginScanner::Base' do | opts 
             login_scanner.cred_details = [pub_pri]
           end
           it 'simply yields the original credential' do
-            expect{ |b| login_scanner.each_credential(&b)}.to yield_with_args(pub_pri)
+            expect { |b| login_scanner.each_credential(&b) }.to yield_with_args(pub_pri)
           end
         end
       end
     end
-
-
-
   end
-
 end

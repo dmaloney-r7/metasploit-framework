@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'metasploit/framework/tcp/client'
 require 'rex/proto/rfb'
 require 'metasploit/framework/login_scanner/base'
@@ -14,14 +15,13 @@ module Metasploit
         include Metasploit::Framework::LoginScanner::RexSocket
         include Metasploit::Framework::Tcp::Client
 
-
         #
         # CONSTANTS
         #
 
         LIKELY_PORTS         = (5900..5910).to_a
-        LIKELY_SERVICE_NAMES = [ 'vnc' ]
-        PRIVATE_TYPES        = [ :password ]
+        LIKELY_SERVICE_NAMES = [ 'vnc' ].freeze
+        PRIVATE_TYPES        = [ :password ].freeze
         REALM_KEY            = nil
 
         # Error indicating retry should occur for UltraVNC
@@ -30,34 +30,34 @@ module Metasploit
         VNC4_SERVER_RETRY_ERROR = 'Too many security failures'
         # Known retry errors for all supported versions of VNC
         RETRY_ERRORS = [
-            ULTRA_VNC_RETRY_ERROR,
-            VNC4_SERVER_RETRY_ERROR
-        ]
+          ULTRA_VNC_RETRY_ERROR,
+          VNC4_SERVER_RETRY_ERROR
+        ].freeze
 
         # This method attempts a single login with a single credential against the target
         # @param credential [Credential] The credential object to attmpt to login with
         # @return [Metasploit::Framework::LoginScanner::Result] The LoginScanner Result object
         def attempt_login(credential)
           result_options = {
-              credential: credential,
-              host: host,
-              port: port,
-              protocol: 'tcp',
-              service_name: 'vnc'
+            credential: credential,
+            host: host,
+            port: port,
+            protocol: 'tcp',
+            service_name: 'vnc'
           }
 
           credential.public = nil
 
           begin
             # Make our initial socket to the target
-            disconnect if self.sock
+            disconnect if sock
             connect
 
             # Create our VNC client overtop of the socket
-            vnc = Rex::Proto::RFB::Client.new(sock, :allow_none => false)
+            vnc = Rex::Proto::RFB::Client.new(sock, allow_none: false)
 
             if vnc.handshake
-              if vnc_auth(vnc,credential.private)
+              if vnc_auth(vnc, credential.private)
                 result_options[:status] = Metasploit::Model::Login::Status::SUCCESSFUL
               else
                 result_options.merge!(
@@ -73,8 +73,8 @@ module Metasploit
             end
           rescue ::EOFError, Errno::ENOTCONN, Rex::ConnectionError, ::Timeout::Error => e
             result_options.merge!(
-                proof: e.message,
-                status: Metasploit::Model::Login::Status::UNABLE_TO_CONNECT
+              proof: e.message,
+              status: Metasploit::Model::Login::Status::UNABLE_TO_CONNECT
             )
           ensure
             disconnect
@@ -107,7 +107,7 @@ module Metasploit
         # delays built into the VNC RFB authentication.
         # @param client [Rex::Proto::RFB::Client] The VNC client object to authenticate through
         # @param password [String] the password to attempt the authentication with
-        def vnc_auth(client,password)
+        def vnc_auth(client, password)
           success = false
           5.times do |n|
             if client.authenticate(password)
@@ -117,13 +117,12 @@ module Metasploit
             break unless retry?(client.error)
 
             # Wait for an increasing ammount of time before retrying
-            delay = (2**(n+1)) + 1
+            delay = (2**(n + 1)) + 1
             ::Rex.sleep(delay)
           end
           success
         end
       end
-
     end
   end
 end

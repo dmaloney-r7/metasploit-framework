@@ -1,14 +1,12 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 
-
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::WDBRPC
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::Scanner
@@ -27,12 +25,12 @@ class MetasploitModule < Msf::Auxiliary
     )
 
     register_options(
-    [
-      OptInt.new('BATCHSIZE', [true, 'The number of hosts to probe in each set', 256]),
-      Opt::RPORT(17185)
-    ], self.class)
+      [
+        OptInt.new('BATCHSIZE', [true, 'The number of hosts to probe in each set', 256]),
+        Opt::RPORT(17185)
+      ], self.class
+    )
   end
-
 
   # Define our batch size
   def run_batch_size
@@ -41,30 +39,26 @@ class MetasploitModule < Msf::Auxiliary
 
   # Operate on an entire batch of hosts at once
   def run_batch(batch)
-
     begin
       udp_sock = nil
       idx = 0
 
       udp_sock = Rex::Socket::Udp.create(
-        {
-          'Context' => {'Msf' => framework, 'MsfExploit' => self}
-        }
+        'Context' => { 'Msf' => framework, 'MsfExploit' => self }
       )
       add_socket(udp_sock)
 
       batch.each do |ip|
-
         begin
           udp_sock.sendto(create_probe(ip), ip, datastore['RPORT'].to_i, 0)
         rescue ::Interrupt
-          raise $!
+          raise $ERROR_INFO
         rescue ::Rex::HostUnreachable, ::Rex::ConnectionTimeout, ::Rex::ConnectionRefused
           nil
         end
 
-        if (idx % 10 == 0)
-          while (r = udp_sock.recvfrom(65535, 0.01) and r[1])
+        if idx % 10 == 0
+          while (r = udp_sock.recvfrom(65535, 0.01)) && r[1]
             parse_reply(r)
           end
         end
@@ -75,7 +69,7 @@ class MetasploitModule < Msf::Auxiliary
       cnt = 0
       del = 10
       sts = Time.now.to_i
-      while (r = udp_sock.recvfrom(65535, del) and r[1])
+      while (r = udp_sock.recvfrom(65535, del)) && r[1]
         parse_reply(r)
 
         # Prevent an indefinite loop if the targets keep replying
@@ -83,17 +77,17 @@ class MetasploitModule < Msf::Auxiliary
         break if cnt > run_batch_size
 
         # Escape after 15 seconds regardless of batch size
-        break if ((sts + 15) < Time.now.to_i)
+        break if (sts + 15) < Time.now.to_i
 
         del = 1.0
       end
 
     rescue ::Interrupt
-      raise $!
+      raise $ERROR_INFO
     rescue ::Exception => e
       print_status("Unknown error: #{e.class} #{e}")
     ensure
-      udp_sock.close if udp_sock
+      udp_sock&.close
     end
   end
 
@@ -101,18 +95,15 @@ class MetasploitModule < Msf::Auxiliary
   # The response parsers
   #
   def parse_reply(pkt)
+    return unless pkt[1]
 
-    return if not pkt[1]
-
-    if(pkt[1] =~ /^::ffff:/)
-      pkt[1] = pkt[1].sub(/^::ffff:/, '')
-    end
+    pkt[1] = pkt[1].sub(/^::ffff:/, '') if pkt[1] =~ /^::ffff:/
 
     data = pkt[0]
 
     # Bare RPC response
     if data.length == 24
-      ecode = data[20,4].unpack("N")[0]
+      ecode = data[20, 4].unpack("N")[0]
       emesg = "unknown"
       case ecode
       when 3
@@ -127,7 +118,7 @@ class MetasploitModule < Msf::Auxiliary
     end
 
     if data.length < 80
-      print_status("#{pkt[1]}: Unknown response #{data.unpack("H*")[0]}")
+      print_status("#{pkt[1]}: Unknown response #{data.unpack('H*')[0]}")
       return
     end
 
@@ -135,12 +126,12 @@ class MetasploitModule < Msf::Auxiliary
     print_status("#{pkt[1]}: #{res[:rt_vers]} #{res[:rt_bsp_name]} #{res[:rt_bootline]}")
 
     report_note(
-      :host   => pkt[1],
-      :port   => datastore['RPORT'],
-      :proto  => 'udp',
-      :type   => 'vxworks.target_info',
-      :data   => res,
-      :update => :unique
+      host: pkt[1],
+      port: datastore['RPORT'],
+      proto: 'udp',
+      type: 'vxworks.target_info',
+      data: res,
+      update: :unique
     )
   end
 

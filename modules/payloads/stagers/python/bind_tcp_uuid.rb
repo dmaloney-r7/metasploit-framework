@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -11,7 +12,6 @@ require 'msf/base/sessions/command_shell'
 require 'msf/base/sessions/command_shell_options'
 
 module MetasploitModule
-
   CachedSize = 486
 
   include Msf::Payload::Stager
@@ -24,20 +24,18 @@ module MetasploitModule
 
   def initialize(info = {})
     super(merge_info(info,
-      'Name'        => 'Python Bind TCP Stager with UUID Support',
-      'Description' => 'Listen for a connection with UUID Support',
-      'Author'      => 'OJ Reeves',
-      'License'     => MSF_LICENSE,
-      'Platform'    => 'python',
-      'Arch'        => ARCH_PYTHON,
-      'Handler'     => Msf::Handler::BindTcp,
-      'Stager'      => {'Payload' => ""}
-    ))
+                     'Name'        => 'Python Bind TCP Stager with UUID Support',
+                     'Description' => 'Listen for a connection with UUID Support',
+                     'Author'      => 'OJ Reeves',
+                     'License'     => MSF_LICENSE,
+                     'Platform'    => 'python',
+                     'Arch'        => ARCH_PYTHON,
+                     'Handler'     => Msf::Handler::BindTcp,
+                     'Stager'      => { 'Payload' => "" }))
   end
 
   # Tell the reverse_tcp payload to include the UUID
   def include_send_uuid
     true
   end
-
 end

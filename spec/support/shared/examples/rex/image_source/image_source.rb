@@ -1,5 +1,5 @@
+# frozen_string_literal: true
 RSpec.shared_examples_for "Rex::ImageSource::ImageSource" do
-
   describe "#read_asciiz" do
     let(:offset) { 0 }
 
@@ -19,5 +19,4 @@ RSpec.shared_examples_for "Rex::ImageSource::ImageSource" do
       end
     end
   end
-
 end

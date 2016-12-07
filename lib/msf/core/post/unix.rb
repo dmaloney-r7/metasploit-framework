@@ -1,7 +1,7 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 module Msf::Post::Unix
-
   #
   # Returns an array of hashes each representing a user
   # Keys are name, uid, gid, info, dir and shell
@@ -12,13 +12,13 @@ module Msf::Post::Unix
     [
       "/etc/passwd",
       "/etc/security/passwd",
-      "/etc/master.passwd",
-    ].each { |f|
+      "/etc/master.passwd"
+    ].each do |f|
       if file_exist?(f)
         etc_passwd = f
         break
       end
-    }
+    end
     cmd_out = read_file(etc_passwd).split("\n")
     cmd_out.each do |l|
       entry = {}
@@ -31,7 +31,7 @@ module Msf::Post::Unix
       entry[:shell] = user_field[6]
       users << entry
     end
-    return users
+    users
   end
 
   #
@@ -49,7 +49,7 @@ module Msf::Post::Unix
       entry[:users] = user_field[3]
       groups << entry
     end
-    return groups
+    groups
   end
 
   #
@@ -65,12 +65,12 @@ module Msf::Post::Unix
 
     # also list other common places for home directories in the event that
     # the users aren't in /etc/passwd (LDAP, for example)
-    case session.platform
-    when 'osx'
-      user_dirs << cmd_exec('ls /Users').each_line.map { |l| "/Users/#{l}" }
-    else
-      user_dirs << cmd_exec('ls /home').each_line.map { |l| "/home/#{l}" }
-    end
+    user_dirs << case session.platform
+                 when 'osx'
+                   cmd_exec('ls /Users').each_line.map { |l| "/Users/#{l}" }
+                 else
+                   cmd_exec('ls /home').each_line.map { |l| "/home/#{l}" }
+                 end
 
     user_dirs.flatten!
     user_dirs.compact!
@@ -79,5 +79,4 @@ module Msf::Post::Unix
 
     user_dirs
   end
-
 end

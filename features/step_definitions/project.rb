@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'metasploit/framework/database/cucumber'
 
 Given /^the project "database.yml" does not exist$/ do

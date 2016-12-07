@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 #
 # Standard Library
 #
@@ -31,7 +32,7 @@ module Metasploit::Framework::CommonEngine
       Encoding.default_internal = encoding
     end
 
-    config.root = Msf::Config::install_root
+    config.root = Msf::Config.install_root
     config.paths.add 'app/concerns', autoload: true
     config.paths.add 'data/meterpreter', glob: '**/ext_*'
     config.paths.add 'modules'
@@ -41,8 +42,5 @@ module Metasploit::Framework::CommonEngine
     #
     # `initializer`s
     #
-
-
   end
-
 end

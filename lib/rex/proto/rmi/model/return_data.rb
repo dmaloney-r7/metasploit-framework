@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 module Rex
@@ -6,7 +7,6 @@ module Rex
       module Model
         # This class provides a representation of an RMI return data stream
         class ReturnData < Element
-
           # @!attribute stream_id
           #   @return [Fixnum] the stream id
           attr_accessor :stream_id

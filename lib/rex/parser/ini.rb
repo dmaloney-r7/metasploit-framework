@@ -1,184 +1,180 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 module Rex
-module Parser
+  module Parser
+    ###
+    #
+    # This class parses the contents of an INI file.
+    #
+    ###
+    class Ini < Hash
+      ##
+      #
+      # Factories
+      #
+      ##
 
-###
-#
-# This class parses the contents of an INI file.
-#
-###
-class Ini < Hash
+      #
+      # Creates a new class instance and reads in the contents of the supplied
+      # file path.
+      #
+      def self.from_file(path)
+        ini = Ini.new(path)
+        ini.from_file
+        ini
+      end
 
-  ##
-  #
-  # Factories
-  #
-  ##
+      #
+      # Creates a new class instance from the supplied string.
+      #
+      def self.from_s(str)
+        ini = Ini.new
+        ini.from_s(str)
+        ini
+      end
 
-  #
-  # Creates a new class instance and reads in the contents of the supplied
-  # file path.
-  #
-  def self.from_file(path)
-    ini = Ini.new(path)
-    ini.from_file
-    return ini
-  end
+      #
+      # Initializes an ini instance and tries to read in the groups from the
+      # file if it exists.
+      #
+      def initialize(path = nil)
+        self.path = path
 
-  #
-  # Creates a new class instance from the supplied string.
-  #
-  def self.from_s(str)
-    ini = Ini.new
-    ini.from_s(str)
-    return ini
-  end
+        # Try to synchronize ourself with the file if we
+        # have one
+        begin
+          from_file if self.path
+        rescue
+        end
+      end
 
-  #
-  # Initializes an ini instance and tries to read in the groups from the
-  # file if it exists.
-  #
-  def initialize(path = nil)
-    self.path = path
+      alias each_group each_key
 
-    # Try to synchronize ourself with the file if we
-    # have one
-    begin
-      self.from_file if (self.path)
-    rescue
-    end
-  end
+      #
+      # Adds a group of the supplied name if it doesn't already exist.
+      #
+      def add_group(name = 'global', reset = true)
+        self[name] = {} if reset == true
+        self[name] = {} unless self[name]
 
-  alias each_group each_key
+        self[name]
+      end
 
-  #
-  # Adds a group of the supplied name if it doesn't already exist.
-  #
-  def add_group(name = 'global', reset = true)
-    self[name] = {} if (reset == true)
-    self[name] = {} if (!self[name])
+      #
+      # Checks to see if name is a valid group.
+      #
+      def group?(name)
+        !self[name].nil?
+      end
 
-    return self[name]
-  end
+      ##
+      #
+      # Serializers
+      #
+      ##
 
-  #
-  # Checks to see if name is a valid group.
-  #
-  def group?(name)
-    return (self[name] != nil)
-  end
+      #
+      # Reads in the groups from the supplied file path or the instance's file
+      # path.
+      #
+      def from_file(fpath = nil)
+        fpath = path unless fpath
 
-  ##
-  #
-  # Serializers
-  #
-  ##
+        read_groups(fpath)
+      end
 
-  #
-  # Reads in the groups from the supplied file path or the instance's file
-  # path.
-  #
-  def from_file(fpath = nil)
-    fpath = path if (!fpath)
+      #
+      # Reads in the groups from the supplied string.
+      #
+      def from_s(str)
+        read_groups_string(str.split("\n"))
+      end
 
-    read_groups(fpath)
-  end
+      #
+      # Writes the group settings to a file.
+      #
+      def to_file(tpath = nil)
+        tpath = path unless tpath
 
-  #
-  # Reads in the groups from the supplied string.
-  #
-  def from_s(str)
-    read_groups_string(str.split("\n"))
-  end
+        f = File.new(tpath, "w")
+        f.write(to_s)
+        f.close
+      end
 
-  #
-  # Writes the group settings to a file.
-  #
-  def to_file(tpath = nil)
-    tpath = path if (!tpath)
+      #
+      # Converts the groups to a string.
+      #
+      def to_s
+        str = ''
+        keys.sort.each do |k|
+          str << "[#{k}]\n"
 
-    f = File.new(tpath, "w")
-    f.write(to_s)
-    f.close
-  end
+          self[k].each_pair do |var, val|
+            str << "#{var}=#{val}\n"
+          end
 
-  #
-  # Converts the groups to a string.
-  #
-  def to_s
-    str = ''
-    keys.sort.each { |k|
-      str << "[#{k}]\n"
+          str << "\n"
+        end
 
-      self[k].each_pair { |var, val|
-        str << "#{var}=#{val}\n"
-      }
+        str
+      end
 
-      str << "\n";
-    }
+      attr_reader :path
 
-    return str
-  end
+      protected
 
-  attr_reader :path
+      #
+      # Reads in the groups and their attributes from the supplied file
+      # path or from the instance's file path if one was set.
+      #
+      def read_groups(fpath) # :nodoc:
+        unless fpath
+          raise ArgumentError, "No file path specified.",
+                caller
+        end
 
-protected
+        # Read in the contents of the file
+        lines = ::IO.readlines(fpath)
 
-  #
-  # Reads in the groups and their attributes from the supplied file
-  # path or from the instance's file path if one was set.
-  #
-  def read_groups(fpath) # :nodoc:
-    if (!fpath)
-      raise ArgumentError, "No file path specified.",
-        caller
-    end
+        # Now read the contents from the supplied string
+        read_groups_string(lines)
+      end
 
-    # Read in the contents of the file
-    lines = ::IO.readlines(fpath)
+      #
+      # Reads groups from the supplied string
+      #
+      def read_groups_string(str) # :nodoc:
+        # Reset the groups hash
+        clear
 
-    # Now read the contents from the supplied string
-    read_groups_string(lines)
-  end
+        # The active group
+        active_group = nil
 
-  #
-  # Reads groups from the supplied string
-  #
-  def read_groups_string(str) # :nodoc:
-    # Reset the groups hash
-    self.clear
+        # Walk each line initializing the groups
+        str.each do |line|
+          next if line =~ /^;/
 
-    # The active group
-    active_group = nil
+          # Eliminate cr/lf
+          line.gsub!(/(\n|\r)/, '')
 
-    # Walk each line initializing the groups
-    str.each { |line|
-      next if (line.match(/^;/))
+          # Is it a group [bob]?
+          if (md = line.match(/^\[(.+?)\]/))
+            active_group = md[1]
+            self[md[1]]  = {}
+          # Is it a VAR=VAL?
+          elsif (md = line.match(/^(.+?)=(.*)$/))
+            if active_group
+              var = md[1]
+              val = md[2]
 
-      # Eliminate cr/lf
-      line.gsub!(/(\n|\r)/, '')
-
-      # Is it a group [bob]?
-      if (md = line.match(/^\[(.+?)\]/))
-        active_group = md[1]
-        self[md[1]]  = {}
-      # Is it a VAR=VAL?
-      elsif (md = line.match(/^(.+?)=(.*)$/))
-        if (active_group)
-          var, val = md[1], md[2]
-
-          # don't clobber datastore nils with ""
-          unless val.empty?
-            self[active_group][var] = val
+              # don't clobber datastore nils with ""
+              self[active_group][var] = val unless val.empty?
+            end
           end
         end
       end
-    }
+
+      attr_writer :path # :nodoc:
+    end
   end
-
-  attr_writer :path # :nodoc:
-
-end
-
-end
 end

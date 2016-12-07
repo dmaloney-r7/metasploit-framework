@@ -1,14 +1,13 @@
+# frozen_string_literal: true
 # $Id$ $Revision$
 require 'nessus_rest'
 require 'rex/parser/nessus_xml'
 
 module Msf
-
   PLUGIN_NAME        = 'Nessus'
   PLUGIN_DESCRIPTION = 'Nessus Bridge for Metasploit'
 
   class Plugin::Nessus < Msf::Plugin
-
     def name
       PLUGIN_NAME
     end
@@ -33,7 +32,7 @@ module Msf
       end
 
       def msf_local
-        "#{Msf::Config.local_directory}"
+        Msf::Config.local_directory.to_s
       end
 
       def commands
@@ -95,48 +94,47 @@ module Msf
         print_status("nessus_connect")
         print_status("Example:> nessus_connect")
         print_status("This only works after you have saved creds with nessus_save")
-        return
+        nil
       end
 
-      #creates the index of exploit details to make searching for exploits much faster.
+      # creates the index of exploit details to make searching for exploits much faster.
       def create_xindex
         start = Time.now
         print_status("Creating Exploit Search Index - (#{xindex}) - this won't take long.")
         count = 0
-        #Use Msf::Config.get_config_root as the location.
-        File.open("#{xindex}", "w+") do |f|
-          #need to add version line.
+        # Use Msf::Config.get_config_root as the location.
+        File.open(xindex.to_s, "w+") do |f|
+          # need to add version line.
           f.puts(Msf::Framework::Version)
-          framework.exploits.sort.each { |refname, mod|
-          stuff = ""
-          o = nil
-          begin
-            o = mod.new
-          rescue ::Exception
-          end
-          stuff << "#{refname}|#{o.name}|#{o.platform_to_s}|#{o.arch_to_s}"
-          next if not o
+          framework.exploits.sort.each do |refname, mod|
+            stuff = ""
+            o = nil
+            begin
+              o = mod.new
+            rescue ::Exception
+            end
+            stuff << "#{refname}|#{o.name}|#{o.platform_to_s}|#{o.arch_to_s}"
+            next unless o
             o.references.map do |x|
-              if !(x.ctx_id == "URL")
-                if (x.ctx_id == "MSB")
-                  stuff << "|#{x.ctx_val}"
-                else
-                  stuff << "|#{x.ctx_id}-#{x.ctx_val}"
-                end
-              end
+              next if x.ctx_id == "URL"
+              stuff << if x.ctx_id == "MSB"
+                         "|#{x.ctx_val}"
+                       else
+                         "|#{x.ctx_id}-#{x.ctx_val}"
+                       end
             end
             stuff << "\n"
             f.puts(stuff)
-          }
+          end
         end
         total = Time.now - start
         print_status("It has taken : #{total} seconds to build the exploits search index")
       end
 
       def nessus_index
-        if File.exist?("#{xindex}")
-          #check if it's version line matches current version.
-          File.open("#{xindex}") { |f|
+        if File.exist?(xindex.to_s)
+          # check if it's version line matches current version.
+          File.open(xindex.to_s) do |f|
             line = f.readline
             line.chomp!
             if line.to_i == Msf::Framework::RepoRevision
@@ -144,25 +142,23 @@ module Msf
             else
               create_xindex
             end
-          }
+          end
         else
           create_xindex
         end
       end
 
       def nessus_login
-        if !((@user and @user.length > 0) and (@host and @host.length > 0) and (@port and @port.length > 0 and @port.to_i > 0) and (@pass and @pass.length > 0))
+        unless (@user && !@user.empty?) && (@host && !@host.empty?) && (@port && !@port.empty? && @port.to_i > 0) && (@pass && !@pass.empty?)
           print_status("You need to connect to a server first.")
           ncusage
           return
         end
         @url = "https://#{@host}:#{@port}/"
         print_status("Connecting to #{@url} as #{@user}")
-        verify_ssl=false
-        if @sslv == "verify_ssl" then
-          verify_ssl=true
-        end
-        @n = NessusREST::Client.new(:url=>@url,:username=>@user,:password=>@pass,:ssl_verify=>verify_ssl)
+        verify_ssl = false
+        verify_ssl = true if @sslv == "verify_ssl"
+        @n = NessusREST::Client.new(url: @url, username: @user, password: @pass, ssl_verify: verify_ssl)
         if @n.authenticated
           print_status("User #{@user} authenticated successfully.")
           @token = 1
@@ -173,7 +169,7 @@ module Msf
       end
 
       def nessus_verify_token
-        if @token.nil? or @token == ''
+        if @token.nil? || (@token == '')
           ncusage
           return false
         end
@@ -189,16 +185,14 @@ module Msf
           return
         end
         pol = @n.list_policies
-        pol["policies"].each { |p|
-        if p["template_uuid"] == pid
-          return true
+        pol["policies"].each do |p|
+          return true if p["template_uuid"] == pid
         end
-        }
-        return false
+        false
       end
 
       def nessus_verify_db
-        if !(framework.db and framework.db.active)
+        unless framework.db && framework.db.active
           print_error("No database has been configured, please use db_create/db_connect first")
           return false
         end
@@ -214,33 +208,33 @@ module Msf
           return
         end
         scans = @n.scan_list
-        scans.each { |scan|
-        if scan["scans"]["id"] == scan_id && scan["scans"]["status"] == "completed"
-          return true
+        scans.each do |scan|
+          if scan["scans"]["id"] == scan_id && scan["scans"]["status"] == "completed"
+            return true
+          end
         end
-        }
-        return false
+        false
       end
 
       def is_scan_complete(scan_id)
         complete = false
         status = @n.scan_list
-        status["scans"].each { |scan|
-        if scan["id"] == scan_id.to_i && (scan["status"] == "completed" || scan["status"] == "imported")
-          complete = true
+        status["scans"].each do |scan|
+          if scan["id"] == scan_id.to_i && (scan["status"] == "completed" || scan["status"] == "imported")
+            complete = true
+          end
         end
-        }
         complete
       end
 
-      def cmd_nessus_help(*args)
+      def cmd_nessus_help(*_args)
         tbl = Rex::Text::Table.new(
           'Columns' => [
             "Command",
             "Help Text"
-            ],
+          ],
           'SortIndex' => -1
-          )
+        )
         tbl << [ "Generic Commands", "" ]
         tbl << [ "-----------------", "-----------------"]
         tbl << [ "nessus_connect", "Connect to a Nessus server" ]
@@ -309,7 +303,7 @@ module Msf
 
       def cmd_nessus_connect(*args)
         # Check if config file exists and load it
-        if !args[0]
+        unless args[0]
           if File.exist?(nessus_yaml)
             lconfig = YAML.load_file(nessus_yaml)
             @user = lconfig['default']['username'].to_s
@@ -340,27 +334,27 @@ module Msf
           print_error("You are already authenticated.  Call nessus_logout before authenticating again")
           return
         end
-        if(args.length == 0 or args[0].empty?)
+        if args.empty? || args[0].empty?
           ncusage
           return
         end
 
         @user = @pass = @host = @port = @sslv = nil
         case args.length
-        when 1,2
+        when 1, 2
           if args[0].include? "@"
-            cred,targ = args[0].split('@', 2)
-            @user,@pass = cred.split(':', 2)
+            cred, targ = args[0].split('@', 2)
+            @user, @pass = cred.split(':', 2)
             targ ||= '127.0.0.1:8834'
-            @host,@port = targ.split(':', 2)
+            @host, @port = targ.split(':', 2)
             @port ||= '8834'
             @sslv = args[1]
           else
-            @host,@port = args[0].split(':', 2)
+            @host, @port = args[0].split(':', 2)
             @port ||= '8834'
             @sslv = args[1]
           end
-        when 3,4,5
+        when 3, 4, 5
           ncusage
           return
         else
@@ -371,17 +365,17 @@ module Msf
           ncusage
           return
         end
-        if !@user
+        unless @user
           print_error("Missing Username")
           ncusage
           return
         end
-        if !@pass
+        unless @pass
           print_error("Missing Password")
           ncusage
           return
         end
-        if !((@user and @user.length > 0) and (@host and @host.length > 0) and (@port and @port.length > 0 and @port.to_i > 0) and (@pass and @pass.length > 0))
+        unless (@user && !@user.empty?) && (@host && !@host.empty?) && (@port && !@port.empty? && @port.to_i > 0) && (@pass && !@pass.empty?)
           ncusage
           return
         end
@@ -399,11 +393,11 @@ module Msf
         else
           print_error("There was some problem in logging out the user #{@user}")
         end
-        return
+        nil
       end
 
       def cmd_nessus_save(*args)
-        #if we are logged in, save session details to nessus.yaml
+        # if we are logged in, save session details to nessus.yaml
         if args[0] == "-h"
           print_status(" nessus_save")
           return
@@ -414,10 +408,10 @@ module Msf
           return
         end
         group = "default"
-        if ((@user and @user.length > 0) and (@host and @host.length > 0) and (@port and @port.length > 0 and @port.to_i > 0) and (@pass and @pass.length > 0))
-          config = Hash.new
-          config = {"#{group}" => {'username' => @user, 'password' => @pass, 'server' => @host, 'port' => @port}}
-          File.open("#{nessus_yaml}", "w+") do |f|
+        if (@user && !@user.empty?) && (@host && !@host.empty?) && (@port && !@port.empty? && @port.to_i > 0) && (@pass && !@pass.empty?)
+          config = {}
+          config = { group.to_s => { 'username' => @user, 'password' => @pass, 'server' => @host, 'port' => @port } }
+          File.open(nessus_yaml.to_s, "w+") do |f|
             f.puts YAML.dump(config)
           end
           print_good("#{nessus_yaml} created.")
@@ -451,7 +445,8 @@ module Msf
             'Nessus Web Version',
             'Plugin Set',
             'Server UUID'
-          ])
+          ]
+        )
         tbl << [ resp["feed"], resp["nessus_type"], resp["server_version"], resp["nessus_ui_version"], resp["loaded_plugin_set"], resp["server_uuid"] ]
         print_line tbl.to_s
       end
@@ -475,7 +470,8 @@ module Msf
           'Columns' => [
             'Status',
             'Progress'
-          ])
+          ]
+        )
         list = @n.server_status
         tbl << [ list["progress"], list["status"] ]
         print_line tbl.to_s
@@ -493,9 +489,7 @@ module Msf
           end
         end
 
-        if !nessus_verify_token
-          return
-        end
+        return unless nessus_verify_token
         if !@n.is_admin
           print_error("Your Nessus user is not an admin")
         else
@@ -519,9 +513,7 @@ module Msf
           end
         end
 
-        if !nessus_verify_token
-          return
-        end
+        return unless nessus_verify_token
         case args.length
         when 1
           type = args[0]
@@ -535,7 +527,7 @@ module Msf
           return
         end
         if type.in?(['scan', 'policy'])
-          list=@n.list_template(type)
+          list = @n.list_template(type)
         else
           print_error("Only scan and policy are valid templates")
           return
@@ -552,10 +544,11 @@ module Msf
             'Description',
             'Subscription Only',
             'Cloud Only'
-          ])
-        list["templates"].each { |template|
-        tbl << [ template["name"], template["title"], template["desc"], template["subscription_only"], template["cloud_only"] ]
-        }
+          ]
+        )
+        list["templates"].each do |template|
+          tbl << [ template["name"], template["title"], template["desc"], template["subscription_only"], template["cloud_only"] ]
+        end
         print_line
         print_line tbl.to_s
       end
@@ -568,9 +561,7 @@ module Msf
             search_term = /#{args.shift}/nmi
           end
         end
-        if !nessus_verify_token
-          return
-        end
+        return unless nessus_verify_token
         list = @n.list_folders
         tbl = Rex::Text::Table.new(
           'SearchTerm' => search_term,
@@ -578,10 +569,11 @@ module Msf
             "ID",
             "Name",
             "Type"
-          ])
-        list["folders"].each { |folder|
-        tbl << [ folder["id"], folder["name"], folder["type"] ]
-        }
+          ]
+        )
+        list["folders"].each do |folder|
+          tbl << [ folder["id"], folder["name"], folder["type"] ]
+        end
         print_line
         print_line tbl.to_s
       end
@@ -599,12 +591,8 @@ module Msf
             search_term = /#{args.shift}/nmi
           end
         end
-        if !nessus_verify_token
-          return
-        end
-        if !@n.is_admin
-          return
-        end
+        return unless nessus_verify_token
+        return unless @n.is_admin
         list = @n.list_scanners
         tbl = Rex::Text::Table.new(
           'SearchTerm' => search_term,
@@ -615,10 +603,11 @@ module Msf
             "Platform",
             "Plugin Set",
             "UUID"
-          ])
-        list.each { |scanner|
-        tbl << [ scanner["id"], scanner["name"], scanner["status"], scanner["platform"], scanner["loaded_plugin_set"], scanner["uuid"] ]
-        }
+          ]
+        )
+        list.each do |scanner|
+          tbl << [ scanner["id"], scanner["name"], scanner["status"], scanner["platform"], scanner["loaded_plugin_set"], scanner["uuid"] ]
+        end
         print_line tbl.to_s
       end
 
@@ -654,12 +643,13 @@ module Msf
             "% of High Findings",
             "% of Medium Findings",
             "% of Low Findings"
-          ])
+          ]
+        )
         if is_scan_complete(scan_id)
           details = @n.scan_details(scan_id)
-          details["hosts"].each { |host|
-          tbl << [ host["host_id"], host["hostname"], host["critical"], host["high"], host["medium"], host["low"] ]
-          }
+          details["hosts"].each do |host|
+            tbl << [ host["host_id"], host["hostname"], host["critical"], host["high"], host["medium"], host["low"] ]
+          end
           print_line
           print_line tbl.to_s
         else
@@ -696,12 +686,13 @@ module Msf
             "Plugin Name",
             "Plugin Family",
             "Vulnerability Count"
-          ])
+          ]
+        )
         if is_scan_complete(scan_id)
           details = @n.scan_details(scan_id)
-          details["vulnerabilities"].each { |vuln|
-          tbl << [ vuln["plugin_id"], vuln["plugin_name"], vuln["plugin_family"], vuln["count"] ]
-          }
+          details["vulnerabilities"].each do |vuln|
+            tbl << [ vuln["plugin_id"], vuln["plugin_name"], vuln["plugin_family"], vuln["count"] ]
+          end
           print_line
           print_line tbl.to_s
           return
@@ -730,7 +721,7 @@ module Msf
             search_vuln = /#{args.shift}/nmi
           else
             scan_id = arg,
-            host_id = args.shift
+                      host_id = args.shift
           end
         end
 
@@ -748,8 +739,9 @@ module Msf
             'Plugin Name',
             'Plugin Famil',
             'Severity'
-          ])
-        details=@n.host_detail(scan_id, host_id)
+          ]
+        )
+        details = @n.host_detail(scan_id, host_id)
         print_line
         print_status("Host information")
         print_line("IP Address: #{details['info']['host-ip']}")
@@ -757,9 +749,9 @@ module Msf
         print_line("Operating System: #{details['info']['operating-system']}")
         print_line
         print_status("Vulnerability information")
-        details["vulnerabilities"].each { |vuln|
-        tbl << [ vuln["plugin_name"], vuln["plugin_family"], vuln["severity"] ]
-        }
+        details["vulnerabilities"].each do |vuln|
+          tbl << [ vuln["plugin_name"], vuln["plugin_family"], vuln["severity"] ]
+        end
         print_line tbl.to_s
         tbl2 = Rex::Text::Table.new(
           'SearchTerm' => search_vuln,
@@ -767,11 +759,12 @@ module Msf
             'Plugin Name',
             'Plugin Famil',
             'Severity'
-          ])
+          ]
+        )
         print_status("Compliance information")
-        details["compliance"].each { |comp|
-        tbl2 << [ comp["plugin_name"], comp["plugin_family"], comp["severity"] ]
-        }
+        details["compliance"].each do |comp|
+          tbl2 << [ comp["plugin_name"], comp["plugin_family"], comp["severity"] ]
+        end
         print_line tbl2.to_s
       end
 
@@ -782,18 +775,16 @@ module Msf
           print_status("Use nessus_scan_list -c to list all completed scans along with their corresponding scan IDs")
           return
         end
-        if !nessus_verify_token
-          return
-        end
+        return unless nessus_verify_token
         case args.length
         when 2
           scan_id = args[0]
           file_id = args[1]
           if is_scan_complete(scan_id)
             report = @n.report_download(scan_id, file_id)
-            File.open("#{msf_local}/#{scan_id}-#{file_id}","w+") do |f|
-            f.puts report
-            print_status("Report downloaded to #{msf_local} directory")
+            File.open("#{msf_local}/#{scan_id}-#{file_id}", "w+") do |f|
+              f.puts report
+              print_status("Report downloaded to #{msf_local} directory")
             end
           else
             print_error("Only completed scans can be downloaded")
@@ -825,7 +816,7 @@ module Msf
           end
         end
 
-        if [host,rid].any?(&:nil?)
+        if [host, rid].any?(&:nil?)
           print_status("Usage: ")
           print_status("nessus_report_host_ports <hostname> <report id>")
           print_status("Use nessus_report_list to list all available reports")
@@ -842,11 +833,12 @@ module Msf
             'Sev 1',
             'Sev 2',
             'Sev 3'
-          ])
-        ports=@n.report_host_ports(rid, host)
-        ports.each { |port|
-        tbl << [ port['portnum'], port['protocol'], port['severity'], port['svcname'], port['sev0'], port['sev1'], port['sev2'], port['sev3'] ]
-        }
+          ]
+        )
+        ports = @n.report_host_ports(rid, host)
+        ports.each do |port|
+          tbl << [ port['portnum'], port['protocol'], port['severity'], port['svcname'], port['sev0'], port['sev1'], port['sev2'], port['sev3'] ]
+        end
         print_good("Host Info")
         print_good "\n"
         print_line tbl.to_s
@@ -862,10 +854,8 @@ module Msf
           print_status("Use nessus_report_list to list all reports")
           return
         end
-        if !nessus_verify_token
-          return
-        end
-        if !@n.is_admin
+        return unless nessus_verify_token
+        unless @n.is_admin
           print_error("Your Nessus user is not an admin")
           return
         end
@@ -901,46 +891,45 @@ module Msf
           end
         end
 
-        if !nessus_verify_token
-          return
-        end
-        list=@n.scan_list
+        return unless nessus_verify_token
+        list = @n.scan_list
         if list.to_s.empty?
           print_status("No scans performed.")
           return
         else
-        tbl = Rex::Text::Table.new(
-          'SearchTerm' => search_term,
-          'Columns' => [
-            'Scan ID',
-            'Name',
-            'Owner',
-            'Started',
-            'Status',
-            'Folder'
-          ])
+          tbl = Rex::Text::Table.new(
+            'SearchTerm' => search_term,
+            'Columns' => [
+              'Scan ID',
+              'Name',
+              'Owner',
+              'Started',
+              'Status',
+              'Folder'
+            ]
+          )
 
-        list["scans"].each { |scan|
-        if args[0] == "-r"
-          if scan["status"] == "running"
-            tbl << [ scan["id"], scan["name"], scan["owner"], scan["starttime"], scan["status"], scan["folder_id"] ]
+          list["scans"].each do |scan|
+            if args[0] == "-r"
+              if scan["status"] == "running"
+                tbl << [ scan["id"], scan["name"], scan["owner"], scan["starttime"], scan["status"], scan["folder_id"] ]
+              end
+            elsif args[0] == "-p"
+              if scan["status"] == "paused"
+                tbl << [ scan["id"], scan["name"], scan["owner"], scan["starttime"], scan["status"], scan["folder_id"] ]
+              end
+            elsif args[0] == "-c"
+              if scan["status"] == "completed"
+                tbl << [ scan["id"], scan["name"], scan["owner"], scan["starttime"], scan["status"], scan["folder_id"] ]
+              end
+            elsif args[0] == "-a"
+              if scan["status"] == "canceled"
+                tbl << [ scan["id"], scan["name"], scan["owner"], scan["starttime"], scan["status"], scan["folder_id"] ]
+              end
+            else
+              tbl << [ scan["id"], scan["name"], scan["owner"], scan["starttime"], scan["status"], scan["folder_id"] ]
+              end
           end
-          elsif args[0] == "-p"
-            if scan["status"] == "paused"
-              tbl << [ scan["id"], scan["name"], scan["owner"], scan["starttime"], scan["status"], scan["folder_id"] ]
-            end
-          elsif args[0] == "-c"
-            if scan["status"] == "completed"
-              tbl << [ scan["id"], scan["name"], scan["owner"], scan["starttime"], scan["status"], scan["folder_id"] ]
-            end
-          elsif args[0] == "-a"
-            if scan["status"] == "canceled"
-              tbl << [ scan["id"], scan["name"], scan["owner"], scan["starttime"], scan["status"], scan["folder_id"] ]
-            end
-          else
-            tbl << [ scan["id"], scan["name"], scan["owner"], scan["starttime"], scan["status"], scan["folder_id"] ]
-          end
-          }
           print_line tbl.to_s
         end
       end
@@ -951,9 +940,7 @@ module Msf
           print_status("Use nessus_policy_list to list all available policies with their corresponding UUIDs")
           return
         end
-        if !nessus_verify_token
-          return
-        end
+        return unless nessus_verify_token
         case args.length
         when 4
           uuid = args[0]
@@ -968,13 +955,13 @@ module Msf
         end
         if valid_policy(uuid)
           print_status("Creating scan from policy number #{uuid}, called #{scan_name} - #{description} and scanning #{targets}")
-          et=Hash.new
-          et['enabled']=false
-          et['launch']='ONETIME'
-          et['name']=scan_name
-          et['text_targets']=targets
-          et['description']=description
-          et['launch_now']=false
+          et = {}
+          et['enabled'] = false
+          et['launch'] = 'ONETIME'
+          et['name'] = scan_name
+          et['text_targets'] = targets
+          et['description'] = description
+          et['launch_now'] = false
           scan = @n.scan_create(uuid, et)
           tbl = Rex::Text::Table.new(
             'Columns' => [
@@ -983,7 +970,8 @@ module Msf
               "Policy ID",
               "Targets",
               "Owner"
-            ])
+            ]
+          )
           print_status("New scan added")
           tbl << [ scan["scan"]["id"], scan["scan"]["scanner_id"], scan["scan"]["policy_id"], scan["scan"]["custom_targets"], scan["scan"]["owner"] ]
           print_status("Use nessus_scan_launch #{scan['scan']['id']} to launch the scan")
@@ -998,9 +986,7 @@ module Msf
           print_status("nessus_scan_launch <scan ID>")
           print_status("Use nessus_scan_list to list all the availabla scans with their corresponding scan IDs")
         end
-        if !nessus_verify_token
-          return
-        end
+        return unless nessus_verify_token
         case args.length
         when 1
           scan_id = args[0]
@@ -1022,9 +1008,7 @@ module Msf
           print_status("Use nessus_scan_list to list all available scans")
           return
         end
-        if !nessus_verify_token
-          return
-        end
+        return unless nessus_verify_token
         case args.length
         when 1
           sid = args[0]
@@ -1049,12 +1033,8 @@ module Msf
           print_status("Use nessus_policy_list to list all available policies with their corresponding policy IDs")
           return
         end
-        if !nessus_verify_db
-          return
-        end
-        if !nessus_verify_token
-          return
-        end
+        return unless nessus_verify_db
+        return unless nessus_verify_token
         case args.length
         when 3
           policy_id = args[0]
@@ -1066,7 +1046,7 @@ module Msf
           print_status("Use nessus_policy_list to list all available policies with their corresponding policy IDs")
           return
         end
-        if !valid_policy(policy_id)
+        unless valid_policy(policy_id)
           print_error("That policy does not exist.")
           return
         end
@@ -1077,13 +1057,13 @@ module Msf
         end
         targets.chop!
         print_status("Creating scan from policy #{policy_id}, called \"#{name}\" and scanning all hosts in all the workspaces")
-        et=Hash.new
-        et['enabled']=false
-        et['launch']='ONETIME'
-        et['name']=name
-        et['text_targets']=targets
-        et['description']=desc
-        et['launch_now']=true
+        et = {}
+        et['enabled'] = false
+        et['launch'] = 'ONETIME'
+        et['name'] = name
+        et['text_targets'] = targets
+        et['description'] = desc
+        et['launch_now'] = true
         scan = @n.scan_create(policy_id, et)
         if !scan["error"]
           scan = scan["scan"]
@@ -1100,12 +1080,8 @@ module Msf
           print_status("Use nessus_policy_list to list all available policies with their corresponding policy IDs")
           return
         end
-        if !nessus_verify_db
-          return
-        end
-        if !nessus_verify_token
-          return
-        end
+        return unless nessus_verify_db
+        return unless nessus_verify_token
         case args.length
         when 4
           policy_id = args[0]
@@ -1118,7 +1094,7 @@ module Msf
           print_status("Use nessus_policy_list to list all available policies with their corresponding policy IDs")
           return
         end
-        if !valid_policy(policy_id)
+        unless valid_policy(policy_id)
           print_error("That policy does not exist.")
           return
         end
@@ -1132,7 +1108,7 @@ module Msf
         framework.db.hosts.each do |host|
           targets << host.address
           targets << ","
-        print_status("Targets: #{targets}")
+          print_status("Targets: #{targets}")
         end
         targets.chop!
         print_status("Creating scan from policy #{policy_id}, called \"#{name}\" and scanning all hosts in #{framework.db.workspace.name}")
@@ -1152,12 +1128,8 @@ module Msf
           print_status("Example:> nessus_db_import 500")
           print_status("Use nessus_scan_list -c to list all completed scans")
         end
-        if !nessus_verify_db
-          return
-        end
-        if !nessus_verify_token
-          return
-        end
+        return unless nessus_verify_db
+        return unless nessus_verify_token
         case args.length
         when 1
           scan_id = args[0]
@@ -1177,17 +1149,15 @@ module Msf
             begin
               status = @n.scan_export_status(scan_id, file_id)
               print_status("Export status: " + status["status"])
-              if status["status"]=="ready"
-                break
-              end     
+              break if status["status"] == "ready"
               sleep(1)
-            end while (status["status"]=="loading")
+            end while (status["status"] == "loading")
             if status["status"] == "ready"
               print_status("The status of scan ID #{scan_id} export is ready")
               select(nil, nil, nil, 5)
               report = @n.report_download(scan_id, file_id)
               print_status("Importing scan results to the database...")
-              framework.db.import({:data => report}) do |type,data|
+              framework.db.import(data: report) do |type, data|
                 case type
                 when :address
                   print_status("Importing data of #{data}")
@@ -1206,7 +1176,7 @@ module Msf
       end
 
       def cmd_nessus_scan_pause_all(*args)
-        scan_ids = Array.new
+        scan_ids = []
         if args[0] == "-h"
           print_status("nessus_scan_pause_all")
           print_status("Example:> nessus_scan_pause_all")
@@ -1214,19 +1184,15 @@ module Msf
           print_status("Use nessus_scan_list to list all running scans")
           return
         end
-        if !nessus_verify_token
-          return
-        end
+        return unless nessus_verify_token
         list = @n.scan_list
-        list["scans"].each { |scan|
-        if scan["status"] == "running"
-          scan_ids << scan["id"]
+        list["scans"].each do |scan|
+          scan_ids << scan["id"] if scan["status"] == "running"
         end
-        }
-        if scan_ids.length > 0
-          scan_ids.each { |scan_id|
-          @n.scan_pause(scan_id)
-          }
+        if !scan_ids.empty?
+          scan_ids.each do |scan_id|
+            @n.scan_pause(scan_id)
+          end
           print_status("All scans have been paused")
         else
           print_error("No running scans")
@@ -1241,9 +1207,7 @@ module Msf
           print_status("Use nessus_scan_list to list all running scans")
           return
         end
-        if !nessus_verify_token
-          return
-        end
+        return unless nessus_verify_token
         case args.length
         when 1
           sid = args[0]
@@ -1262,7 +1226,7 @@ module Msf
       end
 
       def cmd_nessus_scan_stop_all(*args)
-        scan_ids = Array.new
+        scan_ids = []
         if args[0] == "-h"
           print_status("nessus_scan_stop_all")
           print_status("Example:> nessus_scan_stop_all")
@@ -1270,19 +1234,17 @@ module Msf
           print_status("Use nessus_scan_list to list all running scans")
           return
         end
-        if !nessus_verify_token
-          return
-        end
+        return unless nessus_verify_token
         list = @n.scan_list
-        list["scans"].each { |scan|
-        if scan["status"] == "running" || scan["status"] == "paused"
-          scan_ids << scan["id"]
+        list["scans"].each do |scan|
+          if scan["status"] == "running" || scan["status"] == "paused"
+            scan_ids << scan["id"]
+          end
         end
-        }
-        if scan_ids.length > 0
-          scan_ids.each { |scan_id|
-          @n.scan_stop(scan_id)
-          }
+        if !scan_ids.empty?
+          scan_ids.each do |scan_id|
+            @n.scan_stop(scan_id)
+          end
           print_status("All scans have been stopped")
         else
           print_error("No running or paused scans to be stopped")
@@ -1297,9 +1259,7 @@ module Msf
           print_status("Use nessus_scan_list to list all available scans")
           return
         end
-        if !nessus_verify_token
-          return
-        end
+        return unless nessus_verify_token
         case args.length
         when 1
           sid = args[0]
@@ -1318,7 +1278,7 @@ module Msf
       end
 
       def cmd_nessus_scan_resume_all(*args)
-        scan_ids = Array.new
+        scan_ids = []
         if args[0] == "-h"
           print_status("nessus_scan_resume_all")
           print_status("Example:> nessus_scan_resume_all")
@@ -1326,19 +1286,15 @@ module Msf
           print_status("Use nessus_scan_list to list all running scans")
           return
         end
-        if !nessus_verify_token
-          return
-        end
+        return unless nessus_verify_token
         list = @n.scan_list
-        list["scans"].each { |scan|
-        if scan["status"] == "paused"
-          scan_ids << scan["id"]
+        list["scans"].each do |scan|
+          scan_ids << scan["id"] if scan["status"] == "paused"
         end
-        }
-        if scan_ids.length > 0
-          scan_ids.each { |scan_id|
-          @n.scan_resume(scan_id)
-          }
+        if !scan_ids.empty?
+          scan_ids.each do |scan_id|
+            @n.scan_resume(scan_id)
+          end
           print_status("All scans have been resumed")
         else
           print_error("No running scans to be resumed")
@@ -1371,9 +1327,7 @@ module Msf
           end
         end
 
-        if !nessus_verify_token
-           return
-        end
+        return unless nessus_verify_token
 
         details = @n.scan_details(scan_id)
         if category == "info"
@@ -1386,8 +1340,9 @@ module Msf
               "Scan Targets",
               "Scan Start Time",
               "Scan End Time"
-            ])
-         tbl << [ details["info"]["status"], details["info"]["policy"], details["info"]["name"], details["info"]["targets"], details["info"]["scan_start"], details["info"]["scan_end"] ]
+            ]
+          )
+          tbl << [ details["info"]["status"], details["info"]["policy"], details["info"]["name"], details["info"]["targets"], details["info"]["scan_start"], details["info"]["scan_end"] ]
         elsif category == "hosts"
           tbl = Rex::Text::Table.new(
             'SearchTerm' => search_term,
@@ -1398,10 +1353,11 @@ module Msf
               "% of High Findings",
               "% of Medium Findings",
               "% of Low Findings"
-            ])
-          details["hosts"].each { |host|
-          tbl << [ host["host_id"], host["hostname"], host["critical"], host["high"], host["medium"], host["low"] ]
-          }
+            ]
+          )
+          details["hosts"].each do |host|
+            tbl << [ host["host_id"], host["hostname"], host["critical"], host["high"], host["medium"], host["low"] ]
+          end
         elsif category == "vulnerabilities"
           tbl = Rex::Text::Table.new(
             'SearchTerm' => search_term,
@@ -1410,10 +1366,11 @@ module Msf
               "Plugin Name",
               "Plugin Family",
               "Count"
-            ])
-          details["vulnerabilities"].each { |vuln|
-          tbl << [ vuln["plugin_id"], vuln["plugin_name"], vuln["plugin_family"], vuln["count"] ]
-          }
+            ]
+          )
+          details["vulnerabilities"].each do |vuln|
+            tbl << [ vuln["plugin_id"], vuln["plugin_name"], vuln["plugin_family"], vuln["count"] ]
+          end
         elsif category == "history"
           tbl = Rex::Text::Table.new(
             'SearchTerm' => search_term,
@@ -1422,10 +1379,11 @@ module Msf
               "Status",
               "Creation Date",
               "Last Modification Date"
-            ])
-          details["history"].each { |hist|
-          tbl << [ hist["history_id"], hist["status"], hist["creation_date"], hist["modification_date"] ]
-          }
+            ]
+          )
+          details["history"].each do |hist|
+            tbl << [ hist["history_id"], hist["status"], hist["creation_date"], hist["modification_date"] ]
+          end
         end
         print_line tbl.to_s
       end
@@ -1437,9 +1395,7 @@ module Msf
           print_status("Use nessus_scan_list to list all available scans with their corresponding scan IDs")
           return
         end
-        if !nessus_verify_token
-          return
-        end
+        return unless nessus_verify_token
         case args.length
         when 2
           scan_id = args[0]
@@ -1451,20 +1407,18 @@ module Msf
           print_status("Use nessus_scan_list to list all available scans with their corresponding scan IDs")
           return
         end
-        if format.in?(['nessus','html','pdf','csv','db'])
+        if format.in?(['nessus', 'html', 'pdf', 'csv', 'db'])
           export = @n.scan_export(scan_id, format)
           if export["file"]
             file_id = export["file"]
             print_good("The export file ID for scan ID #{scan_id} is #{file_id}")
-            print_status("Checking export status...")            
+            print_status("Checking export status...")
             begin
               status = @n.scan_export_status(scan_id, file_id)
               print_status("Export status: " + status["status"])
-              if status["status"]=="ready"
-                break
-              end     
+              break if status["status"] == "ready"
               sleep(1)
-            end while (status["status"]=="loading")
+            end while (status["status"] == "loading")
             if status["status"] == "ready"
               print_good("The status of scan ID #{scan_id} export is ready")
             else
@@ -1484,9 +1438,7 @@ module Msf
           print_status("nessus_scan_export_status <scan ID> <file ID>")
           print_status("Use nessus_scan_export <scan ID> <format> to export a scan and get its file ID")
         end
-        if !nessus_verify_token
-          return
-        end
+        return unless nessus_verify_token
         case args.length
         when 2
           scan_id = args[0]
@@ -1494,11 +1446,9 @@ module Msf
           begin
             status = @n.scan_export_status(scan_id, file_id)
             print_status("Export status: " + status["status"])
-            if status["status"]=="ready"
-              break
-            end     
+            break if status["status"] == "ready"
             sleep(1)
-          end while (status["status"]=="loading")
+          end while (status["status"] == "loading")
           if status["status"] == "ready"
             print_status("The status of scan ID #{scan_id} export is ready")
           else
@@ -1540,11 +1490,12 @@ module Msf
           'Columns' => [
             'Plugin ID',
             'Plugin Name'
-          ])
+          ]
+        )
         list = @n.list_plugins(family_id)
-        list["plugins"].each { |plugin|
-        tbl << [ plugin["id"], plugin["name"] ]
-        }
+        list["plugins"].each do |plugin|
+          tbl << [ plugin["id"], plugin["name"] ]
+        end
         print_line
         print_good("Plugin Family Name: #{list['name']}")
         print_line
@@ -1572,10 +1523,11 @@ module Msf
             'Family ID',
             'Family Name',
             'Number of Plugins'
-          ])
-        list['families'].each { |family|
-        tbl << [ family["id"], family["name"], family["count"] ]
-        }
+          ]
+        )
+        list['families'].each do |family|
+          tbl << [ family["id"], family["name"], family["count"] ]
+        end
         print_line
         print_line tbl.to_s
       end
@@ -1598,9 +1550,7 @@ module Msf
           end
         end
 
-        if !nessus_verify_token
-          return
-        end
+        return unless nessus_verify_token
 
         if plugin_id.nil?
           print_status("Usage: ")
@@ -1613,7 +1563,8 @@ module Msf
           'Columns' => [
             'Reference',
             'Value'
-          ])
+          ]
+        )
         begin
           list = @n.plugin_details(plugin_id)
         rescue ::Exception => e
@@ -1624,9 +1575,9 @@ module Msf
             raise e
           end
         end
-        list["attributes"].each { |attrib|
-        tbl << [ attrib["attribute_name"], attrib["attribute_value"] ]
-        }
+        list["attributes"].each do |attrib|
+          tbl << [ attrib["attribute_name"], attrib["attribute_value"] ]
+        end
         print_line
         print_good("Plugin Name: #{list['name']}")
         print_good("Plugin Family: #{list['family_name']}")
@@ -1648,13 +1599,9 @@ module Msf
           end
         end
 
-        if !nessus_verify_token
-          return
-        end
-        if !@n.is_admin
-          print_status("Your Nessus user is not an admin")
-        end
-        list=@n.list_users
+        return unless nessus_verify_token
+        print_status("Your Nessus user is not an admin") unless @n.is_admin
+        list = @n.list_users
         tbl = Rex::Text::Table.new(
           'SearchTerm' => search_term,
           'Columns' => [
@@ -1664,10 +1611,11 @@ module Msf
             'Type',
             'Email',
             'Permissions'
-          ])
-        list["users"].each { |user|
-        tbl << [ user["id"], user["name"], user["username"], user["type"], user["email"], user["permissions"] ]
-        }
+          ]
+        )
+        list["users"].each do |user|
+          tbl << [ user["id"], user["name"], user["username"], user["type"], user["email"], user["permissions"] ]
+        end
         print_line
         print_line tbl.to_s
       end
@@ -1682,10 +1630,8 @@ module Msf
           print_status("Use nessus_user_list to list all users")
           return
         end
-        if !nessus_verify_token
-          return
-        end
-        if !@n.is_admin
+        return unless nessus_verify_token
+        unless @n.is_admin
           print_error("Your Nessus user is not an admin")
           return
         end
@@ -1700,7 +1646,7 @@ module Msf
           print_status("nessus_user_add <username> <password> <permissions> <type>")
           return
         end
-        add = @n.user_add(user,pass,permissions,type)
+        add = @n.user_add(user, pass, permissions, type)
         if add["id"]
           print_good("#{user} created successfully")
         else
@@ -1716,10 +1662,8 @@ module Msf
           print_status("Use nessus_user_list to list all users with their corresponding user IDs")
           return
         end
-        if !nessus_verify_token
-          return
-        end
-        if !@n.is_admin
+        return unless nessus_verify_token
+        unless @n.is_admin
           print_error("Your Nessus user is not an admin")
           return
         end
@@ -1757,10 +1701,8 @@ module Msf
           print_status("Use nessus_user_list to list all users with their corresponding user IDs")
           return
         end
-        if !nessus_verify_token
-          return
-        end
-        if !@n.is_admin
+        return unless nessus_verify_token
+        unless @n.is_admin
           print_error("Your Nessus user is not an admin")
           return
         end
@@ -1774,7 +1716,7 @@ module Msf
           print_status("Use nessus_user_list to list all users with their corresponding user IDs")
           return
         end
-        pass = @n.user_chpasswd(user_id,pass)
+        pass = @n.user_chpasswd(user_id, pass)
         status = pass.to_s
         if status == "200"
           print_good("Password of account having user ID #{user_id} changed successfully")
@@ -1805,10 +1747,8 @@ module Msf
           end
         end
 
-        if !nessus_verify_token
-          return
-        end
-        list=@n.list_policies
+        return unless nessus_verify_token
+        list = @n.list_policies
 
         unless list["policies"]
           print_error("No policies found")
@@ -1820,10 +1760,11 @@ module Msf
             'Policy ID',
             'Name',
             'Policy UUID'
-          ])
-        list["policies"].each { |policy|
-        tbl << [ policy["id"], policy["name"], policy["template_uuid"] ]
-        }
+          ]
+        )
+        list["policies"].each do |policy|
+          tbl << [ policy["id"], policy["name"], policy["template_uuid"] ]
+        end
         print_line tbl.to_s
       end
 
@@ -1835,10 +1776,8 @@ module Msf
           print_status("Use nessus_policy_list to list all policies with their corresponding policy IDs")
           return
         end
-        if !nessus_verify_token
-          return
-        end
-        if !@n.is_admin
+        return unless nessus_verify_token
+        unless @n.is_admin
           print_error("Your Nessus user is not an admin")
           return
         end

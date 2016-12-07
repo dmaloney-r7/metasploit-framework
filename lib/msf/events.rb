@@ -1,15 +1,15 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 module Msf
-module UiEventSubscriber
-  def on_ui_command(line)
-  end
+  module UiEventSubscriber
+    def on_ui_command(line)
+    end
 
-  def on_ui_stop()
-  end
+    def on_ui_stop
+    end
 
-  def on_ui_start()
+    def on_ui_start
+    end
   end
 end
-end
-

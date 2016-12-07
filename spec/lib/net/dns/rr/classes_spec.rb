@@ -1,10 +1,10 @@
+# frozen_string_literal: true
 # -*- coding:binary -*-
 require 'spec_helper'
 
 require 'net/dns'
 
 RSpec.describe Net::DNS::RR::Classes do
-
   subject do
     described_class.new
   end

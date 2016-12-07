@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 
 ###
 #
@@ -21,11 +22,9 @@ rescue LoadError => e
 end
 
 module FilePullRequestCollector
-
   class Exception < RuntimeError; end
 
   class PullRequestFinder
-
     attr_accessor :git_client
     attr_accessor :repository
     attr_accessor :branch
@@ -64,9 +63,7 @@ module FilePullRequestCollector
     # @param commit [Sawyer::Resource] Commit.
     # @return [String]
     def get_author(commit)
-      if commit.author
-        return commit.author[:login].to_s
-      end
+      return commit.author[:login].to_s if commit.author
 
       ''
     end
@@ -91,9 +88,7 @@ module FilePullRequestCollector
         next if is_author_blacklisted?(commit)
 
         pr = get_pull_request_from_commit(commit)
-        unless pr.empty?
-          pull_requests[pr[:number]] = pr
-        end
+        pull_requests[pr[:number]] = pr unless pr.empty?
       end
 
       pull_requests
@@ -128,7 +123,6 @@ module FilePullRequestCollector
   end
 
   class Client
-
     attr_accessor :finder
 
     # Initializes parameters.
@@ -154,9 +148,8 @@ module FilePullRequestCollector
   end
 
   class OptsParser
-
     def self.banner
-      %Q|
+      %|
       This tool collects all the pull requests submitted to rapid7/metasploit-framework for a
       particular file. It does not include history from SVN (what Metasploit used to use
       before Git).
@@ -211,14 +204,11 @@ module FilePullRequestCollector
         abort "Invalid option, try -h for usage"
       end
 
-      if options.empty?
-        abort "No options specified, try -h for usage"
-      end
+      abort "No options specified, try -h for usage" if options.empty?
 
       options
     end
   end
-
 end
 
 if __FILE__ == $PROGRAM_NAME
@@ -228,8 +218,8 @@ if __FILE__ == $PROGRAM_NAME
     abort "#{e.message} (please see -h)"
   end
 
-  if !opts.has_key?(:api_key)
-    if !ENV.has_key?('GITHUB_OAUTH_TOKEN')
+  unless opts.key?(:api_key)
+    if !ENV.key?('GITHUB_OAUTH_TOKEN')
       abort <<EOF
 A Github Access Token must be specified to use this tool
 Please set GITHUB_OAUTH_TOKEN or specify the -k option

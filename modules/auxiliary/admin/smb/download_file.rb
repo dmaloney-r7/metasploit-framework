@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   # Exploit mixins should be called first
   include Msf::Exploit::Remote::SMB::Client
   include Msf::Exploit::Remote::SMB::Client::Authenticated
@@ -19,15 +19,14 @@ class MetasploitModule < Msf::Auxiliary
   XCEPT  = Rex::Proto::SMB::Exceptions
   CONST  = Rex::Proto::SMB::Constants
 
-
   def initialize
     super(
       'Name'        => 'SMB File Download Utility',
-      'Description' => %Q{
+      'Description' => %(
         This module downloads a file from a target share and path. The usual reason
       to use this module is to work around limitations in an existing SMB client that may not
       be able to take advantage of pass-the-hash style authentication.
-      },
+      ),
       'Author'      =>
         [
           'mubix' # copied from hdm upload_file module
@@ -36,17 +35,17 @@ class MetasploitModule < Msf::Auxiliary
     )
 
     register_options([
-      OptString.new('SMBSHARE', [true, 'The name of a share on the RHOST', 'C$'])
-    ], self.class)
+                       OptString.new('SMBSHARE', [true, 'The name of a share on the RHOST', 'C$'])
+                     ], self.class)
   end
 
   def smb_download
     vprint_status("Connecting...")
-    connect()
-    smb_login()
+    connect
+    smb_login
 
     vprint_status("#{peer}: Mounting the remote share \\\\#{rhost}\\#{datastore['SMBSHARE']}'...")
-    self.simple.connect("\\\\#{rhost}\\#{datastore['SMBSHARE']}")
+    simple.connect("\\\\#{rhost}\\#{datastore['SMBSHARE']}")
 
     remote_paths.each do |remote_path|
       begin
@@ -70,7 +69,7 @@ class MetasploitModule < Msf::Auxiliary
     end
   end
 
-  def run_host(ip)
+  def run_host(_ip)
     begin
       smb_download
     rescue Rex::Proto::SMB::Exceptions::LoginError => e
@@ -78,5 +77,4 @@ class MetasploitModule < Msf::Auxiliary
       print_error("Unable to login: #{e.message}")
     end
   end
-
 end

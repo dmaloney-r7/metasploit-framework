@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,36 +7,35 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::WmapScanServer
   include Msf::Auxiliary::Scanner
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'        => 'HTTP Host Header Injection Detection',
-      'Description' => 'Checks if the host is vulnerable to Host header injection',
-      'Author'      =>
-        [
-          'Jay Turla', # @shipcod3
-          'Medz Barao' # @godflux
-        ],
-      'License'     => MSF_LICENSE,
-      'References'  =>
-        [
-          ['URL', 'http://www.skeletonscribe.net/2013/05/practical-http-host-header-attacks.html']
-        ]
-    ))
+                      'Name'        => 'HTTP Host Header Injection Detection',
+                      'Description' => 'Checks if the host is vulnerable to Host header injection',
+                      'Author'      =>
+                        [
+                          'Jay Turla', # @shipcod3
+                          'Medz Barao' # @godflux
+                        ],
+                      'License'     => MSF_LICENSE,
+                      'References'  =>
+                        [
+                          ['URL', 'http://www.skeletonscribe.net/2013/05/practical-http-host-header-attacks.html']
+                        ]))
 
     register_options(
       [
         OptString.new('TARGETHOST', [true, 'The redirector target', 'evil.com'])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def run_host(ip)
     begin
-      target_host = "#{datastore['TARGETHOST']}"
+      target_host = datastore['TARGETHOST'].to_s
       res = send_request_raw(
         'uri'          => '/',
         'method'       => 'GET',
@@ -58,7 +58,7 @@ class MetasploitModule < Msf::Auxiliary
           proto: 'tcp',
           sname: ssl ? 'https' : 'http',
           name: 'HTTP Host header injection',
-          refs: self.references
+          refs: references
         )
       else
         vprint_error("#{peer} returned #{res.code} #{res.message}")
@@ -67,5 +67,4 @@ class MetasploitModule < Msf::Auxiliary
     rescue ::Timeout::Error, ::Errno::EPIPE
     end
   end
-
 end

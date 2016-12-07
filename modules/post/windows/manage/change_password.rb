@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,30 +7,29 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Post
-
-  def initialize(info={})
+  def initialize(info = {})
     super(update_info(info,
-      'Name'                 => "Windows Manage Change Password",
-      'Description'          => %q{
-        This module will attempt to change the password of the targeted account.
-        The typical usage is to change a newly created account's password on a
-        remote host to avoid the error, 'System error 1907 has occurred,' which
-        is caused when the account policy enforces a password change before the
-        next login.
-      },
-      'License'              => MSF_LICENSE,
-      'Platform'             => ['win'],
-      'SessionTypes'         => ['meterpreter'],
-      'Author'               => ['Ben Campbell']
-    ))
+                      'Name'                 => "Windows Manage Change Password",
+                      'Description'          => %q(
+                        This module will attempt to change the password of the targeted account.
+                        The typical usage is to change a newly created account's password on a
+                        remote host to avoid the error, 'System error 1907 has occurred,' which
+                        is caused when the account policy enforces a password change before the
+                        next login.
+                      ),
+                      'License'              => MSF_LICENSE,
+                      'Platform'             => ['win'],
+                      'SessionTypes'         => ['meterpreter'],
+                      'Author'               => ['Ben Campbell']))
 
     register_options(
       [
         OptString.new('SMBDomain', [false, 'Domain or Host to change password on, if not set will use the current login domain', nil]),
         OptString.new('SMBUser', [true, 'Username to change password of']),
         OptString.new('OLD_PASSWORD', [true, 'Original password' ]),
-        OptString.new('NEW_PASSWORD', [true, 'New password' ]),
-      ], self.class)
+        OptString.new('NEW_PASSWORD', [true, 'New password' ])
+      ], self.class
+    )
   end
 
   def run
@@ -69,11 +69,6 @@ class MetasploitModule < Msf::Post
       err_msg = "unknown error code: #{result['return']}"
     end
 
-    if err_msg
-      print_error("Password change failed, #{err_msg}.")
-    end
-
+    print_error("Password change failed, #{err_msg}.") if err_msg
   end
-
 end
-

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'rbconfig'
 require 'yaml'
 
@@ -31,12 +32,12 @@ module Metasploit
       end
 
       VERSION = "4.13.5"
-      MAJOR, MINOR, PATCH = VERSION.split('.').map { |x| x.to_i }
+      MAJOR, MINOR, PATCH = VERSION.split('.').map(&:to_i)
       PRERELEASE = 'dev'
       HASH = get_hash
     end
 
     VERSION = "#{Version::VERSION}-#{Version::PRERELEASE}#{Version::HASH}"
-    GEM_VERSION = "#{Version::VERSION}"
+    GEM_VERSION = Version::VERSION.to_s.freeze
   end
 end

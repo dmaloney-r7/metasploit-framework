@@ -1,28 +1,24 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 require 'rex/proto/ntlm/message'
 
-
-
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::WinRM
   include Msf::Auxiliary::Report
-
 
   include Msf::Auxiliary::Scanner
 
   def initialize
     super(
       'Name'           => 'WinRM Command Runner',
-      'Description'    => %q{
+      'Description'    => %q(
         This module runs arbitrary Windows commands using the WinRM Service
-        },
+        ),
       'Author'         => [ 'thelightcosine' ],
       'License'        => MSF_LICENSE
     )
@@ -33,9 +29,9 @@ class MetasploitModule < Msf::Auxiliary
         OptString.new('USERNAME', [ true, "The username to authenticate as"]),
         OptString.new('PASSWORD', [ true, "The password to authenticate with"]),
         OptBool.new('SAVE_OUTPUT', [true, "Store output as loot", false])
-      ], self.class)
+      ], self.class
+    )
   end
-
 
   def run_host(ip)
     streams = winrm_run_cmd(datastore['CMD'])
@@ -47,7 +43,4 @@ class MetasploitModule < Msf::Auxiliary
       print_status "Results saved to #{path}"
     end
   end
-
-
-
 end

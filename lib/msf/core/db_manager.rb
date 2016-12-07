@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 #
@@ -108,7 +109,6 @@ class Msf::DBManager
   #
 
   def initialize(framework, opts = {})
-
     self.framework = framework
     self.migrated  = false
     self.modules_cached  = false
@@ -117,7 +117,7 @@ class Msf::DBManager
     @usable = false
 
     # Don't load the database if the user said they didn't need it.
-    if (opts['DisableDatabase'])
+    if opts['DisableDatabase']
       self.error = "disabled"
       return
     end
@@ -133,9 +133,9 @@ class Msf::DBManager
   # Determines if the database is functional
   #
   def check
-  ::ActiveRecord::Base.connection_pool.with_connection {
-    res = ::Mdm::Host.first
-  }
+    ::ActiveRecord::Base.connection_pool.with_connection do
+      res = ::Mdm::Host.first
+    end
   end
 
   #

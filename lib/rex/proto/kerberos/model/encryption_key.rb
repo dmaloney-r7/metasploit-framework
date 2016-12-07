@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 module Rex
@@ -7,7 +8,6 @@ module Rex
         # This class provides a representation of a Kerberos EncryptionKey data
         # definition
         class EncryptionKey < Element
-
           # @!attribute key
           #   @return [Fixnum] The type of encryption key
           attr_accessor :type

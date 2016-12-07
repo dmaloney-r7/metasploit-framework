@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'metasploit/framework/ftp/client'
 require 'metasploit/framework/login_scanner/base'
 require 'metasploit/framework/login_scanner/rex_socket'
@@ -5,7 +6,6 @@ require 'metasploit/framework/login_scanner/rex_socket'
 module Metasploit
   module Framework
     module LoginScanner
-
       # This is the LoginScanner class for dealing with FTP.
       # It is responsible for taking a single target, and a list of credentials
       # and attempting them. It then saves the results.
@@ -15,10 +15,10 @@ module Metasploit
         include Metasploit::Framework::Ftp::Client
 
         DEFAULT_PORT         = 21
-        LIKELY_PORTS         = [ DEFAULT_PORT, 2121 ]
-        LIKELY_SERVICE_NAMES = [ 'ftp' ]
-        PRIVATE_TYPES        = [ :password ]
-        REALM_KEY           = nil
+        LIKELY_PORTS         = [ DEFAULT_PORT, 2121 ].freeze
+        LIKELY_SERVICE_NAMES = [ 'ftp' ].freeze
+        PRIVATE_TYPES        = [ :password ].freeze
+        REALM_KEY = nil
 
         # @!attribute ftp_timeout
         #   @return [Fixnum] The timeout in seconds to wait for a response to an FTP command
@@ -27,16 +27,14 @@ module Metasploit
         validates :ftp_timeout,
                   presence: true,
                   numericality: {
-                      only_integer:             true,
-                      greater_than_or_equal_to: 1
+                    only_integer:             true,
+                    greater_than_or_equal_to: 1
                   }
-
-
 
         # (see Base#attempt_login)
         def attempt_login(credential)
           result_options = {
-              credential: credential
+            credential: credential
           }
 
           begin
@@ -46,10 +44,9 @@ module Metasploit
             success = false
           end
 
-
           if success
             result_options[:status] = Metasploit::Model::Login::Status::SUCCESSFUL
-          elsif !(result_options.has_key? :status)
+          elsif !(result_options.key? :status)
             result_options[:status] = Metasploit::Model::Login::Status::INCORRECT
           end
 
@@ -72,9 +69,7 @@ module Metasploit
           self.send_delay         ||= 0
           self.ftp_timeout        ||= 16
         end
-
       end
-
     end
   end
 end

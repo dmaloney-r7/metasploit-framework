@@ -1,11 +1,10 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 require 'stringio'
 
 ENV['RAILS_ENV'] = 'test'
 
-unless Bundler.settings.without.include?(:coverage)
-  require 'simplecov'
-end
+require 'simplecov' unless Bundler.settings.without.include?(:coverage)
 
 # @note must be before loading config/environment because railtie needs to be loaded before
 #   `Metasploit::Framework::Application.initialize!` is called.
@@ -16,7 +15,7 @@ require 'active_record/railtie'
 require 'metasploit/framework/database'
 # check if database.yml is present
 unless Metasploit::Framework::Database.configurations_pathname.try(:to_path)
-  fail 'RSPEC currently needs a configured database'
+  raise 'RSPEC currently needs a configured database'
 end
 
 require File.expand_path('../../config/environment', __FILE__)
@@ -38,9 +37,9 @@ engines = [
 # in spec/support/ and its subdirectories.
 engines.each do |engine|
   support_glob = engine.root.join('spec', 'support', '**', '*.rb')
-  Dir[support_glob].each { |f|
+  Dir[support_glob].each do |f|
     require f
-  }
+  end
 end
 
 RSpec.configure do |config|
@@ -117,7 +116,7 @@ end
 Metasploit::Framework::Spec::Constants::Suite.configure!
 Metasploit::Framework::Spec::Threads::Suite.configure!
 
-def get_stdout(&block)
+def get_stdout
   out = $stdout
   $stdout = tmp = StringIO.new
   begin
@@ -128,7 +127,7 @@ def get_stdout(&block)
   tmp.string
 end
 
-def get_stderr(&block)
+def get_stderr
   out = $stderr
   $stderr = tmp = StringIO.new
   begin

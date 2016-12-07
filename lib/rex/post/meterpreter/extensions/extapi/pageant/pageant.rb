@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 module Rex
@@ -18,7 +19,7 @@ module Rex
               end
 
               def forward(blob, size)
-                return nil unless size > 0 && blob.size > 0
+                return nil unless size > 0 && !blob.empty?
 
                 packet_request = Packet.create_request('extapi_pageant_send_query')
                 packet_request.add_tlv(TLV_TYPE_EXTENSION_PAGEANT_SIZE_IN, size)

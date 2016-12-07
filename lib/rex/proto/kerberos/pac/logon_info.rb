@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 module Rex
@@ -8,7 +9,6 @@ module Rex
         # This class provides a representation of a PAC_LOGON_INFO structure, which contains the
         # credential information for the client of the Kerberos ticket.
         class LogonInfo < Element
-
           # @!attribute logon_time
           #   @return [Time] The time the client last logged on
           attr_accessor :logon_time
@@ -291,8 +291,8 @@ module Rex
             unicode = Rex::Text.to_unicode('')
             encoded = ''
             encoded << [
-                ''.length,
-                ''.length
+              ''.length,
+              ''.length
             ].pack('Q<V')
             encoded << unicode
 
@@ -321,8 +321,8 @@ module Rex
             unicode = Rex::Text.to_unicode('')
             encoded = ''
             encoded << [
-                ''.length,
-                ''.length
+              ''.length,
+              ''.length
             ].pack('Q<V')
             encoded << unicode
 
@@ -487,14 +487,14 @@ module Rex
 
             encoded = ''
             encoded << [
-                components.length - 2,
-                components[0].to_i,
-                components.length - 2
+              components.length - 2,
+              components[0].to_i,
+              components.length - 2
             ].pack('VCC')
 
             encoded << [
-                components[1].to_i >> 16,
-                components[1].to_i & 0xffff
+              components[1].to_i >> 16,
+              components[1].to_i & 0xffff
             ].pack('Nn')
 
             components[2, components.length].each do |c|

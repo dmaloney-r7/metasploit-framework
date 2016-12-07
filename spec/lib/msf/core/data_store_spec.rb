@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding:binary -*-
 
 require 'spec_helper'
@@ -21,7 +22,7 @@ RSpec.shared_examples "datastore" do
   end
   context "#to_h" do
     it "should return a Hash with correct values" do
-      expect(subject.to_h).to eq({ "foo" => "bar", "fizz" => "buzz" })
+      expect(subject.to_h).to eq("foo" => "bar", "fizz" => "buzz")
     end
   end
   context "#delete" do
@@ -33,7 +34,6 @@ RSpec.shared_examples "datastore" do
 end
 
 RSpec.describe Msf::DataStore do
-
   describe "#import_option" do
     subject do
       s = described_class.new
@@ -82,6 +82,4 @@ RSpec.describe Msf::DataStore do
 
     it_behaves_like "datastore"
   end
-
-
 end

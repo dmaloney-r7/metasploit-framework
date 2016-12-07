@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 module Rex
@@ -6,7 +7,6 @@ module Rex
       module Model
         # This class provides a representation of UniqueIdentifier as used in RMI calls
         class UniqueIdentifier < Element
-
           # @!attribute number
           #   @return [Fixnum] Identifies the VM where an object is generated
           attr_accessor :number

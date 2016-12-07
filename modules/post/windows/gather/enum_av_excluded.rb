@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -117,11 +118,11 @@ class MetasploitModule < Msf::Post
     # keys/values at the same architecture of the host, so if we happen to be
     # in a 32-bit process on a 64-bit machine, ensure that we read from the
     # 64-bit keys/values, and otherwise use the native keys/values
-    if sysinfo['Architecture'] == ARCH_X64 && session.arch == ARCH_X86
-      @registry_view = REGISTRY_VIEW_64_BIT
-    else
-      @registry_view = REGISTRY_VIEW_NATIVE
-    end
+    @registry_view = if sysinfo['Architecture'] == ARCH_X64 && session.arch == ARCH_X86
+                       REGISTRY_VIEW_64_BIT
+                     else
+                       REGISTRY_VIEW_NATIVE
+                     end
   end
 
   def run

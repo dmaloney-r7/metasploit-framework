@@ -1,10 +1,10 @@
+# frozen_string_literal: true
 # -*- coding:binary -*-
 require 'spec_helper'
 
 require 'rex/time'
 
 RSpec.describe Rex::ExtTime do
-
   let(:conversions) do
     {
       0 => '0 secs',

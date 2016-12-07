@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -24,20 +25,20 @@ class MetasploitModule < Msf::Auxiliary
     )
 
     register_options([
-      Opt::RPORT(1900),
-      OptBool.new('SHORT', [ false, "Does a shorter request, for a higher amplifier, not compatible with all devices", false])
-    ], self.class)
+                       Opt::RPORT(1900),
+                       OptBool.new('SHORT', [ false, "Does a shorter request, for a higher amplifier, not compatible with all devices", false])
+                     ], self.class)
   end
 
   def setup
     super
     # SSDP packet containing the "ST:ssdp:all" search query
-    if datastore['short']
-      # Short packet doesn't contain Host, MX and last \r\n
-      @msearch_probe = "M-SEARCH * HTTP/1.1\r\nST: ssdp:all\r\nMan: \"ssdp:discover\"\r\n"
-    else
-      @msearch_probe = "M-SEARCH * HTTP/1.1\r\nHost: 239.255.255.250:1900\r\nST: ssdp:all\r\nMan: \"ssdp:discover\"\r\nMX: 1\r\n\r\n"
-    end
+    @msearch_probe = if datastore['short']
+                       # Short packet doesn't contain Host, MX and last \r\n
+                       "M-SEARCH * HTTP/1.1\r\nST: ssdp:all\r\nMan: \"ssdp:discover\"\r\n"
+                     else
+                       "M-SEARCH * HTTP/1.1\r\nHost: 239.255.255.250:1900\r\nST: ssdp:all\r\nMan: \"ssdp:discover\"\r\nMX: 1\r\n\r\n"
+                     end
   end
 
   def scanner_prescan(batch)
@@ -64,7 +65,7 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   # Called after the scan block
-  def scanner_postscan(batch)
+  def scanner_postscan(_batch)
     @results.keys.each do |k|
       response_map = { @msearch_probe => @results[k] }
       report_service(
@@ -84,7 +85,7 @@ class MetasploitModule < Msf::Auxiliary
           port: datastore['RPORT'],
           proto: 'udp',
           name: what,
-          refs: self.references
+          refs: references
         )
       else
         vprint_status("#{peer} - Not vulnerable to #{what}: #{proof}")

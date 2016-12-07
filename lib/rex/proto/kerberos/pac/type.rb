@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 module Rex
@@ -7,7 +8,6 @@ module Rex
         # This class provides a representation of a PAC_TYPE structure, the topmost structure
         # of the PAC.
         class Type < Element
-
           # @!attribute buffers
           #   @return [Array<Rex::Proto::Kerberos::Pac::Element>] The array of PAC_INFO_BUFFER structures
           attr_accessor :buffers

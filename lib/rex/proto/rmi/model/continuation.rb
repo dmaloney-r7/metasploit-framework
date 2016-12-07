@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 module Rex
@@ -6,7 +7,6 @@ module Rex
       module Model
         # This class provides a representation of an RMI continuation stream
         class Continuation < Element
-
           # @!attribute length
           #   @return [Fixnum] the end point address length
           attr_accessor :length

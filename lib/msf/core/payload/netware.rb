@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 require 'msf/core'
 
@@ -10,7 +11,6 @@ require 'msf/core'
 ###
 
 module Msf::Payload::Netware
-
   def initialize(info = {})
     ret = super(info)
   end
@@ -23,12 +23,12 @@ module Msf::Payload::Netware
     encoders = super()
     encoders2 = []
 
-    encoders.each { |encname, encmod|
-      if (!encname.include?('fnstenv_mov') && !encname.include?('shikata_ga_nai'))
+    encoders.each do |encname, encmod|
+      if !encname.include?('fnstenv_mov') && !encname.include?('shikata_ga_nai')
         encoders2 << [ encname, encmod ]
       end
-    }
+    end
 
-    return encoders2;
+    encoders2
   end
 end

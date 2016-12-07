@@ -1,19 +1,19 @@
+# frozen_string_literal: true
 require 'metasploit/framework/tcp/client'
 require 'metasploit/framework/mssql/tdssslproxy'
 
 module Metasploit
   module Framework
     module MSSQL
-
       module Client
         extend ActiveSupport::Concern
         include Metasploit::Framework::Tcp::Client
 
         # Encryption
-        ENCRYPT_OFF     = 0x00 #Encryption is available but off.
-        ENCRYPT_ON      = 0x01 #Encryption is available and on.
-        ENCRYPT_NOT_SUP = 0x02 #Encryption is not available.
-        ENCRYPT_REQ     = 0x03 #Encryption is required.
+        ENCRYPT_OFF     = 0x00 # Encryption is available but off.
+        ENCRYPT_ON      = 0x01 # Encryption is available and on.
+        ENCRYPT_NOT_SUP = 0x02 # Encryption is not available.
+        ENCRYPT_REQ     = 0x03 # Encryption is required.
 
         # Packet Type
         TYPE_SQL_BATCH                   = 1  # (Client) SQL command
@@ -40,9 +40,8 @@ module Metasploit
         # to authenticate with the supplied username and password
         # The global socket is used and left connected after auth
         #
-        def mssql_login(user='sa', pass='', db='', domain_name='')
-
-          disconnect if self.sock
+        def mssql_login(user = 'sa', pass = '', db = '', domain_name = '')
+          disconnect if sock
           connect
           mssql_prelogin
 
@@ -50,43 +49,43 @@ module Metasploit
             idx = 0
             pkt = ''
             pkt_hdr = ''
-            pkt_hdr =  [
-                TYPE_TDS7_LOGIN, #type
-                STATUS_END_OF_MESSAGE, #status
-                0x0000, #length
-                0x0000, # SPID
-                0x01,   # PacketID (unused upon specification
-                # but ms network monitor stil prefer 1 to decode correctly, wireshark don't care)
-                0x00   #Window
+            pkt_hdr = [
+              TYPE_TDS7_LOGIN, # type
+              STATUS_END_OF_MESSAGE, # status
+              0x0000, # length
+              0x0000, # SPID
+              0x01,   # PacketID (unused upon specification
+              # but ms network monitor stil prefer 1 to decode correctly, wireshark don't care)
+              0x00 # Window
             ]
 
             pkt << [
-                0x00000000,   # Size
-                0x71000001,   # TDS Version
-                0x00000000,   # Dummy Size
-                0x00000007,   # Version
-                rand(1024+1), # PID
-                0x00000000,   # ConnectionID
-                0xe0,         # Option Flags 1
-                0x83,         # Option Flags 2
-                0x00,         # SQL Type Flags
-                0x00,         # Reserved Flags
-                0x00000000,   # Time Zone
-                0x00000000    # Collation
+              0x00000000, # Size
+              0x71000001,   # TDS Version
+              0x00000000,   # Dummy Size
+              0x00000007,   # Version
+              rand(1024 + 1), # PID
+              0x00000000,   # ConnectionID
+              0xe0,         # Option Flags 1
+              0x83,         # Option Flags 2
+              0x00,         # SQL Type Flags
+              0x00,         # Reserved Flags
+              0x00000000,   # Time Zone
+              0x00000000    # Collation
             ].pack('VVVVVVCCCCVV')
 
-            cname = Rex::Text.to_unicode( Rex::Text.rand_text_alpha(rand(8)+1) )
-            aname = Rex::Text.to_unicode( Rex::Text.rand_text_alpha(rand(8)+1) ) #application and library name
-            sname = Rex::Text.to_unicode( rhost )
-            dname = Rex::Text.to_unicode( db )
+            cname = Rex::Text.to_unicode(Rex::Text.rand_text_alpha(rand(8) + 1))
+            aname = Rex::Text.to_unicode(Rex::Text.rand_text_alpha(rand(8) + 1)) # application and library name
+            sname = Rex::Text.to_unicode(rhost)
+            dname = Rex::Text.to_unicode(db)
 
-            workstation_name = Rex::Text.rand_text_alpha(rand(8)+1)
+            workstation_name = Rex::Text.rand_text_alpha(rand(8) + 1)
 
             ntlm_client = ::Net::NTLM::Client.new(
               user,
               pass,
               workstation: workstation_name,
-              domain: domain_name,
+              domain: domain_name
             )
             type1 = ntlm_client.init_context
             # SQL 2012, at least, does not support KEY_EXCHANGE
@@ -114,7 +113,7 @@ module Metasploit
 
             pkt << [idx, 0].pack('vv') # locales
 
-            pkt << [idx, 0].pack('vv') #db
+            pkt << [idx, 0].pack('vv') # db
 
             # ClientID (should be mac address)
             pkt << Rex::Text.rand_text(6)
@@ -143,11 +142,11 @@ module Metasploit
             # upon receiving the ntlm_negociate request it send an ntlm_challenge but the status flag of the tds packet header
             # is set to STATUS_NORMAL and not STATUS_END_OF_MESSAGE, then internally it waits for the ntlm_authentification
             if tdsencryption == true
-               proxy = TDSSSLProxy.new(sock)
-               proxy.setup_ssl
-               resp = proxy.send_recv(pkt, 15, false)
+              proxy = TDSSSLProxy.new(sock)
+              proxy.setup_ssl
+              resp = proxy.send_recv(pkt, 15, false)
             else
-               resp = mssql_send_recv(pkt, 15, false)
+              resp = mssql_send_recv(pkt, 15, false)
             end
 
             # Strip the TDS header
@@ -160,19 +159,19 @@ module Metasploit
             pkt = ''
             pkt_hdr = ''
             pkt_hdr = [
-              TYPE_SSPI_MESSAGE, #type
-              STATUS_END_OF_MESSAGE, #status
-              0x0000, #length
+              TYPE_SSPI_MESSAGE, # type
+              STATUS_END_OF_MESSAGE, # status
+              0x0000, # length
               0x0000, # SPID
               0x01, # PacketID
-              0x00 #Window
+              0x00 # Window
             ]
 
             pkt_hdr[2] = type3_blob.length + 8
 
             pkt = pkt_hdr.pack("CCnnCC") + type3_blob
 
-            if self.tdsencryption == true
+            if tdsencryption == true
               resp = mssql_ssl_send_recv(pkt, proxy)
               proxy.cleanup
               proxy = nil
@@ -180,33 +179,32 @@ module Metasploit
               resp = mssql_send_recv(pkt)
             end
 
-            #SQL Server Authentification
+            # SQL Server Authentification
           else
             idx = 0
             pkt = ''
             pkt << [
-                0x00000000,   # Dummy size
+              0x00000000, # Dummy size
 
-                0x71000001,   # TDS Version
-                0x00000000,   # Size
-                0x00000007,   # Version
-                rand(1024+1), # PID
-                0x00000000,   # ConnectionID
-                0xe0,         # Option Flags 1
-                0x03,         # Option Flags 2
-                0x00,         # SQL Type Flags
-                0x00,         # Reserved Flags
-                0x00000000,   # Time Zone
-                0x00000000    # Collation
+              0x71000001,   # TDS Version
+              0x00000000,   # Size
+              0x00000007,   # Version
+              rand(1024 + 1), # PID
+              0x00000000,   # ConnectionID
+              0xe0,         # Option Flags 1
+              0x03,         # Option Flags 2
+              0x00,         # SQL Type Flags
+              0x00,         # Reserved Flags
+              0x00000000,   # Time Zone
+              0x00000000    # Collation
             ].pack('VVVVVVCCCCVV')
 
-
-            cname = Rex::Text.to_unicode( Rex::Text.rand_text_alpha(rand(8)+1) )
-            uname = Rex::Text.to_unicode( user )
-            pname = mssql_tds_encrypt( pass )
-            aname = Rex::Text.to_unicode( Rex::Text.rand_text_alpha(rand(8)+1) )
-            sname = Rex::Text.to_unicode( rhost )
-            dname = Rex::Text.to_unicode( db )
+            cname = Rex::Text.to_unicode(Rex::Text.rand_text_alpha(rand(8) + 1))
+            uname = Rex::Text.to_unicode(user)
+            pname = mssql_tds_encrypt(pass)
+            aname = Rex::Text.to_unicode(Rex::Text.rand_text_alpha(rand(8) + 1))
+            sname = Rex::Text.to_unicode(rhost)
+            dname = Rex::Text.to_unicode(db)
 
             idx = pkt.size + 50 # lengths below
 
@@ -237,10 +235,10 @@ module Metasploit
 
             # The total length has to be embedded twice more here
             pkt << [
-                0,
-                0,
-                0x12345678,
-                0x12345678
+              0,
+              0,
+              0x12345678,
+              0x12345678
             ].pack('vVVV')
 
             pkt << cname
@@ -260,7 +258,7 @@ module Metasploit
             # Packet header and total length including header
             pkt = "\x10\x01" + [pkt.length + 8].pack('n') + [0].pack('n') + [1].pack('C') + "\x00" + pkt
 
-            if self.tdsencryption == true
+            if tdsencryption == true
               proxy = TDSSSLProxy.new(sock)
               proxy.setup_ssl
               resp = mssql_ssl_send_recv(pkt, proxy)
@@ -272,12 +270,12 @@ module Metasploit
 
           end
 
-          info = {:errors => []}
+          info = { errors: [] }
           info = mssql_parse_reply(resp, info)
 
           disconnect
 
-          return false if not info
+          return false unless info
           info[:login_ack] ? true : false
         end
 
@@ -291,14 +289,14 @@ module Metasploit
 
           nval = ''
           nlen = buff.slice!(0, 1).unpack('C')[0] || 0
-          nval = buff.slice!(0, nlen*2).gsub("\x00", '') if nlen > 0
+          nval = buff.slice!(0, nlen * 2).delete("\x00") if nlen > 0
 
           oval = ''
           olen = buff.slice!(0, 1).unpack('C')[0] || 0
-          oval = buff.slice!(0, olen*2).gsub("\x00", '') if olen > 0
+          oval = buff.slice!(0, olen * 2).delete("\x00") if olen > 0
 
           info[:envs] ||= []
-          info[:envs] << { :type => type, :old => oval, :new => nval }
+          info[:envs] << { type: type, old: oval, new: nval }
           info
         end
 
@@ -316,7 +314,7 @@ module Metasploit
         #
         def mssql_parse_done(data, info)
           status, cmd, rows = data.slice!(0, 8).unpack('vvV')
-          info[:done] = { :status => status, :cmd => cmd, :rows => rows }
+          info[:done] = { status: status, cmd: cmd, rows: rows }
           info
         end
 
@@ -329,7 +327,7 @@ module Metasploit
 
           errno, state, sev, elen = buff.slice!(0, 8).unpack('VCCv')
           emsg = buff.slice!(0, elen * 2)
-          emsg.gsub!("\x00", '')
+          emsg.delete!("\x00")
 
           info[:errors] << "SQL Server Error ##{errno} (State:#{state} Severity:#{sev}): #{emsg}"
           info
@@ -344,7 +342,7 @@ module Metasploit
 
           errno, state, sev, elen = buff.slice!(0, 8).unpack('VCCv')
           emsg = buff.slice!(0, elen * 2)
-          emsg.gsub!("\x00", '')
+          emsg.delete!("\x00")
 
           info[:infos] ||= []
           info[:infos] << "SQL Server Info ##{errno} (State:#{state} Severity:#{sev}): #{emsg}"
@@ -365,30 +363,30 @@ module Metasploit
         #
         def mssql_parse_reply(data, info)
           info[:errors] = []
-          return if not data
+          return unless data
           until data.empty?
             token = data.slice!(0, 1).unpack('C')[0]
             case token
-              when 0x81
-                mssql_parse_tds_reply(data, info)
-              when 0xd1
-                mssql_parse_tds_row(data, info)
-              when 0xe3
-                mssql_parse_env(data, info)
-              when 0x79
-                mssql_parse_ret(data, info)
-              when 0xfd, 0xfe, 0xff
-                mssql_parse_done(data, info)
-              when 0xad
-                mssql_parse_login_ack(data, info)
-              when 0xab
-                mssql_parse_info(data, info)
-              when 0xaa
-                mssql_parse_error(data, info)
-              when nil
-                break
-              else
-                info[:errors] << "unsupported token: #{token}"
+            when 0x81
+              mssql_parse_tds_reply(data, info)
+            when 0xd1
+              mssql_parse_tds_row(data, info)
+            when 0xe3
+              mssql_parse_env(data, info)
+            when 0x79
+              mssql_parse_ret(data, info)
+            when 0xfd, 0xfe, 0xff
+              mssql_parse_done(data, info)
+            when 0xad
+              mssql_parse_login_ack(data, info)
+            when 0xab
+              mssql_parse_info(data, info)
+            when 0xaa
+              mssql_parse_error(data, info)
+            when nil
+              break
+            else
+              info[:errors] << "unsupported token: #{token}"
             end
           end
           info
@@ -404,7 +402,7 @@ module Metasploit
 
           # Parse out the columns
           cols = data.slice!(0, 2).unpack('v')[0]
-          0.upto(cols-1) do |col_idx|
+          0.upto(cols - 1) do |col_idx|
             col = {}
             info[:colinfos][col_idx] = col
 
@@ -413,57 +411,57 @@ module Metasploit
             col[:type]  = data.slice!(0, 1).unpack('C')[0]
 
             case col[:type]
-              when 48
-                col[:id] = :tinyint
+            when 48
+              col[:id] = :tinyint
 
-              when 52
-                col[:id] = :smallint
+            when 52
+              col[:id] = :smallint
 
-              when 56
-                col[:id] = :rawint
+            when 56
+              col[:id] = :rawint
 
-              when 61
-                col[:id] = :datetime
+            when 61
+              col[:id] = :datetime
 
-              when 34
-                col[:id]            = :image
-                col[:max_size]      = data.slice!(0, 4).unpack('V')[0]
-                col[:value_length]  = data.slice!(0, 2).unpack('v')[0]
-                col[:value]         = data.slice!(0, col[:value_length]  * 2).gsub("\x00", '')
+            when 34
+              col[:id] = :image
+              col[:max_size]      = data.slice!(0, 4).unpack('V')[0]
+              col[:value_length]  = data.slice!(0, 2).unpack('v')[0]
+              col[:value]         = data.slice!(0, col[:value_length] * 2).delete("\x00")
 
-              when 36
-                col[:id] = :string
+            when 36
+              col[:id] = :string
 
-              when 38
-                col[:id] = :int
-                col[:int_size] = data.slice!(0, 1).unpack('C')[0]
+            when 38
+              col[:id] = :int
+              col[:int_size] = data.slice!(0, 1).unpack('C')[0]
 
-              when 127
-                col[:id] = :bigint
+            when 127
+              col[:id] = :bigint
 
-              when 165
-                col[:id] = :hex
-                col[:max_size] = data.slice!(0, 2).unpack('v')[0]
+            when 165
+              col[:id] = :hex
+              col[:max_size] = data.slice!(0, 2).unpack('v')[0]
 
-              when 173
-                col[:id] = :hex # binary(2)
-                col[:max_size] = data.slice!(0, 2).unpack('v')[0]
+            when 173
+              col[:id] = :hex # binary(2)
+              col[:max_size] = data.slice!(0, 2).unpack('v')[0]
 
-              when 231, 175, 167, 239
-                col[:id] = :string
-                col[:max_size] = data.slice!(0, 2).unpack('v')[0]
-                col[:codepage] = data.slice!(0, 2).unpack('v')[0]
-                col[:cflags] = data.slice!(0, 2).unpack('v')[0]
-                col[:charset_id] =  data.slice!(0, 1).unpack('C')[0]
+            when 231, 175, 167, 239
+              col[:id] = :string
+              col[:max_size] = data.slice!(0, 2).unpack('v')[0]
+              col[:codepage] = data.slice!(0, 2).unpack('v')[0]
+              col[:cflags] = data.slice!(0, 2).unpack('v')[0]
+              col[:charset_id] = data.slice!(0, 1).unpack('C')[0]
 
-              else
-                col[:id] = :unknown
+            else
+              col[:id] = :unknown
             end
 
             col[:msg_len] = data.slice!(0, 1).unpack('C')[0]
 
-            if(col[:msg_len] and col[:msg_len] > 0)
-              col[:name] = data.slice!(0, col[:msg_len] * 2).gsub("\x00", '')
+            if col[:msg_len] && col[:msg_len] > 0
+              col[:name] = data.slice!(0, col[:msg_len] * 2).delete("\x00")
             end
             info[:colnames] << (col[:name] || 'NULL')
           end
@@ -477,75 +475,70 @@ module Metasploit
           row = []
 
           info[:colinfos].each do |col|
-
-            if(data.length == 0)
+            if data.empty?
               row << "<EMPTY>"
               next
             end
 
             case col[:id]
-              when :hex
-                str = ""
-                len = data.slice!(0, 2).unpack('v')[0]
-                if(len > 0 and len < 65535)
-                  str << data.slice!(0, len)
-                end
-                row << str.unpack("H*")[0]
+            when :hex
+              str = ""
+              len = data.slice!(0, 2).unpack('v')[0]
+              str << data.slice!(0, len) if len > 0 && len < 65535
+              row << str.unpack("H*")[0]
 
-              when :string
-                str = ""
-                len = data.slice!(0, 2).unpack('v')[0]
-                if(len > 0 and len < 65535)
-                  str << data.slice!(0, len)
-                end
-                row << str.gsub("\x00", '')
+            when :string
+              str = ""
+              len = data.slice!(0, 2).unpack('v')[0]
+              str << data.slice!(0, len) if len > 0 && len < 65535
+              row << str.delete("\x00")
 
-              when :datetime
-                row << data.slice!(0, 8).unpack("H*")[0]
+            when :datetime
+              row << data.slice!(0, 8).unpack("H*")[0]
 
-              when :rawint
-                row << data.slice!(0, 4).unpack('V')[0]
+            when :rawint
+              row << data.slice!(0, 4).unpack('V')[0]
 
-              when :bigint
-                row << data.slice!(0, 8).unpack("H*")[0]
+            when :bigint
+              row << data.slice!(0, 8).unpack("H*")[0]
 
-              when :smallint
-                row << data.slice!(0, 2).unpack("v")[0]
+            when :smallint
+              row << data.slice!(0, 2).unpack("v")[0]
 
-              when :smallint3
-                row << [data.slice!(0, 3)].pack("Z4").unpack("V")[0]
+            when :smallint3
+              row << [data.slice!(0, 3)].pack("Z4").unpack("V")[0]
 
-              when :tinyint
-                row << data.slice!(0, 1).unpack("C")[0]
+            when :tinyint
+              row << data.slice!(0, 1).unpack("C")[0]
 
-              when :image
-                str = ''
-                len = data.slice!(0, 1).unpack('C')[0]
-                str = data.slice!(0, len) if (len and len > 0)
-                row << str.unpack("H*")[0]
+            when :image
+              str = ''
+              len = data.slice!(0, 1).unpack('C')[0]
+              str = data.slice!(0, len) if len && len > 0
+              row << str.unpack("H*")[0]
 
-              when :int
-                len = data.slice!(0, 1).unpack("C")[0]
-                raw = data.slice!(0, len) if (len and len > 0)
+            when :int
+              len = data.slice!(0, 1).unpack("C")[0]
+              raw = data.slice!(0, len) if len && len > 0
 
-                case len
-                  when 0, 255
-                    row << ''
-                  when 1
-                    row << raw.unpack("C")[0]
-                  when 2
-                    row << raw.unpack('v')[0]
-                  when 4
-                    row << raw.unpack('V')[0]
-                  when 5
-                    row << raw.unpack('V')[0] # XXX: missing high byte
-                  when 8
-                    row << raw.unpack('VV')[0] # XXX: missing high dword
-                  else
-                    info[:errors] << "invalid integer size: #{len} #{data[0, 16].unpack("H*")[0]}"
-                end
+              case len
+              when 0, 255
+                row << ''
+              when 1
+                row << raw.unpack("C")[0]
+              when 2
+                row << raw.unpack('v')[0]
+              when 4
+                row << raw.unpack('V')[0]
+              when 5
+                row << raw.unpack('V')[0] # XXX: missing high byte
+              when 8
+                row << raw.unpack('VV')[0] # XXX: missing high dword
               else
-                info[:errors] << "unknown column type: #{col.inspect}"
+                info[:errors] << "invalid integer size: #{len} #{data[0, 16].unpack('H*')[0]}"
+              end
+            else
+              info[:errors] << "unknown column type: #{col.inspect}"
             end
           end
 
@@ -554,33 +547,31 @@ module Metasploit
         end
 
         #
-        #this method send a prelogin packet and check if encryption is off
+        # this method send a prelogin packet and check if encryption is off
         #
-        def mssql_prelogin(enc_error=false)
-
+        def mssql_prelogin(_enc_error = false)
           pkt = ""
           pkt_hdr = ""
           pkt_data_token = ""
           pkt_data = ""
 
-
           pkt_hdr = [
-              TYPE_PRE_LOGIN_MESSAGE, #type
-              STATUS_END_OF_MESSAGE, #status
-              0x0000, #length
-              0x0000, # SPID
-              0x00, # PacketID
-              0x00 #Window
+            TYPE_PRE_LOGIN_MESSAGE, # type
+            STATUS_END_OF_MESSAGE, # status
+            0x0000, # length
+            0x0000, # SPID
+            0x00, # PacketID
+            0x00 # Window
           ]
 
           version = [0x55010008, 0x0000].pack("Vv")
 
           # if manually set, we will honour
-          if tdsencryption == true
-            encryption = ENCRYPT_ON
-          else
-            encryption = ENCRYPT_NOT_SUP
-          end
+          encryption = if tdsencryption == true
+                         ENCRYPT_ON
+                       else
+                         ENCRYPT_NOT_SUP
+                       end
 
           instoptdata = "MSSQLServer\0"
 
@@ -588,23 +579,23 @@ module Metasploit
 
           idx = 21 # size of pkt_data_token
           pkt_data_token << [
-              0x00, # Token 0 type Version
-              idx , # VersionOffset
-              version.length, # VersionLength
+            0x00, # Token 0 type Version
+            idx, # VersionOffset
+            version.length, # VersionLength
 
-              0x01, # Token 1 type Encryption
-              idx = idx + version.length, # EncryptionOffset
-              0x01, # EncryptionLength
+            0x01, # Token 1 type Encryption
+            idx += version.length, # EncryptionOffset
+            0x01, # EncryptionLength
 
-              0x02, # Token 2 type InstOpt
-              idx = idx + 1, # InstOptOffset
-              instoptdata.length, # InstOptLength
+            0x02, # Token 2 type InstOpt
+            idx += 1, # InstOptOffset
+            instoptdata.length, # InstOptLength
 
-              0x03, # Token 3 type Threadid
-              idx + instoptdata.length, # ThreadIdOffset
-              0x04, # ThreadIdLength
+            0x03, # Token 3 type Threadid
+            idx + instoptdata.length, # ThreadIdOffset
+            0x04, # ThreadIdLength
 
-              0xFF
+            0xFF
           ].pack("CnnCnnCnnCnnC")
 
           pkt_data << pkt_data_token
@@ -625,11 +616,10 @@ module Metasploit
             token = resp.slice!(0, 5)
             token = token.unpack("Cnn")
             idx -= 5
-            if token[0] == 0x01
+            next unless token[0] == 0x01
 
-              idx += token[1]
-              break
-            end
+            idx += token[1]
+            break
           end
           if idx > 0
             encryption_mode = resp[idx, 1].unpack("C")[0]
@@ -657,7 +647,7 @@ module Metasploit
           if encryption_mode == ENCRYPT_REQ
             # restart prelogin process except that we tell SQL Server
             # than we are now able to encrypt
-            disconnect if self.sock
+            disconnect if sock
             connect
 
             # offset 35 is the flag - turn it on
@@ -682,7 +672,7 @@ module Metasploit
             if idx > 0
               encryption_mode = resp[idx, 1].unpack("C")[0]
             else
-              raise RuntimeError, "Unable to parse encryption "\
+              raise "Unable to parse encryption "\
                 "req during pre-login"
             end
           end
@@ -692,7 +682,7 @@ module Metasploit
         #
         # Send and receive using TDS
         #
-        def mssql_send_recv(req, timeout=15, check_status = true)
+        def mssql_send_recv(req, timeout = 15, check_status = true)
           sock.put(req)
 
           # Read the 8 byte header to get the length and status
@@ -702,23 +692,19 @@ module Metasploit
           done = false
           resp = ""
 
-          while(not done)
+          until done
             head = sock.get_once(8, timeout)
-            if !(head && head.length == 8)
-              return false
-            end
+            return false unless head && head.length == 8
 
             # Is this the last buffer?
-            if head[1, 1] == "\x01" || !check_status
-              done = true
-            end
+            done = true if head[1, 1] == "\x01" || !check_status
 
             # Grab this block's length
             rlen = head[2, 2].unpack('n')[0] - 8
 
-            while(rlen > 0)
+            while rlen > 0
               buff = sock.get_once(rlen, timeout)
-              return if not buff
+              return unless buff
               resp << buff
               rlen -= buff.length
             end
@@ -727,7 +713,7 @@ module Metasploit
           resp
         end
 
-        def mssql_ssl_send_recv(req, tdsproxy, timeout=15, check_status=true)
+        def mssql_ssl_send_recv(req, tdsproxy, _timeout = 15, _check_status = true)
           tdsproxy.send_recv(req)
         end
 
@@ -736,7 +722,7 @@ module Metasploit
         #
         def mssql_tds_encrypt(pass)
           # Convert to unicode, swap 4 bits both ways, xor with 0xa5
-          Rex::Text.to_unicode(pass).unpack('C*').map {|c| (((c & 0x0f) << 4) + ((c & 0xf0) >> 4)) ^ 0xa5 }.pack("C*")
+          Rex::Text.to_unicode(pass).unpack('C*').map { |c| (((c & 0x0f) << 4) + ((c & 0xf0) >> 4)) ^ 0xa5 }.pack("C*")
         end
 
         protected
@@ -764,9 +750,7 @@ module Metasploit
         def send_spn
           raise NotImplementedError
         end
-
       end
-
     end
   end
 end

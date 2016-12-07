@@ -1,48 +1,48 @@
+# frozen_string_literal: true
 ##
 # WARNING: Metasploit no longer maintains or accepts meterpreter scripts.
 # If you'd like to imporve this script, please try to port it as a post
 # module instead. Thank you.
 ##
 
-
-#Meterpreter script for running WMIC commands on Windows 2003, Windows Vista
+# Meterpreter script for running WMIC commands on Windows 2003, Windows Vista
 # and Windows XP and Windows 2008 targets.
-#Provided by Carlos Perez at carlos_perez[at]darkoperator[dot]com
+# Provided by Carlos Perez at carlos_perez[at]darkoperator[dot]com
 ################## Variable Declarations ##################
 session = client
 wininfo = client.sys.config.sysinfo
 # Setting Arguments
 @@exec_opts = Rex::Parser::Arguments.new(
-  "-h" => [ false,"Help menu."                        ],
-  "-c" => [ true,"Command to execute. The command must be enclosed in double quotes."],
-  "-f" => [ true,"File where to saved output of command."],
-  "-s" => [ true,"Text file with list of commands, one per line."]
+  "-h" => [ false, "Help menu." ],
+  "-c" => [ true, "Command to execute. The command must be enclosed in double quotes."],
+  "-f" => [ true, "File where to saved output of command."],
+  "-s" => [ true, "Text file with list of commands, one per line."]
 )
-#Setting Argument variables
+# Setting Argument variables
 commands = []
 script = []
 outfile = nil
 
 ################## Function Declarations ##################
 # Function for running a list of WMIC commands stored in a array, returs string
-def wmicexec(session,wmiccmds= nil)
+def wmicexec(session, wmiccmds = nil)
   tmpout = ''
-  session.response_timeout=120
+  session.response_timeout = 120
   begin
     tmp = session.sys.config.getenv('TEMP')
-    wmicfl = tmp + "\\"+ sprintf("%.5d",rand(100000))
+    wmicfl = tmp + "\\" + sprintf("%.5d", rand(100000))
     wmiccmds.each do |wmi|
       print_status "running command wmic #{wmi}"
       print_line wmicfl
-      r = session.sys.process.execute("cmd.exe /c %SYSTEMROOT%\\system32\\wbem\\wmic.exe /append:#{wmicfl} #{wmi}", nil, {'Hidden' => true})
+      r = session.sys.process.execute("cmd.exe /c %SYSTEMROOT%\\system32\\wbem\\wmic.exe /append:#{wmicfl} #{wmi}", nil, 'Hidden' => true)
       sleep(2)
-      #Making sure that wmic finishes before executing next wmic command
+      # Making sure that wmic finishes before executing next wmic command
       prog2check = "wmic.exe"
       found = 0
       while found == 0
-        session.sys.process.get_processes().each do |x|
-          found =1
-          if prog2check == (x['name'].downcase)
+        session.sys.process.get_processes.each do |x|
+          found = 1
+          if prog2check == x['name'].downcase
             sleep(0.5)
             found = 0
           end
@@ -52,18 +52,17 @@ def wmicexec(session,wmiccmds= nil)
     end
     # Read the output file of the wmic commands
     wmioutfile = session.fs.file.new(wmicfl, "rb")
-    until wmioutfile.eof?
-      tmpout << wmioutfile.read
-    end
+    tmpout << wmioutfile.read until wmioutfile.eof?
     wmioutfile.close
   rescue ::Exception => e
     print_status("Error running WMIC commands: #{e.class} #{e}")
   end
   # We delete the file with the wmic command output.
-  c = session.sys.process.execute("cmd.exe /c del #{wmicfl}", nil, {'Hidden' => true})
+  c = session.sys.process.execute("cmd.exe /c del #{wmicfl}", nil, 'Hidden' => true)
   c.close
   tmpout
 end
+
 # Function for writing results of other functions to a file
 def filewrt(file2wrt, data2wrt)
   output = ::File.open(file2wrt, "a")
@@ -73,12 +72,11 @@ def filewrt(file2wrt, data2wrt)
   output.close
 end
 
-#check for proper Meterpreter Platform
+# check for proper Meterpreter Platform
 def unsupported
   print_error("This version of Meterpreter is not supported with this Script!")
   raise Rex::Script::Completed
 end
-
 
 def usage
   print_line("Windows WMIC Command Execution Meterpreter Script ")
@@ -94,7 +92,7 @@ def usage
 end
 
 ################## Main ##################
-@@exec_opts.parse(args) { |opt, idx, val|
+@@exec_opts.parse(args) do |opt, _idx, val|
   case opt
   when "-c"
 
@@ -103,12 +101,12 @@ end
   when "-s"
 
     script = val
-    if not ::File.exist?(script)
+    if !::File.exist?(script)
       raise "Command List File does not exists!"
     else
       ::File.open(script, "r").each_line do |line|
-        next if line.strip.length < 1
-        next if line[0,1] == "#"
+        next if line.strip.empty?
+        next if line[0, 1] == "#"
         commands << line.chomp
       end
     end
@@ -121,17 +119,14 @@ end
     print_error "Unknown option: #{opt}"
     usage
   end
-
-}
-
-if args.length == 0
-  usage
 end
+
+usage if args.empty?
 unsupported if client.platform !~ /win32|win64/i
 
-if outfile == nil
-  print_status wmicexec(session,commands)
+if outfile.nil?
+  print_status wmicexec(session, commands)
 else
   print_status("Saving output of WMIC to #{outfile}")
-  filewrt(outfile, wmicexec(session,commands))
+  filewrt(outfile, wmicexec(session, commands))
 end

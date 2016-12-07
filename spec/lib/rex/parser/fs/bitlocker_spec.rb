@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'rex/parser/fs/bitlocker'
 
 volume_header = [%(
@@ -81,7 +82,7 @@ end
 
 RSpec.describe Rex::Parser::BITLOCKER do
   Bitlocker = Rex::Parser::BITLOCKER.new(BitlockerDrive.new(volume_header,
-                                                             fve_header))
+                                                            fve_header))
   ##
   # Decrypt
   ##

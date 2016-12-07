@@ -1,7 +1,7 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 module Msf::Post::WebRTC
-
   #
   # Connects to a video chat session as an answerer
   #
@@ -22,10 +22,9 @@ module Msf::Post::WebRTC
 
     found_local_browser = Rex::Compat.open_webrtc_browser(tmp_interface.path)
     unless found_local_browser
-      raise RuntimeError, "Unable to find a suitable browser to connect to the target"
+      raise "Unable to find a suitable browser to connect to the target"
     end
   end
-
 
   #
   # Returns the webcam interface
@@ -41,7 +40,6 @@ module Msf::Post::WebRTC
     interface_code
   end
 
-
   #
   # Returns the webcam API
   #
@@ -53,5 +51,4 @@ module Msf::Post::WebRTC
     ::File.open(js_api_path) { |f| api = f.read }
     api
   end
-
 end

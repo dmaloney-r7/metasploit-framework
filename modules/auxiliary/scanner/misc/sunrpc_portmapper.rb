@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -41,7 +42,7 @@ class MetasploitModule < Msf::Auxiliary
 
       progs = resp[3, 1].unpack('C')[0]
       maps = []
-      if (progs == 0x01)
+      if progs == 0x01
         while XDR.decode_int!(resp) == 1
           maps << XDR.decode!(resp, Integer, Integer, Integer, Integer)
         end

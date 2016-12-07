@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -8,34 +9,32 @@ require 'msf/core'
 require 'msf/core/auxiliary/report'
 
 class MetasploitModule < Msf::Post
-
   include Msf::Auxiliary::Report
   include Msf::Post::Windows::LDAP
 
-  def initialize(info={})
+  def initialize(info = {})
     super(update_info(info,
-      'Name'         => 'Windows Gather Active Directory Service Principal Names',
-      'Description'  => %Q{
-        This module will enumerate servicePrincipalName in the default AD directory
-        where the user is a member of the Domain Admins group.
-      },
-      'License'      => MSF_LICENSE,
-      'Author'       =>
-        [
-          'Ben Campbell', #Metasploit Module
-          'Scott Sutherland' #Original Powershell Code
-        ],
-      'Platform'     => [ 'win' ],
-      'SessionTypes' => [ 'meterpreter' ],
-      'References'   =>
-        [
-          ['URL', 'https://www.netspi.com/blog/entryid/214/faster-domain-escalation-using-ldap'],
-        ]
-    ))
+                      'Name'         => 'Windows Gather Active Directory Service Principal Names',
+                      'Description'  => %(
+                        This module will enumerate servicePrincipalName in the default AD directory
+                        where the user is a member of the Domain Admins group.
+                      ),
+                      'License'      => MSF_LICENSE,
+                      'Author'       =>
+                        [
+                          'Ben Campbell', # Metasploit Module
+                          'Scott Sutherland' # Original Powershell Code
+                        ],
+                      'Platform'     => [ 'win' ],
+                      'SessionTypes' => [ 'meterpreter' ],
+                      'References'   =>
+                        [
+                          ['URL', 'https://www.netspi.com/blog/entryid/214/faster-domain-escalation-using-ldap']
+                        ]))
 
     register_options([
-      OptString.new('FILTER', [true, 'Search filter, DOM_REPL will be automatically replaced', '(&(objectCategory=user)(memberOf=CN=Domain Admins,CN=Users,DOM_REPL))'])
-    ], self.class)
+                       OptString.new('FILTER', [true, 'Search filter, DOM_REPL will be automatically replaced', '(&(objectCategory=user)(memberOf=CN=Domain Admins,CN=Users,DOM_REPL))'])
+                     ], self.class)
 
     deregister_options('FIELDS')
   end
@@ -44,7 +43,7 @@ class MetasploitModule < Msf::Post
     domain ||= datastore['DOMAIN']
     domain ||= get_domain
 
-    fields = ['cn','servicePrincipalName']
+    fields = ['cn', 'servicePrincipalName']
 
     search_filter = datastore['FILTER']
     max_search = datastore['MAX_SEARCH']
@@ -56,7 +55,7 @@ class MetasploitModule < Msf::Post
       fail_with(Failure::Unknown, "Unable to retrieve the Default Naming Context")
     end
 
-    search_filter.gsub!('DOM_REPL',dn)
+    search_filter.gsub!('DOM_REPL', dn)
 
     begin
       q = query(search_filter, max_search, fields, domain)
@@ -66,9 +65,7 @@ class MetasploitModule < Msf::Post
       return
     end
 
-    if q.nil? or q[:results].empty?
-      return
-    end
+    return if q.nil? || q[:results].empty?
 
     fields << "Service"
     fields << "Host"
@@ -83,10 +80,9 @@ class MetasploitModule < Msf::Post
 
     q[:results].each do |result|
       rows = parse_result(result, fields)
-      unless rows.nil?
-        rows.each do |row|
-          results_table << row
-        end
+      next if rows.nil?
+      rows.each do |row|
+        results_table << row
       end
     end
 
@@ -99,7 +95,7 @@ class MetasploitModule < Msf::Post
     rows = []
     row = []
 
-    0.upto(fields.length-1) do |i|
+    0.upto(fields.length - 1) do |i|
       field = (result[i][:value].nil? ? "" : result[i][:value])
 
       if fields[i] == 'servicePrincipalName'
@@ -119,11 +115,8 @@ class MetasploitModule < Msf::Post
       else
         row << field
       end
-
     end
 
     rows
   end
-
 end
-

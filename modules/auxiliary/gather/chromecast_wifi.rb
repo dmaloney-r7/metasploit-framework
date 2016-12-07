@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,25 +7,23 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
 
   def initialize(info = {})
     super(update_info(info,
-      'Name' => 'Chromecast Wifi Enumeration',
-      'Description' => %q{
-        This module enumerates wireless access points through Chromecast.
-      },
-      'Author' => ['wvu'],
-      'References' => [
-        ['URL', 'http://www.google.com/intl/en/chrome/devices/chromecast/index.html'] # vendor website
-      ],
-      'License' => MSF_LICENSE
-    ))
+                      'Name' => 'Chromecast Wifi Enumeration',
+                      'Description' => %q(
+                        This module enumerates wireless access points through Chromecast.
+                      ),
+                      'Author' => ['wvu'],
+                      'References' => [
+                        ['URL', 'http://www.google.com/intl/en/chrome/devices/chromecast/index.html'] # vendor website
+                      ],
+                      'License' => MSF_LICENSE))
 
     register_options([
-      Opt::RPORT(8008)
-    ], self.class)
+                       Opt::RPORT(8008)
+                     ], self.class)
   end
 
   def run
@@ -59,11 +58,11 @@ class MetasploitModule < Msf::Auxiliary
     print_line(waps.to_s)
 
     report_note(
-      :host => rhost,
-      :port => rport,
-      :proto => 'tcp',
-      :type => 'chromecast.wifi',
-      :data => waps.to_csv
+      host: rhost,
+      port: rport,
+      proto: 'tcp',
+      type: 'chromecast.wifi',
+      data: waps.to_csv
     )
   end
 
@@ -127,5 +126,4 @@ class MetasploitModule < Msf::Auxiliary
       ''
     end
   end
-
 end

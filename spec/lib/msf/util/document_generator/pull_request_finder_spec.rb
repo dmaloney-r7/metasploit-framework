@@ -1,27 +1,27 @@
+# frozen_string_literal: true
 require 'rex'
 require 'msf/util/document_generator'
 require 'octokit'
 require 'net/http'
 
 RSpec.describe Msf::Util::DocumentGenerator::PullRequestFinder do
-
   let(:author_name) { 'name' }
 
   let(:commit) do
     c = double('commit')
-    allow(c).to receive(:author).and_return({author: author_name, login: author_name})
+    allow(c).to receive(:author).and_return(author: author_name, login: author_name)
     allow(c).to receive(:sha).and_return('sha')
     c
   end
 
   let(:commits) do
-      [ commit ]
+    [ commit ]
   end
 
   let(:pr_num) { '5486' }
 
   let(:html) do
-    %Q|
+    %|
     <html>
     <head></head>
     <body>
@@ -127,7 +127,7 @@ RSpec.describe Msf::Util::DocumentGenerator::PullRequestFinder do
     context 'when a commit authored by tabassassin is given' do
       it 'returns true' do
         c = double('commit')
-        allow(c).to receive(:author).and_return({author: 'tabassassin', login: 'tabassassin'})
+        allow(c).to receive(:author).and_return(author: 'tabassassin', login: 'tabassassin')
         expect(subject.send(:is_author_blacklisted?, c)).to be_truthy
       end
     end
@@ -158,5 +158,4 @@ RSpec.describe Msf::Util::DocumentGenerator::PullRequestFinder do
       end
     end
   end
-
 end

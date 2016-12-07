@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 #
 # $Id$
 #
@@ -12,10 +13,10 @@ while File.symlink?(msfbase)
   msfbase = File.expand_path(File.readlink(msfbase), File.dirname(msfbase))
 end
 
-$:.unshift(File.expand_path(File.join(File.dirname(msfbase), '..', '..', 'lib')))
+$LOAD_PATH.unshift(File.expand_path(File.join(File.dirname(msfbase), '..', '..', 'lib')))
 require 'msfenv'
 
-$:.unshift(ENV['MSF_LOCAL_LIB']) if ENV['MSF_LOCAL_LIB']
+$LOAD_PATH.unshift(ENV['MSF_LOCAL_LIB']) if ENV['MSF_LOCAL_LIB']
 
 require 'rex'
 require 'msf/ui'
@@ -24,9 +25,9 @@ require 'msf/base'
 def do_want(klass)
   return false if klass.class != Module
   return false if [ Kernel, ERB::Util, SNMP::BER].include?(klass)
-  return false if klass.to_s.match(/^Rex::Ui::Subscriber/)
+  return false if klass.to_s =~ /^Rex::Ui::Subscriber/
 
-  return true
+  true
 end
 
 # Initialize the simplified framework instance.
@@ -39,26 +40,26 @@ all_modules = $framework.exploits
 if ARGV[0]
   mod_hash = {}
   longest_name = 0
-  all_modules.each_module do |name, mod|
+  all_modules.each_module do |_name, mod|
     x = mod.new
-    mixins = x.class.ancestors.select {|y| do_want(y) }
+    mixins = x.class.ancestors.select { |y| do_want(y) }
     mixins.each do |m|
       mod_hash[m] ||= 0
       mod_hash[m] += 1
       longest_name = m.to_s.size unless m.to_s.size < longest_name
-    end	
+    end
   end
-  mod_hash.sort_by {|a| a[1]}.reverse.each do |arr|
+  mod_hash.sort_by { |a| a[1] }.reverse.each do |arr|
     puts "%-#{longest_name}s | %d" % arr
   end
 else
   # Tables kind of suck for this.
   results = []
   longest_name = 0
-  all_modules.each_module do |name, mod|
+  all_modules.each_module do |_name, mod|
     x = mod.new
-    mixins = x.class.ancestors.select {|y| do_want(y) }
-    results << [x.fullname, mixins.sort {|a,b| a.to_s <=> b.to_s}.join(", ")]
+    mixins = x.class.ancestors.select { |y| do_want(y) }
+    results << [x.fullname, mixins.sort_by(&:to_s).join(", ")]
     longest_name = x.fullname.size if longest_name < x.fullname.size
   end
   # name | module1, module1, etc.

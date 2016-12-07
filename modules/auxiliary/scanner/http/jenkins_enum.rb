@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -12,35 +13,33 @@ require 'msf/core'
 require 'rexml/document'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Scanner
   include Msf::Auxiliary::Report
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'        => 'Jenkins-CI Enumeration',
-      'Description' => %q{
-        This module enumerates a remote Jenkins-CI installation in an unauthenticated manner, including
-        host operating system and and Jenkins installation details.
-      },
-      'Author'      => 'Jeff McCutchan',
-      'License'     => MSF_LICENSE
-      ))
+                      'Name'        => 'Jenkins-CI Enumeration',
+                      'Description' => %q(
+                        This module enumerates a remote Jenkins-CI installation in an unauthenticated manner, including
+                        host operating system and and Jenkins installation details.
+                      ),
+                      'Author'      => 'Jeff McCutchan',
+                      'License'     => MSF_LICENSE))
 
     register_options(
       [
-        OptString.new('TARGETURI', [ true,  'The path to the Jenkins-CI application', '/jenkins/' ])
-      ], self.class)
+        OptString.new('TARGETURI', [ true, 'The path to the Jenkins-CI application', '/jenkins/' ])
+      ], self.class
+    )
   end
 
-  def run_host(ip)
+  def run_host(_ip)
     res = send_request_cgi(
-      {
-      'uri'       => target_uri.path,
+      'uri' => target_uri.path,
       'method'    => 'GET',
-      'ctype'     => 'text/plain',
-    })
+      'ctype'     => 'text/plain'
+    )
 
     unless res
       vprint_error("No response received")
@@ -55,17 +54,17 @@ class MetasploitModule < Msf::Auxiliary
     version = res.headers['X-Jenkins']
     print_status("Jenkins Version - #{version}")
     report_service(
-      :host  => rhost,
-      :port  => rport,
-      :name  => (ssl ? 'https' : 'http'),
-      :proto => 'tcp'
+      host: rhost,
+      port: rport,
+      name: (ssl ? 'https' : 'http'),
+      proto: 'tcp'
     )
 
     report_web_site(
-      :host  => rhost,
-      :port  => rport,
-      :ssl   => ssl,
-      :info  => "Jenkins Version - #{version}"
+      host: rhost,
+      port: rport,
+      ssl: ssl,
+      info: "Jenkins Version - #{version}"
     )
 
     # script - exploit module for this
@@ -85,11 +84,9 @@ class MetasploitModule < Msf::Auxiliary
 
   def check_app(app)
     uri_path = normalize_uri(target_uri.path, app)
-    res = send_request_cgi({
-      'uri'       => uri_path,
-      'method'    => 'GET',
-      'ctype'     => 'text/plain',
-    })
+    res = send_request_cgi('uri' => uri_path,
+                           'method'    => 'GET',
+                           'ctype'     => 'text/plain')
     unless res
       vprint_error("Timeout")
       return
@@ -98,25 +95,23 @@ class MetasploitModule < Msf::Auxiliary
     case res.code
     when 200
       print_good("#{full_uri} - #{uri_path} does not require authentication (200)")
-      report_note({
-        :type  => "jenkins_path",
-        :host  => rhost,
-        :port  => rport,
-        :proto => 'tcp',
-        :data  => "#{full_uri} - #{uri_path} does not require authentication (200)",
-        :update => :unique_data
-      })
+      report_note(type: "jenkins_path",
+                  host: rhost,
+                  port: rport,
+                  proto: 'tcp',
+                  data: "#{full_uri} - #{uri_path} does not require authentication (200)",
+                  update: :unique_data)
       case app
       when "systemInfo"
         parse_system_info(res.body)
       when "script"
         report_vuln(
-          :host        => rhost,
-          :port        => rport,
-          :proto       => 'tcp',
-          :sname       => (ssl ? 'https' : 'http'),
-          :name        => "Jenkins Script-Console Java Execution",
-          :info        => "Module #{self.fullname} confirmed access to the Jenkins Script Console with no authentication"
+          host: rhost,
+          port: rport,
+          proto: 'tcp',
+          sname: (ssl ? 'https' : 'http'),
+          name: "Jenkins Script-Console Java Execution",
+          info: "Module #{fullname} confirmed access to the Jenkins Script Console with no authentication"
         )
       end
     when 403
@@ -161,7 +156,7 @@ class MetasploitModule < Msf::Auxiliary
     tds = doc.get_elements("//td")
     tds.each_index do |idx|
       td = tds[idx].get_text.to_s.strip
-      infos[td] = tds[idx+1].get_text.to_s.strip if infos.has_key?(td)
+      infos[td] = tds[idx + 1].get_text.to_s.strip if infos.key?(td)
     end
 
     fprint = {}
@@ -171,7 +166,7 @@ class MetasploitModule < Msf::Auxiliary
     infos.each do |k, v|
       next if v.nil?
       v = v.strip
-      next if v.length == 0
+      next if v.empty?
 
       jinfo[k.gsub(/\s+/, '_')] = v
 
@@ -216,10 +211,10 @@ class MetasploitModule < Msf::Auxiliary
     end
 
     # Report a fingerprint.match for OS fingerprinting support, tied to this service
-    report_note(:host => rhost, :port => rport, :proto => 'tcp', :ntype => 'fingerprint.match', :data => fprint)
+    report_note(host: rhost, port: rport, proto: 'tcp', ntype: 'fingerprint.match', data: fprint)
 
     # Report a jenkins information note for future analysis, tied to this service
-    report_note(:host => rhost, :port => rport, :proto => 'tcp', :ntype => 'jenkins.info', :data => jinfo)
+    report_note(host: rhost, port: rport, proto: 'tcp', ntype: 'jenkins.info', data: jinfo)
 
     vprint_line
   end

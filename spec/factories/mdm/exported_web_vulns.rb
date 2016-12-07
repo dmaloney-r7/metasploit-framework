@@ -1,5 +1,6 @@
+# frozen_string_literal: true
 FactoryGirl.define do
-  factory :exported_web_vuln, :parent => :mdm_web_vuln do
+  factory :exported_web_vuln, parent: :mdm_web_vuln do
     blame { generate :mdm_web_vuln_blame }
     description { generate :mdm_web_vuln_description }
   end

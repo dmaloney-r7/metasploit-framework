@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 ###
@@ -9,7 +10,6 @@
 ###
 
 module Msf::ReflectiveDLLLoader
-
   # Load a reflectively-injectable DLL from disk and find the offset
   # to the ReflectiveLoader function inside the DLL.
   #
@@ -23,7 +23,7 @@ module Msf::ReflectiveDLLLoader
 
     offset = parse_pe(dll)
 
-    return dll, offset
+    [dll, offset]
   end
 
   # Load a reflectively-injectable DLL from an string and find the offset

@@ -1,17 +1,16 @@
+# frozen_string_literal: true
 require 'metasploit/framework/login_scanner/http'
 require 'json'
 
 module Metasploit
   module Framework
     module LoginScanner
-
       # Octopus Deploy login scanner
       class OctopusDeploy < HTTP
-
         # Inherit LIKELY_PORTS,LIKELY_SERVICE_NAMES, and REALM_KEY from HTTP
         CAN_GET_SESSION = true
         DEFAULT_PORT    = 80
-        PRIVATE_TYPES   = [ :password ]
+        PRIVATE_TYPES   = [ :password ].freeze
 
         # (see Base#set_sane_defaults)
         def set_sane_defaults
@@ -28,13 +27,13 @@ module Metasploit
             port: port,
             protocol: 'tcp'
           }
-          if ssl
-            result_opts[:service_name] = 'https'
-          else
-            result_opts[:service_name] = 'http'
-          end
+          result_opts[:service_name] = if ssl
+                                         'https'
+                                       else
+                                         'http'
+                                       end
           begin
-            json_post_data = JSON.pretty_generate({ Username: credential.public, Password: credential.private })
+            json_post_data = JSON.pretty_generate(Username: credential.public, Password: credential.private)
             cli = Rex::Proto::Http::Client.new(host, port, { 'Msf' => framework, 'MsfExploit' => framework_module }, ssl, ssl_version, http_username, http_password)
             configure_http_client(cli)
             cli.connect

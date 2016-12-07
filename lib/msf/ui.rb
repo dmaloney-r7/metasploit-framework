@@ -1,7 +1,8 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 module Msf
-module Ui
-end
+  module Ui
+  end
 end
 
 require 'rex/ui'

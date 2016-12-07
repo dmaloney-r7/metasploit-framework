@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'metasploit/framework/database'
 
 module Metasploit::Framework::Database::Cucumber
@@ -33,4 +34,3 @@ module Metasploit::Framework::Database::Cucumber
     end
   end
 end
-

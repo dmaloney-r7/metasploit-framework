@@ -1,12 +1,11 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 require 'rex/proto/ntlm/message'
-
 
 class MetasploitModule < Msf::Auxiliary
   include Msf::Exploit::Remote::VIMSoap
@@ -33,7 +32,8 @@ class MetasploitModule < Msf::Auxiliary
       [
         OptString.new('URI', [true, "The default URI to login with", "/sdk"]),
         Opt::RPORT(443)
-      ], self.class)
+      ], self.class
+    )
   end
 
   def report_cred(opts)
@@ -63,9 +63,9 @@ class MetasploitModule < Msf::Auxiliary
     create_credential_login(login_data)
   end
 
-  def run_host(ip)
+  def run_host(_ip)
     return unless is_vmware?
-    each_user_pass { |user, pass|
+    each_user_pass do |user, pass|
       result = vim_do_login(user, pass)
       case result
       when :success
@@ -75,28 +75,27 @@ class MetasploitModule < Msf::Auxiliary
       when :fail
         print_error "#{rhost}:#{rport} - Login Failure (#{user}:#{pass})"
       end
-    }
+    end
   end
-
 
   # Mostly taken from the Apache Tomcat service validator
   def is_vmware?
     soap_data =
-      %Q|<env:Envelope xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:env="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+      %(<env:Envelope xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:env="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
       <env:Body>
       <RetrieveServiceContent xmlns="urn:vim25">
         <_this type="ServiceInstance">ServiceInstance</_this>
       </RetrieveServiceContent>
       </env:Body>
-      </env:Envelope>|
+      </env:Envelope>)
 
     begin
       res = send_request_cgi({
-        'uri'     => normalize_uri(datastore['URI']),
-        'method'  => 'POST',
-        'agent'   => 'VMware VI Client',
-        'data'    => soap_data
-      }, 25)
+                               'uri' => normalize_uri(datastore['URI']),
+                               'method'  => 'POST',
+                               'agent'   => 'VMware VI Client',
+                               'data'    => soap_data
+                             }, 25)
 
       if res
         fingerprint_vmware(res)
@@ -127,16 +126,16 @@ class MetasploitModule < Msf::Auxiliary
 
     if full_match
       print_good "#{rhost}:#{rport} - Identified #{full_match[1]}"
-      report_service(:host => rhost, :port => rport, :proto => 'tcp', :sname => 'https', :info => full_match[1])
+      report_service(host: rhost, port: rport, proto: 'tcp', sname: 'https', info: full_match[1])
     end
 
-    if os_match and ver_match and build_match
-      if os_match[1] =~ /ESX/ or os_match[1] =~ /vCenter/
+    if os_match && ver_match && build_match
+      if os_match[1] =~ /ESX/ || os_match[1] =~ /vCenter/
         # Report a fingerprint match for OS identification
         report_note(
-          :host  => ip,
-          :ntype => 'fingerprint.match',
-          :data  => {'os.vendor' => 'VMware', 'os.product' => os_match[1] + " " + ver_match[1], 'os.version' => build_match[1] }
+          host: ip,
+          ntype: 'fingerprint.match',
+          data: { 'os.vendor' => 'VMware', 'os.product' => os_match[1] + " " + ver_match[1], 'os.version' => build_match[1] }
         )
       end
       return true
@@ -144,8 +143,5 @@ class MetasploitModule < Msf::Auxiliary
       vprint_error("#{rhost}:#{rport} Error: Could not identify as VMWare")
       return false
     end
-
   end
-
-
 end

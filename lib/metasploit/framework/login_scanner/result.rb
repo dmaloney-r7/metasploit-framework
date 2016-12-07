@@ -1,7 +1,7 @@
+# frozen_string_literal: true
 module Metasploit
   module Framework
     module LoginScanner
-
       # The Result class provides a standard structure in which
       # LoginScanners can return the result of a login attempt
 
@@ -34,12 +34,12 @@ module Metasploit
         attr_accessor :status
 
         validates :status,
-          inclusion: {
-              in: Metasploit::Model::Login::Status::ALL
-          }
+                  inclusion: {
+                    in: Metasploit::Model::Login::Status::ALL
+                  }
 
         # @param attributes [Hash{Symbol => String,nil}]
-        def initialize(attributes={})
+        def initialize(attributes = {})
           attributes.each do |attribute, value|
             public_send("#{attribute}=", value)
           end
@@ -61,21 +61,19 @@ module Metasploit
         def to_h
           result_hash = credential.to_h
           result_hash.merge!(
-              access_level: access_level,
-              address: host,
-              last_attempted_at: DateTime.now,
-              origin_type: :service,
-              port: port,
-              proof: proof,
-              protocol: protocol,
-              service_name: service_name,
-              status: status
+            access_level: access_level,
+            address: host,
+            last_attempted_at: DateTime.now,
+            origin_type: :service,
+            port: port,
+            proof: proof,
+            protocol: protocol,
+            service_name: service_name,
+            status: status
           )
-          result_hash.delete_if { |k,v| v.nil? }
+          result_hash.delete_if { |_k, v| v.nil? }
         end
-
       end
-
     end
   end
 end

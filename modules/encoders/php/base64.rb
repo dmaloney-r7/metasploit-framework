@@ -1,11 +1,10 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
-
 
 class MetasploitModule < Msf::Encoder
   Rank = GreatRanking
@@ -26,7 +25,7 @@ class MetasploitModule < Msf::Encoder
   def encode_block(state, buf)
     # Have to have these for the decoder stub, so if they're not available,
     # there's nothing we can do here.
-    ["(",")",".","_","c","h","r","e","v","a","l","b","s","6","4","d","o"].each do |c|
+    ["(", ")", ".", "_", "c", "h", "r", "e", "v", "a", "l", "b", "s", "6", "4", "d", "o"].each do |c|
       raise BadcharError if state.badchars.include?(c)
     end
 
@@ -52,9 +51,7 @@ class MetasploitModule < Msf::Encoder
 
     # The first character must not be a non-alpha character or PHP chokes.
     i = 0
-    while (b64[i].chr =~ %r{[0-9/+]})
-      b64[i] = "chr(#{b64[i]})."
-    end
+    b64[i] = "chr(#{b64[i]})." while b64[i].chr =~ %r{[0-9/+]}
 
     # Similarly, when we seperate large payloads into chunks to avoid the
     # 998-byte problem mentioned above, we have to make sure that the first
@@ -62,12 +59,10 @@ class MetasploitModule < Msf::Encoder
     # will create a broken string in the case of 99 consecutive digits,
     # slashes, and plusses in the base64 encoding, but the likelihood of
     # that is low enough that I don't care.
-    i = 900;
+    i = 900
     while i < b64.length
-      while (b64[i].chr =~ %r{[0-9/+]})
-        i += 1
-      end
-      b64.insert(i,'.')
+      i += 1 while b64[i].chr =~ %r{[0-9/+]}
+      b64.insert(i, '.')
       i += 900
     end
 
@@ -81,9 +76,7 @@ class MetasploitModule < Msf::Encoder
       # Last ditch effort, if any of the normal characters used by base64
       # are badchars, try to replace them with something that will become
       # the appropriate thing on the other side.
-      if b64.include?(byte.chr)
-        b64.gsub!(byte.chr, ".chr(#{byte}).")
-      end
+      b64.gsub!(byte.chr, ".chr(#{byte}).") if b64.include?(byte.chr)
     end
 
     # In the case where a plus or slash happened at the end of a chunk,
@@ -96,7 +89,6 @@ class MetasploitModule < Msf::Encoder
     # cause a syntax error.  Remove any trailing dots.
     b64.chomp!(".")
 
-    return "eval(base64_decode(" + b64 + "));"
+    "eval(base64_decode(" + b64 + "));"
   end
-
 end

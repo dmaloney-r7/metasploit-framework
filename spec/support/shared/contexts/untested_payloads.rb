@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # Use along with `it_should_behave_like 'payload can be instantiated'` to detect if a payload under `:modules_pathname`
 # was not tested.  If any payloads are untested, an error will be written to stderr and the names of untested payloads
 # will be logged to `log/untested-payloads.log`.  This log is reset for run of context, so if there were previously
@@ -36,7 +37,7 @@
 # @param options [Hash{Symbol => Pathname}]
 # @option options [Pathname] :modules_pathname Pathname of `modules` directory underwhich payloads are defined on the
 #   file system.
-RSpec.shared_context 'untested payloads' do |options={}|
+RSpec.shared_context 'untested payloads' do |options = {}|
   options.assert_valid_keys(:modules_pathname)
 
   modules_pathname = options.fetch(:modules_pathname)
@@ -62,9 +63,7 @@ RSpec.shared_context 'untested payloads' do |options={}|
     untested_payloads_pathname = Pathname.new('log/untested-payloads.log')
 
     if missing_ancestor_reference_name_set.empty?
-      if untested_payloads_pathname.exist?
-        untested_payloads_pathname.delete
-      end
+      untested_payloads_pathname.delete if untested_payloads_pathname.exist?
     else
       untested_payloads_pathname.open('w') do |f|
         missing_ancestor_reference_name_set.sort.each do |missing_ancestor_reference_name|

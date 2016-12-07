@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # $Id$
 ##
@@ -17,8 +18,7 @@ require 'nokogiri'
 require 'uri'
 
 class CrawlerObjects < BaseParser
-
-  def parse(request,result)
+  def parse(request, result)
     return unless result['Content-Type'].include?('text/html') # TOOD: use MIXIN
     hr = ''
     m = ''
@@ -32,6 +32,4 @@ class CrawlerObjects < BaseParser
       end
     end
   end
-
 end
-

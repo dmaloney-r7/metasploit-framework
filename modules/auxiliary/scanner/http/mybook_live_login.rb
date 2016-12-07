@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -24,7 +25,8 @@ class MetasploitModule < Msf::Auxiliary
     register_options(
       [
         Opt::RPORT(80)
-      ], self.class)
+      ], self.class
+    )
 
     register_autofilter_ports([ 80 ])
 
@@ -36,10 +38,10 @@ class MetasploitModule < Msf::Auxiliary
     super
     # They must select at least blank passwords, provide a pass file or a password
     one_required = %w(BLANK_PASSWORDS PASS_FILE PASSWORD)
-    unless one_required.any? { |o| datastore.has_key?(o) && datastore[o] }
+    unless one_required.any? { |o| datastore.key?(o) && datastore[o] }
       fail_with(Failure::BadConfig, "Invalid options: One of #{one_required.join(', ')} must be set")
     end
-    if !datastore['PASS_FILE']
+    unless datastore['PASS_FILE']
       if !datastore['BLANK_PASSWORDS'] && datastore['PASSWORD'].blank?
         fail_with(Failure::BadConfig, "PASSWORD or PASS_FILE must be set to a non-empty string if not BLANK_PASSWORDS")
       end
@@ -67,10 +69,8 @@ class MetasploitModule < Msf::Auxiliary
 
     scanner.scan! do |result|
       credential_data = result.to_h
-      credential_data.merge!(
-        module_fullname: fullname,
-        workspace_id: myworkspace_id
-      )
+      credential_data[:module_fullname] = fullname
+      credential_data[:workspace_id] = myworkspace_id
       if result.success?
         credential_core = create_credential(credential_data)
         credential_data[:core] = credential_core

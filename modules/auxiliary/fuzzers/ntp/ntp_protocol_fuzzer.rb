@@ -1,4 +1,5 @@
 # encoding: UTF-8
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -48,7 +49,8 @@ class MetasploitModule < Msf::Auxiliary
         Opt::RPORT(123),
         OptInt.new('SLEEP', [true, 'Sleep for this many ms between requests', 0]),
         OptInt.new('WAIT', [true, 'Wait this many ms for responses', 250])
-      ], self.class)
+      ], self.class
+    )
 
     register_advanced_options(
       [
@@ -57,7 +59,8 @@ class MetasploitModule < Msf::Auxiliary
         OptString.new('MODE_6_OPERATIONS', [false, 'Mode 6 operations to fuzz (csv)']),
         OptString.new('MODE_7_IMPLEMENTATIONS', [false, 'Mode 7 implementations to fuzz (csv)']),
         OptString.new('MODE_7_REQUEST_CODES', [false, 'Mode 7 request codes to fuzz (csv)'])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def sleep_time
@@ -69,9 +72,9 @@ class MetasploitModule < Msf::Auxiliary
     const_name = thing.to_sym
     var_name = thing.downcase
     if datastore[thing]
-      instance_variable_set("@#{var_name}", datastore[thing].split(/[^\d]/).select { |v| !v.empty? }.map { |v| v.to_i })
+      instance_variable_set("@#{var_name}", datastore[thing].split(/[^\d]/).select { |v| !v.empty? }.map(&:to_i))
       unsupported_things = instance_variable_get("@#{var_name}") - Rex::Proto::NTP.const_get(const_name)
-      fail "Unsupported #{thing}: #{unsupported_things}" unless unsupported_things.empty?
+      raise "Unsupported #{thing}: #{unsupported_things}" unless unsupported_things.empty?
     else
       instance_variable_set("@#{var_name}", Rex::Proto::NTP.const_get(const_name))
     end

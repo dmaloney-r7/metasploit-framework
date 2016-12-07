@@ -1,9 +1,9 @@
+# frozen_string_literal: true
 require 'metasploit/framework/login_scanner'
 
 module Metasploit
   module Framework
     module LoginScanner
-
       # This module provides the base behaviour for all of
       # the LoginScanner classes. All of the LoginScanners
       # should include this module to establish base behaviour
@@ -81,7 +81,7 @@ module Metasploit
           validate :validate_cred_details
 
           # @param attributes [Hash{Symbol => String,nil}]
-          def initialize(attributes={})
+          def initialize(attributes = {})
             attributes.each do |attribute, value|
               public_send("#{attribute}=", value)
             end
@@ -96,7 +96,7 @@ module Metasploit
           # @return [Result] A Result object indicating success or failure
           # @abstract Protocol-specific scanners must implement this for their
           #   respective protocols
-          def attempt_login(credential)
+          def attempt_login(_credential)
             raise NotImplementedError
           end
 
@@ -118,12 +118,12 @@ module Metasploit
           # @return [Fixnum] a number of seconds to sleep between attempts
           def sleep_time
             case bruteforce_speed
-              when 0; 60 * 5
-              when 1; 15
-              when 2; 1
-              when 3; 0.5
-              when 4; 0.1
-              else; 0
+            when 0 then 60 * 5
+            when 1 then 15
+            when 2 then 1
+            when 3 then 0.5
+            when 4 then 0.1
+            else; 0
             end
           end
 
@@ -133,13 +133,12 @@ module Metasploit
           # to {#sleep_time}
           #
           # @return [void]
-          def sleep_between_attempts(time=self.sleep_time)
-            ::IO.select(nil,nil,nil,time) unless sleep_time.zero?
+          def sleep_between_attempts(time = sleep_time)
+            ::IO.select(nil, nil, nil, time) unless sleep_time.zero?
           end
 
           def each_credential
             cred_details.each do |raw_cred|
-
               # This could be a Credential object, or a Credential Core, or an Attempt object
               # so make sure that whatever it is, we end up with a Credential.
               credential = raw_cred.to_credential
@@ -246,11 +245,10 @@ module Metasploit
           # @return [void]
           def valid!
             unless valid?
-              raise Metasploit::Framework::LoginScanner::Invalid.new(self)
+              raise Metasploit::Framework::LoginScanner::Invalid, self
             end
             nil
           end
-
 
           private
 
@@ -258,7 +256,7 @@ module Metasploit
           # of a valid type and is resolveable.
           # @return [void]
           def host_address_must_be_valid
-            if host.kind_of? String
+            if host.is_a? String
               begin
                 resolved_host = ::Rex::Socket.getaddress(host, true)
                 if host =~ /^\d{1,3}(\.\d{1,3}){1,3}$/
@@ -281,7 +279,7 @@ module Metasploit
           # @abstract
           # @return [void]
           def set_sane_defaults
-            self.connection_timeout = 30 if self.connection_timeout.nil?
+            self.connection_timeout = 30 if connection_timeout.nil?
           end
 
           # This method validates that the credentials supplied
@@ -292,12 +290,8 @@ module Metasploit
               errors.add(:cred_details, "must respond to :each")
             end
           end
-
         end
-
-
       end
-
     end
   end
 end

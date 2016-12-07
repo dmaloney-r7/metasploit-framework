@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 RSpec.shared_examples_for "hash with insensitive keys" do
   it "should store with insensitive key" do
     subject["asdf"] = "foo"

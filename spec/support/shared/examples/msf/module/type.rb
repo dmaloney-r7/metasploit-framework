@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 RSpec.shared_examples_for 'Msf::Module::Type' do
   it { is_expected.to respond_to :auxiliary? }
   it { is_expected.to respond_to :encoder? }
@@ -8,9 +9,9 @@ RSpec.shared_examples_for 'Msf::Module::Type' do
   it { is_expected.to respond_to :type }
 
   context 'class' do
-    subject {
+    subject do
       described_class
-    }
+    end
 
     it { is_expected.to respond_to :type }
   end

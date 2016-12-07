@@ -1,7 +1,8 @@
+# frozen_string_literal: true
 module Msf::DBManager::Import::Nessus::NBE
   # There is no place the NBE actually stores the plugin name used to
   # scan. You get "Security Note" or "Security Warning," and that's it.
-  def import_nessus_nbe(args={}, &block)
+  def import_nessus_nbe(args = {}, &block)
     nbe_data = args[:data]
     wspace = args[:wspace] || workspace
     bl = validate_ips(args[:blacklist]) ? args[:blacklist].split : []
@@ -18,7 +19,7 @@ module Msf::DBManager::Import::Nessus::NBE
       next if r[0] != 'results'
       next if r[4] != "12053"
       data = r[6]
-      addr,hname = data.match(/([0-9\x2e]+) resolves as (.+)\x2e\\n/n)[1,2]
+      addr, hname = data.match(/([0-9\x2e]+) resolves as (.+)\x2e\\n/n)[1, 2]
       addr_map[hname] = addr
     end
 
@@ -26,11 +27,11 @@ module Msf::DBManager::Import::Nessus::NBE
       r = line.split('|')
       next if r[0] != 'results'
       hname = r[2]
-      if addr_map[hname]
-        addr = addr_map[hname]
-      else
-        addr = hname # Must be unresolved, probably an IP address.
-      end
+      addr = if addr_map[hname]
+               addr_map[hname]
+             else
+               hname # Must be unresolved, probably an IP address.
+             end
       port = r[3]
       nasl = r[4]
       type = r[5]
@@ -42,32 +43,32 @@ module Msf::DBManager::Import::Nessus::NBE
       if bl.include? addr
         next
       else
-        yield(:address,addr) if block
+        yield(:address, addr) if block
       end
 
-      hobj_map[ addr ] ||= report_host(:host => addr, :workspace => wspace, :task => args[:task])
+      hobj_map[ addr ] ||= report_host(host: addr, workspace: wspace, task: args[:task])
 
       # Match the NBE types with the XML severity ratings
       case type
       # log messages don't actually have any data, they are just
       # complaints about not being able to perform this or that test
       # because such-and-such was missing
-      when "Log Message"; next
-      when "Security Hole"; severity = 3
-      when "Security Warning"; severity = 2
-      when "Security Note"; severity = 1
+      when "Log Message" then next
+      when "Security Hole" then severity = 3
+      when "Security Warning" then severity = 2
+      when "Security Note" then severity = 1
       # a severity 0 means there's no extra data, it's just an open port
       else; severity = 0
       end
       if nasl == "11936"
         os = data.match(/The remote host is running (.*)\\n/)[1]
         report_note(
-          :workspace => wspace,
-          :task => args[:task],
-          :host => hobj_map[ addr ],
-          :type => 'host.os.nessus_fingerprint',
-          :data => {
-            :os => os.to_s.strip
+          workspace: wspace,
+          task: args[:task],
+          host: hobj_map[ addr ],
+          type: 'host.os.nessus_fingerprint',
+          data: {
+            os: os.to_s.strip
           }
         )
       end
@@ -81,7 +82,7 @@ module Msf::DBManager::Import::Nessus::NBE
   #
   # Import Nessus NBE files
   #
-  def import_nessus_nbe_file(args={})
+  def import_nessus_nbe_file(args = {})
     filename = args[:filename]
     wspace = args[:wspace] || workspace
 
@@ -89,6 +90,6 @@ module Msf::DBManager::Import::Nessus::NBE
     ::File.open(filename, 'rb') do |f|
       data = f.read(f.stat.size)
     end
-    import_nessus_nbe(args.merge(:data => data))
+    import_nessus_nbe(args.merge(data: data))
   end
 end

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 #
 # Use bundler to load dependencies
 #

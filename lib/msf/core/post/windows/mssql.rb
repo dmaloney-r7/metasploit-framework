@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 require 'msf/core/post/windows/services'
 require 'msf/core/post/windows/priv'
@@ -7,7 +8,6 @@ module Msf
   class Post
     module Windows
       module MSSQL
-
         # @return [String, nil] contains the identified SQL command line client
         attr_accessor :sql_client
 
@@ -33,11 +33,11 @@ module Msf
               end
             else
               if (
-                  service[:display].downcase.include?("SQL Server (#{instance}".downcase) || #2k8
-                  service[:display].downcase.include?("MSSQL$#{instance}".downcase) || #2k
-                  service[:display].downcase.include?("MSSQLServer#{instance}".downcase) || #2k5
-                  service[:display].downcase == instance.downcase # If the user gets very specific
-                 ) &&
+                  service[:display].downcase.include?("SQL Server (#{instance}".downcase) || # 2k8
+                  service[:display].downcase.include?("MSSQL$#{instance}".downcase) || # 2k
+                  service[:display].downcase.include?("MSSQLServer#{instance}".downcase) || # 2k5
+                  service[:display].casecmp(instance.downcase).zero? # If the user gets very specific
+              ) &&
                  service[:display] !~ /OLAPService|ADHelper/i &&
                  service[:pid].to_i > 0
                 target_service = service
@@ -46,9 +46,7 @@ module Msf
             end
           end
 
-          if target_service
-            target_service.merge!(service_info(target_service[:name]))
-          end
+          target_service&.merge!(service_info(target_service[:name]))
 
           target_service
         end
@@ -95,7 +93,7 @@ module Msf
         # @return [String] the result of query
         def run_sql(query, instance = nil, server = '.')
           target = server
-          if instance && instance.downcase != 'mssqlserver'
+          if instance && !instance.casecmp('mssqlserver').zero?
             target = "#{server}\\#{instance}"
           end
           cmd = "#{@sql_client} -E -S #{target} -Q \"#{query}\" -h-1 -w 200"

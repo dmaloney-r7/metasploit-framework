@@ -1,26 +1,27 @@
+# frozen_string_literal: true
 module Msf::DBManager::IPAddress
   def ipv46_validator(addr)
-    ipv4_validator(addr) or ipv6_validator(addr)
+    ipv4_validator(addr) || ipv6_validator(addr)
   end
 
   def ipv4_validator(addr)
     if addr.try(:ipv4?)
       true
-    elsif addr.kind_of? String
+    elsif addr.is_a? String
       Rex::Socket.is_ipv4?(addr)
     else
       false
-    end    
+    end
   end
 
   def ipv6_validator(addr)
     if addr.try(:ipv6?)
       true
-    elsif addr.kind_of? String
+    elsif addr.is_a? String
       Rex::Socket.is_ipv6?(addr)
     else
       false
-    end    
+    end
   end
 
   def rfc3330_reserved(ip)
@@ -35,8 +36,8 @@ module Msf::DBManager::IPAddress
       else
         raise ArgumentError, "Invalid IP address: #{ip.inspect}"
       end
-    when Fixnum
-      if (0..2**32-1).include? ip
+    when Integer
+      if (0..2**32 - 1).cover? ip
         ip_x = Rex::Socket.addr_itoa(ip)
         ip_i = ip
       else
@@ -50,7 +51,7 @@ module Msf::DBManager::IPAddress
     return true if Rex::Socket::RangeWalker.new("169.254.0.0-169.254.255.255").include? ip_x
     return true if Rex::Socket::RangeWalker.new("224.0.0.0-239.255.255.255").include? ip_x
     return true if Rex::Socket::RangeWalker.new("255.255.255.255-255.255.255.255").include? ip_x
-    return false
+    false
   end
 
   # Takes a space-delimited set of ips and ranges, and subjects
@@ -58,15 +59,15 @@ module Msf::DBManager::IPAddress
   def validate_ips(ips)
     ret = true
     begin
-      ips.split(/\s+/).each {|ip|
+      ips.split(/\s+/).each do |ip|
         unless Rex::Socket::RangeWalker.new(ip).ranges
           ret = false
           break
         end
-        }
+      end
     rescue
       ret = false
     end
-    return ret
+    ret
   end
 end

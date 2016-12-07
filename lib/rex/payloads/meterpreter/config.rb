@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 require 'msf/core/payload/uuid'
 require 'msf/core/payload/windows'
@@ -5,7 +6,6 @@ require 'msf/core/reflective_dll_loader'
 require 'rex/socket/x509_certificate'
 
 class Rex::Payloads::Meterpreter::Config
-
   include Msf::ReflectiveDLLLoader
 
   URL_SIZE = 512
@@ -15,20 +15,20 @@ class Rex::Payloads::Meterpreter::Config
   PROXY_PASS_SIZE = 64
   CERT_HASH_SIZE = 20
 
-  def initialize(opts={})
+  def initialize(opts = {})
     @opts = opts
-    if opts[:ascii_str] == true
-      @to_str = self.method(:to_ascii)
-    else
-      @to_str = self.method(:to_wchar_t)
-    end
+    @to_str = if opts[:ascii_str] == true
+                method(:to_ascii)
+              else
+                method(:to_wchar_t)
+              end
   end
 
   def to_b
     config_block
   end
 
-private
+  private
 
   def is_x86?
     @opts[:arch] == ARCH_X86
@@ -86,7 +86,7 @@ private
       proxy_host = ''
       if opts[:proxy_host] && opts[:proxy_port]
         prefix = 'http://'
-        prefix = 'socks=' if opts[:proxy_type].downcase == 'socks'
+        prefix = 'socks=' if opts[:proxy_type].casecmp('socks').zero?
         proxy_host = "#{prefix}#{opts[:proxy_host]}:#{opts[:proxy_port]}"
       end
       proxy_host = to_str(proxy_host || '', PROXY_HOST_SIZE)

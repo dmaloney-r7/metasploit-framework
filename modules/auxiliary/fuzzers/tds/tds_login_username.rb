@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -5,28 +6,24 @@
 
 require 'msf/core'
 
-
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::MSSQL
   include Msf::Auxiliary::Fuzzer
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'TDS Protocol Login Request Username Fuzzer',
-      'Description'    => %q{
-        This module sends a series of malformed TDS login requests.
-      },
-      'Author'         => [ 'hdm' ],
-      'License'        => MSF_LICENSE
-    ))
+                      'Name'           => 'TDS Protocol Login Request Username Fuzzer',
+                      'Description'    => %q(
+                        This module sends a series of malformed TDS login requests.
+                      ),
+                      'Author'         => [ 'hdm' ],
+                      'License'        => MSF_LICENSE))
   end
 
   # A copy of the mssql_login method with the ability to overload each option
-  def do_login(opts={})
-
+  def do_login(opts = {})
     @connected = false
-    disconnect if self.sock
+    disconnect if sock
     connect
     @connected = true
 
@@ -35,11 +32,11 @@ class MetasploitModule < Msf::Auxiliary
     db = ""
 
     pkt << [
-      0x00000000,   # Dummy size
+      0x00000000, # Dummy size
       opts[:tds_version]    || 0x71000001,   # TDS Version
       opts[:size]           || 0x00000000,   # Size
       opts[:version]        || 0x00000007,   # Version
-      opts[:pid]            || rand(1024+1), # PID
+      opts[:pid]            || rand(1024 + 1), # PID
       opts[:connection_id]  || 0x00000000,   # ConnectionID
       opts[:flags_opt1]     || 0xe0,         # Option Flags 1
       opts[:flags_opt2]     || 0x03,         # Option Flags 2
@@ -49,13 +46,12 @@ class MetasploitModule < Msf::Auxiliary
       opts[:collation]      || 0x00000000    # Collation
     ].pack('VVVVVVCCCCVV')
 
-
-    cname = Rex::Text.to_unicode( opts[:cname] || Rex::Text.rand_text_alpha(rand(8)+1) )
-    uname = Rex::Text.to_unicode( opts[:uname] || "sa" )
-    pname = opts[:pname_raw] || mssql_tds_encrypt( opts[:pname] || "" )
-    aname = Rex::Text.to_unicode(opts[:aname] || Rex::Text.rand_text_alpha(rand(8)+1) )
-    sname = Rex::Text.to_unicode( opts[:sname] || rhost )
-    dname = Rex::Text.to_unicode( opts[:dname] || db )
+    cname = Rex::Text.to_unicode(opts[:cname] || Rex::Text.rand_text_alpha(rand(8) + 1))
+    uname = Rex::Text.to_unicode(opts[:uname] || "sa")
+    pname = opts[:pname_raw] || mssql_tds_encrypt(opts[:pname] || "")
+    aname = Rex::Text.to_unicode(opts[:aname] || Rex::Text.rand_text_alpha(rand(8) + 1))
+    sname = Rex::Text.to_unicode(opts[:sname] || rhost)
+    dname = Rex::Text.to_unicode(opts[:dname] || db)
 
     idx = pkt.size + 50 # lengths below
 
@@ -101,7 +97,7 @@ class MetasploitModule < Msf::Auxiliary
     pkt << dname
 
     # Total packet length
-    pkt[0,4] = [pkt.length].pack('V')
+    pkt[0, 4] = [pkt.length].pack('V')
 
     # Embedded packet lengths
     pkt[pkt.index([0x12345678].pack('V')), 8] = [pkt.length].pack('V') * 2
@@ -109,10 +105,10 @@ class MetasploitModule < Msf::Auxiliary
     # Packet header and total length including header
     pkt = "\x10\x01" + [pkt.length + 8].pack('n') + [0].pack('n') + [1].pack('C') + "\x00" + pkt
 
-    resp = mssql_send_recv(pkt,opts[:timeout])
+    resp = mssql_send_recv(pkt, opts[:timeout])
 
-    info = {:errors => []}
-    info = mssql_parse_reply(resp,info)
+    info = { errors: [] }
+    info = mssql_parse_reply(resp, info)
     info
   end
 
@@ -127,24 +123,24 @@ class MetasploitModule < Msf::Auxiliary
       next if str.length > 65535
       cnt += 1
 
-      if(cnt % 100 == 0)
+      if cnt % 100 == 0
         print_status("Fuzzing with iteration #{cnt} using #{@last_fuzzer_input}")
       end
 
       begin
-        do_login(:uname => str, :timeout => 0.50)
+        do_login(uname: str, timeout: 0.50)
       rescue ::Interrupt
         print_status("Exiting on interrupt: iteration #{cnt} using #{@last_fuzzer_input}")
-        raise $!
+        raise $ERROR_INFO
       rescue ::Exception => e
         last_err = e
       ensure
         disconnect
       end
 
-      if(not @connected)
-        if(last_str)
-          print_status("The service may have crashed: method=#{last_inp} string=#{last_str.unpack("H*")[0]} error=#{last_err}")
+      unless @connected
+        if last_str
+          print_status("The service may have crashed: method=#{last_inp} string=#{last_str.unpack('H*')[0]} error=#{last_err}")
         else
           print_status("Could not connect to the service: #{last_err}")
         end

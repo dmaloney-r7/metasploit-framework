@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 require 'msf/core'
 require 'msf/core/module'
@@ -6,21 +7,20 @@ require 'msf/core/module'
 # A mixin used for providing Modules with post-exploitation options and helper methods
 #
 module Msf::PostMixin
-
   include Msf::Auxiliary::Report
 
   include Msf::Module::HasActions
   include Msf::Post::Common
 
-  def initialize(info={})
+  def initialize(info = {})
     super
 
-    register_options( [
-      Msf::OptInt.new('SESSION', [ true, "The session to run this module on." ])
-    ] , Msf::Post)
+    register_options([
+                       Msf::OptInt.new('SESSION', [ true, "The session to run this module on." ])
+                     ], Msf::Post)
 
     # Default stance is active
-    self.passive = (info['Passive'] and info['Passive'] == true) || false
+    self.passive = (info['Passive'] && (info['Passive'] == true)) || false
   end
 
   #
@@ -30,31 +30,31 @@ module Msf::PostMixin
   # @raise [OptionValidateError] if {#session} returns nil
   def setup
     unless session_compatible?(session)
-      raise Msf::OptionValidateError.new(["SESSION (type not valid for this module)"])
+      raise Msf::OptionValidateError, ["SESSION (type not valid for this module)"]
     end
 
     super
 
-    check_for_session_readiness() if session.type == "meterpreter"
+    check_for_session_readiness if session.type == "meterpreter"
 
-    @session.init_ui(self.user_input, self.user_output)
+    @session.init_ui(user_input, user_output)
     @sysinfo = nil
   end
 
   # Meterpreter sometimes needs a little bit of extra time to
   # actually be responsive for post modules. Default tries
   # and retries for 5 seconds.
-  def check_for_session_readiness(tries=6)
+  def check_for_session_readiness(tries = 6)
     session_ready_count = 0
     session_ready = false
-    until session.sys or session_ready_count > tries
+    until session.sys || session_ready_count > tries
       session_ready_count += 1
-      back_off_period = (session_ready_count**2)/10.0
-      select(nil,nil,nil,back_off_period)
+      back_off_period = (session_ready_count**2) / 10.0
+      select(nil, nil, nil, back_off_period)
     end
     session_ready = !!session.sys
     raise "Could not get a hold of the session." unless session_ready
-    return session_ready
+    session_ready
   end
 
   #
@@ -71,13 +71,11 @@ module Msf::PostMixin
   #   correspond to a session
   def session
     # Try the cached one
-    return @session if @session and not session_changed?
+    return @session if @session && !session_changed?
 
-    if datastore["SESSION"]
-      @session = framework.sessions.get(datastore["SESSION"].to_i)
-    else
-      @session = nil
-    end
+    @session = if datastore["SESSION"]
+                 framework.sessions.get(datastore["SESSION"].to_i)
+               end
 
     @session
   end
@@ -86,7 +84,7 @@ module Msf::PostMixin
     "Session: #{session.sid} (#{session.session_host})"
   end
 
-  alias :client :session
+  alias client session
 
   #
   # Cached sysinfo, returns nil for non-meterpreter sessions
@@ -110,7 +108,7 @@ module Msf::PostMixin
 
   # Whether this module's {Msf::Exploit::Stance} is {Msf::Exploit::Stance::Passive passive}
   def passive?
-    self.passive
+    passive
   end
 
   #
@@ -124,7 +122,6 @@ module Msf::PostMixin
     end
     sessions
   end
-
 
   #
   # Return false if the given session is not compatible with this module
@@ -146,7 +143,7 @@ module Msf::PostMixin
   def session_compatible?(sess_or_sid)
     # Normalize the argument to an actual Session
     case sess_or_sid
-    when ::Fixnum, ::String
+    when ::Integer, ::String
       s = framework.sessions[sess_or_sid.to_i]
     when ::Msf::Session
       s = sess_or_sid
@@ -156,25 +153,25 @@ module Msf::PostMixin
     return false if s.nil?
 
     # Can't be compatible if it's the wrong type
-    if self.module_info["SessionTypes"]
-      return false unless self.module_info["SessionTypes"].include?(s.type)
+    if module_info["SessionTypes"]
+      return false unless module_info["SessionTypes"].include?(s.type)
     end
 
     # Types are okay, now check the platform.
-    if self.platform and self.platform.kind_of?(Msf::Module::PlatformList)
-      return false unless self.platform.supports?(Msf::Module::PlatformList.transform(s.platform))
+    if platform && platform.is_a?(Msf::Module::PlatformList)
+      return false unless platform.supports?(Msf::Module::PlatformList.transform(s.platform))
     end
 
     # Check to make sure architectures match
-    mod_arch = self.module_info['Arch']
+    mod_arch = module_info['Arch']
     unless mod_arch.nil?
-    mod_arch = [mod_arch] unless mod_arch.kind_of?(Array)
+      mod_arch = [mod_arch] unless mod_arch.is_a?(Array)
       return false unless mod_arch.include? s.arch
     end
 
     # If we got here, we haven't found anything that definitely
     # disqualifies this session.  Assume that means we can use it.
-    return true
+    true
   end
 
   #
@@ -184,14 +181,14 @@ module Msf::PostMixin
   # @see passive?
   attr_reader :passive
 
-protected
+  protected
 
   attr_writer :passive
 
   def session_changed?
     @ds_session ||= datastore["SESSION"]
 
-    if (@ds_session != datastore["SESSION"])
+    if @ds_session != datastore["SESSION"]
       @ds_session = nil
       return true
     else

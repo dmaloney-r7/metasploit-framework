@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'octokit'
 require 'nokogiri'
 require 'net/http'
@@ -5,12 +6,10 @@ require 'net/http'
 module Msf
   module Util
     module DocumentGenerator
-
       class PullRequestFinder
-
         class Exception < RuntimeError; end
 
-        MANUAL_BASE_PATH = File.expand_path(File.join(Msf::Config.module_directory, '..', 'documentation', 'modules' ))
+        MANUAL_BASE_PATH = File.expand_path(File.join(Msf::Config.module_directory, '..', 'documentation', 'modules'))
 
         # @return [Octokit::Client] Git client
         attr_accessor :git_client
@@ -27,13 +26,12 @@ module Msf
         # @return [String] Git access token
         attr_accessor :git_access_token
 
-
         # Initializes Msf::Util::DocumenGenerator::PullRequestFinder
         #
         # @raise [PullRequestFinder::Exception] No GITHUB_OAUTH_TOKEN environment variable
         # @return [void]
         def initialize
-          unless ENV.has_key?('GITHUB_OAUTH_TOKEN')
+          unless ENV.key?('GITHUB_OAUTH_TOKEN')
             msg = ''
             raise PullRequestFinder::Exception, 'GITHUB_OAUTH_TOKEN environment variable not set.'
           end
@@ -45,7 +43,6 @@ module Msf
           self.git_client       = Octokit::Client.new(access_token: git_access_token)
         end
 
-
         # Returns pull requests associated with a particular Metasploit module.
         #
         # @param mod [Msf::Module] Metasploit module.
@@ -56,9 +53,7 @@ module Msf
           get_pull_requests_from_commits(commits)
         end
 
-
         private
-
 
         # Returns the normalized module full name.
         #
@@ -68,7 +63,6 @@ module Msf
           source_fname = mod.method(:initialize).source_location.first
           source_fname.scan(/(modules.+)/).flatten.first || ''
         end
-
 
         # Returns git commits for a particular file.
         #
@@ -90,19 +84,15 @@ module Msf
           commits
         end
 
-
         # Returns the author for the commit.
         #
         # @param commit [Sawyer::Resource]
         # @return [String]
         def get_author(commit)
-          if commit.author
-            return commit.author[:login].to_s
-          end
+          return commit.author[:login].to_s if commit.author
 
           ''
         end
-
 
         # Checks whether the author should be skipped or not.
         #
@@ -111,7 +101,6 @@ module Msf
         def is_author_blacklisted?(commit)
           ['tabassassin'].include?(get_author(commit))
         end
-
 
         # Returns unique pull requests for a collection of commits.
         #
@@ -124,14 +113,11 @@ module Msf
             next if is_author_blacklisted?(commit)
 
             pr = get_pull_request_from_commit(commit)
-            unless pr.empty?
-              pull_requests[pr[:number]] = pr
-            end
+            pull_requests[pr[:number]] = pr unless pr.empty?
           end
 
           pull_requests
         end
-
 
         # Returns unique pull requests for a commit.
         #
@@ -160,7 +146,6 @@ module Msf
           { number: href.scan(/\d+$/).flatten.first, title: title }
         end
       end
-
     end
   end
 end

@@ -1,15 +1,13 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 require 'rex/encoder/nonupper'
 
-
 class MetasploitModule < Msf::Encoder::NonUpper
-
   Rank = LowRanking
 
   def initialize
@@ -26,7 +24,7 @@ class MetasploitModule < Msf::Encoder::NonUpper
       'EncoderType'      => Msf::Encoder::Type::NonUpper,
       'Decoder'          =>
         {
-          'BlockSize' => 1,
+          'BlockSize' => 1
         })
   end
 
@@ -37,7 +35,7 @@ class MetasploitModule < Msf::Encoder::NonUpper
   def decoder_stub(state)
     state.key                   = ""
     state.decoder_key_size      = 0
-    Rex::Encoder::NonUpper::gen_decoder()
+    Rex::Encoder::NonUpper.gen_decoder
   end
 
   #
@@ -47,7 +45,7 @@ class MetasploitModule < Msf::Encoder::NonUpper
   def encode_block(state, block)
     begin
       newchar, state.key, state.decoder_key_size =
-        Rex::Encoder::NonUpper::encode_byte(datastore['BadChars'], block.unpack('C')[0], state.key, state.decoder_key_size)
+        Rex::Encoder::NonUpper.encode_byte(datastore['BadChars'], block.unpack('C')[0], state.key, state.decoder_key_size)
     rescue RuntimeError => e
       # This is a bandaid to deal with the fact that, since it's in
       # the Rex namespace, the encoder itself doesn't have access to the
@@ -56,7 +54,7 @@ class MetasploitModule < Msf::Encoder::NonUpper
       # to encode.
       raise BadcharError if e.message == "BadChar"
     end
-    return newchar
+    newchar
   end
 
   #
@@ -64,7 +62,7 @@ class MetasploitModule < Msf::Encoder::NonUpper
   #
   def encode_end(state)
     state.encoded.gsub!(/A/, state.decoder_key_size.chr)
-    state.encoded.gsub!(/B/, (state.decoder_key_size+5).chr)
+    state.encoded.gsub!(/B/, (state.decoder_key_size + 5).chr)
     state.encoded[0x24, 0] = state.key
   end
 end

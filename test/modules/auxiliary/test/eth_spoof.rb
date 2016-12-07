@@ -1,14 +1,12 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 
-
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Auxiliary::Report
   include Msf::Exploit::Capture
 
@@ -22,13 +20,13 @@ class MetasploitModule < Msf::Auxiliary
         [
           [ 'Spoofer' ]
         ],
-      'DefaultAction'  => 'Spoofer'
+      'DefaultAction' => 'Spoofer'
     )
   end
 
   def run
     print_status("Opening the network interface...")
-    open_pcap()
+    open_pcap
 
     p = PacketFu::UDPPacket.new
     p.eth_saddr = "00:41:41:41:41:41"
@@ -43,8 +41,7 @@ class MetasploitModule < Msf::Auxiliary
       capture.inject(p.to_s)
     end
 
-    close_pcap()
+    close_pcap
     print_status("Finished sending")
   end
-
 end

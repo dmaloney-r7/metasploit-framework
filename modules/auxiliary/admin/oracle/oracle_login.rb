@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,33 +8,32 @@ require 'msf/core'
 require 'csv'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Auxiliary::Report
   include Msf::Exploit::ORACLE
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Oracle Account Discovery',
-      'Description'    => %q{
-        This module uses a list of well known default authentication credentials
-        to discover easily guessed accounts.
-      },
-      'Author'         => [ 'MC' ],
-      'License'        => MSF_LICENSE,
-      'References'     =>
-        [
-          [ 'URL', 'http://www.petefinnigan.com/default/oracle_default_passwords.csv' ],
-          [ 'URL', 'http://seclists.org/fulldisclosure/2009/Oct/261' ],
-        ],
-      'DisclosureDate' => 'Nov 20 2008'))
+                      'Name'           => 'Oracle Account Discovery',
+                      'Description'    => %q(
+                        This module uses a list of well known default authentication credentials
+                        to discover easily guessed accounts.
+                      ),
+                      'Author'         => [ 'MC' ],
+                      'License'        => MSF_LICENSE,
+                      'References'     =>
+                        [
+                          [ 'URL', 'http://www.petefinnigan.com/default/oracle_default_passwords.csv' ],
+                          [ 'URL', 'http://seclists.org/fulldisclosure/2009/Oct/261' ]
+                        ],
+                      'DisclosureDate' => 'Nov 20 2008'))
 
-      register_options(
-        [
-          OptPath.new('CSVFILE', [ false, 'The file that contains a list of default accounts.', File.join(Msf::Config.install_root, 'data', 'wordlists', 'oracle_default_passwords.csv')]),
-        ], self.class)
+    register_options(
+      [
+        OptPath.new('CSVFILE', [ false, 'The file that contains a list of default accounts.', File.join(Msf::Config.install_root, 'data', 'wordlists', 'oracle_default_passwords.csv')])
+      ], self.class
+    )
 
-      deregister_options('DBUSER','DBPASS')
-
+    deregister_options('DBUSER', 'DBPASS')
   end
 
   def report_cred(opts)
@@ -63,7 +63,7 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   def run
-    return if not check_dependencies
+    return unless check_dependencies
 
     list = datastore['CSVFILE']
 

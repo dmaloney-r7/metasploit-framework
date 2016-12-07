@@ -1,9 +1,9 @@
+# frozen_string_literal: true
 require 'metasm'
 require 'msf/core'
 require 'rex/nop/opty2'
 
 class MetasploitModule < Msf::Encoder::Xor
-
   Rank = ManualRanking
 
   def initialize
@@ -24,55 +24,55 @@ class MetasploitModule < Msf::Encoder::Xor
   end
 
   @@cpu64 = Metasm::X86_64.new
-  def assemble(src, cpu=@@cpu64)
+  def assemble(src, cpu = @@cpu64)
     Metasm::Shellcode.assemble(cpu, src).encode_string
   end
-
 
   def fxsave64(reg)
     case reg
     when "rax"
-      return "\x48\x0f\xae\x00"
+      "\x48\x0f\xae\x00"
     when "rbx"
-      return "\x48\x0f\xae\x03"
+      "\x48\x0f\xae\x03"
     when "rcx"
-      return "\x48\x0f\xae\x01"
+      "\x48\x0f\xae\x01"
     when "rdx"
-      return "\x48\x0f\xae\x02"
+      "\x48\x0f\xae\x02"
     when "rsi"
-      return "\x48\x0f\xae\x06"
+      "\x48\x0f\xae\x06"
     when "rdi"
-      return "\x48\x0f\xae\x07"
+      "\x48\x0f\xae\x07"
     when "rbp"
-      return "\x48\x0f\xae\x45\x00"
+      "\x48\x0f\xae\x45\x00"
     when "r8"
-      return "\x49\x0f\xae\x00"
+      "\x49\x0f\xae\x00"
     when "r9"
-      return "\x49\x0f\xae\x01"
+      "\x49\x0f\xae\x01"
     when "r10"
-      return "\x49\x0f\xae\x02"
+      "\x49\x0f\xae\x02"
     when "r11"
-      return "\x49\x0f\xae\x03"
+      "\x49\x0f\xae\x03"
     when "r12"
-      return "\x49\x0f\xae\x04\x24"
+      "\x49\x0f\xae\x04\x24"
     when "r13"
-      return "\x49\x0f\xae\x45\x00"
+      "\x49\x0f\xae\x45\x00"
     when "r14"
-      return "\x49\x0f\xae\x06"
+      "\x49\x0f\xae\x06"
     when "r15"
-      return "\x49\x0f\xae\x07"
+      "\x49\x0f\xae\x07"
     end
   end
 
-  def nop(length,save_registers=[])
-    test = Rex::Nop::Opty2.new('',save_registers)
-    return test.generate_sled(length)
+  def nop(length, save_registers = [])
+    test = Rex::Nop::Opty2.new('', save_registers)
+    test.generate_sled(length)
   end
 
   # Indicate that this module can preserve some registers
   def can_preserve_registers?
     true
   end
+
   #
   # Returns the set of FPU instructions that can be used for the FPU block of
   # the decoder stub.
@@ -93,27 +93,27 @@ class MetasploitModule < Msf::Encoder::Xor
     fpus << "\xd9\xe5"
 
     # This FPU instruction seems to fail consistently on Linux
-    #fpus << "\xdb\xe1"
+    # fpus << "\xdb\xe1"
 
     fpus
   end
 
   def rand_string(length)
-    o = [('0'..'9'),('a'..'z'),('A'..'Z')].map{|i| i.to_a}.flatten;
-    string = (0..(length-1)).map{ o[rand(o.length)] }.join;
+    o = [('0'..'9'), ('a'..'z'), ('A'..'Z')].map(&:to_a).flatten
+    string = (0..(length - 1)).map { o[rand(o.length)] }.join
 
-    return string
+    string
   end
 
-  def xor_string(text,key)
-    text.length.times {|n| text[n] = (text[n].ord^key[n.modulo(key.length)].ord).chr }
-    return text
+  def xor_string(text, key)
+    text.length.times { |n| text[n] = (text[n].ord ^ key[n.modulo(key.length)].ord).chr }
+    text
   end
 
-
-  def ordered_random_merge(a,b)
-    a, b = a.dup, b.dup
-    a.map{rand(b.size+1)}.sort.reverse.each do |index|
+  def ordered_random_merge(a, b)
+    a = a.dup
+    b = b.dup
+    a.map { rand(b.size + 1) }.sort.reverse.each do |index|
       b.insert(index, a.pop)
     end
     b
@@ -135,28 +135,20 @@ class MetasploitModule < Msf::Encoder::Xor
       ["r12",  "r12d", "r12w", "r12b"],
       ["r13",  "r13d", "r13w", "r13b"],
       ["r14",  "r14d", "r14w", "r14b"],
-      ["r15",  "r15d", "r15w", "r15b"],
+      ["r15",  "r15d", "r15w", "r15b"]
     ]
     allowed_reg.delete_if { |reg| datastore['SaveRegisters'] && datastore['SaveRegisters'].include?(reg.first) }
     allowed_reg.shuffle!
 
-    if block.length%8 != 0
-      block += nop(8-(block.length%8))
-    end
+    block += nop(8 - (block.length % 8)) if block.length % 8 != 0
 
     reg_type = 3
 
-    if (block.length/8) > 0xff
-      reg_type = 2
-    end
+    reg_type = 2 if (block.length / 8) > 0xff
 
-    if (block.length/8) > 0xffff
-      reg_type = 1
-    end
+    reg_type = 1 if (block.length / 8) > 0xffff
 
-    if (block.length/8) > 0xffffffff
-      reg_type = 0
-    end
+    reg_type = 0 if (block.length / 8) > 0xffffffff
 
     reg_key  = allowed_reg[0][0]
     reg_size = allowed_reg[3]
@@ -166,70 +158,67 @@ class MetasploitModule < Msf::Encoder::Xor
     flip_coin = rand(2)
 
     fpu_opcode = Rex::Poly::LogicalBlock.new('fpu',
-                                            *fpu_instructions)
+                                             *fpu_instructions)
 
     fpu = []
-    fpu << ["fpu",fpu_opcode.generate([], nil, state.badchars)]
+    fpu << ["fpu", fpu_opcode.generate([], nil, state.badchars)]
 
-    sub = (rand(0xd00)&0xfff0)+0xf000
+    sub = (rand(0xd00) & 0xfff0) + 0xf000
     lea = []
-    if flip_coin==0
-      lea << ["lea",  assemble("mov %s, rsp"%reg_env[0])]
-      lea << ["lea1", assemble("and "+reg_env[2]+", 0x%x"%sub)]
+    if flip_coin == 0
+      lea << ["lea",  assemble("mov %s, rsp" % reg_env[0])]
+      lea << ["lea1", assemble("and " + reg_env[2] + ", 0x%x" % sub)]
     else
       lea << ["lea",  assemble("push rsp")]
-      lea << ["lea1", assemble("pop "+reg_env[0])]
-      lea << ["lea2", assemble("and "+reg_env[2]+", 0x%x"%sub)]
+      lea << ["lea1", assemble("pop " + reg_env[0])]
+      lea << ["lea2", assemble("and " + reg_env[2] + ", 0x%x" % sub)]
     end
 
     fpu_lea = ordered_random_merge(fpu, lea)
     fpu_lea << ["fpu1", fxsave64(reg_env[0])] # fxsave64 doesn't seem to exist in metasm
 
-    key_ins = [["key",  assemble("mov "+reg_key+", 0x%x"%state.key)]]
+    key_ins = [["key",  assemble("mov " + reg_key + ", 0x%x" % state.key)]]
 
     size = []
-    size << ["size", assemble("xor "+reg_size[0]+", "+reg_size[0])]
-    size << ["size", assemble("mov "+reg_size[reg_type]+", 0x%x"% (block.length/8))]
+    size << ["size", assemble("xor " + reg_size[0] + ", " + reg_size[0])]
+    size << ["size", assemble("mov " + reg_size[reg_type] + ", 0x%x" % (block.length / 8))]
 
-    getrip=0
+    getrip = 0
 
     a = ordered_random_merge(size, key_ins)
     decode_head_tab = ordered_random_merge(a, fpu_lea)
 
-    decode_head_tab.length.times { |i| getrip = i if decode_head_tab[i][0] == "fpu"}
+    decode_head_tab.length.times { |i| getrip = i if decode_head_tab[i][0] == "fpu" }
 
-    decode_head = decode_head_tab.map { |j,i| i.to_s }.join
+    decode_head = decode_head_tab.map { |_j, i| i.to_s }.join
 
     flip_coin = rand(2)
 
-    if flip_coin==0
-      decode_head += assemble("mov "+reg_rip+", ["+reg_env[0]+" + 0x8]")
+    if flip_coin == 0
+      decode_head += assemble("mov " + reg_rip + ", [" + reg_env[0] + " + 0x8]")
     else
-      decode_head += assemble("add "+reg_env[0]+", 0x8")
-      decode_head += assemble("mov "+reg_rip+", ["+reg_env[0]+"]")
+      decode_head += assemble("add " + reg_env[0] + ", 0x8")
+      decode_head += assemble("mov " + reg_rip + ", [" + reg_env[0] + "]")
     end
-
 
     decode_head_size = decode_head.length
     getrip.times { |i| decode_head_size -= decode_head_tab[i][1].length }
 
-    loop_code =  assemble("dec "+reg_size[0])
-    loop_code += assemble("xor ["+reg_rip+"+("+reg_size[0]+"*8) + 0x7f], "+reg_key)
-    loop_code += assemble("test "+reg_size[0]+", "+reg_size[0])
+    loop_code =  assemble("dec " + reg_size[0])
+    loop_code += assemble("xor [" + reg_rip + "+(" + reg_size[0] + "*8) + 0x7f], " + reg_key)
+    loop_code += assemble("test " + reg_size[0] + ", " + reg_size[0])
 
-    payload_offset = decode_head_size+loop_code.length+2
+    payload_offset = decode_head_size + loop_code.length + 2
 
-    loop_code =  assemble("dec "+reg_size[0])
-    loop_code += assemble("xor ["+reg_rip+"+("+reg_size[0]+"*8) + 0x"+payload_offset.to_s(16)+"], "+reg_key)
-    loop_code += assemble("test "+reg_size[0]+", "+reg_size[0])
+    loop_code =  assemble("dec " + reg_size[0])
+    loop_code += assemble("xor [" + reg_rip + "+(" + reg_size[0] + "*8) + 0x" + payload_offset.to_s(16) + "], " + reg_key)
+    loop_code += assemble("test " + reg_size[0] + ", " + reg_size[0])
 
-    jnz = "\x75"+(0x100-(loop_code.length+2)).chr
+    jnz = "\x75" + (0x100 - (loop_code.length + 2)).chr
 
-    decode = decode_head+loop_code+jnz
+    decode = decode_head + loop_code + jnz
     encode = xor_string(block, [state.key].pack('Q'))
 
-    return decode + encode
+    decode + encode
   end
-
-
 end

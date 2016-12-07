@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -8,7 +9,6 @@ require 'metasploit/framework/credential_collection'
 require 'metasploit/framework/login_scanner/tomcat'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::AuthBrute
@@ -61,13 +61,14 @@ class MetasploitModule < Msf::Auxiliary
         OptString.new('USERNAME', [false, 'The HTTP username to specify for authentication', '']),
         OptString.new('PASSWORD', [false, 'The HTTP password to specify for authentication', '']),
         OptString.new('TARGETURI', [true, "URI for Manager login. Default is /manager/html", "/manager/html"]),
-        OptPath.new('USERPASS_FILE',  [ false, "File containing users and passwords separated by space, one pair per line",
-          File.join(Msf::Config.data_directory, "wordlists", "tomcat_mgr_default_userpass.txt") ]),
+        OptPath.new('USERPASS_FILE', [ false, "File containing users and passwords separated by space, one pair per line",
+                                       File.join(Msf::Config.data_directory, "wordlists", "tomcat_mgr_default_userpass.txt") ]),
         OptPath.new('USER_FILE',  [ false, "File containing users, one per line",
-          File.join(Msf::Config.data_directory, "wordlists", "tomcat_mgr_default_users.txt") ]),
+                                    File.join(Msf::Config.data_directory, "wordlists", "tomcat_mgr_default_users.txt") ]),
         OptPath.new('PASS_FILE',  [ false, "File containing passwords, one per line",
-          File.join(Msf::Config.data_directory, "wordlists", "tomcat_mgr_default_pass.txt") ]),
-      ], self.class)
+                                    File.join(Msf::Config.data_directory, "wordlists", "tomcat_mgr_default_pass.txt") ])
+      ], self.class
+    )
 
     register_autofilter_ports([ 80, 443, 8080, 8081, 8000, 8008, 8443, 8444, 8880, 8888, 9080, 19300 ])
   end
@@ -76,17 +77,17 @@ class MetasploitModule < Msf::Auxiliary
     begin
       uri = normalize_uri(target_uri.path)
       res = send_request_cgi({
-        'uri'     => uri,
-        'method'  => 'GET',
-        'username' => Rex::Text.rand_text_alpha(8)
-        }, 25)
-      http_fingerprint({ :response => res })
+                               'uri' => uri,
+                               'method' => 'GET',
+                               'username' => Rex::Text.rand_text_alpha(8)
+                             }, 25)
+      http_fingerprint(response: res)
     rescue ::Rex::ConnectionError => e
       vprint_error("http://#{rhost}:#{rport}#{uri} - #{e}")
       return
     end
 
-    if not res
+    unless res
       vprint_error("http://#{rhost}:#{rport}#{uri} - No response")
       return
     end
@@ -102,7 +103,7 @@ class MetasploitModule < Msf::Auxiliary
       user_file: datastore['USER_FILE'],
       userpass_file: datastore['USERPASS_FILE'],
       username: datastore['USERNAME'],
-      user_as_pass: datastore['USER_AS_PASS'],
+      user_as_pass: datastore['USER_AS_PASS']
     )
 
     cred_collection = prepend_db_passwords(cred_collection)
@@ -120,10 +121,8 @@ class MetasploitModule < Msf::Auxiliary
 
     scanner.scan! do |result|
       credential_data = result.to_h
-      credential_data.merge!(
-          module_fullname: self.fullname,
-          workspace_id: myworkspace_id
-      )
+      credential_data[:module_fullname] = fullname
+      credential_data[:workspace_id] = myworkspace_id
       if result.success?
         credential_core = create_credential(credential_data)
         credential_data[:core] = credential_core
@@ -140,5 +139,4 @@ class MetasploitModule < Msf::Auxiliary
       end
     end
   end
-
 end

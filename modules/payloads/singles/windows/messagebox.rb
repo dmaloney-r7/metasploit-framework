@@ -1,14 +1,12 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 
-
 module MetasploitModule
-
   CachedSize = 272
 
   include Msf::Payload::Windows
@@ -16,17 +14,16 @@ module MetasploitModule
 
   def initialize(info = {})
     super(merge_info(info,
-      'Name'          => 'Windows MessageBox',
-      'Description'   => 'Spawns a dialog via MessageBox using a customizable title, text & icon',
-      'Author'        =>
-        [
-          'corelanc0d3r <peter.ve[at]corelan.be>', # original payload module
-          'jduck'         # some ruby factoring
-        ],
-      'License'       => MSF_LICENSE,
-      'Platform'      => 'win',
-      'Arch'          => ARCH_X86
-    ))
+                     'Name'          => 'Windows MessageBox',
+                     'Description'   => 'Spawns a dialog via MessageBox using a customizable title, text & icon',
+                     'Author'        =>
+                       [
+                         'corelanc0d3r <peter.ve[at]corelan.be>', # original payload module
+                         'jduck' # some ruby factoring
+                       ],
+                     'License'       => MSF_LICENSE,
+                     'Platform'      => 'win',
+                     'Arch'          => ARCH_X86))
 
     # Register MessageBox options
     register_options(
@@ -34,27 +31,25 @@ module MetasploitModule
         OptString.new('TITLE', [ true, "Messagebox Title (max 255 chars)", "MessageBox" ]),
         OptString.new('TEXT', [ true, "Messagebox Text (max 255 chars)", "Hello, from MSF!" ]),
         OptString.new('ICON', [ true, "Icon type can be NO, ERROR, INFORMATION, WARNING or QUESTION", "NO" ])
-      ], self.class)
+      ], self.class
+    )
   end
 
   #
   # Construct the payload
   #
   def generate
-
     strTitle = datastore['TITLE'] + "X"
-    if (strTitle.length < 1)
-      raise ArgumentError, "You must specify a title"
-    end
-    if (strTitle.length >= 256)
+    raise ArgumentError, "You must specify a title" if strTitle.empty?
+    if strTitle.length >= 256
       raise ArgumentError, "The title must be less than 256 characters long."
     end
 
     strText = datastore['TEXT'] + "X"
-    if (strText.length < 1)
+    if strText.empty?
       raise ArgumentError, "You must specify the text of the MessageBox"
     end
-    if (strText.length >= 256)
+    if strText.length >= 256
       raise ArgumentError, "The text must be less than 256 characters long."
     end
 
@@ -117,7 +112,7 @@ EOS
     # generate code to set messagebox icon
     setstyle = "push edx\n\t"
     case datastore['ICON'].upcase.strip
-      #default = NO
+      # default = NO
     when 'ERROR'
       setstyle = "push 0x10\n\t"
     when 'QUESTION'
@@ -128,7 +123,7 @@ EOS
       setstyle = "push 0x40\n\t"
     end
 
-    #create actual payload
+    # create actual payload
     payload_data = <<EOS
   ;getpc routine
   fldpi
@@ -281,16 +276,14 @@ EOS
   #
   def string_to_pushes(str, marker_idx)
     # Align string to 4 bytes
-    rem = (marker_idx+1) % 4
-    if (rem > 0)
-      str << " " * (4 - rem)
-    end
+    rem = (marker_idx + 1) % 4
+    str << " " * (4 - rem) if rem > 0
 
     # string is now 4 byte aligned and ends with 'X' at index 'marker_idx'
 
     # push string to stack, starting at the back
     pushes = ''
-    while (str.length > 0)
+    until str.empty?
       four = str.slice!(-4, 4)
       dw = four.unpack('V').first
       pushes << "push 0x%x\n\t" % dw
@@ -298,5 +291,4 @@ EOS
 
     pushes
   end
-
 end

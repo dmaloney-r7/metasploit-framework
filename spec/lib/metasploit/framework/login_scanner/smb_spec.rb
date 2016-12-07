@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'spec_helper'
 require 'metasploit/framework/login_scanner/smb'
 
@@ -5,34 +6,33 @@ RSpec.describe Metasploit::Framework::LoginScanner::SMB do
   let(:public) { 'root' }
   let(:private) { 'toor' }
 
-  let(:pub_blank) {
+  let(:pub_blank) do
     Metasploit::Framework::Credential.new(
-        paired: true,
-        public: public,
-        private: ''
+      paired: true,
+      public: public,
+      private: ''
     )
-  }
+  end
 
-  let(:pub_pub) {
+  let(:pub_pub) do
     Metasploit::Framework::Credential.new(
-        paired: true,
-        public: public,
-        private: public
+      paired: true,
+      public: public,
+      private: public
     )
-  }
+  end
 
-  let(:pub_pri) {
+  let(:pub_pri) do
     Metasploit::Framework::Credential.new(
-        paired: true,
-        public: public,
-        private: private
+      paired: true,
+      public: public,
+      private: private
     )
-  }
-
+  end
 
   subject(:login_scanner) { described_class.new }
 
-  it_behaves_like 'Metasploit::Framework::LoginScanner::Base',  has_realm_key: true, has_default_realm: true
+  it_behaves_like 'Metasploit::Framework::LoginScanner::Base', has_realm_key: true, has_default_realm: true
   it_behaves_like 'Metasploit::Framework::LoginScanner::RexSocket'
   it_behaves_like 'Metasploit::Framework::LoginScanner::NTLM'
   it_behaves_like 'Metasploit::Framework::Tcp::Client'
@@ -106,7 +106,6 @@ RSpec.describe Metasploit::Framework::LoginScanner::SMB do
           expect(login_scanner.attempt_login(pub_blank).status).to eq Metasploit::Model::Login::Status::DENIED_ACCESS
         end
       end
-
     end
 
     context 'when the login fails' do
@@ -139,7 +138,7 @@ RSpec.describe Metasploit::Framework::LoginScanner::SMB do
           login_scanner.simple = double
           allow(login_scanner.simple).to receive(:connect).with(/.*admin\$/i).and_raise(
             # STATUS_ACCESS_DENIED
-            Rex::Proto::SMB::Exceptions::ErrorCode.new.tap{|e|e.error_code = 0xC0000022}
+            Rex::Proto::SMB::Exceptions::ErrorCode.new.tap { |e| e.error_code = 0xC0000022 }
           )
           allow(login_scanner.simple).to receive(:connect).with(/.*ipc\$/i)
         end
@@ -153,6 +152,4 @@ RSpec.describe Metasploit::Framework::LoginScanner::SMB do
       end
     end
   end
-
 end
-

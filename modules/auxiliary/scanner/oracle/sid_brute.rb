@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::TNS
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::Scanner
@@ -14,24 +14,24 @@ class MetasploitModule < Msf::Auxiliary
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Oracle TNS Listener SID Bruteforce',
-      'Description'    => %q{
-        This module queries the TNS listner for a valid Oracle database
-        instance name (also known as a SID).
-        Any response other than a "reject" will be considered a success.
-        If a specific SID is provided, that SID will be attempted. Otherwise,
-        SIDs read from the named file will be attempted in sequence instead.
-      },
-      'Author'         => [ 'todb' ],
-      'License'        => MSF_LICENSE
-    ))
+                      'Name'           => 'Oracle TNS Listener SID Bruteforce',
+                      'Description'    => %q{
+                        This module queries the TNS listner for a valid Oracle database
+                        instance name (also known as a SID).
+                        Any response other than a "reject" will be considered a success.
+                        If a specific SID is provided, that SID will be attempted. Otherwise,
+                        SIDs read from the named file will be attempted in sequence instead.
+                      },
+                      'Author'         => [ 'todb' ],
+                      'License'        => MSF_LICENSE))
 
     register_options(
       [
         OptPath.new('SID_FILE', [ false, "File containing instance names, one per line", File.join(Msf::Config.data_directory, "wordlists", "sid.txt") ]),
         OptString.new('SID', [ false, 'A specific SID to attempt.' ]),
         Opt::RPORT(1521)
-      ], self.class)
+      ], self.class
+    )
 
     deregister_options(
       "RHOST", "USERNAME", "PASSWORD", "USER_FILE", "PASS_FILE", "USERPASS_FILE",
@@ -40,17 +40,17 @@ class MetasploitModule < Msf::Auxiliary
     )
   end
 
-  def build_sid_request(sid,ip)
+  def build_sid_request(sid, ip)
     connect_data = "(DESCRIPTION=(CONNECT_DATA=(SID=#{sid})(CID=(PROGRAM=)(HOST=__jdbc__)(USER=)))(ADDRESS=(PROTOCOL=tcp)(HOST=#{ip})(PORT=#{rport})))"
     pkt = tns_packet(connect_data)
   end
 
   def hostport
-    [target_host,rport].join(":")
+    [target_host, rport].join(":")
   end
 
-  def check_sid(sid,ip)
-    pkt = build_sid_request(sid,ip)
+  def check_sid(sid, ip)
+    pkt = build_sid_request(sid, ip)
     sock.put(pkt)
     data = sock.get_once || ''
     parse_response(data)
@@ -58,27 +58,27 @@ class MetasploitModule < Msf::Auxiliary
 
   def parse_response(data)
     return unless data
-    len,sum,type,r,hsum,rest = data.unpack("nnCCnA*")
+    len, sum, type, r, hsum, rest = data.unpack("nnCCnA*")
     type # 2 is "accept", 11 is resend. Usually you get 11, then 2. 4 is refuse.
   end
 
-  def do_sid_check(sid,ip)
+  def do_sid_check(sid, ip)
     begin
       connect
-      response_code = check_sid(sid,ip)
+      response_code = check_sid(sid, ip)
       if response_code.nil?
         print_status "#{hostport} Oracle - No response given, something is wrong."
         return :abort
       elsif response_code != 4
         print_good "#{hostport} Oracle - '#{sid}' is valid"
         report_note(
-          :host => ip,
-          :proto => 'tcp',
-          :port => rport,
-          :sname => 'oracle',
-          :type => "oracle.sid",
-          :data => sid,
-          :update => :unique_data
+          host: ip,
+          proto: 'tcp',
+          port: rport,
+          sname: 'oracle',
+          type: "oracle.sid",
+          data: sid,
+          update: :unique_data
         )
         return :success
       else
@@ -94,19 +94,19 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   # Based vaguely on each_user_pass in AuthBrute
-  def each_sid(&block)
+  def each_sid
     @@oracle_sid_fail = []
     @@oracle_sid_success = []
-    if datastore['SID'].nil? || datastore['SID'].empty?
-      sids = extract_words(datastore['SID_FILE']).map {|s| s.to_s.strip.upcase}.uniq
-    else
-      sids = [datastore['SID'].to_s.strip.upcase]
-    end
-    print_status "Checking #{sids.size} SID#{sids.size != 1 && "s"} against #{hostport}"
+    sids = if datastore['SID'].nil? || datastore['SID'].empty?
+             extract_words(datastore['SID_FILE']).map { |s| s.to_s.strip.upcase }.uniq
+           else
+             [datastore['SID'].to_s.strip.upcase]
+           end
+    print_status "Checking #{sids.size} SID#{sids.size != 1 && 's'} against #{hostport}"
     sids.each do |s|
       userpass_sleep_interval unless (@@oracle_sid_fail | @@oracle_sid_success).empty?
       next if @@oracle_sid_fail.include?(s) || @@oracle_sid_success.include?(s)
-      ret = block.call(s)
+      ret = yield(s)
       case ret
       when :abort
         break
@@ -122,7 +122,7 @@ class MetasploitModule < Msf::Auxiliary
   def run_host(ip)
     each_sid do |sid|
       vprint_status "#{hostport} Oracle - Checking '#{sid}'..."
-      do_sid_check(sid,ip)
+      do_sid_check(sid, ip)
     end
   end
 end

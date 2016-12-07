@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 module Rex
@@ -84,7 +85,7 @@ module Rex
           # @return [String] the checksum
           # @raise [NotImplementedError] if the encryption schema isn't supported
           def checksum(etype)
-            data = self.encode
+            data = encode
 
             res = ''
             case etype

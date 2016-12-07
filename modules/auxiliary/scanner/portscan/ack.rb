@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Capture
   include Msf::Auxiliary::Scanner
   include Msf::Auxiliary::Report
@@ -14,25 +14,25 @@ class MetasploitModule < Msf::Auxiliary
   def initialize
     super(
       'Name'        => 'TCP ACK Firewall Scanner',
-      'Description' => %q{
+      'Description' => %q(
         Map out firewall rulesets with a raw ACK scan.  Any
         unfiltered ports found means a stateful firewall is
         not in place for them.
-      },
+      ),
       'Author'      => 'kris katterjohn',
       'License'     => MSF_LICENSE
     )
 
     register_options([
-      OptString.new('PORTS', [true, "Ports to scan (e.g. 22-25,80,110-900)", "1-10000"]),
-      OptInt.new('TIMEOUT', [true, "The reply read timeout in milliseconds", 500]),
-      OptInt.new('BATCHSIZE', [true, "The number of hosts to scan per set", 256]),
-      OptInt.new('DELAY', [true, "The delay between connections, per thread, in milliseconds", 0]),
-      OptInt.new('JITTER', [true, "The delay jitter factor (maximum value by which to +/- DELAY) in milliseconds.", 0]),
-      OptString.new('INTERFACE', [false, 'The name of the interface'])
-    ], self.class)
+                       OptString.new('PORTS', [true, "Ports to scan (e.g. 22-25,80,110-900)", "1-10000"]),
+                       OptInt.new('TIMEOUT', [true, "The reply read timeout in milliseconds", 500]),
+                       OptInt.new('BATCHSIZE', [true, "The number of hosts to scan per set", 256]),
+                       OptInt.new('DELAY', [true, "The delay between connections, per thread, in milliseconds", 0]),
+                       OptInt.new('JITTER', [true, "The delay jitter factor (maximum value by which to +/- DELAY) in milliseconds.", 0]),
+                       OptString.new('INTERFACE', [false, 'The name of the interface'])
+                     ], self.class)
 
-    deregister_options('FILTER','PCAPFILE')
+    deregister_options('FILTER', 'PCAPFILE')
   end
 
   # No IPv6 support yet
@@ -45,25 +45,18 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   def run_batch(hosts)
-
     ports = Rex::Socket.portspec_crack(datastore['PORTS'])
-    if ports.empty?
-      raise Msf::OptionValidateError.new(['PORTS'])
-    end
+    raise Msf::OptionValidateError, ['PORTS'] if ports.empty?
 
     jitter_value = datastore['JITTER'].to_i
-    if jitter_value < 0
-      raise Msf::OptionValidateError.new(['JITTER'])
-    end
+    raise Msf::OptionValidateError, ['JITTER'] if jitter_value < 0
 
     delay_value = datastore['DELAY'].to_i
-    if delay_value < 0
-      raise Msf::OptionValidateError.new(['DELAY'])
-    end
+    raise Msf::OptionValidateError, ['DELAY'] if delay_value < 0
 
     open_pcap
 
-    pcap = self.capture
+    pcap = capture
 
     to = (datastore['TIMEOUT'] || 500).to_f / 1000.0
 
@@ -77,7 +70,7 @@ class MetasploitModule < Msf::Auxiliary
         pcap.setfilter(getfilter(shost, sport, dhost, dport))
 
         # Add the delay based on JITTER and DELAY if needs be
-        add_delay_jitter(delay_value,jitter_value)
+        add_delay_jitter(delay_value, jitter_value)
 
         begin
           probe = buildprobe(shost, sport, dhost, dport)
@@ -89,21 +82,21 @@ class MetasploitModule < Msf::Auxiliary
 
           reply = probereply(pcap, to)
 
-          next if not reply
+          next unless reply
 
           print_status(" TCP UNFILTERED #{dhost}:#{dport}")
 
-          #Add Report
+          # Add Report
           report_note(
-            :host	=> dhost,
-            :proto	=> 'tcp',
-            :port	=> dport,
-            :type	=> "TCP UNFILTERED #{dhost}:#{dport}",
-            :data	=> "TCP UNFILTERED #{dhost}:#{dport}"
+            host: dhost,
+            proto: 'tcp',
+            port: dport,
+            type: "TCP UNFILTERED #{dhost}:#{dport}",
+            data: "TCP UNFILTERED #{dhost}:#{dport}"
           )
 
         rescue ::Exception
-          print_error("Error: #{$!.class} #{$!}")
+          print_error("Error: #{$ERROR_INFO.class} #{$ERROR_INFO}")
         end
       end
     end
@@ -113,9 +106,9 @@ class MetasploitModule < Msf::Auxiliary
 
   def getfilter(shost, sport, dhost, dport)
     # Look for associated RSTs
-    "tcp and (tcp[13] & 0x04) != 0 and " +
-    "src host #{dhost} and src port #{dport} and " +
-    "dst host #{shost} and dst port #{sport}"
+    "tcp and (tcp[13] & 0x04) != 0 and " \
+      "src host #{dhost} and src port #{dport} and " \
+      "dst host #{shost} and dst port #{sport}"
   end
 
   def getsource(dhost)
@@ -149,7 +142,6 @@ class MetasploitModule < Msf::Auxiliary
       end
     rescue Timeout::Error
     end
-    return reply
+    reply
   end
-
 end

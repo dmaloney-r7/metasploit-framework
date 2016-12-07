@@ -1,12 +1,12 @@
+# frozen_string_literal: true
 ##
 # WARNING: Metasploit no longer maintains or accepts meterpreter scripts.
 # If you'd like to imporve this script, please try to port it as a post
 # module instead. Thank you.
 ##
 
-
 #-------------------------------------------------------------------------------
-#Options and Option Parsing
+# Options and Option Parsing
 opts = Rex::Parser::Arguments.new(
   "-h" => [ false, "Help menu." ]
 )
@@ -18,20 +18,21 @@ var_names << registry_enumvals("HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\C
 def list_env_vars(var_names)
   print_status("Getting all System and User Variables")
   tbl = Rex::Text::Table.new(
-      'Header'  => "Enviroment Variable list",
-      'Indent'  => 1,
-      'Columns' =>
-        [
-          "Name",
-          "Value"
-        ])
+    'Header'  => "Enviroment Variable list",
+    'Indent'  => 1,
+    'Columns' =>
+      [
+        "Name",
+        "Value"
+      ]
+  )
   @client.sys.config.getenvs(*var_names.flatten).each do |k, v|
     tbl << [k, v]
   end
   print("\n" + tbl.to_s + "\n")
 end
 
-opts.parse(args) { |opt, idx, val|
+opts.parse(args) do |opt, _idx, _val|
   case opt
   when "-h"
     print_line "Meterpreter Script for extracting a list of all System and User environment variables."
@@ -39,7 +40,7 @@ opts.parse(args) { |opt, idx, val|
     raise Rex::Script::Completed
 
   end
-}
+end
 if client.platform =~ /win32|win64/
   list_env_vars(var_names)
 else

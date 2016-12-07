@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 RSpec.shared_examples_for 'Msf::DBManager::Export#extract_module_detail_info module_detail child' do |child_node_name|
   attribute_name = child_node_name.underscore
 

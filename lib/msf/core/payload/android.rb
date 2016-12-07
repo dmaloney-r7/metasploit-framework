@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 require 'msf/core'
 require 'msf/core/payload/uuid/options'
@@ -5,7 +6,6 @@ require 'msf/core/payload/transport_config'
 require 'rex/payloads/meterpreter/config'
 
 module Msf::Payload::Android
-
   include Msf::Payload::TransportConfig
   include Msf::Payload::UUID::Options
 
@@ -23,7 +23,7 @@ module Msf::Payload::Android
   #
   # We could compile the .class files with dx here
   #
-  def generate_stage(opts={})
+  def generate_stage(opts = {})
   end
 
   #
@@ -39,14 +39,12 @@ module Msf::Payload::Android
 
   def apply_options(classes, opts)
     config = generate_config_bytes(opts)
-    if opts[:stageless]
-      config[0] = "\x01"
-    end
+    config[0] = "\x01" if opts[:stageless]
 
     string_sub(classes, "\xde\xad\xba\xad" + "\x00" * 8191, config)
   end
 
-  def generate_config_bytes(opts={})
+  def generate_config_bytes(opts = {})
     opts[:uuid] ||= generate_payload_uuid
 
     config_opts = {
@@ -61,7 +59,7 @@ module Msf::Payload::Android
     config.to_b
   end
 
-  def string_sub(data, placeholder="", input="")
+  def string_sub(data, placeholder = "", input = "")
     data.gsub!(placeholder, input + "\x00" * (placeholder.length - input.length))
   end
 
@@ -78,7 +76,7 @@ module Msf::Payload::Android
     cert.public_key = key.public_key
 
     # Some time within the last 3 years
-    cert.not_before = Time.now - rand(3600*24*365*3)
+    cert.not_before = Time.now - rand(3600 * 24 * 365 * 3)
 
     # From http://developer.android.com/tools/publishing/app-signing.html
     # """
@@ -89,7 +87,7 @@ module Msf::Payload::Android
     # requirement. You cannot upload an application if it is signed
     # with a key whose validity expires before that date.
     # """
-    cert.not_after = cert.not_before + 3600*24*365*20 # 20 years
+    cert.not_after = cert.not_before + 3600 * 24 * 365 * 20 # 20 years
 
     # If this line is left out, signature verification fails on OSX.
     cert.sign(key, OpenSSL::Digest::SHA1.new)
@@ -97,12 +95,12 @@ module Msf::Payload::Android
     jar.sign(key, cert, [cert])
   end
 
-  def generate_jar(opts={})
-    if opts[:stageless]
-      classes = MetasploitPayloads.read('android', 'meterpreter.dex')
-    else
-      classes = MetasploitPayloads.read('android', 'apk', 'classes.dex')
-    end
+  def generate_jar(opts = {})
+    classes = if opts[:stageless]
+                MetasploitPayloads.read('android', 'meterpreter.dex')
+              else
+                MetasploitPayloads.read('android', 'apk', 'classes.dex')
+              end
 
     apply_options(classes, opts)
 
@@ -119,7 +117,4 @@ module Msf::Payload::Android
 
     jar
   end
-
-
 end
-

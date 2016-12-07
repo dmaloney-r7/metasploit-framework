@@ -1,7 +1,7 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 module Msf::Post::Common
-
   def rhost
     return nil unless session
 
@@ -33,7 +33,7 @@ module Msf::Post::Common
     pid_list = []
     case client.type
     when /meterpreter/
-      pid_list = client.sys.process.processes.collect {|e| e['pid']}
+      pid_list = client.sys.process.processes.collect { |e| e['pid'] }
     when /shell/
       if client.platform == 'windows'
         o = cmd_exec('tasklist /FO LIST')
@@ -43,7 +43,7 @@ module Msf::Post::Common
         pid_list = o.scan(/^\s*(\d+)/).flatten
       end
 
-      pid_list = pid_list.collect {|e| e.to_i}
+      pid_list = pid_list.collect(&:to_i)
     end
 
     pid_list.include?(pid)
@@ -80,7 +80,7 @@ module Msf::Post::Common
   #
   # Returns a (possibly multi-line) String.
   #
-  def cmd_exec(cmd, args=nil, time_out=15)
+  def cmd_exec(cmd, args = nil, time_out = 15)
     case session.type
     when /meterpreter/
       #
@@ -102,12 +102,10 @@ module Msf::Post::Common
       # affecting Windows.
       #
       start = Time.now.to_i
-      if args.nil? and cmd =~ /[^a-zA-Z0-9\/._-]/
-        args = ""
-      end
+      args = "" if args.nil? && cmd =~ /[^a-zA-Z0-9\/._-]/
 
       session.response_timeout = time_out
-      process = session.sys.process.execute(cmd, args, {'Hidden' => true, 'Channelized' => true})
+      process = session.sys.process.execute(cmd, args, 'Hidden' => true, 'Channelized' => true)
       o = ""
       # Wait up to time_out seconds for the first bytes to arrive
       while (d = process.channel.read)
@@ -121,7 +119,7 @@ module Msf::Post::Common
           o << d
         end
       end
-      o.chomp! if o
+      o&.chomp!
 
       begin
         process.channel.close
@@ -131,38 +129,36 @@ module Msf::Post::Common
 
       process.close
     when /powershell/
-      if args.nil? || args.empty?
-        o = session.shell_command("#{cmd}", time_out)
-      else
-        o = session.shell_command("#{cmd} #{args}", time_out)
-      end
-      o.chomp! if o
+      o = if args.nil? || args.empty?
+            session.shell_command(cmd.to_s, time_out)
+          else
+            session.shell_command("#{cmd} #{args}", time_out)
+          end
+      o&.chomp!
     when /shell/
-      if args.nil? || args.empty?
-        o = session.shell_command_token("#{cmd}", time_out)
-      else
-        o = session.shell_command_token("#{cmd} #{args}", time_out)
-      end
-      o.chomp! if o
+      o = if args.nil? || args.empty?
+            session.shell_command_token(cmd.to_s, time_out)
+          else
+            session.shell_command_token("#{cmd} #{args}", time_out)
+          end
+      o&.chomp!
     end
     return "" if o.nil?
-    return o
+    o
   end
 
-  def cmd_exec_get_pid(cmd, args=nil, time_out=15)
+  def cmd_exec_get_pid(cmd, args = nil, time_out = 15)
     case session.type
-      when /meterpreter/
-        if args.nil? and cmd =~ /[^a-zA-Z0-9\/._-]/
-          args = ""
-        end
-        session.response_timeout = time_out
-        process = session.sys.process.execute(cmd, args, {'Hidden' => true, 'Channelized' => true})
-        process.channel.close
-        pid = process.pid
-        process.close
-        pid
-      else
-        print_error "cmd_exec_get_pid is incompatible with non-meterpreter sessions"
+    when /meterpreter/
+      args = "" if args.nil? && cmd =~ /[^a-zA-Z0-9\/._-]/
+      session.response_timeout = time_out
+      process = session.sys.process.execute(cmd, args, 'Hidden' => true, 'Channelized' => true)
+      process.channel.close
+      pid = process.pid
+      process.close
+      pid
+    else
+      print_error "cmd_exec_get_pid is incompatible with non-meterpreter sessions"
     end
   end
 
@@ -176,8 +172,8 @@ module Msf::Post::Common
     vm_normal = vm.to_s.strip
     return if vm_normal.empty?
     vm_data = {
-      :host => session.target_host,
-      :virtual_host => vm_normal
+      host: session.target_host,
+      virtual_host: vm_normal
     }
     report_host(vm_data)
   end
@@ -191,19 +187,15 @@ module Msf::Post::Common
       return session.sys.config.getenv(env)
     when /shell/
       if session.platform == 'windows'
-        if env[0,1] == '%'
-          unless env[-1,1] == '%'
-            env << '%'
-          end
+        if env[0, 1] == '%'
+          env << '%' unless env[-1, 1] == '%'
         else
           env = "%#{env}%"
         end
 
         return cmd_exec("echo #{env}")
       else
-        unless env[0,1] == '$'
-          env = "$#{env}"
-        end
+        env = "$#{env}" unless env[0, 1] == '$'
 
         return cmd_exec("echo \"#{env}\"")
       end
@@ -233,5 +225,4 @@ module Msf::Post::Common
   end
 
   private
-
 end

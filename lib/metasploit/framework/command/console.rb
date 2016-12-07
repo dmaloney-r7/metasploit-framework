@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 #
 # Project
 #
@@ -7,7 +8,6 @@ require 'metasploit/framework/command/base'
 
 # Based on pattern used for lib/rails/commands in the railties gem.
 class Metasploit::Framework::Command::Console < Metasploit::Framework::Command::Base
-
   # Provides an animated spinner in a seperate thread.
   #
   # See GitHub issue #4147, as this may be blocking some
@@ -22,7 +22,7 @@ class Metasploit::Framework::Command::Console < Metasploit::Framework::Command::
       base_line = "[*] Starting the Metasploit Framework console..."
       cycle = 0
       loop do
-        %q{/-\|}.each_char do |c|
+        %q(/-\|).each_char do |c|
           status = "#{base_line}#{c}\r"
           cycle += 1
           off    = cycle % base_line.length
@@ -60,9 +60,9 @@ class Metasploit::Framework::Command::Console < Metasploit::Framework::Command::
       require 'msf/ui'
 
       @driver = Msf::Ui::Console::Driver.new(
-          Msf::Ui::Console::Driver::DefaultPrompt,
-          Msf::Ui::Console::Driver::DefaultPromptChar,
-          driver_options
+        Msf::Ui::Console::Driver::DefaultPrompt,
+        Msf::Ui::Console::Driver::DefaultPromptChar,
+        driver_options
       )
     end
 

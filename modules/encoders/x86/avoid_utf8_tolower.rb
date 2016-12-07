@@ -1,11 +1,10 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
-
 
 #
 # NOTE: Read this if you plan on using this encoder:
@@ -89,7 +88,6 @@ require 'msf/core'
 # 0000004C  7F                db 0x7F
 #
 class MetasploitModule < Msf::Encoder
-
   # This encoder has a manual ranking because it should only be used in cases
   # where information has been explicitly supplied, like the BufferOffset.
   Rank = ManualRanking
@@ -105,7 +103,7 @@ class MetasploitModule < Msf::Encoder
       'Decoder'          =>
         {
           'KeySize'    => 4,
-          'BlockSize'  => 4,
+          'BlockSize'  => 4
         })
   end
 
@@ -114,7 +112,7 @@ class MetasploitModule < Msf::Encoder
   # the buffer being encoded
   #
   def decoder_stub(state)
-    len = ((state.buf.length + 3) & (~0x3)) / 4
+    len = ((state.buf.length + 3) & ~0x3) / 4
 
     # Grab the number of additional bytes that we need to adjust by in order
     # to get the context register to point immediately after the stub header
@@ -122,7 +120,7 @@ class MetasploitModule < Msf::Encoder
 
     # Check to make sure that the length is a valid size
     if is_badchar(state, len)
-      raise EncodingError.new("The payload being encoded is of an incompatible size (#{len} bytes)")
+      raise EncodingError, "The payload being encoded is of an incompatible size (#{len} bytes)"
     end
 
     decoder =
@@ -130,26 +128,22 @@ class MetasploitModule < Msf::Encoder
       "\x6b\x3c\x24\x0b"            +  # imul 0xb
       "\x60"                        +  # pusha
       "\x03\x0c\x24"                +  # add ecx, [esp]
-      "\x6a" + [0x11+off].pack('C') +  # push byte 0x11 + off
-      "\x03\x0c\x24"                +  # add ecx, [esp]
-      "\x6a\x04"                       # push byte 0x4
+      "\x6a" + [0x11 + off].pack('C') + # push byte 0x11 + off
+      "\x03\x0c\x24" + # add ecx, [esp]
+      "\x6a\x04" # push byte 0x4
 
     # encoded sled
     state.context = ''
 
-    return decoder
+    decoder
   end
 
   def encode_block(state, block)
     buf = try_add(state, block)
 
-    if (buf.nil?)
-      buf = try_sub(state, block)
-    end
+    buf = try_sub(state, block) if buf.nil?
 
-    if (buf.nil?)
-      raise BadcharError.new(state.encoded, 0, 0, 0)
-    end
+    raise BadcharError.new(state.encoded, 0, 0, 0) if buf.nil?
 
     buf
   end
@@ -167,15 +161,15 @@ class MetasploitModule < Msf::Encoder
   # two UTF8/tolower safe values.
   #
   def try_sub(state, block)
-    buf   = "\x68";
+    buf   = "\x68"
     vbuf  = ''
     ctx   = ''
     carry = 0
 
-    block.each_byte { |b|
+    block.each_byte do |b|
       # It's impossible to reach 0x7f, 0x80, 0x81 with two subs
       # of a value that is < 0x80 without NULLs.
-      return nil if (b == 0x80 or b == 0x81 or b == 0x7f)
+      return nil if (b == 0x80) || (b == 0x81) || (b == 0x7f)
 
       x          = 0
       y          = 0
@@ -185,7 +179,7 @@ class MetasploitModule < Msf::Encoder
       begin
         carry = prev_carry
 
-        if (b > 0x80)
+        if b > 0x80
           diff  = 0x100 - b
           y     = rand(0x80 - diff - 1).to_i + 1
           x     = (0x100 - (b - y + carry))
@@ -200,20 +194,19 @@ class MetasploitModule < Msf::Encoder
         attempts += 1
 
         # Lame.
-        return nil if (attempts > 512)
+        return nil if attempts > 512
 
-      end while (is_badchar(state, x) or is_badchar(state, y))
+      end while (is_badchar(state, x) || is_badchar(state, y))
 
       vbuf += [x].pack('C')
       ctx  += [y].pack('C')
-    }
+    end
 
     buf += vbuf + "\x5f\x29\x39\x03\x0c\x24"
 
     state.context += ctx
 
-    return buf
-
+    buf
   end
 
   #
@@ -226,10 +219,10 @@ class MetasploitModule < Msf::Encoder
     vbuf = ''
     ctx  = ''
 
-    block.each_byte { |b|
+    block.each_byte do |b|
       # It's impossible to produce 0xff and 0x01 using two non-NULL,
       # tolower safe, and UTF8 safe values.
-      return nil if (b == 0xff or b == 0x01 or b == 0x00)
+      return nil if (b == 0xff) || (b == 0x01) || (b == 0x00)
 
       attempts = 0
 
@@ -239,23 +232,22 @@ class MetasploitModule < Msf::Encoder
         attempts += 1
 
         # Lame.
-        return nil if (attempts > 512)
+        return nil if attempts > 512
 
-      end while (is_badchar(state, xv) or is_badchar(state, b - xv))
+      end while (is_badchar(state, xv) || is_badchar(state, b - xv))
 
       vbuf += [xv].pack('C')
       ctx  += [b - xv].pack('C')
-    }
+    end
 
     buf += vbuf + "\x5f\x01\x39\x03\x0c\x24"
 
     state.context += ctx
 
-    return buf
+    buf
   end
 
   def is_badchar(state, val)
-    ((val >= 0x41 and val <= 0x5a) or val >= 0x80) or Rex::Text.badchar_index([val].pack('C'), state.badchars)
+    (((val >= 0x41) && (val <= 0x5a)) || (val >= 0x80)) || Rex::Text.badchar_index([val].pack('C'), state.badchars)
   end
-
 end

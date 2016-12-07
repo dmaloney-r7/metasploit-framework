@@ -1,14 +1,13 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 require 'rex/proto/addp'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::UDPScanner
 
@@ -20,16 +19,17 @@ class MetasploitModule < Msf::Auxiliary
       'References'  =>
         [
           ['URL', 'http://qbeukes.blogspot.com/2009/11/advanced-digi-discovery-protocol_21.html'],
-          ['URL', 'http://www.digi.com/wiki/developer/index.php/Advanced_Device_Discovery_Protocol_%28ADDP%29'],
+          ['URL', 'http://www.digi.com/wiki/developer/index.php/Advanced_Device_Discovery_Protocol_%28ADDP%29']
         ],
       'License'     => MSF_LICENSE
     )
 
     register_options(
-    [
-      Opt::RPORT(2362),
-      OptString.new('ADDP_PASSWORD', [true, 'The ADDP protocol password for each target', 'dbps'])
-    ], self.class)
+      [
+        Opt::RPORT(2362),
+        OptString.new('ADDP_PASSWORD', [true, 'The ADDP protocol password for each target', 'dbps'])
+      ], self.class
+    )
   end
 
   def scanner_prescan(batch)
@@ -43,9 +43,9 @@ class MetasploitModule < Msf::Auxiliary
     end
   end
 
-  def scanner_postscan(batch)
+  def scanner_postscan(_batch)
     queue = {}
-    @results.each_pair do |ip,res|
+    @results.each_pair do |ip, res|
       queue[ip] = res
     end
 
@@ -59,7 +59,7 @@ class MetasploitModule < Msf::Auxiliary
     end
 
     # Wait for the final replies to trickle in
-    scanner_recv(10) if queue.length > 0
+    scanner_recv(10) unless queue.empty?
   end
 
   def scanner_process(data, shost, sport)
@@ -70,5 +70,4 @@ class MetasploitModule < Msf::Auxiliary
       print_status("#{shost}:#{sport} Reboot Status: " + Rex::Proto::ADDP.reply_to_string(@results[shost]))
     end
   end
-
 end

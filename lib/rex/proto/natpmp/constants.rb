@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 ##
 #
@@ -8,12 +9,12 @@
 ##
 
 module Rex
-module Proto
-module NATPMP
-  DefaultPort = 5351
-  Version = 0
-  TCP = 2
-  UDP = 1
-end
-end
+  module Proto
+    module NATPMP
+      DefaultPort = 5351
+      Version = 0
+      TCP = 2
+      UDP = 1
+    end
+  end
 end

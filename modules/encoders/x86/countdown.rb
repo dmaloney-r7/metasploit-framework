@@ -1,27 +1,25 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 
-
 class MetasploitModule < Msf::Encoder::Xor
-
   def initialize
     super(
       'Name'             => 'Single-byte XOR Countdown Encoder',
-      'Description'      => %q{
+      'Description'      => %q(
         This encoder uses the length of the payload as a position-dependent
         encoder key to produce a small decoder stub.
-      },
+      ),
       'Author'           => 'vlad902',
       'Arch'             => ARCH_X86,
       'License'          => MSF_LICENSE,
       'Decoder'          =>
         {
-          'BlockSize' => 1,
+          'BlockSize' => 1
         })
   end
 
@@ -30,17 +28,15 @@ class MetasploitModule < Msf::Encoder::Xor
   # being encoded.
   #
   def decoder_stub(state)
-
     # Sanity check that saved_registers doesn't overlap with modified_registers
-    if (modified_registers & saved_registers).length > 0
-      raise BadGenerateError
-    end
+    raise BadGenerateError unless (modified_registers & saved_registers).empty?
 
     decoder =
       Rex::Arch::X86.set(
         Rex::Arch::X86::ECX,
         state.buf.length - 1,
-        state.badchars) +
+        state.badchars
+      ) +
       "\xe8\xff\xff\xff" +  # call $+4
       "\xff\xc1" +          # inc ecx
       "\x5e" +              # pop esi
@@ -50,7 +46,7 @@ class MetasploitModule < Msf::Encoder::Xor
     # Initialize the state context to 1
     state.context = 1
 
-    return decoder
+    decoder
   end
 
   #

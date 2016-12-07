@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 
 require 'net/http'
 require 'nokogiri'
@@ -11,7 +12,7 @@ module ReleaseNotesFinder
   class Client
     attr_accessor :release_notes
 
-    RELEASE_NOTES_PAGE = 'https://community.rapid7.com/docs/DOC-2918'.freeze
+    RELEASE_NOTES_PAGE = 'https://community.rapid7.com/docs/DOC-2918'
 
     def initialize
       init_release_notes
@@ -22,7 +23,7 @@ module ReleaseNotesFinder
       td = row.search('td')
       release_notes_link = td[0] && td[0].at('a') ? td[0].at('a').attributes['href'].value : ''
       release_notes_num = td[0] && td[0].at('a') ? td[0].at('a').text.scan(/\d{10}/).flatten.first || '' : ''
-      highlights = td[1] ? (td[1].search('span') || []).map { |e| e.text } * " " : ''
+      highlights = td[1] ? (td[1].search('span') || []).map(&:text) * " " : ''
       update_link = td[2] && td[2].at('a') ? td[2].at('a').attributes['href'].value : ''
 
       @release_notes << {
@@ -72,9 +73,7 @@ module ReleaseNotesFinder
 
     def get_release_notes(input)
       release_notes.each do |n|
-        if n[:pull_requests].empty?
-          update_release_notes_entry(n)
-        end
+        update_release_notes_entry(n) if n[:pull_requests].empty?
 
         input_type = guess_input_type(input)
 
@@ -148,12 +147,10 @@ def main
       end
       threads << t
     end
-    threads.each { |t| t.join }
+    threads.each(&:join)
   ensure
-    threads.each { |t| t.kill }
+    threads.each(&:kill)
   end
 end
 
-if __FILE__ == $PROGRAM_NAME
-  main
-end
+main if __FILE__ == $PROGRAM_NAME

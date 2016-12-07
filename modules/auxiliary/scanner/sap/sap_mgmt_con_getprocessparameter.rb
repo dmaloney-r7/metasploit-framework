@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::Scanner
@@ -14,10 +14,10 @@ class MetasploitModule < Msf::Auxiliary
   def initialize
     super(
       'Name'         => 'SAP Management Console Get Process Parameters',
-      'Description'  => %q{
+      'Description'  => %q(
         This module simply attempts to output a SAP process parameters and
         configuration settings through the SAP Management Console SOAP Interface.
-        },
+        ),
       'References'   =>
         [
           # General
@@ -31,8 +31,9 @@ class MetasploitModule < Msf::Auxiliary
       [
         Opt::RPORT(50013),
         OptString.new('TARGETURI', [false, 'Path to the SAP Management Console ', '/']),
-        OptString.new('MATCH', [false, 'Display matches e.g login/', '']),
-      ], self.class)
+        OptString.new('MATCH', [false, 'Display matches e.g login/', ''])
+      ], self.class
+    )
     register_autofilter_ports([ 50013 ])
     deregister_options('RHOST')
   end
@@ -64,17 +65,15 @@ class MetasploitModule < Msf::Auxiliary
     data << '</SOAP-ENV:Envelope>' + "\r\n\r\n"
 
     begin
-      res = send_request_raw({
-        'uri'      => normalize_uri(target_uri.path),
-        'method'   => 'POST',
-        'data'     => data,
-        'headers'  =>
+      res = send_request_raw('uri' => normalize_uri(target_uri.path),
+                             'method'   => 'POST',
+                             'data'     => data,
+                             'headers'  =>
           {
             'Content-Length' => data.length,
             'SOAPAction'     => '""',
-            'Content-Type'   => 'text/xml; charset=UTF-8',
-          }
-      })
+            'Content-Type'   => 'text/xml; charset=UTF-8'
+          })
 
       unless res
         print_error("#{rhost}:#{rport} [SAP] Unable to connect")
@@ -93,7 +92,7 @@ class MetasploitModule < Msf::Auxiliary
       elsif res
         case res.body
         when /<faultstring>(.*)<\/faultstring>/i
-          faultcode = $1.strip
+          faultcode = Regexp.last_match(1).strip
           fault = true
         end
       else
@@ -123,32 +122,32 @@ class MetasploitModule < Msf::Auxiliary
 
         saptbl = Msf::Ui::Console::Table.new(
           Msf::Ui::Console::Table::Style::Default,
-        'Header'    => "[SAP] Process Parameters",
-        'Prefix'    => "\n",
-        'Indent'    => 1,
-        'Columns'   =>
-        [
-          "Name",
-          "Description",
-          "Value"
-        ])
+          'Header'    => "[SAP] Process Parameters",
+          'Prefix'    => "\n",
+          'Indent'    => 1,
+          'Columns'   =>
+          [
+            "Name",
+            "Description",
+            "Value"
+          ]
+        )
 
         xmldata = REXML::Document.new(body)
         xmlpath = '/SOAP-ENV:Envelope/SOAP-ENV:Body/'
         xmlpath << '/SAPControl:GetProcessParameterResponse'
         xmlpath << '/parameter/item'
-        xmldata.elements.each(xmlpath) do | ele |
-          if not datastore['MATCH'].empty? and ele.elements["name"].text.match(/#{name_match}/)
-            name = ele.elements["name"].text if not ele.elements["name"].nil?
-            desc = ele.elements["description"].text if not ele.elements["description"].nil?
-            desc = '' if desc.nil?
-            val = ele.elements["value"].text if not ele.elements["value"].nil?
-            val = '' if val.nil?
-            saptbl << [ name, desc, val ]
-          end
+        xmldata.elements.each(xmlpath) do |ele|
+          next unless !datastore['MATCH'].empty? && ele.elements["name"].text.match(/#{name_match}/)
+          name = ele.elements["name"].text unless ele.elements["name"].nil?
+          desc = ele.elements["description"].text unless ele.elements["description"].nil?
+          desc = '' if desc.nil?
+          val = ele.elements["value"].text unless ele.elements["value"].nil?
+          val = '' if val.nil?
+          saptbl << [ name, desc, val ]
         end
 
-        print_status("[SAP] Process Parameter Results for #{name_match}\n #{saptbl.to_s}") if not saptbl.to_s.empty?
+        print_status("[SAP] Process Parameter Results for #{name_match}\n #{saptbl}") unless saptbl.to_s.empty?
       end
 
       return

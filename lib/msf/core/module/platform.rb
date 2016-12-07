@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 require 'abbrev'
 
@@ -8,7 +9,6 @@ require 'abbrev'
 #
 
 class Msf::Module::Platform
-
   Rank  = 0
   # actually, having an argument of '' is what to do for wanting 'all'
   Short = "all"
@@ -23,19 +23,19 @@ class Msf::Module::Platform
   #
   def self.realname
     # Use the cached version if one has been set
-    return full_name if (full_name)
+    return full_name if full_name
 
     # Otherwise, generate it and cache it
     names = []
     c     = Msf::Module::Platform
-    name.split('::')[3 .. -1].each { |part|
+    name.split('::')[3..-1].each do |part|
       c = c.const_get(part)
-      if (c.const_defined?('RealName') == true)
-        names << c.const_get('RealName')
-      else
-        names << part
-      end
-    }
+      names << if c.const_defined?('RealName') == true
+                 c.const_get('RealName')
+               else
+                 part
+               end
+    end
     full_name = names.join(' ')
   end
 
@@ -51,17 +51,15 @@ class Msf::Module::Platform
   #
   def self.find_platform(str)
     # remove any whitespace and downcase
-    str = str.gsub(' ', '').downcase
+    str = str.delete(' ').downcase
 
     # Start at the base platform module
     mod = ::Msf::Module::Platform
 
     # Scan forward, trying to find the end module
-    while str.length > 0
-      mod, str = find_portion(mod, str)
-    end
+    mod, str = find_portion(mod, str) until str.empty?
 
-    return mod
+    mod
   end
 
   #
@@ -86,38 +84,38 @@ class Msf::Module::Platform
     children = mod.find_children
 
     # No children to speak of?
-    return if (children.length == 0)
+    return if children.empty?
 
     # Build the list of names & rankings
     names  = {}
     ranked = {}
 
-    children.map { |c|
+    children.map do |c|
       name = c.name.split('::')[-1].downcase
 
       # If the platform has an alias, such as a portion that may
       # start with an integer, use that as the name
-      if (c.const_defined?('Alias'))
+      if c.const_defined?('Alias')
         als = c.const_get('Alias').downcase
 
         names[als]  = c
         ranked[als] = c::Rank
       # If the platform has more than one alias, process the list
-      elsif (c.const_defined?('Aliases'))
-        c.const_get('Aliases').each { |a|
+      elsif c.const_defined?('Aliases')
+        c.const_get('Aliases').each do |a|
           a = a.downcase
 
           names[a]  = c
           ranked[a] = c::Rank
-        }
+        end
       end
 
       names[name]  = c
       ranked[name] = c::Rank
-    }
+    end
 
     # Calculate their abbreviations
-    abbrev = ::Abbrev::abbrev(names.keys)
+    abbrev = ::Abbrev.abbrev(names.keys)
 
     # Set the ranked list and abbreviated list on this module,
     # then walk the children
@@ -131,19 +129,18 @@ class Msf::Module::Platform
   # the string).
   #
   def self.find_portion(mod, str)
-
     # Check to see if we've built the abbreviated cache
-    if (not (
-          mod.const_defined?('Abbrev') and
-          mod.const_defined?('Names') and
+    unless
+          mod.const_defined?('Abbrev') &&
+          mod.const_defined?('Names') &&
           mod.const_defined?('Ranks')
-        )    )
+
       build_child_platform_abbrev(mod)
     end
 
-    if (not mod.const_defined?('Names'))
+    unless mod.const_defined?('Names')
       elog("Failed to instantiate the platform list for module #{mod}")
-      raise RuntimeError.new("Failed to instantiate the platform list for module #{mod}")
+      raise "Failed to instantiate the platform list for module #{mod}"
       return nil
     end
 
@@ -156,30 +153,28 @@ class Msf::Module::Platform
     bestrank = 0
 
     # Walk through each abbreviation
-    abbrev.each { |a|
+    abbrev.each do |a|
       # If the abbreviation is too long, no sense in scanning it
-      next if (a[0].length > str.length)
+      next if a[0].length > str.length
 
       # If the current abbreviation matches with the
       # supplied string and is better than the previous
       # best match length, use it, but only if it also
       # has a higher rank than the previous match.
-      if ((a[0] == str[0, a[0].length]) and
-          (a[0].length > bestlen) and
-          (bestrank == nil or bestrank <= ranks[a[1]]))
-        best     = [ names[a[1]], str[a[0].length .. -1] ]
+      if (a[0] == str[0, a[0].length]) &&
+         (a[0].length > bestlen) &&
+         (bestrank.nil? || (bestrank <= ranks[a[1]]))
+        best     = [ names[a[1]], str[a[0].length..-1] ]
         bestlen  = a[0].length
         bestmat  = a[0]
         bestrank = ranks[a[1]]
       end
-    }
-
-    # If we couldn't find a best match at this stage, it's time to warn.
-    if (best == nil)
-      raise ArgumentError, "No classes in #{mod} for #{str}!", caller
     end
 
-    return best
+    # If we couldn't find a best match at this stage, it's time to warn.
+    raise ArgumentError, "No classes in #{mod} for #{str}!", caller if best.nil?
+
+    best
   end
 
   private_class_method :build_child_platform_abbrev # :nodoc:
@@ -195,7 +190,7 @@ class Msf::Module::Platform
   # Windows
   #
   class Windows < Msf::Module::Platform
-    Rank  = 100
+    Rank = 100
     # Windows 95
     class W95 < Windows
       Rank = 100
@@ -253,10 +248,10 @@ class Msf::Module::Platform
     # Windows 2000
     class W2000 < Windows
       Rank = 200
-      Aliases = [ "2000", "2K" ]
+      Aliases = [ "2000", "2K" ].freeze
       RealName = "2000"
       class SP0 < W2000
-        Aliases = [ "sp0-4", "sp0-sp4" ]
+        Aliases = [ "sp0-4", "sp0-sp4" ].freeze
         Rank = 100
       end
       class SP1 < W2000
@@ -279,7 +274,7 @@ class Msf::Module::Platform
       class SP0 < XP
         # It's not clear whether this should be assigned to the lower
         # or higher bound of the range.
-        Aliases = [ "sp0-1", "sp0/1", "sp0-sp1", "sp0/sp1", "sp0-2", "sp0-sp2", "sp0-3", "sp0-sp3" ]
+        Aliases = [ "sp0-1", "sp0/1", "sp0-sp1", "sp0/sp1", "sp0-2", "sp0-sp2", "sp0-3", "sp0-sp3" ].freeze
         Rank = 100
       end
       class SP1 < XP
@@ -296,7 +291,7 @@ class Msf::Module::Platform
     # Windows 2003 Server
     class W2003 < Windows
       Rank = 400
-      Aliases = [ "2003", "2003 Server", "2K3" ]
+      Aliases = [ "2003", "2003 Server", "2K3" ].freeze
       RealName = "2003"
       class SP0 < W2003
         Rank = 100
@@ -309,7 +304,7 @@ class Msf::Module::Platform
     class Vista < Windows
       Rank = 500
       class SP0 < Vista
-        Aliases = [ "sp0-1", "sp0/1", "sp0-sp1", "sp0/sp1" ]
+        Aliases = [ "sp0-1", "sp0/1", "sp0-sp1", "sp0/sp1" ].freeze
         Rank = 100
       end
       class SP1 < Vista

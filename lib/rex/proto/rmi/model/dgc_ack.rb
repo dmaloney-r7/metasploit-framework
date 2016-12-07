@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 module Rex
@@ -8,7 +9,6 @@ module Rex
         # directed to a server's distributed garbage collector that indicates that remote objects
         # in a return value from a server have been received by the client.
         class DgcAck < Element
-
           # @!attribute stream_id
           #   @return [Fixnum] the input stream id
           attr_accessor :stream_id

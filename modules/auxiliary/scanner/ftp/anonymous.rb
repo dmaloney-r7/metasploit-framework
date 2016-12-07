@@ -1,14 +1,12 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 
-
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::Ftp
   include Msf::Auxiliary::Scanner
   include Msf::Auxiliary::Report
@@ -19,7 +17,7 @@ class MetasploitModule < Msf::Auxiliary
       'Description' => 'Detect anonymous (read/write) FTP server access.',
       'References'  =>
         [
-          ['URL', 'http://en.wikipedia.org/wiki/File_Transfer_Protocol#Anonymous_FTP'],
+          ['URL', 'http://en.wikipedia.org/wiki/File_Transfer_Protocol#Anonymous_FTP']
         ],
       'Author'      => 'Matteo Cantoni <goony[at]nothink.org>',
       'License'     => MSF_LICENSE
@@ -27,24 +25,24 @@ class MetasploitModule < Msf::Auxiliary
 
     register_options(
       [
-        Opt::RPORT(21),
-      ], self.class)
+        Opt::RPORT(21)
+      ], self.class
+    )
   end
 
   def run_host(target_host)
-
     begin
 
       res = connect_login(true, false)
 
-      banner.strip! if banner
+      banner&.strip!
 
       dir = Rex::Text.rand_text_alpha(8)
       if res
-        write_check = send_cmd(['MKD', dir] , true)
+        write_check = send_cmd(['MKD', dir], true)
 
         if write_check && write_check =~ /^2/
-          send_cmd( ['RMD', dir] , true)
+          send_cmd(['RMD', dir], true)
 
           print_good("#{target_host}:#{rport} - Anonymous READ/WRITE (#{banner})")
           access_type = 'Read/Write'
@@ -76,7 +74,7 @@ class MetasploitModule < Msf::Auxiliary
     # Build credential information
     credential_data = {
       origin_type: :service,
-      module_fullname: self.fullname,
+      module_fullname: fullname,
       private_data: datastore['FTPPASS'],
       private_type: :password,
       username: datastore['FTPUSER'],

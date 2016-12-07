@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 module Mdm::Workspace::BoundaryRange
   extend ActiveSupport::Concern
 
@@ -29,11 +30,11 @@ module Mdm::Workspace::BoundaryRange
       given_range = Rex::Socket::RangeWalker.new(ips)
       return false unless given_range # Can't do things to nonexistant IPs
       allowed = false
-      boundaries.each do |boundary_range|
+      boundaries.each do |_boundary_range|
         ok_range = Rex::Socket::RangeWalker.new(boundary)
         allowed  = true if ok_range.include_range? given_range
       end
-      return allowed
+      allowed
     end
 
     # Validates that {#boundary} is {#valid_ip_or_range? a valid IP address or
@@ -75,8 +76,5 @@ module Mdm::Workspace::BoundaryRange
       range = Rex::Socket::RangeWalker.new(string)
       range && range.ranges && range.ranges.any?
     end
-
   end
-
-
 end

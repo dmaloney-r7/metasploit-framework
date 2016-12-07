@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 #
 # An NTLM Authentication Library for Ruby
@@ -44,182 +45,181 @@
 require 'rex/proto/ntlm/constants'
 
 module Rex
-module Proto
-module NTLM
-# The base type needed for other modules like message and crypt
-class Base
+  module Proto
+    module NTLM
+      # The base type needed for other modules like message and crypt
+      class Base
+        CONST = Rex::Proto::NTLM::Constants
 
-CONST = Rex::Proto::NTLM::Constants
+        # base classes for primitives
+        class Field
+          attr_accessor :active, :value
 
-  # base classes for primitives
-  class Field
-    attr_accessor :active, :value
+          def initialize(opts)
+            @value  = opts[:value]
+            @active = opts[:active].nil? ? true : opts[:active]
+          end
 
-    def initialize(opts)
-      @value  = opts[:value]
-      @active = opts[:active].nil? ? true : opts[:active]
-    end
-
-    def size
-      @active ? @size : 0
-    end
-  end
-
-  class String < Field
-    def initialize(opts)
-      super(opts)
-      @size = opts[:size]
-    end
-
-    def parse(str, offset=0)
-      if @active and str.size >= offset + @size
-        @value = str[offset, @size]
-        @size
-      else
-        0
-      end
-    end
-
-    def serialize
-      if @active
-        @value
-      else
-        ""
-      end
-    end
-
-    def value=(val)
-      @value = val
-      @size = @value.nil? ? 0 : @value.size
-      @active = (@size > 0)
-    end
-  end
-
-  class Int16LE < Field
-    def initialize(opt)
-      super(opt)
-      @size = 2
-    end
-
-    def parse(str, offset=0)
-      if @active and str.size >= offset + @size
-        @value = str[offset, @size].unpack("v")[0]
-        @size
-      else
-        0
-      end
-    end
-
-    def serialize
-      [@value].pack("v")
-    end
-  end
-
-  class Int32LE < Field
-    def initialize(opt)
-      super(opt)
-      @size = 4
-    end
-
-    def parse(str, offset=0)
-      if @active and str.size >= offset + @size
-        @value = str.slice(offset, @size).unpack("V")[0]
-        @size
-      else
-        0
-      end
-    end
-
-    def serialize
-      [@value].pack("V") if @active
-    end
-  end
-
-  class Int64LE < Field
-    def initialize(opt)
-      super(opt)
-      @size = 8
-    end
-
-    def parse(str, offset=0)
-      if @active and str.size >= offset + @size
-        d, u = str.slice(offset, @size).unpack("V2")
-        @value = (u * 0x100000000 + d)
-        @size
-      else
-        0
-      end
-    end
-
-    def serialize
-      [@value & 0x00000000ffffffff, @value >> 32].pack("V2") if @active
-    end
-  end
-
-  # base class of data structure
-  class FieldSet
-    class << FieldSet
-    def define(&block)
-      klass = Class.new(self) do
-        def self.inherited(subclass)
-          proto = @proto
-
-          subclass.instance_eval do
-            @proto = proto
+          def size
+            @active ? @size : 0
           end
         end
-      end
 
-      klass.module_eval(&block)
+        class String < Field
+          def initialize(opts)
+            super(opts)
+            @size = opts[:size]
+          end
 
-      klass
-    end
+          def parse(str, offset = 0)
+            if @active && (str.size >= offset + @size)
+              @value = str[offset, @size]
+              @size
+            else
+              0
+            end
+          end
 
-    def string(name, opts)
-      add_field(name, String, opts)
-    end
+          def serialize
+            if @active
+              @value
+            else
+              ""
+            end
+          end
 
-    def int16LE(name, opts)
-      add_field(name, Int16LE, opts)
-    end
+          def value=(val)
+            @value = val
+            @size = @value.nil? ? 0 : @value.size
+            @active = (@size > 0)
+          end
+        end
 
-    def int32LE(name, opts)
-      add_field(name, Int32LE, opts)
-    end
+        class Int16LE < Field
+          def initialize(opt)
+            super(opt)
+            @size = 2
+          end
 
-    def int64LE(name, opts)
-      add_field(name, Int64LE, opts)
-    end
+          def parse(str, offset = 0)
+            if @active && (str.size >= offset + @size)
+              @value = str[offset, @size].unpack("v")[0]
+              @size
+            else
+              0
+            end
+          end
 
-    def security_buffer(name, opts)
-      add_field(name, SecurityBuffer, opts)
-    end
+          def serialize
+            [@value].pack("v")
+          end
+        end
 
-    def prototypes
-      @proto
-    end
+        class Int32LE < Field
+          def initialize(opt)
+            super(opt)
+            @size = 4
+          end
 
-    def names
-      @proto.map{|n, t, o| n}
-    end
+          def parse(str, offset = 0)
+            if @active && (str.size >= offset + @size)
+              @value = str.slice(offset, @size).unpack("V")[0]
+              @size
+            else
+              0
+            end
+          end
 
-    def types
-      @proto.map{|n, t, o| t}
-    end
+          def serialize
+            [@value].pack("V") if @active
+          end
+        end
 
-    def opts
-      @proto.map{|n, t, o| o}
-    end
+        class Int64LE < Field
+          def initialize(opt)
+            super(opt)
+            @size = 8
+          end
 
-    private
+          def parse(str, offset = 0)
+            if @active && (str.size >= offset + @size)
+              d, u = str.slice(offset, @size).unpack("V2")
+              @value = (u * 0x100000000 + d)
+              @size
+            else
+              0
+            end
+          end
 
-    def add_field(name, type, opts)
-      (@proto ||= []).push [name, type, opts]
-      define_accessor name
-    end
+          def serialize
+            [@value & 0x00000000ffffffff, @value >> 32].pack("V2") if @active
+          end
+        end
 
-    def define_accessor(name)
-      module_eval(<<-End, __FILE__, __LINE__ + 1)
+        # base class of data structure
+        class FieldSet
+          class << FieldSet
+          def define(&block)
+            klass = Class.new(self) do
+              def self.inherited(subclass)
+                proto = @proto
+
+                subclass.instance_eval do
+                  @proto = proto
+                end
+              end
+            end
+
+            klass.module_eval(&block)
+
+            klass
+          end
+
+          def string(name, opts)
+            add_field(name, String, opts)
+          end
+
+          def int16LE(name, opts)
+            add_field(name, Int16LE, opts)
+          end
+
+          def int32LE(name, opts)
+            add_field(name, Int32LE, opts)
+          end
+
+          def int64LE(name, opts)
+            add_field(name, Int64LE, opts)
+          end
+
+          def security_buffer(name, opts)
+            add_field(name, SecurityBuffer, opts)
+          end
+
+          def prototypes
+            @proto
+          end
+
+          def names
+            @proto.map { |n, _t, _o| n }
+          end
+
+          def types
+            @proto.map { |_n, t, _o| t }
+          end
+
+          def opts
+            @proto.map { |_n, _t, o| o }
+          end
+
+            private
+
+          def add_field(name, type, opts)
+            (@proto ||= []).push [name, type, opts]
+            define_accessor name
+          end
+
+          def define_accessor(name)
+            module_eval(<<-End, __FILE__, __LINE__ + 1)
       def #{name}
         self['#{name}'].value
       end
@@ -228,100 +228,97 @@ CONST = Rex::Proto::NTLM::Constants
         self['#{name}'].value = val
       end
       End
-    end
-    end #self
+          end
+          end # self
 
-    def initialize
-      @alist = self.class.prototypes.map{ |n, t, o| [n, t.new(o)] }
-    end
+          def initialize
+            @alist = self.class.prototypes.map { |n, t, o| [n, t.new(o)] }
+          end
 
-    def serialize
-      @alist.map{|n, f| f.serialize }.join
-    end
+          def serialize
+            @alist.map { |_n, f| f.serialize }.join
+          end
 
-    def parse(str, offset=0)
-      @alist.inject(offset){|cur, a|  cur += a[1].parse(str, cur)}
-    end
+          def parse(str, offset = 0)
+            @alist.inject(offset) { |cur, a| cur += a[1].parse(str, cur) }
+          end
 
-    def size
-      @alist.inject(0){|sum, a| sum += a[1].size}
-    end
+          def size
+            @alist.inject(0) { |sum, a| sum += a[1].size }
+          end
 
-    def [](name)
-      a = @alist.assoc(name.to_s.intern)
-      raise ArgumentError, "no such field: #{name}" unless a
-      a[1]
-    end
+          def [](name)
+            a = @alist.assoc(name.to_s.intern)
+            raise ArgumentError, "no such field: #{name}" unless a
+            a[1]
+          end
 
-    def []=(name, val)
-      a = @alist.assoc(name.to_s.intern)
-      raise ArgumentError, "no such field: #{name}" unless a
-      a[1] = val
-    end
+          def []=(name, val)
+            a = @alist.assoc(name.to_s.intern)
+            raise ArgumentError, "no such field: #{name}" unless a
+            a[1] = val
+          end
 
-    def enable(name)
-      self[name].active = true
-    end
+          def enable(name)
+            self[name].active = true
+          end
 
-    def disable(name)
-      self[name].active = false
-    end
-  end
+          def disable(name)
+            self[name].active = false
+          end
+        end
 
-  Blob = FieldSet.define {
-    int32LE    :blob_signature,   {:value => CONST::BLOB_SIGN}
-    int32LE    :reserved,         {:value => 0}
-    int64LE    :timestamp,      {:value => 0}
-    string     :challenge,      {:value => "", :size => 8}
-    int32LE    :unknown1,     {:value => 0}
-    string     :target_info,      {:value => "", :size => 0}
-    int32LE    :unknown2,         {:value => 0}
-  }
+        Blob = FieldSet.define do
+          int32LE    :blob_signature,   value: CONST::BLOB_SIGN
+          int32LE    :reserved,         value: 0
+          int64LE    :timestamp,      value: 0
+          string     :challenge,      value: "", size: 8
+          int32LE    :unknown1, value: 0
+          string     :target_info,      value: "", size: 0
+          int32LE    :unknown2,         value: 0
+        end
 
-  SecurityBuffer = FieldSet.define {
-    int16LE   :length,        {:value => 0}
-    int16LE   :allocated,     {:value => 0}
-    int32LE   :offset,        {:value => 0}
-  }
+        SecurityBuffer = FieldSet.define do
+          int16LE   :length,        value: 0
+          int16LE   :allocated,     value: 0
+          int32LE   :offset,        value: 0
+        end
 
+        class SecurityBuffer
+          attr_accessor :active
+          def initialize(opts)
+            super()
+            @value  = opts[:value]
+            @active = opts[:active].nil? ? true : opts[:active]
+            @size = 8
+          end
 
-  class SecurityBuffer
-    attr_accessor :active
-    def initialize(opts)
-      super()
-      @value  = opts[:value]
-      @active = opts[:active].nil? ? true : opts[:active]
-      @size = 8
-    end
+          def parse(str, offset = 0)
+            if @active && (str.size >= offset + @size)
+              super(str, offset)
+              @value = str[self.offset, length]
+              @size
+            else
+              0
+            end
+          end
 
-    def parse(str, offset=0)
-      if @active and str.size >= offset + @size
-        super(str, offset)
-        @value = str[self.offset, self.length]
-        @size
-      else
-        0
+          def serialize
+            super if @active
+          end
+
+          attr_reader :value
+
+          def value=(val)
+            @value = val
+            self.length = self.allocated = val.size
+          end
+
+          def data_size
+            @active ? @value.size : 0
+          end
+        end
       end
     end
-
-    def serialize
-      super if @active
-    end
-
-    def value
-      @value
-    end
-
-    def value=(val)
-      @value = val
-      self.length = self.allocated = val.size
-    end
-
-    def data_size
-      @active ? @value.size : 0
-    end
   end
-end
-end
-end
 end

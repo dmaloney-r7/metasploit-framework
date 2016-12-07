@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -22,7 +23,7 @@ class MetasploitModule < Msf::Auxiliary
           'Jean Pascal Pereira',  # Original exploit discovery
           'Jonathan Waggoner'     # Metasploit module
         ],
-        'References'     => [
+        'References' => [
           [ 'PACKETSTORM', '118539'],
           [ 'CVE', '2012-6301' ]
         ],

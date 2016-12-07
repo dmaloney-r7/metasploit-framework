@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 module Rex
@@ -5,7 +6,6 @@ module Rex
     module Kerberos
       module CredentialCache
         class Element
-
           def self.attr_accessor(*vars)
             @attributes ||= []
             @attributes.concat vars
@@ -15,15 +15,15 @@ module Rex
           # Retrieves the element class fields
           #
           # @return [Array]
-          def self.attributes
-            @attributes
+          class << self
+            attr_reader :attributes
           end
 
           def initialize(options = {})
             self.class.attributes.each do |attr|
-              if options.has_key?(attr)
+              if options.key?(attr)
                 m = (attr.to_s + '=').to_sym
-                self.send(m, options[attr])
+                send(m, options[attr])
               end
             end
           end

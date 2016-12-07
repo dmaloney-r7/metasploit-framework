@@ -1,20 +1,21 @@
+# frozen_string_literal: true
 # -*- coding:binary -*-
 require 'rex/post/meterpreter/packet'
 require 'rex/post/meterpreter/packet_parser'
 
-
 RSpec.describe Rex::Post::Meterpreter::PacketParser do
-  subject(:parser){
+  subject(:parser) do
     Rex::Post::Meterpreter::PacketParser.new
-  }
+  end
   before(:example) do
     @req_packt = Rex::Post::Meterpreter::Packet.new(
-          Rex::Post::Meterpreter::PACKET_TYPE_REQUEST,
-          "test_method")
+      Rex::Post::Meterpreter::PACKET_TYPE_REQUEST,
+      "test_method"
+    )
     @raw = @req_packt.to_r
     @sock = double('Socket')
     allow(@sock).to receive(:read) do |arg|
-      @raw.slice!(0,arg)
+      @raw.slice!(0, arg)
     end
   end
 
@@ -25,12 +26,9 @@ RSpec.describe Rex::Post::Meterpreter::PacketParser do
   end
 
   it "should parse valid raw data into a packet object" do
-    while @raw.length >0
-      parsed_packet = parser.recv(@sock)
-    end
+    parsed_packet = parser.recv(@sock) until @raw.empty?
     expect(parsed_packet).to be_a Rex::Post::Meterpreter::Packet
     expect(parsed_packet.type).to eq Rex::Post::Meterpreter::PACKET_TYPE_REQUEST
     expect(parsed_packet.method?("test_method")).to eq true
   end
-
 end

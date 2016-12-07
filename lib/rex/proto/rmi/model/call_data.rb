@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 module Rex
@@ -6,7 +7,6 @@ module Rex
       module Model
         # This class provides a representation of an RMI return value
         class CallData < Element
-
           # @!attribute object_number
           #   @return [Fixnum] Random to identify the object being called
           attr_accessor :object_number
@@ -55,7 +55,7 @@ module Rex
             self.arguments = []
 
             stream.contents[1..stream.contents.length - 1].each do |content|
-              self.arguments << content
+              arguments << content
             end
 
             self

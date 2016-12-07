@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -80,7 +81,7 @@ class MetasploitModule < Msf::Post
       private_type: :password,
       realm_value: rmodule,
       # XXX: add to MDM?
-      #realm_key: Metasploit::Model::Realm::Key::RSYNC_MODULE,
+      # realm_key: Metasploit::Model::Realm::Key::RSYNC_MODULE,
       workspace_id: myworkspace_id
     }
     credential_core = create_credential(credential_data)

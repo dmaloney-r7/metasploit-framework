@@ -1,61 +1,59 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 module Msf
-class PersistentStorage
+  class PersistentStorage
+    # This class persists the state of the framework to a flatfile in a human
+    # readable format.  At the moment, the level of information it conveys is
+    # rather basic and ugly, but this is just a prototype, so it will be improved.
+    # Oh yes, it will be improved.
+    class Flatfile < PersistentStorage
+      # Initializes the flatfile for storage based on the parameters specified.
+      # The hash must contain a FilePath attribute.
+      #
+      # @overload initialize(path)
+      #   Initializes the flatfile with the set path.
+      #   @param path [String] path of the flatfile.
+      def initialize(*params)
+        raise ArgumentError, "You must specify a file path" if params.empty?
 
-# This class persists the state of the framework to a flatfile in a human
-# readable format.  At the moment, the level of information it conveys is
-# rather basic and ugly, but this is just a prototype, so it will be improved.
-# Oh yes, it will be improved.
-class Flatfile < PersistentStorage
+        self.path = params[0]
+      end
 
-  # Initializes the flatfile for storage based on the parameters specified.
-  # The hash must contain a FilePath attribute.
-  #
-  # @overload initialize(path)
-  #   Initializes the flatfile with the set path.
-  #   @param path [String] path of the flatfile.
-  def initialize(*params)
-    raise ArgumentError, "You must specify a file path" if (params.length == 0)
+      # This method stores the current state of the framework in human readable
+      # form to a flatfile.  This can be used as a reporting mechanism.
+      #
+      # @param framework [Msf:::Framework] the Framework to store.
+      # @return [void]
+      def store(framework)
+        # Open the supplied file path for writing.
+        self.fd = File.new(path, "w")
 
-    self.path = params[0]
-  end
+        begin
+          store_general(framework)
+        ensure
+          fd.close
+        end
+      end
 
-  # This method stores the current state of the framework in human readable
-  # form to a flatfile.  This can be used as a reporting mechanism.
-  #
-  # @param framework [Msf:::Framework] the Framework to store.
-  # @return [void]
-  def store(framework)
-    # Open the supplied file path for writing.
-    self.fd = File.new(self.path, "w")
+      protected
 
-    begin
-      store_general(framework)
-    ensure
-      self.fd.close
+      attr_accessor :fd, :path # :nodoc:
+
+      # This method stores general information about the current state of the
+      # framework instance.
+      #
+      # @param framework [Msf::Framework] the Framework to store.
+      # @return [void]
+      def store_general(_framework)
+        fd.print(
+          "\n" \
+          "Metasploit Framework Report\n" \
+          "===========================\n\n" \
+          "Generated: #{Time.now}\n\n"
+        )
+      end
+
+      Msf::PersistentStorage.add_storage_class('flatfile', self)
     end
   end
-
-protected
-
-  attr_accessor :fd, :path # :nodoc:
-
-  # This method stores general information about the current state of the
-  # framework instance.
-  #
-  # @param framework [Msf::Framework] the Framework to store.
-  # @return [void]
-  def store_general(framework)
-    fd.print(
-      "\n" +
-      "Metasploit Framework Report\n" +
-      "===========================\n\n" +
-      "Generated: #{Time.now}\n\n")
-  end
-
-  Msf::PersistentStorage.add_storage_class('flatfile', self)
-
-end
-
-end
 end

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 require 'msf/core/reflective_dll_loader'
@@ -10,7 +11,6 @@ require 'msf/core/reflective_dll_loader'
 ###
 
 module Msf::Post::Windows::ReflectiveDLLInjection
-
   include Msf::ReflectiveDLLLoader
 
   PAGE_ALIGN = 1024
@@ -34,7 +34,7 @@ module Msf::Post::Windows::ReflectiveDLLInjection
     process.memory.protect(shellcode_mem)
     process.memory.write(shellcode_mem, shellcode)
 
-    return shellcode_mem
+    shellcode_mem
   end
 
   # Inject a reflectively-injectable DLL into the given process
@@ -50,7 +50,7 @@ module Msf::Post::Windows::ReflectiveDLLInjection
     dll, offset = load_rdi_dll(dll_path)
     dll_mem = inject_into_process(process, dll)
 
-    return dll_mem, offset
+    [dll_mem, offset]
   end
 
   # Inject a reflectively-injectable DLL into the given process
@@ -66,7 +66,6 @@ module Msf::Post::Windows::ReflectiveDLLInjection
     offset = load_rdi_dll_from_data(dll_data)
     dll_mem = inject_into_process(process, dll_data)
 
-    return dll_mem, offset
+    [dll_mem, offset]
   end
-
 end

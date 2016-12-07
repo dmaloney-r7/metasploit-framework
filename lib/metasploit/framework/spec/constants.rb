@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'msf/core/modules'
 
 # Monitor constants created by module loading to ensure that the loads in one example don't interfere with the
@@ -18,13 +19,13 @@ module Metasploit::Framework::Spec::Constants
   PARENT_CONSTANT = Msf::Modules
   # Constant names under {PARENT_CONSTANT} that can persist between specs because they are part of the loader library
   # and not dynamically loaded code
-  PERSISTENT_CHILD_CONSTANT_NAMES = %w{
+  PERSISTENT_CHILD_CONSTANT_NAMES = %w(
     Error
     Loader
     MetasploitClassCompatibilityError
     Namespace
     VersionCompatibilityError
-  }.map(&:to_sym)
+  ).map(&:to_sym)
 
   # Cleans child constants from {PARENT_CONSTANT}.
   #
@@ -89,9 +90,7 @@ module Metasploit::Framework::Spec::Constants
 
       module_type, _reference_name = potential_full_name.split('/', 2)
 
-      if Msf::MODULE_TYPES.include? module_type
-        full_name = potential_full_name
-      end
+      full_name = potential_full_name if Msf::MODULE_TYPES.include? module_type
     end
 
     full_name

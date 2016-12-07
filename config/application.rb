@@ -1,18 +1,19 @@
+# frozen_string_literal: true
 require 'rails'
 require File.expand_path('../boot', __FILE__)
 
 all_environments = [
-    :development,
-    :production,
-    :test
+  :development,
+  :production,
+  :test
 ]
 
 Bundler.require(
-    *Rails.groups(
-        coverage: [:test],
-        db: all_environments,
-        pcap: all_environments
-    )
+  *Rails.groups(
+    coverage: [:test],
+    db: all_environments,
+    pcap: all_environments
+  )
 )
 
 #

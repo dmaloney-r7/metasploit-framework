@@ -1,52 +1,49 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 require 'rex/post/meterpreter'
 
 module Rex
-module Post
-module Meterpreter
-module Ui
+  module Post
+    module Meterpreter
+      module Ui
+        ###
+        #
+        # The password database portion of the privilege escalation extension.
+        #
+        ###
+        class Console::CommandDispatcher::Priv::Passwd
+          Klass = Console::CommandDispatcher::Priv::Passwd
 
-###
-#
-# The password database portion of the privilege escalation extension.
-#
-###
-class Console::CommandDispatcher::Priv::Passwd
+          include Console::CommandDispatcher
 
-  Klass = Console::CommandDispatcher::Priv::Passwd
+          #
+          # List of supported commands.
+          #
+          def commands
+            {
+              "hashdump" => "Dumps the contents of the SAM database"
+            }
+          end
 
-  include Console::CommandDispatcher
+          #
+          # Name for this dispatcher.
+          #
+          def name
+            "Priv: Password database"
+          end
 
-  #
-  # List of supported commands.
-  #
-  def commands
-    {
-      "hashdump" => "Dumps the contents of the SAM database"
-    }
+          #
+          # Displays the contents of the SAM database
+          #
+          def cmd_hashdump(*_args)
+            client.priv.sam_hashes.each do |user|
+              print_line(user.to_s)
+            end
+
+            true
+          end
+          end
+        end
+    end
   end
-
-  #
-  # Name for this dispatcher.
-  #
-  def name
-    "Priv: Password database"
-  end
-
-  #
-  # Displays the contents of the SAM database
-  #
-  def cmd_hashdump(*args)
-    client.priv.sam_hashes.each { |user|
-      print_line("#{user}")
-    }
-
-    return true
-  end
-
-end
-
-end
-end
-end
 end

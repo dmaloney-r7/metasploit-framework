@@ -1,21 +1,19 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 require 'metasm'
 
-
 class MetasploitModule < Msf::Encoder::Xor
-
   def initialize
     super(
       'Name'             => 'XOR Encoder',
-      'Description'      => %q{
+      'Description'      => %q(
         Mips Web server exploit friendly xor encoder
-      },
+      ),
       'Author'           => 'Julien Tinnes <julien[at]cr0.org>',
       'Arch'             => ARCH_MIPSBE,
       'License'          => MSF_LICENSE,
@@ -23,7 +21,7 @@ class MetasploitModule < Msf::Encoder::Xor
         {
           'KeySize'   => 4,
           'BlockSize' => 4,
-          'KeyPack'   => 'N',
+          'KeyPack'   => 'N'
         })
   end
 
@@ -32,14 +30,13 @@ class MetasploitModule < Msf::Encoder::Xor
   # being encoded.
   #
   def decoder_stub(state)
-
     # add one xor operation for the key (see comment below)
-    number_of_passes=state.buf.length/4+1
-    raise EncodingError.new("The payload being encoded is too long (#{state.buf.length} bytes)") if number_of_passes > 10240
-    raise EncodingError.new("The payload is not padded to 4-bytes (#{state.buf.length} bytes)") if state.buf.length%4 != 0
+    number_of_passes = state.buf.length / 4 + 1
+    raise EncodingError, "The payload being encoded is too long (#{state.buf.length} bytes)" if number_of_passes > 10240
+    raise EncodingError, "The payload is not padded to 4-bytes (#{state.buf.length} bytes)" if state.buf.length % 4 != 0
 
     # 16-bits not (again, see below)
-    reg_14 = (number_of_passes+1)^0xFFFF
+    reg_14 = (number_of_passes + 1) ^ 0xFFFF
     decoder = Metasm::Shellcode.assemble(Metasm::MIPS.new(:big), <<EOS).encoded.data
 ;
 ; MIPS nul-free xor decoder
@@ -141,7 +138,6 @@ EOS
     # put the key at the end of the decoder
     state.decoder_key_offset = decoder.length - 4
 
-    return decoder
+    decoder
   end
-
 end

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'net/https'
 require 'anemone/page'
 require 'anemone/cookie_store'
@@ -29,27 +30,25 @@ module Anemone
     # including redirects
     #
     def fetch_pages(url, referer = nil, depth = nil)
-      begin
-        url = URI(url) unless url.is_a?(URI)
-        pages = []
-        get(url, referer) do |response, code, location, redirect_to, response_time|
-          pages << Page.new(location, :body => response.body.dup,
-                                      :code => code,
-                                      :headers => response.to_hash,
-                                      :referer => referer,
-                                      :depth => depth,
-                                      :redirect_to => redirect_to,
-                                      :response_time => response_time)
-        end
-
-        return pages
-      rescue => e
-        if verbose?
-          puts e.inspect
-          puts e.backtrace
-        end
-        return [Page.new(url, :error => e)]
+      url = URI(url) unless url.is_a?(URI)
+      pages = []
+      get(url, referer) do |response, code, location, redirect_to, response_time|
+        pages << Page.new(location, body: response.body.dup,
+                                    code: code,
+                                    headers: response.to_hash,
+                                    referer: referer,
+                                    depth: depth,
+                                    redirect_to: redirect_to,
+                                    response_time: response_time)
       end
+
+      return pages
+    rescue => e
+      if verbose?
+        puts e.inspect
+        puts e.backtrace
+      end
+      return [Page.new(url, error: e)]
     end
 
     #
@@ -85,15 +84,15 @@ module Anemone
       limit = redirect_limit
       loc = url
       begin
-          # if redirected to a relative url, merge it with the host of the original
-          # request url
-          loc = url.merge(loc) if loc.relative?
+        # if redirected to a relative url, merge it with the host of the original
+        # request url
+        loc = url.merge(loc) if loc.relative?
 
-          response, response_time = get_response(loc, referer)
-          code = Integer(response.code)
-          redirect_to = response.is_a?(Net::HTTPRedirection) ?  URI(response['location']).normalize : nil
-          yield response, code, loc, redirect_to, response_time
-          limit -= 1
+        response, response_time = get_response(loc, referer)
+        code = Integer(response.code)
+        redirect_to = response.is_a?(Net::HTTPRedirection) ? URI(response['location']).normalize : nil
+        yield response, code, loc, redirect_to, response_time
+        limit -= 1
       end while (loc = redirect_to) && allowed?(redirect_to, url) && limit > 0
     end
 
@@ -110,28 +109,26 @@ module Anemone
       opts['User-Agent'] = user_agent if user_agent
       opts['Referer'] = referer.to_s if referer
       opts['Cookie'] = @cookie_store.to_s unless @cookie_store.empty? || (!accept_cookies? && @opts[:cookies].nil?)
-      
+
       if @opts[:http_basic_auth]
-      	opts['Authorization'] = "Basic " + @opts[:http_basic_auth]
+        opts['Authorization'] = "Basic " + @opts[:http_basic_auth]
       end
 
-      if not @opts[:inject_headers].nil? 
-      	@opts[:inject_headers].each do |hdr|
-      	  k,v = hdr.split(':', 2)
-      	  opts[k] = v
-        end
+      @opts[:inject_headers]&.each do |hdr|
+        k, v = hdr.split(':', 2)
+        opts[k] = v
       end
-      
+
       retries = 0
       begin
-        start = Time.now()
+        start = Time.now
         response = nil
-        if @opts[:request_factory]
-          response = @opts[:request_factory].call(connection(url), full_path, opts)
-        else
-          response = connection(url).get(full_path, opts)
-        end
-        finish = Time.now()
+        response = if @opts[:request_factory]
+                     @opts[:request_factory].call(connection(url), full_path, opts)
+                   else
+                     connection(url).get(full_path, opts)
+                   end
+        finish = Time.now
         response_time = ((finish - start) * 1000).round
         @cookie_store.merge!(response['Set-Cookie']) if accept_cookies?
         return response, response_time
@@ -181,6 +178,5 @@ module Anemone
     def allowed?(to_url, from_url)
       to_url.host.nil? || (to_url.host == from_url.host)
     end
-
   end
 end

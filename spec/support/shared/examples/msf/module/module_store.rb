@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 RSpec.shared_examples_for 'Msf::Module::ModuleStore' do
   it { is_expected.to respond_to :[] }
   it { is_expected.to respond_to :[]= }

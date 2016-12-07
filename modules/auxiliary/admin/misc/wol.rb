@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,32 +7,31 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::Udp
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'UDP Wake-On-Lan (WOL)',
-      'Description'    => %q{
-          This module will turn on a remote machine with a network card that
-        supports wake-on-lan (or MagicPacket).  In order to use this, you must
-        know the machine's MAC address in advance.  The current default MAC
-        address is just an example of how your input should look like.
+                      'Name'           => 'UDP Wake-On-Lan (WOL)',
+                      'Description'    => %q{
+                          This module will turn on a remote machine with a network card that
+                        supports wake-on-lan (or MagicPacket).  In order to use this, you must
+                        know the machine's MAC address in advance.  The current default MAC
+                        address is just an example of how your input should look like.
 
-          The password field is optional.  If present, it should be in this hex
-        format: 001122334455, which is translated to "0x001122334455" in binary.
-        Note that this should be either 4 or 6 bytes long.
-      },
-      'License'        => MSF_LICENSE,
-      'Author'         => [ 'sinn3r' ]
-    ))
+                          The password field is optional.  If present, it should be in this hex
+                        format: 001122334455, which is translated to "0x001122334455" in binary.
+                        Note that this should be either 4 or 6 bytes long.
+                      },
+                      'License'        => MSF_LICENSE,
+                      'Author'         => [ 'sinn3r' ]))
 
     register_options(
       [
         OptString.new("MAC",      [true, 'Specify a MAC address', '00:90:27:85:cf:01']),
         OptString.new("PASSWORD", [false, 'Specify a four or six-byte password']),
         OptBool.new("IPV6",       [false, 'Use IPv6 broadcast', false])
-      ], self.class)
+      ], self.class
+    )
 
     deregister_options('RHOST', 'RPORT')
   end
@@ -63,7 +63,7 @@ class MetasploitModule < Msf::Auxiliary
     dataset = [ datastore['PASSWORD'] ].pack('H*').unpack('C*')
 
     # According to Wireshark wiki, this must be either 4 or 6 bytes
-    if dataset.length == 4 or dataset.length == 6
+    if (dataset.length == 4) || (dataset.length == 6)
       pass = ''
       dataset.each do |group|
         pass << group.to_i
@@ -95,24 +95,20 @@ class MetasploitModule < Msf::Auxiliary
     return if pass.nil?
 
     # Craft the WOL packet
-    wol_pkt = "\xff" * 6  #Sync stream (magic packet)
-    wol_pkt << mac  * 16  #Mac address
-    wol_pkt << pass if not pass.empty?
+    wol_pkt = "\xff" * 6 # Sync stream (magic packet)
+    wol_pkt << mac * 16 # Mac address
+    wol_pkt << pass unless pass.empty?
 
     # Send out the packet
     print_status("Sending WOL packet...")
-    connect_udp( true, {
-      'RHOST' => wol_rhost,
-      'RPORT' => wol_rport
-    })
+    connect_udp(true, 'RHOST' => wol_rhost,
+                      'RPORT' => wol_rport)
     udp_sock.put(wol_pkt)
     disconnect_udp
   end
 end
 
-=begin
-http://wiki.wireshark.org/WakeOnLAN
-
-Test:
-udp && eth.addr == ff:ff:ff:ff:ff:ff
-=end
+# http://wiki.wireshark.org/WakeOnLAN
+#
+# Test:
+# udp && eth.addr == ff:ff:ff:ff:ff:ff

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -5,31 +6,30 @@
 
 require 'msf/core'
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::BrowserExploitServer
 
-  def initialize(info={})
+  def initialize(info = {})
     super(update_info(info,
-      'Name'           => "HTTP Client Information Gather",
-      'Description'    => %q{
-        This module gathers information about a browser that exploits might be interested in, such
-        as OS name, browser version, plugins, etc. By default, the module will return a fake 404,
-        but you can customize this output by changing the Custom404 datastore option, and
-        redirect to an external web page.
-      },
-      'License'        => MSF_LICENSE,
-      'Author'         => [ 'sinn3r' ],
-      'DisclosureDate' => "Mar 22 2016",
-      'Actions'     =>
-        [
-          [
-            'WebServer', {
-              'Description' => 'A web that collects information about the browser.'
-          }]
-        ],
-      'PassiveActions' => [ 'WebServer' ],
-      'DefaultAction'  => 'WebServer'
-    ))
+                      'Name'           => "HTTP Client Information Gather",
+                      'Description'    => %q(
+                        This module gathers information about a browser that exploits might be interested in, such
+                        as OS name, browser version, plugins, etc. By default, the module will return a fake 404,
+                        but you can customize this output by changing the Custom404 datastore option, and
+                        redirect to an external web page.
+                      ),
+                      'License'        => MSF_LICENSE,
+                      'Author'         => [ 'sinn3r' ],
+                      'DisclosureDate' => "Mar 22 2016",
+                      'Actions' =>
+                        [
+                          [
+                            'WebServer', {
+                              'Description' => 'A web that collects information about the browser.'
+                            }
+                          ]
+                        ],
+                      'PassiveActions' => [ 'WebServer' ],
+                      'DefaultAction'  => 'WebServer'))
   end
 
   def is_key_wanted?(key)
@@ -66,14 +66,12 @@ class MetasploitModule < Msf::Auxiliary
     report_host_info(target_info)
     ignore_items!(target_info)
     target_info.each_pair do |key, value|
-      if key == :source
-        value = translate_script_meaning(value)
-      end
+      value = translate_script_meaning(value) if key == :source
       print_status("#{cli.peerhost} - #{key} = #{value}")
     end
   end
 
-  def on_request_exploit(cli, req, target_info)
+  def on_request_exploit(cli, _req, target_info)
     print_target_info(cli, target_info)
     send_not_found(cli)
   end
@@ -81,5 +79,4 @@ class MetasploitModule < Msf::Auxiliary
   def run
     exploit
   end
-
 end

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 module Rex
@@ -5,7 +6,6 @@ module Rex
     module Rmi
       module Model
         class Element
-
           include Rex::Proto::Rmi::Model
 
           def self.attr_accessor(*vars)
@@ -17,8 +17,8 @@ module Rex
           # Retrieves the element class fields
           #
           # @return [Array]
-          def self.attributes
-            @attributes
+          class << self
+            attr_reader :attributes
           end
 
           # Creates a Rex::Proto::Rmi::Model::Element with data from the IO.
@@ -26,7 +26,7 @@ module Rex
           # @param io [IO] the IO to read data from
           # @return [Rex::Proto::Rmi::Model::Element]
           def self.decode(io)
-            elem = self.new
+            elem = new
             elem.decode(io)
 
             elem
@@ -34,9 +34,9 @@ module Rex
 
           def initialize(options = {})
             self.class.attributes.each do |attr|
-              if options.has_key?(attr)
+              if options.key?(attr)
                 m = (attr.to_s + '=').to_sym
-                self.send(m, options[attr])
+                send(m, options[attr])
               end
             end
           end
@@ -54,10 +54,10 @@ module Rex
           # @return [Rex::Proto::Rmi::Model::Element]
           def decode(io)
             self.class.attributes.each do |attr|
-              dec_method = ("decode_#{attr}").to_sym
-              decoded = self.send(dec_method, io)
+              dec_method = "decode_#{attr}".to_sym
+              decoded = send(dec_method, io)
               assign_method = (attr.to_s + '=').to_sym
-              self.send(assign_method, decoded)
+              send(assign_method, decoded)
             end
 
             self
@@ -70,8 +70,8 @@ module Rex
           def encode
             encoded = ''
             self.class.attributes.each do |attr|
-              m = ("encode_#{attr}").to_sym
-              encoded << self.send(m) if self.send(attr)
+              m = "encode_#{attr}".to_sym
+              encoded << send(m) if send(attr)
             end
 
             encoded

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'spec_helper'
 
 load Metasploit::Framework.root.join('tools/exploit/virustotal.rb').to_path
@@ -7,7 +8,6 @@ require 'msf/base'
 require 'digest/sha2'
 
 RSpec.describe VirusTotalUtility do
-
   context "Classes" do
     let(:api_key) do
       'FAKE_API_KEY'
@@ -23,7 +23,6 @@ RSpec.describe VirusTotalUtility do
 
     describe VirusTotalUtility::ToolConfig do
       context "Class methods" do
-
         let(:tool_config) do
           VirusTotalUtility::ToolConfig.new
         end
@@ -42,7 +41,6 @@ RSpec.describe VirusTotalUtility do
 
     describe VirusTotalUtility::VirusTotal do
       context "Class methods" do
-
         let(:malware_sha256) do
           Digest::SHA256.hexdigest(malware_data)
         end
@@ -86,8 +84,8 @@ RSpec.describe VirusTotalUtility do
 
         let(:vt) do
           file = double(File, read: malware_data)
-          allow(File).to receive(:open).with(filename, 'rb') {|&block| block.yield file}
-          VirusTotalUtility::VirusTotal.new({'api_key'=>api_key, 'sample'=>filename})
+          allow(File).to receive(:open).with(filename, 'rb') { |&block| block.yield file }
+          VirusTotalUtility::VirusTotal.new('api_key' => api_key, 'sample' => filename)
         end
 
         context ".Initializer" do
@@ -137,7 +135,6 @@ RSpec.describe VirusTotalUtility do
         end
 
         context "._create_upload_data" do
-
           let(:form_opts) do
             {
               'boundary' => boundary,
@@ -170,7 +167,6 @@ RSpec.describe VirusTotalUtility do
       end
     end
 
-
     describe VirusTotalUtility::Driver do
       before do
         $stdin = StringIO.new("Y\n")
@@ -202,15 +198,14 @@ RSpec.describe VirusTotalUtility do
 
         d = nil
 
-        get_stdout {
+        get_stdout do
           d = VirusTotalUtility::Driver.new
-        }
+        end
 
         d
       end
 
       context ".Class methods" do
-
         context ".initialize" do
           it "should return a Driver object" do
             expect(driver.class).to eq(VirusTotalUtility::Driver)

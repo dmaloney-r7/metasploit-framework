@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::Tcp
   include Msf::Auxiliary::WmapScanSSL
   include Msf::Auxiliary::Scanner
@@ -20,23 +20,22 @@ class MetasploitModule < Msf::Auxiliary
       'Description' => 'Parse the server SSL certificate to obtain the common name and signature algorithm',
       'Author'      =>
         [
-          'et', #original module
-          'Chris John Riley', #additions
+          'et', # original module
+          'Chris John Riley', # additions
           'Veit Hailperin <hailperv[at]gmail.com>', # checks for public key size, valid time
         ],
       'License'     => MSF_LICENSE
     )
     register_options([
-      Opt::RPORT(443)
-    ], self.class)
+                       Opt::RPORT(443)
+                     ], self.class)
   end
 
   # Fingerprint a single host
   def run_host(ip)
-
     begin
 
-      connect(true, {"SSL" => true}) #Force SSL
+      connect(true, "SSL" => true) # Force SSL
 
       if sock.respond_to? :peer_cert
         cert = OpenSSL::X509::Certificate.new(sock.peer_cert)
@@ -59,7 +58,7 @@ class MetasploitModule < Msf::Auxiliary
         print_status("Not Valid After: #{cert.not_after}")
 
         # Checks for common properties of self signed certificates
-        caissuer = (/CA Issuers - URI:(.*?),/i).match(cert.extensions.to_s)
+        caissuer = /CA Issuers - URI:(.*?),/i.match(cert.extensions.to_s)
 
         if caissuer.to_s.empty?
           print_good("Certificate contains no CA Issuers extension... possible self signed certificate")
@@ -100,26 +99,26 @@ class MetasploitModule < Msf::Auxiliary
 
           # Store the virtual hostname for HTTP
           report_note(
-            :host	=> ip,
-            :port	=> rport,
-            :proto  => 'tcp',
-            :type	=> 'http.vhost',
-            :data	=> {:name => vhostn}
+            host: ip,
+            port: rport,
+            proto: 'tcp',
+            type: 'http.vhost',
+            data: { name: vhostn }
           )
 
           # Store the SSL certificate itself
           report_note(
-            :host	=> ip,
-            :proto  => 'tcp',
-            :port	=> rport,
-            :type	=> 'ssl.certificate',
-            :data	=> {
-              :cn        => vhostn,
-              :subject   => cert.subject.to_a,
-              :algorithm => alg,
-              :valid_from => cert.not_before,
-              :valid_after => cert.not_after,
-              :key_size => public_key_size
+            host: ip,
+            proto: 'tcp',
+            port: rport,
+            type: 'ssl.certificate',
+            data: {
+              cn: vhostn,
+              subject: cert.subject.to_a,
+              algorithm: alg,
+              valid_from: cert.not_before,
+              valid_after: cert.not_after,
+              key_size: public_key_size
 
             }
           )
@@ -127,8 +126,8 @@ class MetasploitModule < Msf::Auxiliary
           # Update the server hostname if necessary
           if vhostn !~ /localhost|snakeoil/i
             report_host(
-              :host => ip,
-              :name => vhostn
+              host: ip,
+              name: vhostn
             )
           end
 

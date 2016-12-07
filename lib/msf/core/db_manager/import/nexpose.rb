@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 module Msf::DBManager::Import::Nexpose
   autoload :Raw, 'msf/core/db_manager/import/nexpose/raw'
   autoload :Simple, 'msf/core/db_manager/import/nexpose/simple'

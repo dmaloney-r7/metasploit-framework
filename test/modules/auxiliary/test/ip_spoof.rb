@@ -1,13 +1,12 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Capture
   include Msf::Auxiliary::Scanner
 
@@ -26,8 +25,7 @@ class MetasploitModule < Msf::Auxiliary
       @@havepcap = false
     end
 
-    deregister_options('FILTER','PCAPFILE')
-
+    deregister_options('FILTER', 'PCAPFILE')
   end
 
   def run_host(ip)
@@ -38,9 +36,9 @@ class MetasploitModule < Msf::Auxiliary
     p.ip_ttl = 255
     p.udp_sport = 53
     p.udp_dport = 53
-    p.payload  = "HELLO WORLD"
+    p.payload = "HELLO WORLD"
     p.recalc
-    ret = send(ip,p)
+    ret = send(ip, p)
     if ret == :done
       print_good("#{ip}: Sent a packet to #{ip} from #{ip}")
     else
@@ -49,14 +47,12 @@ class MetasploitModule < Msf::Auxiliary
     close_pcap
   end
 
-  def send(ip,pkt)
+  def send(ip, pkt)
     begin
       capture_sendto(pkt, ip)
     rescue RuntimeError => e
       return :error
     end
-    return :done
+    :done
   end
-
-
 end

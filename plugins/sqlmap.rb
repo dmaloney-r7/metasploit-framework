@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'sqlmap/sqlmap_session'
 require 'sqlmap/sqlmap_manager'
 require 'json'
@@ -27,16 +28,14 @@ module Msf
       end
 
       def cmd_sqlmap_connect(*args)
-        if args.length == 0
+        if args.empty?
           print_error('Need a host, and optionally a port')
           return
         end
 
         @host, @port = args
 
-        if !@port
-          @port = '8775'
-        end
+        @port = '8775' unless @port
 
         @manager = Sqlmap::Manager.new(Sqlmap::Session.new(@host, @port))
         print_good("Set connection settings for host #{@host} on port #{@port}")
@@ -61,7 +60,7 @@ module Msf
       end
 
       def cmd_sqlmap_start_task(*args)
-        if args.length == 0
+        if args.empty?
           print_error('Usage:')
           print_error('\tsqlmap_start_task <taskid> [<url>]')
           return
@@ -143,7 +142,8 @@ module Msf
         res = @manager.get_task_data(@hid_tasks[args[0]])
 
         tbl = Rex::Text::Table.new(
-          'Columns' => ['Title', 'Payload'])
+          'Columns' => ['Title', 'Payload']
+        )
 
         res['data'].each do |d|
           d['value'].each do |v|
@@ -192,7 +192,7 @@ module Msf
         host = url.split('/')[2]
         port = 80
         host, port = host.split(':') if host.include?(':')
-        path = '/' + (url.split('/')[3..(url.split('/').length - 1)].join('/'))
+        path = '/' + url.split('/')[3..(url.split('/').length - 1)].join('/')
         query = url.split('?')[1]
         web_vuln_info[:web_site] = url
         web_vuln_info[:path] = path

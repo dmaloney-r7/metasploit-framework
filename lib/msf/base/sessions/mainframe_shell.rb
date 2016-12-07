@@ -1,121 +1,119 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 
 require 'msf/base/sessions/command_shell'
 
 module Msf::Sessions
+  ###
+  #
+  # This class provides basic interaction with a Unix Systems Service
+  # command shell on a mainframe (IBM System Z) running Z/OS
+  # This session is initialized with a stream that will be used
+  # as the pipe for reading and writing the command shell.
+  #
+  #  Date:    Oct 8, 2015
+  #  Author:  Bigendian Smalls
+  #
+  ###
+  class MainframeShell < Msf::Sessions::CommandShell
+    #
+    # This interface supports basic interaction.
+    #
+    include Msf::Session::Basic
 
-###
-#
-# This class provides basic interaction with a Unix Systems Service
-# command shell on a mainframe (IBM System Z) running Z/OS
-# This session is initialized with a stream that will be used
-# as the pipe for reading and writing the command shell.
-#
-#  Date:    Oct 8, 2015
-#  Author:  Bigendian Smalls
-#
-###
-class MainframeShell < Msf::Sessions::CommandShell
+    #
+    # This interface supports interacting with a single command shell.
+    #
+    include Msf::Session::Provider::SingleCommandShell
 
-  #
-  # This interface supports basic interaction.
-  #
-  include Msf::Session::Basic
-
-  #
-  # This interface supports interacting with a single command shell.
-  #
-  include Msf::Session::Provider::SingleCommandShell
-
-  ##
-  #
-  # initialize as mf shell session
-  #
-  def initialize(*args)
-    self.platform = 'mainframe'
-    self.arch = ARCH_ZARCH
-    self.translate_1047 = true
-    super
-  end
-
-  ##
-  #
-  # Returns the session description.
-  #
-  def desc
-    "Mainframe shell"
-  end
-
-  ##
-  #
-  # override shell_read to include decode of cp1047
-  #
-  def shell_read(length=-1, timeout=1)
-    #mfimpl
-    if self.respond_to?(:ring)
-      return Rex::Text.from_ibm1047(shell_read_ring(length,timeout))
+    ##
+    #
+    # initialize as mf shell session
+    #
+    def initialize(*args)
+      self.platform = 'mainframe'
+      self.arch = ARCH_ZARCH
+      self.translate_1047 = true
+      super
     end
 
-    begin
-      rv = Rex::Text.from_ibm1047(rstream.get_once(length, timeout))
-      framework.events.on_session_output(self, rv) if rv
-      return rv
-    rescue ::Rex::SocketError, ::EOFError, ::IOError, ::Errno::EPIPE => e
-      shell_close
-      raise e
+    ##
+    #
+    # Returns the session description.
+    #
+    def desc
+      "Mainframe shell"
     end
-  end
 
-  ##
-  #
-  # override shell_write to include encode of cp1047
-  #
-  def shell_write(buf)
-    #mfimpl
-    return unless buf
+    ##
+    #
+    # override shell_read to include decode of cp1047
+    #
+    def shell_read(length = -1, timeout = 1)
+      # mfimpl
+      if respond_to?(:ring)
+        return Rex::Text.from_ibm1047(shell_read_ring(length, timeout))
+      end
 
-    begin
-      framework.events.on_session_command(self, buf.strip)
-      rstream.write(Rex::Text.to_ibm1047(buf))
-    rescue ::Rex::SocketError, ::EOFError, ::IOError, ::Errno::EPIPE => e
-      shell_close
-      raise e
+      begin
+        rv = Rex::Text.from_ibm1047(rstream.get_once(length, timeout))
+        framework.events.on_session_output(self, rv) if rv
+        return rv
+      rescue ::Rex::SocketError, ::EOFError, ::IOError, ::Errno::EPIPE => e
+        shell_close
+        raise e
+      end
     end
-  end
 
-  def execute_file(full_path, args)
-    #mfimpl
-    raise NotImplementedError
-  end
+    ##
+    #
+    # override shell_write to include encode of cp1047
+    #
+    def shell_write(buf)
+      # mfimpl
+      return unless buf
 
-  # need to do more testing on this before we either use the default in command_shell
-  # or write a new one.  For now we just make it unavailble. This prevents a hang on
-  # initial session creation.  See PR#6067
-  undef_method  :process_autoruns
+      begin
+        framework.events.on_session_command(self, buf.strip)
+        rstream.write(Rex::Text.to_ibm1047(buf))
+      rescue ::Rex::SocketError, ::EOFError, ::IOError, ::Errno::EPIPE => e
+        shell_close
+        raise e
+      end
+    end
 
-  def desc
-    "Mainframe USS session"
-  end
+    def execute_file(_full_path, _args)
+      # mfimpl
+      raise NotImplementedError
+    end
 
-  attr_accessor :translate_1047   # tells the session whether or not to translate
-                                  # ebcdic (cp1047) <-> ASCII for certain mainframe payloads
-                                  # this will be used in post modules to be able to switch on/off the
-                                  # translation on file transfers, for instance
+    # need to do more testing on this before we either use the default in command_shell
+    # or write a new one.  For now we just make it unavailble. This prevents a hang on
+    # initial session creation.  See PR#6067
+    undef_method :process_autoruns
 
-  protected
+    def desc
+      "Mainframe USS session"
+    end
 
-  ##
-  #
-  # _interact_ring overridden to include decoding of cp1047 data
-  #
-  def _interact_ring
-    begin
+    attr_accessor :translate_1047 # tells the session whether or not to translate
+    # ebcdic (cp1047) <-> ASCII for certain mainframe payloads
+    # this will be used in post modules to be able to switch on/off the
+    # translation on file transfers, for instance
+
+    protected
+
+    ##
+    #
+    # _interact_ring overridden to include decoding of cp1047 data
+    #
+    def _interact_ring
       rdr = framework.threads.spawn("RingMonitor", false) do
         seq = nil
 
-        while self.interacting
+        while interacting
           # Look for any pending data from the remote ring
-          nseq,data = ring.read_data(seq)
+          nseq, data = ring.read_data(seq)
 
           # Update the sequence number if necessary
           seq = nseq || seq
@@ -133,7 +131,7 @@ class MainframeShell < Msf::Sessions::CommandShell
         end
       end
 
-      while self.interacting
+      while interacting
         # Look for any pending input or errors from the local stream
         sd = Rex::ThreadSafe.select([ _local_fd ], nil, [_local_fd], 5.0)
 
@@ -143,7 +141,5 @@ class MainframeShell < Msf::Sessions::CommandShell
     ensure
       rdr.kill
     end
-  end
-
-end
+    end
 end

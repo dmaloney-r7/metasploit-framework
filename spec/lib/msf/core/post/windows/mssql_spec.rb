@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 require 'spec_helper'
 
@@ -8,7 +9,7 @@ RSpec.describe Msf::Post::Windows::MSSQL do
     mod = double(Module.new)
     mod.extend described_class
     stubs = [ :vprint_status, :print_status, :vprint_good, :print_good,
-      :print_error, :vprint_error, :print_bad, :vprint_bad, :print_warning ]
+              :print_error, :vprint_error, :print_bad, :vprint_bad, :print_warning ]
     stubs.each { |meth| allow(mod).to receive(meth) }
     allow(mod).to receive(:service_info).and_return({})
     mod

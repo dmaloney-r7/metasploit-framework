@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'metasploit/framework/login_scanner/base'
 require 'metasploit/framework/login_scanner/rex_socket'
 require 'metasploit/framework/tcp/client'
@@ -5,7 +6,6 @@ require 'metasploit/framework/tcp/client'
 module Metasploit
   module Framework
     module LoginScanner
-
       # This is the LoginScanner class for dealing with vmware-auth.
       # It is responsible for taking a single target, and a list of credentials
       # and attempting them. It then saves the results.
@@ -15,9 +15,9 @@ module Metasploit
         include Metasploit::Framework::Tcp::Client
 
         DEFAULT_PORT         = 902
-        LIKELY_PORTS         = [ DEFAULT_PORT, 903, 912 ]
-        LIKELY_SERVICE_NAMES = [ 'vmauthd', 'vmware-auth' ]
-        PRIVATE_TYPES        = [ :password ]
+        LIKELY_PORTS         = [ DEFAULT_PORT, 903, 912 ].freeze
+        LIKELY_SERVICE_NAMES = [ 'vmauthd', 'vmware-auth' ].freeze
+        PRIVATE_TYPES        = [ :password ].freeze
         REALM_KEY            = nil
 
         # This method attempts a single login with a single credential against the target
@@ -34,7 +34,7 @@ module Metasploit
             protocol: 'tcp'
           }
 
-          disconnect if self.sock
+          disconnect if sock
 
           begin
             connect
@@ -69,7 +69,7 @@ module Metasploit
             )
           end
 
-          disconnect if self.sock
+          disconnect if sock
 
           Result.new(result_options)
         end
@@ -84,8 +84,8 @@ module Metasploit
           self.send_delay         ||= 0
         end
 
-        def swap_sock_plain_to_ssl(nsock=self.sock)
-          ctx =  generate_ssl_context
+        def swap_sock_plain_to_ssl(nsock = sock)
+          ctx = generate_ssl_context
           ssl = OpenSSL::SSL::SSLSocket.new(nsock, ctx)
 
           ssl.connect
@@ -97,7 +97,7 @@ module Metasploit
 
         def generate_ssl_context
           ctx = OpenSSL::SSL::SSLContext.new(:SSLv3)
-          @@cached_rsa_key ||= OpenSSL::PKey::RSA.new(1024){}
+          @@cached_rsa_key ||= OpenSSL::PKey::RSA.new(1024) {}
 
           ctx.key = @@cached_rsa_key
 
@@ -106,7 +106,6 @@ module Metasploit
           ctx
         end
       end
-
     end
   end
 end

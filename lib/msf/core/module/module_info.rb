@@ -1,10 +1,11 @@
+# frozen_string_literal: true
 module Msf::Module::ModuleInfo
   #
   # CONSTANTS
   #
 
   # The list of options that support merging in an information hash.
-  UpdateableOptions = [ "Name", "Description", "Alias", "PayloadCompat" ]
+  UpdateableOptions = [ "Name", "Description", "Alias", "PayloadCompat" ].freeze
 
   #
   # Instance Methods
@@ -29,7 +30,11 @@ module Msf::Module::ModuleInfo
   # Returns the disclosure date, if known.
   #
   def disclosure_date
-    date_str = Date.parse(module_info['DisclosureDate'].to_s) rescue nil
+    date_str = begin
+                 Date.parse(module_info['DisclosureDate'].to_s)
+               rescue
+                 nil
+               end
   end
 
   #
@@ -58,11 +63,9 @@ module Msf::Module::ModuleInfo
   def info_fixups
     # Each reference should be an array consisting of two elements
     refs = module_info['References']
-    if(refs and not refs.empty?)
+    if refs && !refs.empty?
       refs.each_index do |i|
-        if !(refs[i].respond_to?('[]') and refs[i].length == 2)
-          refs[i] = nil
-        end
+        refs[i] = nil unless refs[i].respond_to?('[]') && (refs[i].length == 2)
       end
 
       # Purge invalid references
@@ -74,27 +77,25 @@ module Msf::Module::ModuleInfo
   # Checks and merges the supplied key/value pair in the supplied hash.
   #
   def merge_check_key(info, name, val)
-    if (self.respond_to?("merge_info_#{name.downcase}", true))
+    if respond_to?("merge_info_#{name.downcase}", true)
       eval("merge_info_#{name.downcase}(info, val)")
     else
       # If the info hash already has an entry for this name
-      if (info[name])
+      if info[name]
         # If it's not an array, convert it to an array and merge the
         # two
-        if (info[name].kind_of?(Array) == false)
+        if info[name].is_a?(Array) == false
           curr       = info[name]
           info[name] = [ curr ]
         end
 
         # If the value being merged is an array, add each one
-        if (val.kind_of?(Array) == true)
-          val.each { |v|
-            if (info[name].include?(v) == false)
-              info[name] << v
-            end
-          }
+        if val.is_a?(Array) == true
+          val.each do |v|
+            info[name] << v if info[name].include?(v) == false
+          end
         # Otherwise just add the value
-        elsif (info[name].include?(val) == false)
+        elsif info[name].include?(val) == false
           info[name] << val
         end
       # Otherwise, just set the value equal if no current value
@@ -110,9 +111,9 @@ module Msf::Module::ModuleInfo
   # require special attention.
   #
   def merge_info(info, opts)
-    opts.each_pair { |name, val|
+    opts.each_pair do |name, val|
       merge_check_key(info, name, val)
-    }
+    end
 
     info
   end
@@ -156,35 +157,34 @@ module Msf::Module::ModuleInfo
   # Merges options.
   #
   def merge_info_options(info, val, advanced = false, evasion = false)
-
-    key_name = ((advanced) ? 'Advanced' : (evasion) ? 'Evasion' : '') + 'Options'
+    key_name = (advanced ? 'Advanced' : evasion ? 'Evasion' : '') + 'Options'
 
     new_cont = Msf::OptionContainer.new
     new_cont.add_options(val, advanced, evasion)
     cur_cont = Msf::OptionContainer.new
     cur_cont.add_options(info[key_name] || [], advanced, evasion)
 
-    new_cont.each_option { |name, option|
-      next if (cur_cont.get(name))
+    new_cont.each_option do |name, option|
+      next if cur_cont.get(name)
 
-      info[key_name]  = [] if (!info[key_name])
+      info[key_name] = [] unless info[key_name]
       info[key_name] << option
-    }
+    end
   end
 
   #
   # Merges a given key in the info hash with a delimiter.
   #
   def merge_info_string(info, key, val, delim = ', ', inverse = false)
-    if (info[key])
-      if (inverse == true)
-        info[key] = info[key] + delim + val
-      else
-        info[key] = val + delim + info[key]
-      end
-    else
-      info[key] = val
-    end
+    info[key] = if info[key]
+                  if inverse == true
+                    info[key] + delim + val
+                  else
+                    val + delim + info[key]
+                              end
+                else
+                  val
+                end
   end
 
   #
@@ -201,20 +201,18 @@ module Msf::Module::ModuleInfo
   # platforms, and options.
   #
   def update_info(info, opts)
-    opts.each_pair { |name, val|
+    opts.each_pair do |name, val|
       # If the supplied option name is one of the ones that we should
       # override by default
-      if (UpdateableOptions.include?(name) == true)
+      if UpdateableOptions.include?(name) == true
         # Only if the entry is currently nil do we use our value
-        if (info[name] == nil)
-          info[name] = val
-        end
+        info[name] = val if info[name].nil?
       # Otherwise, perform the merge operation like normal
       else
         merge_check_key(info, name, val)
       end
-    }
+    end
 
-    return info
+    info
   end
 end

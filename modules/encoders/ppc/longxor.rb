@@ -1,21 +1,19 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 
-
 class MetasploitModule < Msf::Encoder::Xor
-
   def initialize
     super(
       'Name'             => 'PPC LongXOR Encoder',
-      'Description'      => %q{
+      'Description'      => %q(
         This encoder is ghandi's PPC dword xor encoder with some size tweaks
         by HDM.
-      },
+      ),
       'Author'           => [ 'ddz', 'hdm' ],
       'Arch'             => ARCH_PPC,
       'License'          => MSF_LICENSE,
@@ -23,7 +21,7 @@ class MetasploitModule < Msf::Encoder::Xor
         {
           'KeySize'    => 4,
           'BlockSize'  => 4,
-          'KeyPack'    => 'N',
+          'KeyPack'    => 'N'
         })
   end
 
@@ -31,7 +29,7 @@ class MetasploitModule < Msf::Encoder::Xor
   # Returns the decoder stub that is adjusted for the size of
   # the buffer being encoded
   #
-  def decoder_stub(state)
+  def decoder_stub(_state)
     [
       0x7ca52a79,     # 0x1da8 <main>:          xor.    r5,r5,r5
       0x4082fffd,     # 0x1dac <main+4>:        bnel+   0x1da8 <main>
@@ -67,5 +65,4 @@ class MetasploitModule < Msf::Encoder::Xor
 
     stub
   end
-
 end

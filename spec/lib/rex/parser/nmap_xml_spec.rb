@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding:binary -*-
 
 require 'rex/parser/nmap_xml'
@@ -26,7 +27,7 @@ xml = '
 RSpec.describe Rex::Parser::NmapXMLStreamParser do
   parser = Rex::Parser::NmapXMLStreamParser.new
   total_hosts = 0
-  parser.on_found_host = Proc.new { |host|
+  parser.on_found_host = proc { |host|
     total_hosts += 1
     it "should yield a host" do
       expect(host).not_to be_nil
@@ -49,4 +50,3 @@ RSpec.describe Rex::Parser::NmapXMLStreamParser do
     expect(total_hosts).to eq 1
   end
 end
-

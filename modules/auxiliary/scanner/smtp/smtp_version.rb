@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,7 +7,6 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::Smtp
   include Msf::Auxiliary::Scanner
   include Msf::Auxiliary::Report
@@ -17,7 +17,7 @@ class MetasploitModule < Msf::Auxiliary
       'Description' => 'SMTP Banner Grabber',
       'References'  =>
         [
-          ['URL', 'http://www.ietf.org/rfc/rfc2821.txt'],
+          ['URL', 'http://www.ietf.org/rfc/rfc2821.txt']
         ],
       'Author'      => 'CG',
       'License'     => MSF_LICENSE
@@ -29,7 +29,6 @@ class MetasploitModule < Msf::Auxiliary
     res = connect
     banner_sanitized = Rex::Text.to_hex_ascii(banner.to_s)
     print_status("#{ip}:#{rport} SMTP #{banner_sanitized}")
-    report_service(:host => rhost, :port => rport, :name => "smtp", :info => banner)
+    report_service(host: rhost, port: rport, name: "smtp", info: banner)
   end
-
 end

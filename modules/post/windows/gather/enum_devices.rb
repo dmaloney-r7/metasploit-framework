@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,24 +8,22 @@ require 'msf/core'
 require 'rex'
 
 class MetasploitModule < Msf::Post
-
   include Msf::Post::Windows::Registry
 
-  def initialize(info={})
+  def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Windows Gather Hardware Enumeration',
-      'Description'    => %q{
-          Enumerate PCI hardware information from the registry. Please note this script
-        will run through registry subkeys such as: 'PCI', 'ACPI', 'ACPI_HAL', 'FDC', 'HID',
-        'HTREE', 'IDE', 'ISAPNP', 'LEGACY'', LPTENUM', 'PCIIDE', 'SCSI', 'STORAGE', 'SW',
-        and 'USB'; it will take time to finish. It is recommended to run this module as a
-        background job.
-        },
-      'License'        => MSF_LICENSE,
-      'Author'         => [ 'Brandon Perry <bperry.volatile[at]gmail.com>' ],
-      'Platform'       => [ 'win' ],
-      'SessionTypes'   => [ 'meterpreter' ]
-    ))
+                      'Name'           => 'Windows Gather Hardware Enumeration',
+                      'Description'    => %q(
+                          Enumerate PCI hardware information from the registry. Please note this script
+                        will run through registry subkeys such as: 'PCI', 'ACPI', 'ACPI_HAL', 'FDC', 'HID',
+                        'HTREE', 'IDE', 'ISAPNP', 'LEGACY'', LPTENUM', 'PCIIDE', 'SCSI', 'STORAGE', 'SW',
+                        and 'USB'; it will take time to finish. It is recommended to run this module as a
+                        background job.
+                        ),
+                      'License'        => MSF_LICENSE,
+                      'Author'         => [ 'Brandon Perry <bperry.volatile[at]gmail.com>' ],
+                      'Platform'       => [ 'win' ],
+                      'SessionTypes'   => [ 'meterpreter' ]))
   end
 
   def list
@@ -37,8 +36,9 @@ class MetasploitModule < Msf::Post
         "Driver Version",
         "Class",
         "Manufacturer",
-        "Extra",
-      ])
+        "Extra"
+      ]
+    )
 
     keys = [
       "HKLM\\SYSTEM\\ControlSet001\\Enum\\PCI\\",
@@ -56,7 +56,7 @@ class MetasploitModule < Msf::Post
       "HKLM\\SYSTEM\\ControlSet001\\Enum\\SCSI\\",
       "HKLM\\SYSTEM\\ControlSet001\\Enum\\STORAGE\\",
       "HKLM\\SYSTEM\\ControlSet001\\Enum\\SW\\",
-      "HKLM\\SYSTEM\\ControlSet001\\Enum\\USB\\",
+      "HKLM\\SYSTEM\\ControlSet001\\Enum\\USB\\"
     ]
 
     keys.each do |key|
@@ -64,9 +64,9 @@ class MetasploitModule < Msf::Post
 
       t = []
 
-      while(not devices.nil? and not devices.empty?)
+      while !devices.nil? && !devices.empty?
         1.upto(3) do
-          t << framework.threads.spawn("Module(#{self.refname})", false, devices.shift) do |device|
+          t << framework.threads.spawn("Module(#{refname})", false, devices.shift) do |device|
             next if device.nil?
             vprint_status("Enumerating #{device}")
 
@@ -84,11 +84,11 @@ class MetasploitModule < Msf::Post
               driver_guid  = registry_getvaldata(info_key, "Driver")
               extra        = ""
 
-              if key =~ /USB/ or key =~ /LPTENUM/
+              if key =~ /USB/ || key =~ /LPTENUM/
                 extra = registry_getvaldata(info_key, "LocationInformation")
               end
 
-              if key =~ /SCSI/ or key =~ /\\IDE/ or key =~ /ACPI\\/
+              if key =~ /SCSI/ || key =~ /\\IDE/ || key =~ /ACPI\\/
                 extra = registry_getvaldata(info_key, "FriendlyName")
               end
 
@@ -101,35 +101,35 @@ class MetasploitModule < Msf::Post
               driver_guid  = '' if driver_guid.nil?
               extra        = '' if extra.nil?
 
-              next if desc.empty? and mfg.empty?
+              next if desc.empty? && mfg.empty?
 
               driver_version = ""
 
-              if not driver_guid.nil? or not driver_guid.empty?
+              if !driver_guid.nil? || !driver_guid.empty?
                 if driver_guid =~ /\\/
                   k = "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Class\\" + driver_guid
                   d = registry_getvaldata(k, "DriverVersion")
-                  driver_version << d if not d.nil?
+                  driver_version << d unless d.nil?
                 end
               end
 
               done = false
 
               tbl.rows.each do |row|
-                if row[0] == desc and
-                  row[1] == driver_version and
-                  row[2] == device_class and
-                  row[3] == mfg and
-                  row[4] == extra
+                if (row[0] == desc) &&
+                   (row[1] == driver_version) &&
+                   (row[2] == device_class) &&
+                   (row[3] == mfg) &&
+                   (row[4] == extra)
                   done = true
                   break
                 end
               end
 
-              tbl << [desc, driver_version, device_class, mfg, extra] if not done
+              tbl << [desc, driver_version, device_class, mfg, extra] unless done
             end
           end
-          t.map {|x| x.join }
+          t.map(&:join)
         end
       end
     end
@@ -149,7 +149,7 @@ class MetasploitModule < Msf::Post
       if e.to_s =~ /execution expired/i
         print_error("Sorry, execution expired. Module could not finish running.")
       else
-        print_error("An unexpected error has occurred: #{e.to_s}:\n#{e.backtrace}")
+        print_error("An unexpected error has occurred: #{e}:\n#{e.backtrace}")
       end
     end
   end

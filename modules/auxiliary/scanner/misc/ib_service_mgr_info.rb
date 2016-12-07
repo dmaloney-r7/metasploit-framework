@@ -1,14 +1,12 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-
 require 'msf/core'
 
-
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Exploit::Remote::Tcp
 
   # Scanner mixin should be near last
@@ -18,15 +16,15 @@ class MetasploitModule < Msf::Auxiliary
   def initialize
     super(
       'Name'		=> 'Borland InterBase Services Manager Information',
-      'Description'	=> %q{
+      'Description'	=> %q(
         This module retrieves version of the services manager, version
         and implementation of the InterBase server from InterBase
         Services Manager.
-      },
+      ),
       'Author'	=>
         [
           'Ramon de C Valle',
-          'Adriano Lima <adriano[at]risesecurity.org>',
+          'Adriano Lima <adriano[at]risesecurity.org>'
         ],
       'License'	=> MSF_LICENSE
     )
@@ -37,7 +35,6 @@ class MetasploitModule < Msf::Auxiliary
       ],
       self.class
     )
-
   end
 
   # Create service parameter block
@@ -95,15 +92,12 @@ class MetasploitModule < Msf::Auxiliary
     remainder = length.remainder(4)
     padding = 0
 
-    if remainder > 0
-      padding = (4 - remainder)
-    end
+    padding = (4 - remainder) if remainder > 0
 
     padding
   end
 
   def run_host(ip)
-
     #
     # Using the InterBase Services Manager
     # http://dn.codegear.com/article/27002
@@ -158,7 +152,6 @@ class MetasploitModule < Msf::Auxiliary
 
       # print(Rex::Text.to_hex_dump(response))
 
-
       # isc_service_query
 
       # Response buffer length
@@ -210,33 +203,31 @@ class MetasploitModule < Msf::Auxiliary
       print("Version of the InterBase server: #{info_svc_server_version}\n")
       print("Implementation of the InterBase server: #{info_svc_implementation}\n\n")
 
-      #print(Rex::Text.to_hex_dump(response))
+      # print(Rex::Text.to_hex_dump(response))
 
       # Add Report
       report_note(
-        :host	=> ip,
-        :sname	=> 'ib',
-        :proto	=> 'tcp',
-        :port	=> rport,
-        :type	=> 'Version of the InterBase server',
-        :data	=> "Version of the InterBase server: #{info_svc_server_version}"
+        host: ip,
+        sname: 'ib',
+        proto: 'tcp',
+        port: rport,
+        type: 'Version of the InterBase server',
+        data: "Version of the InterBase server: #{info_svc_server_version}"
       )
 
       # Add Report
       report_note(
-        :host	=> ip,
-        :sname	=> 'ib',
-        :proto	=> 'tcp',
-        :port	=> rport,
-        :type	=> 'Implementation of the InterBase server',
-        :data	=> "Implementation of the InterBase server: #{info_svc_implementation}"
+        host: ip,
+        sname: 'ib',
+        proto: 'tcp',
+        port: rport,
+        type: 'Implementation of the InterBase server',
+        data: "Implementation of the InterBase server: #{info_svc_implementation}"
       )
 
     rescue ::Rex::ConnectionError
     rescue ::Errno::EPIPE
 
     end
-
   end
-
 end

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 RSpec.shared_examples_for 'Msf::DBManager::WMAP' do
   it { is_expected.to respond_to :create_request }
   it { is_expected.to respond_to :create_target }

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'metasploit/framework/credential'
 
 module Metasploit
@@ -19,7 +20,6 @@ module Metasploit
       #   classes that will probably give useful results when run
       #   against `service`.
       def self.classes_for_service(service)
-
         unless @required
           # Make sure we've required all the scanner classes
           dir = File.expand_path("../login_scanner/", __FILE__)
@@ -29,8 +29,8 @@ module Metasploit
           @required = true
         end
 
-        self.constants.map{|sym| const_get(sym)}.select do |const|
-          next unless const.kind_of?(Class)
+        constants.map { |sym| const_get(sym) }.select do |const|
+          next unless const.is_a?(Class)
 
           (
             const.const_defined?(:LIKELY_PORTS) &&
@@ -41,7 +41,6 @@ module Metasploit
           )
         end
       end
-
     end
   end
 end

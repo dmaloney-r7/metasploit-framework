@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 # Copyright (c) 2010, patrickHVE@googlemail.com
 # All rights reserved.
@@ -24,25 +25,22 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Rex
-module Post
-module Meterpreter
-module Extensions
-module Stdapi
-module Railgun
+  module Post
+    module Meterpreter
+      module Extensions
+        module Stdapi
+          module Railgun
+            #
+            #
+            #
+            class BufferItem
+              attr_reader :belongs_to_param_n, :addr, :length_in_bytes, :datatype
 
-#
-#
-#
-class BufferItem
-
-  attr_reader :belongs_to_param_n, :addr, :length_in_bytes, :datatype
-
-  def initialize(belongs_to_param_n, addr, length_in_bytes, datatype)
-    @belongs_to_param_n = belongs_to_param_n
-    @addr = addr
-    @length_in_bytes = length_in_bytes
-    @datatype = datatype
-  end
-end
-
-end; end; end; end; end; end
+              def initialize(belongs_to_param_n, addr, length_in_bytes, datatype)
+                @belongs_to_param_n = belongs_to_param_n
+                @addr = addr
+                @length_in_bytes = length_in_bytes
+                @datatype = datatype
+              end
+            end
+            end; end; end; end; end; end

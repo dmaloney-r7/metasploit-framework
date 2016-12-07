@@ -1,19 +1,16 @@
+# frozen_string_literal: true
 # -*- coding: binary -*-
 module Msf
+  ###
+  #
+  # This module provides methods for Denial of Service attacks
+  #
+  ###
 
-###
-#
-# This module provides methods for Denial of Service attacks
-#
-###
-
-module Auxiliary::Dos
-
-
-# Never include DoS modules in automated attacks
-def autofilter
-  false
-end
-
-end
+  module Auxiliary::Dos
+    # Never include DoS modules in automated attacks
+    def autofilter
+      false
+    end
+  end
 end
